@@ -6,7 +6,7 @@ import Image from "next/image"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
-import APP_VERSION from "@/lib/version"
+import FooterCopyright from "@/components/FooterCopyright"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -76,6 +76,7 @@ export default function DashboardPage() {
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
           <a href="/help" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>עזרה</a>
+          <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
           {session?.user?.isAdmin && (
             <a href="/admin" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.2)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
               ניהול פניות
@@ -148,9 +149,7 @@ export default function DashboardPage() {
         )}
       </main>
 
-      <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#d1d5db" }}>
-        v{APP_VERSION} &copy; 2026 AK
-      </footer>
+      <FooterCopyright />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

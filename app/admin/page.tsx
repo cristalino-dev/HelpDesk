@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import type { TicketWithUser } from "@/types/ticket"
-import APP_VERSION from "@/lib/version"
+import FooterCopyright from "@/components/FooterCopyright"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -45,7 +45,7 @@ interface UserRow { id: string; name: string | null; email: string; phone: strin
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [tab, setTab] = useState<"tickets" | "users">("tickets")
+  const [tab, setTab] = useState<"tickets" | "users" | "logs">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -57,6 +57,11 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("")
   const [editingUser, setEditingUser] = useState<UserRow | null>(null)
   const [userSaving, setUserSaving] = useState(false)
+  // Logs tab
+  const [logDate, setLogDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [logText, setLogText] = useState("")
+  const [logCount, setLogCount] = useState(0)
+  const [logsLoading, setLogsLoading] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -107,6 +112,29 @@ export default function AdminPage() {
       setUsers(Array.isArray(data) ? data : [])
     } finally {
       setUsersLoading(false)
+    }
+  }
+
+  const loadLogs = async (date: string) => {
+    setLogsLoading(true)
+    try {
+      const res = await fetch(`/api/logs?date=${date}`)
+      const data = await res.json()
+      if (!Array.isArray(data)) { setLogText(""); setLogCount(0); return }
+      setLogCount(data.length)
+      if (data.length === 0) {
+        setLogText("אין רשומות ביומן לתאריך זה.")
+        return
+      }
+      const formatted = data.map((entry: { timestamp: string; level: string; source?: string; message: string; stack?: string }) => {
+        const time = new Date(entry.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        const src = entry.source ? ` [${entry.source}]` : ""
+        const stack = entry.stack ? `\n${entry.stack}` : ""
+        return `[${time}] [${entry.level.toUpperCase()}]${src}\n${entry.message}${stack}`
+      }).join("\n\n---\n\n")
+      setLogText(formatted)
+    } finally {
+      setLogsLoading(false)
     }
   }
 
@@ -164,6 +192,7 @@ export default function AdminPage() {
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
+          <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
           <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</a>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
@@ -179,8 +208,12 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => { setTab(key); if (key === "users" && users.length === 0) loadUsers() }}
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"]] as const).map(([key, label]) => (
+            <button key={key} onClick={() => {
+              setTab(key)
+              if (key === "users" && users.length === 0) loadUsers()
+              if (key === "logs") loadLogs(logDate)
+            }}
               style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0 }}>
               {label}
             </button>
@@ -255,6 +288,66 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── LOGS TAB ── */}
+        {tab === "logs" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Date picker row */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <input
+                type="date"
+                value={logDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={e => { setLogDate(e.target.value); loadLogs(e.target.value) }}
+                style={{ padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "0.88rem", backgroundColor: "#fff" }}
+              />
+              <button
+                onClick={() => loadLogs(logDate)}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: "#ede9fe", color: "#4f46e5", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                רענן
+              </button>
+              {!logsLoading && (
+                <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>
+                  {logCount} {logCount === 1 ? "רשומה" : "רשומות"}
+                </span>
+              )}
+            </div>
+
+            {/* Log viewer */}
+            {logsLoading ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>טוען יומן...</div>
+            ) : (
+              <textarea
+                readOnly
+                value={logText}
+                style={{
+                  width: "100%",
+                  height: "520px",
+                  padding: "16px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  backgroundColor: "#0f172a",
+                  color: "#e2e8f0",
+                  fontFamily: "'Courier New', Consolas, monospace",
+                  fontSize: "0.78rem",
+                  lineHeight: 1.7,
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  direction: "ltr",
+                  textAlign: "left",
+                  whiteSpace: "pre",
+                  overflowY: "auto",
+                }}
+              />
+            )}
+
+            <p style={{ margin: 0, fontSize: "0.72rem", color: "#9ca3af" }}>
+              יומנים נמחקים אוטומטית לאחר 30 יום.
+            </p>
           </div>
         )}
 
@@ -401,9 +494,7 @@ export default function AdminPage() {
         </> }
       </main>
 
-      <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#d1d5db" }}>
-        v{APP_VERSION} &copy; 2026 AK
-      </footer>
+      <FooterCopyright />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

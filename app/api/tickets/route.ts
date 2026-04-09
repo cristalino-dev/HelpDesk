@@ -1,52 +1,71 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
+import { logError } from "@/lib/logError"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { subject, description, phone, computerName, urgency, category } = await req.json()
+    const { subject, description, phone, computerName, urgency, category } = await req.json()
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+    const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-  const ticket = await prisma.ticket.create({
-    data: { subject, description, phone, computerName, urgency, category, userId: user.id },
-  })
+    const ticket = await prisma.ticket.create({
+      data: { subject, description, phone, computerName, urgency, category, userId: user.id },
+    })
 
-  return NextResponse.json(ticket)
+    return NextResponse.json(ticket)
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/tickets POST", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  try {
+    const session = await auth()
+    if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const { id, status } = await req.json()
-  const ticket = await prisma.ticket.update({ where: { id }, data: { status } })
-  return NextResponse.json(ticket)
+    const { id, status } = await req.json()
+    const ticket = await prisma.ticket.update({ where: { id }, data: { status } })
+    return NextResponse.json(ticket)
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/tickets PATCH", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
 }
 
 export async function GET() {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const isAdmin = session.user.isAdmin
+    const isAdmin = session.user.isAdmin
 
-  if (isAdmin) {
+    if (isAdmin) {
+      const tickets = await prisma.ticket.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { name: true, email: true } } },
+      })
+      return NextResponse.json(tickets)
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
+    if (!user) return NextResponse.json([])
+
     const tickets = await prisma.ticket.findMany({
+      where: { userId: user.id },
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { name: true, email: true } } },
     })
     return NextResponse.json(tickets)
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/tickets GET", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
-
-  const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
-  if (!user) return NextResponse.json([])
-
-  const tickets = await prisma.ticket.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  })
-  return NextResponse.json(tickets)
 }

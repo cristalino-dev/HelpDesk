@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import APP_VERSION from "@/lib/version"
+import FooterCopyright from "@/components/FooterCopyright"
 
 const badge = (bg: string, color: string, text: string) => (
   <span style={{ backgroundColor: bg, color, padding: "3px 12px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 700, display: "inline-block" }}>{text}</span>
@@ -17,7 +17,10 @@ export default function HelpPage() {
           <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk</span>
           <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש</span>
         </div>
-        <Link href="/dashboard" style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.8)", textDecoration: "none" }}>חזרה ללוח הבקרה</Link>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
+          <Link href="/dashboard" style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.8)", textDecoration: "none" }}>חזרה ללוח הבקרה</Link>
+        </div>
       </header>
 
       <main style={{ maxWidth: "860px", margin: "0 auto", padding: "40px 24px", display: "flex", flexDirection: "column", gap: "40px" }}>
@@ -37,6 +40,7 @@ export default function HelpPage() {
             <li><a href="#new-ticket" style={{ color: "#2563eb" }}>פתיחת פנייה חדשה</a></li>
             <li><a href="#statuses" style={{ color: "#2563eb" }}>מצבי פנייה</a></li>
             <li><a href="#urgency" style={{ color: "#2563eb" }}>רמות דחיפות</a></li>
+            <li><a href="#contact" style={{ color: "#2563eb" }}>צרו קשר עם תמיכת המערכת</a></li>
           </ol>
         </div>
 
@@ -86,10 +90,15 @@ export default function HelpPage() {
                 <Image src="/logo.jpeg" alt="" width={32} height={32} style={{ objectFit: "contain", borderRadius: "4px" }} />
                 <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem" }}>מערכת helpdesk</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.65rem", fontWeight: 800 }}>יש</div>
-                <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.8rem" }}>ישראל ישראלי</span>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.75rem" }}>יציאה</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {["עזרה", "צרו קשר"].map(t => (
+                  <span key={t} style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.85)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>{t}</span>
+                ))}
+                <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "3px 8px 3px 5px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
+                  <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.55rem", fontWeight: 800 }}>יש</div>
+                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.68rem" }}>ישראל ישראלי</span>
+                </div>
+                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.68rem", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.2)", backgroundColor: "rgba(255,255,255,0.08)" }}>יציאה</span>
               </div>
             </div>
             {/* Body */}
@@ -253,11 +262,51 @@ export default function HelpPage() {
           </Card>
         </section>
 
+        {/* ── SECTION 6: CONTACT ── */}
+        <section id="contact" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <SectionTitle number="6" title="צרו קשר עם תמיכת המערכת" />
+
+          {/* Contact form mockup */}
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>צרו קשר עם תמיכת HelpDesk</span>
+            </div>
+            <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div style={{ backgroundColor: "#f9fafb", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.68rem", fontWeight: 700 }}>יש</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#1f2937" }}>ישראל ישראלי</div>
+                  <div style={{ fontSize: "0.72rem", color: "#6b7280" }}>israel@cristalino.co.il</div>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>נושא: HelpDesk Issues</div>
+                <div style={{ fontSize: "0.68rem", color: "#9ca3af" }}>ההודעה תישלח אל dev@cristalino.co.il</div>
+              </div>
+              <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: "#9ca3af" }}>תארו את הבעיה שנתקלתם בה...</div>
+              <div style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
+            </div>
+          </div>
+
+          <Card>
+            <p style={{ margin: "0 0 14px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
+              דף זה מיועד לדיווח על בעיות <Strong>במערכת ה-HelpDesk עצמה</Strong> — לא לבקשות תמיכה רגילות. לתקלת מחשב, רשת או מדפסת — פתחו פנייה רגילה.
+            </p>
+            <FieldList items={[
+              { label: "כפתור \"צרו קשר\"", desc: "נמצא בכל דף במערכת — בתפריט הראשי בראש הדף" },
+              { label: "נושא קבוע", desc: "ההודעה נשלחת תמיד עם הנושא \"HelpDesk Issues\" לצוות הפיתוח" },
+              { label: "שולח אוטומטי", desc: "שמכם ואימייל Google שלכם נשלחים אוטומטית — אין צורך למלא" },
+            ]} />
+            <Note text="לאחר שליחת ההודעה תופיע הודעת אישור על המסך. הצוות יחזור אליכם בהקדם." />
+          </Card>
+        </section>
+
       </main>
 
-      <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#9ca3af" }}>
-        v{APP_VERSION} &copy; 2026 AK
-      </footer>
+      <FooterCopyright />
     </div>
   )
 }

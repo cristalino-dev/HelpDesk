@@ -3,7 +3,7 @@ import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import APP_VERSION from "@/lib/version"
+import FooterCopyright from "@/components/FooterCopyright"
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession()
@@ -134,9 +134,7 @@ export default function ProfilePage() {
         </form>
       </main>
 
-      <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#d1d5db" }}>
-        v{APP_VERSION} &copy; 2026 AK
-      </footer>
+      <FooterCopyright />
     </div>
   )
 }

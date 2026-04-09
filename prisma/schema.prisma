@@ -32,3 +32,13 @@ model Ticket {
   userId       String
   user         User     @relation(fields: [userId], references: [id])
 }
+
+model Log {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  level     String   @default("error")
+  message   String
+  source    String?
+  stack     String?
+  date      String
+}
