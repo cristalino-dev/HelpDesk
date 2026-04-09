@@ -2,6 +2,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
@@ -67,6 +68,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} style={{ objectFit: "contain", borderRadius: "6px" }} />
           {session?.user?.isAdmin && (
             <a href="/admin" style={{
               fontSize: "0.8rem",

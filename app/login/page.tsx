@@ -1,5 +1,6 @@
 "use client"
 import { signIn } from "next-auth/react"
+import Image from "next/image"
 
 export default function LoginPage() {
   return (
@@ -28,21 +29,8 @@ export default function LoginPage() {
         maxWidth: "400px",
         position: "relative",
       }}>
-        {/* Logo icon */}
-        <div style={{
-          width: "64px",
-          height: "64px",
-          borderRadius: "18px",
-          background: "linear-gradient(135deg, #2563eb, #4f46e5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 8px 20px rgba(37,99,235,0.35)",
-        }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-            <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
+        {/* Logo */}
+        <Image src="/logo.jpeg" alt="Cristalino Group" width={120} height={120} style={{ objectFit: "contain" }} />
 
         <div style={{ textAlign: "center" }}>
           <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>מערכת הלפדסק</h1>
