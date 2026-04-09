@@ -1,3 +1,62 @@
+/**
+ * app/admin/page.tsx — Admin Control Panel
+ *
+ * PURPOSE:
+ * ─────────
+ * The admin-only management interface. Accessible only to users with
+ * isAdmin === true (enforced both client-side and server-side by /api/* routes).
+ *
+ * THREE TABS:
+ * ────────────
+ *
+ * 1. תור פניות (Ticket Queue)
+ *    ───────────────────────────
+ *    Shows all open/in-progress tickets sorted by urgency priority, then by
+ *    creation time (FIFO within each urgency level). Admins can click any
+ *    ticket to expand it and change the status to פתוח/בטיפול/סגור.
+ *
+ *    Sorting: done client-side after fetch.
+ *    Priority map: דחוף=0, גבוה=1, בינוני=2, נמוך=3 (lower = higher priority)
+ *    Note: Closed tickets (סגור) are filtered OUT of the queue to keep it actionable.
+ *
+ * 2. ניהול משתמשים (User Management)
+ *    ──────────────────────────────────
+ *    Searchable table of all registered users. Admins can edit:
+ *      - Full name
+ *      - Phone number
+ *      - Workstation hostname
+ *      - isAdmin flag (grants or revokes admin privileges)
+ *    Uses an inline modal (editingUser state) — no separate route.
+ *    Data is loaded lazily (only when the tab is first opened).
+ *
+ * 3. יומן שגיאות (Error Logs)
+ *    ────────────────────────────
+ *    Dark terminal-style read-only textarea showing all log entries for a
+ *    selected date. Defaults to today. Admin can pick any past date from
+ *    the date picker input.
+ *    Data is loaded when the tab is opened and on manual refresh.
+ *    Scrollable and selectable — admin can copy log text for external tools.
+ *    Displays entry count next to the refresh button.
+ *
+ * STATE SUMMARY:
+ * ───────────────
+ *   tab           — active tab ("tickets" | "users" | "logs")
+ *   tickets       — array of open/in-progress TicketWithUser objects
+ *   loading       — tickets loading indicator
+ *   expanded      — id of the currently expanded ticket card (null = none)
+ *   updating      — id of the ticket whose status is being saved (for disabled state)
+ *   hoverId       — id of the hovered ticket card (for shadow effect)
+ *   users         — array of UserRow objects (loaded lazily)
+ *   usersLoading  — users loading indicator
+ *   userSearch    — search input value for filtering users by name/email
+ *   editingUser   — UserRow being edited in the modal (null = modal closed)
+ *   userSaving    — modal save button loading state
+ *   logDate       — selected date string "YYYY-MM-DD" for log tab
+ *   logText       — formatted log text content for the textarea
+ *   logCount      — number of log entries for the selected date
+ *   logsLoading   — log loading indicator
+ */
+
 "use client"
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"

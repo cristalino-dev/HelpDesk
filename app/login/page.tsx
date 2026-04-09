@@ -1,3 +1,37 @@
+/**
+ * app/login/page.tsx — Google Sign-In Page
+ *
+ * PURPOSE:
+ * ─────────
+ * The entry point for unauthenticated users. Displays a branded card with a
+ * single "התחברות עם Google" button that initiates the OAuth flow.
+ *
+ * AUTHENTICATION FLOW FROM THIS PAGE:
+ * ─────────────────────────────────────
+ *   1. User arrives at /login (redirected from "/" or directly)
+ *   2. Clicks "התחברות עם Google"
+ *   3. signIn("google", { callbackUrl: "/dashboard" }) is called
+ *   4. Browser redirects to Google's OAuth consent screen
+ *   5. User selects their Cristalino Google account
+ *   6. Google redirects to /api/auth/callback/google
+ *   7. NextAuth's session callback runs (auth.ts):
+ *      — Looks up or creates the user in the DB
+ *      — Attaches isAdmin + id to the session JWT
+ *   8. NextAuth redirects to callbackUrl ("/dashboard")
+ *   9. The root "/" redirect (app/page.tsx) then routes admins to /admin
+ *
+ * NOTE: callbackUrl is set to "/dashboard" rather than "/" to avoid a
+ * double redirect (login → / → /admin or /dashboard). Admins who arrive at
+ * /dashboard are expected to navigate to /admin via the header link.
+ *
+ * DESIGN:
+ * ────────
+ * - Full-viewport gradient background (dark blue → indigo → blue)
+ * - Centred white card with Cristalino logo
+ * - Decorative circles (position: fixed) add depth without affecting layout
+ * - Fixed-position version footer at bottom centre (FooterCopyright fixed)
+ */
+
 "use client"
 import { signIn } from "next-auth/react"
 import Image from "next/image"

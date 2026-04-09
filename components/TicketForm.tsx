@@ -1,29 +1,113 @@
+/**
+ * components/TicketForm.tsx — New Ticket Submission Form
+ *
+ * PURPOSE:
+ * ─────────
+ * Renders the form used by employees to open a new IT support ticket.
+ * Displayed in the dashboard when the user clicks "+ פנייה חדשה".
+ *
+ * PROFILE PRE-FILL:
+ * ──────────────────
+ * The parent component (dashboard/page.tsx) fetches the user's saved profile
+ * (GET /api/profile) on page load and passes `defaultPhone` and
+ * `defaultStation` as props. This means:
+ *   - On first use: fields are empty, user fills them in manually
+ *   - After saving profile settings: phone and computer name are pre-filled
+ *   - After form submission: fields reset to the defaultPhone/defaultStation
+ *     values (not to empty strings), so the next ticket is also pre-filled
+ *
+ * FORM FIELDS:
+ * ─────────────
+ *   subject      — Short problem description (required)
+ *   computerName — Machine hostname, pre-filled from profile.station (required)
+ *                  Includes a "?" tooltip button explaining how to find it:
+ *                  Start → cmd → hostname
+ *   phone        — Contact number, pre-filled from profile.phone (required)
+ *   category     — One of: חומרה | תוכנה | רשת | מדפסת | אחר (optional, default "אחר")
+ *   urgency      — One of: נמוך | בינוני | גבוה | דחוף (optional, default "בינוני")
+ *                  Select box background color changes to match urgency level
+ *   description  — Full problem details (required, 4-row textarea)
+ *
+ * PROPS:
+ * ───────
+ *   onSuccess       {() => void}  Called after a successful POST. The parent
+ *                                 uses this to hide the form and reload tickets.
+ *   defaultPhone    {string}      Pre-fills the phone field. Default: "".
+ *   defaultStation  {string}      Pre-fills the computerName field. Default: "".
+ *
+ * SUBMISSION:
+ * ────────────
+ * On submit, POSTs to /api/tickets with the form data as JSON.
+ * On success: calls onSuccess(), resets the form to defaults.
+ * On error:   shows a Hebrew error message below the form fields.
+ */
+
 "use client"
 import { useState } from "react"
 
+/** All available ticket categories. Displayed in the category <select>. */
 const CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"]
+
+/** All available urgency levels, from lowest to highest. */
 const URGENCIES = ["נמוך", "בינוני", "גבוה", "דחוף"]
 
+/**
+ * Colour palette for the urgency select box.
+ * The background, text, and border colours change dynamically to give
+ * the user instant visual feedback on the severity they've chosen.
+ */
 const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "נמוך":   { bg: "#f0fdf4", text: "#16a34a", border: "#86efac" },
-  "בינוני": { bg: "#fffbeb", text: "#d97706", border: "#fcd34d" },
-  "גבוה":   { bg: "#fff7ed", text: "#ea580c", border: "#fdba74" },
-  "דחוף":   { bg: "#fef2f2", text: "#dc2626", border: "#fca5a5" },
+  "נמוך":   { bg: "#f0fdf4", text: "#16a34a", border: "#86efac" }, // green
+  "בינוני": { bg: "#fffbeb", text: "#d97706", border: "#fcd34d" }, // yellow
+  "גבוה":   { bg: "#fff7ed", text: "#ea580c", border: "#fdba74" }, // orange
+  "דחוף":   { bg: "#fef2f2", text: "#dc2626", border: "#fca5a5" }, // red
 }
 
-export default function TicketForm({ onSuccess, defaultPhone = "", defaultStation = "" }: { onSuccess: () => void; defaultPhone?: string; defaultStation?: string }) {
+export default function TicketForm({
+  onSuccess,
+  defaultPhone = "",
+  defaultStation = "",
+}: {
+  /** Callback invoked after the ticket is successfully created. */
+  onSuccess: () => void
+  /** Phone number pre-filled from user profile. Empty if not saved. */
+  defaultPhone?: string
+  /** Workstation name pre-filled from user profile. Empty if not saved. */
+  defaultStation?: string
+}) {
+  /** Controlled form state for all input fields. */
   const [form, setForm] = useState({
     subject: "",
     description: "",
-    phone: defaultPhone,
-    computerName: defaultStation,
-    urgency: "בינוני",
-    category: "אחר",
+    phone: defaultPhone,       // Pre-filled from profile (if available)
+    computerName: defaultStation, // Pre-filled from profile (if available)
+    urgency: "בינוני",         // Default urgency: medium
+    category: "אחר",           // Default category: other
   })
+
+  /** Whether the form is currently submitting (disables button, shows spinner). */
   const [loading, setLoading] = useState(false)
+
+  /** Error message shown to the user if submission fails. */
   const [error, setError] = useState("")
+
+  /**
+   * Controls visibility of the computer-name tooltip.
+   * Shown on hover or focus of the "?" button; hidden on blur/mouseleave.
+   */
   const [showTooltip, setShowTooltip] = useState(false)
 
+  /**
+   * handleSubmit — POSTs the form data to /api/tickets.
+   *
+   * Flow:
+   *   1. Prevent default browser form submission
+   *   2. Set loading state
+   *   3. POST JSON to /api/tickets
+   *   4a. Success: call onSuccess(), reset form to defaults
+   *   4b. Error:   show Hebrew error message
+   *   5. Always: clear loading state
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -36,7 +120,16 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
       })
       if (!res.ok) throw new Error()
       onSuccess()
-      setForm({ subject: "", description: "", phone: defaultPhone, computerName: defaultStation, urgency: "בינוני", category: "אחר" })
+      // Reset form, but keep the pre-filled defaults (not blank strings)
+      // so the next ticket opened in the same session is also pre-filled.
+      setForm({
+        subject: "",
+        description: "",
+        phone: defaultPhone,
+        computerName: defaultStation,
+        urgency: "בינוני",
+        category: "אחר",
+      })
     } catch {
       setError("אירעה שגיאה. נסו שנית.")
     } finally {
@@ -44,6 +137,7 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
     }
   }
 
+  /** Currently selected urgency colour theme (updates reactively as urgency changes). */
   const urgColor = URGENCY_COLORS[form.urgency]
 
   return (
@@ -54,7 +148,7 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
       border: "1px solid #f0f2f5",
       overflow: "hidden",
     }}>
-      {/* Form header */}
+      {/* ── Form Header ── */}
       <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "10px" }}>
         <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -65,7 +159,8 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
       </div>
 
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
-        {/* Subject */}
+
+        {/* ── Subject Field ── */}
         <div>
           <label>נושא הפנייה *</label>
           <input
@@ -76,11 +171,14 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
           />
         </div>
 
-        {/* Computer + Phone */}
+        {/* ── Computer Name + Phone (two-column grid) ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+
+          {/* Computer Name with tooltip */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px" }}>
               <label style={{ margin: 0 }}>שם מחשב *</label>
+              {/* Tooltip trigger button — shows "how to find hostname" instructions */}
               <div style={{ position: "relative" }}>
                 <button
                   type="button"
@@ -99,6 +197,7 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
                     <div>לחצו <strong>Start</strong> ← הקלידו <strong>cmd</strong> ← Enter</div>
                     <div style={{ margin: "4px 0" }}>הקלידו <strong>hostname</strong> ← Enter</div>
                     <div>השם שמופיע הוא שם המחשב.</div>
+                    {/* Tooltip arrow (CSS triangle trick) */}
                     <div style={{ position: "absolute", bottom: "-5px", right: "7px", width: "10px", height: "10px", backgroundColor: "#1f2937", transform: "rotate(45deg)" }} />
                   </div>
                 )}
@@ -111,6 +210,8 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
               placeholder="לדוגמה: PC-ALON-01"
             />
           </div>
+
+          {/* Phone */}
           <div>
             <label>טלפון *</label>
             <input
@@ -123,7 +224,7 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
           </div>
         </div>
 
-        {/* Category + Urgency */}
+        {/* ── Category + Urgency (two-column grid) ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div>
             <label>קטגוריה</label>
@@ -133,6 +234,7 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
           </div>
           <div>
             <label>דחיפות</label>
+            {/* Background/text/border changes dynamically based on selected urgency */}
             <select
               value={form.urgency}
               onChange={e => setForm(f => ({ ...f, urgency: e.target.value }))}
@@ -143,7 +245,7 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
           </div>
         </div>
 
-        {/* Description */}
+        {/* ── Description ── */}
         <div>
           <label>תיאור מפורט *</label>
           <textarea
@@ -156,12 +258,14 @@ export default function TicketForm({ onSuccess, defaultPhone = "", defaultStatio
           />
         </div>
 
+        {/* ── Error message (shown on submit failure) ── */}
         {error && (
           <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: "#dc2626" }}>
             {error}
           </div>
         )}
 
+        {/* ── Submit button ── */}
         <button
           type="submit"
           disabled={loading}

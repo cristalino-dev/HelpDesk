@@ -1,3 +1,44 @@
+/**
+ * app/profile/page.tsx — User Account Settings
+ *
+ * PURPOSE:
+ * ─────────
+ * Allows employees to fill in personal details that are saved to the database
+ * and used to pre-populate the TicketForm on subsequent visits.
+ *
+ * FIELDS:
+ * ────────
+ *   שם פרטי (firstName)  — First name. Combined with lastName as User.name.
+ *   שם משפחה (lastName)  — Last name. Combined with firstName as User.name.
+ *   טלפון (phone)        — Contact number. Saved to User.phone. Pre-fills
+ *                          TicketForm.phone on the dashboard.
+ *   שם מחשב / תחנת עבודה (station) — Workstation hostname. Saved to User.station.
+ *                          Pre-fills TicketForm.computerName on the dashboard.
+ *   כתובת אימייל (email) — Read-only. Displayed for reference; controlled by
+ *                          Google OAuth and cannot be changed here.
+ *
+ * DATA FLOW:
+ * ───────────
+ *   On mount: GET /api/profile → splits User.name into firstName/lastName parts
+ *   On save:  PATCH /api/profile with { name: "first last", phone, station }
+ *             + NextAuth session.update({ name }) to refresh the display name
+ *             in the header without requiring a sign-out/sign-in cycle.
+ *
+ * NAME HANDLING:
+ * ───────────────
+ * The database stores a single `name` field. This page splits it on the first
+ * space for display in two inputs, then joins them back on save. If the user
+ * has no last name, lastName is stored as "". The combined name is trimmed
+ * before saving to avoid trailing spaces.
+ *
+ * SESSION UPDATE:
+ * ────────────────
+ * After a successful PATCH, `update({ name: fullName })` is called on the
+ * NextAuth session. This triggers a session refresh that propagates the new
+ * name to the JWT cookie, so the header avatar in all pages reflects the
+ * change on the next render.
+ */
+
 "use client"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
@@ -34,7 +75,7 @@ export default function ProfilePage() {
       })
   }, [status])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSaving(true)
     setError("")

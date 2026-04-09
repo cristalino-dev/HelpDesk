@@ -1,3 +1,42 @@
+/**
+ * app/dashboard/page.tsx — User Dashboard
+ *
+ * PURPOSE:
+ * ─────────
+ * The primary page for authenticated employees. Shows their tickets and
+ * provides access to the new ticket form.
+ *
+ * DATA FLOW:
+ * ───────────
+ *   On mount (status === "authenticated"):
+ *     1. GET /api/tickets       → loads the user's ticket list
+ *     2. GET /api/profile       → loads saved phone + station for TicketForm pre-fill
+ *
+ *   User opens "+ פנייה חדשה":
+ *     — TicketForm is shown (slide-down by toggling showForm state)
+ *     — defaultPhone and defaultStation passed from saved profile
+ *
+ *   TicketForm.onSuccess:
+ *     — hides the form (setShowForm(false))
+ *     — re-fetches tickets (loadTickets()) to show the new entry
+ *
+ * STATS CARDS:
+ * ─────────────
+ * The three summary cards (פתוחות, בטיפול, סגורות) only render when:
+ *   - Loading is complete (loading === false)
+ *   - There is at least one ticket (tickets.length > 0)
+ * This avoids showing 0/0/0 counters while loading or for new users.
+ *
+ * NAVIGATION:
+ * ────────────
+ * Header contains: logo | עזרה | צרו קשר | [admin link if isAdmin] | profile avatar | יציאה
+ *
+ * PROTECTION:
+ * ────────────
+ * useEffect watches `status` and redirects to /login if unauthenticated.
+ * While the session is loading, returns null (blank screen) to avoid flash.
+ */
+
 "use client"
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"

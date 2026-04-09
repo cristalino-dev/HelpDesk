@@ -1,3 +1,40 @@
+/**
+ * app/contact/page.tsx — Contact Development Team
+ *
+ * PURPOSE:
+ * ─────────
+ * Provides a way for employees to report problems with the HelpDesk
+ * application itself (bugs, UI issues, login failures). Distinct from the
+ * ticket system — this is for feedback about the software, not IT requests.
+ *
+ * EMAIL DELIVERY:
+ * ────────────────
+ *   To:       dev@cristalino.co.il  (hardcoded)
+ *   Subject:  "HelpDesk Issues"     (hardcoded — easy to filter in inbox)
+ *   From:     HelpDesk System <SMTP_FROM>
+ *   Reply-To: <sender's Google email> — so the dev can reply directly
+ *
+ *   The sender's name and email are taken from the Google OAuth session.
+ *   Users cannot forge their identity — only the message body is user input.
+ *
+ * SMTP REQUIREMENT:
+ * ──────────────────
+ * Requires SMTP_HOST, SMTP_USER, SMTP_PASS in .env. If unconfigured,
+ * the API returns 503 and an error message is shown in the form.
+ * See app/api/contact/route.ts and .env.example for details.
+ *
+ * ACCESSIBILITY:
+ * ───────────────
+ * The send button is disabled (and pointer-events blocked) while:
+ *   - A send is in progress (sending === true)
+ *   - The message field is empty or whitespace-only
+ *
+ * SUCCESS STATE:
+ * ───────────────
+ * On successful send, a green confirmation banner is shown and the textarea
+ * is cleared. The banner persists until the user navigates away or sends again.
+ */
+
 "use client"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
