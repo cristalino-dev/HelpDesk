@@ -27,7 +27,7 @@ export async function getZohoAccessToken(): Promise<string> {
   return cachedToken.token
 }
 
-export async function zohoRequest(method: string, path: string, body?: any) {
+export async function zohoRequest(method: string, path: string, body?: Record<string, unknown>) {
   const token = await getZohoAccessToken()
   const orgId = process.env.ZOHO_ORG_ID!
 

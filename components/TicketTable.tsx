@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import type { Ticket } from "@/types/ticket"
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
   "פתוח":   { backgroundColor: "#dbeafe", color: "#1e40af" },
@@ -30,7 +31,7 @@ const badge: React.CSSProperties = {
   letterSpacing: "0.01em",
 }
 
-export default function TicketTable({ tickets }: { tickets: any[] }) {
+export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
   const [hoverId, setHoverId] = useState<string | null>(null)
 
   if (!tickets.length) {
@@ -42,14 +43,14 @@ export default function TicketTable({ tickets }: { tickets: any[] }) {
           </svg>
         </div>
         <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151", fontSize: "0.95rem" }}>אין פניות עדיין</p>
-        <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>לחצו על "פנייה חדשה" כדי לפתוח את הפנייה הראשונה שלכם</p>
+        <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>לחצו על &quot;פנייה חדשה&quot; כדי לפתוח את הפנייה הראשונה שלכם</p>
       </div>
     )
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      {tickets.map((ticket: any) => (
+      {tickets.map((ticket) => (
         <div
           key={ticket.id}
           onMouseEnter={() => setHoverId(ticket.id)}

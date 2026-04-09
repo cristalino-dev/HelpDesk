@@ -17,8 +17,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           })
         }
-        ;(session.user as any).isAdmin = user.isAdmin
-        ;(session.user as any).id = user.id
+        session.user.isAdmin = user.isAdmin
+        session.user.id = user.id
       }
       return session
     },

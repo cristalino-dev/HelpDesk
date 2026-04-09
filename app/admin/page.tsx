@@ -2,6 +2,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import type { TicketWithUser } from "@/types/ticket"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -40,7 +41,7 @@ function initials(name?: string | null) {
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [tickets, setTickets] = useState<any[]>([])
+  const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
@@ -48,7 +49,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
-    if (status === "authenticated" && !(session?.user as any)?.isAdmin) router.push("/dashboard")
+    if (status === "authenticated" && !session?.user?.isAdmin) router.push("/dashboard")
   }, [status, session, router])
 
   const loadTickets = async () => {
@@ -57,9 +58,9 @@ export default function AdminPage() {
       const res = await fetch("/api/tickets")
       const data = await res.json()
       const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
-      const open = (Array.isArray(data) ? data : [])
-        .filter((t: any) => t.status !== "סגור")
-        .sort((a: any, b: any) => {
+      const open = (Array.isArray(data) ? data : [] as TicketWithUser[])
+        .filter((t: TicketWithUser) => t.status !== "סגור")
+        .sort((a: TicketWithUser, b: TicketWithUser) => {
           const urgencyDiff = (URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2)
           if (urgencyDiff !== 0) return urgencyDiff
           return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -88,7 +89,7 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (status === "authenticated" && (session?.user as any)?.isAdmin) loadTickets()
+    if (status === "authenticated" && session?.user?.isAdmin) loadTickets()
   }, [status, session])
 
   if (status === "loading") return null

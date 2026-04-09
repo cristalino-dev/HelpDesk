@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const session = await auth()
-  if (!(session?.user as any)?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id, status } = await req.json()
   const ticket = await prisma.ticket.update({ where: { id }, data: { status } })
@@ -31,7 +31,7 @@ export async function GET() {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const isAdmin = (session.user as any).isAdmin
+  const isAdmin = session.user.isAdmin
 
   if (isAdmin) {
     const tickets = await prisma.ticket.findMany({

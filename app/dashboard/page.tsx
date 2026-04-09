@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
+import type { Ticket } from "@/types/ticket"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -13,7 +14,7 @@ function initials(name?: string | null) {
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [tickets, setTickets] = useState<any[]>([])
+  const [tickets, setTickets] = useState<Ticket[]>([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -66,7 +67,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {(session?.user as any)?.isAdmin && (
+          {session?.user?.isAdmin && (
             <a href="/admin" style={{
               fontSize: "0.8rem",
               color: "#fff",
