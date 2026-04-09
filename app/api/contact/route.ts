@@ -46,6 +46,7 @@
 import { auth } from "@/auth"
 import { NextRequest, NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import { logError } from "@/lib/logError"
 
 /**
  * POST /api/contact
@@ -87,29 +88,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "SMTP not configured" }, { status: 503 })
   }
 
-  // Create a fresh transporter for each request (stateless — no connection pooling
-  // needed for infrequent contact form submissions)
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465, // true for port 465 (SSL), false for 587 (STARTTLS)
-    auth: { user: smtpUser, pass: smtpPass },
-  })
+  try {
+    // Create a fresh transporter for each request (stateless — no connection pooling
+    // needed for infrequent contact form submissions)
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465, // true for port 465 (SSL), false for 587 (STARTTLS)
+      auth: { user: smtpUser, pass: smtpPass },
+    })
 
-  await transporter.sendMail({
-    from: `"HelpDesk System" <${smtpFrom}>`,
-    to: "dev@cristalino.co.il",             // Fixed destination — dev team inbox
-    replyTo: `"${senderName}" <${senderEmail}>`, // Dev can Reply-To the employee directly
-    subject: "HelpDesk Issues",             // Fixed subject for easy inbox filtering
-    // Plain text fallback for email clients that don't render HTML
-    text: `From: ${senderName} <${senderEmail}>\n\n${message}`,
-    // HTML version with RTL direction and line break conversion
-    html: `<div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
-      <p><strong>מאת:</strong> ${senderName} &lt;${senderEmail}&gt;</p>
-      <hr/>
-      <p>${message.replace(/\n/g, "<br/>")}</p>
-    </div>`,
-  })
+    await transporter.sendMail({
+      from: `"HelpDesk System" <${smtpFrom}>`,
+      to: "dev@cristalino.co.il",             // Fixed destination — dev team inbox
+      replyTo: `"${senderName}" <${senderEmail}>`, // Dev can Reply-To the employee directly
+      subject: "HelpDesk Issues",             // Fixed subject for easy inbox filtering
+      // Plain text fallback for email clients that don't render HTML
+      text: `From: ${senderName} <${senderEmail}>\n\n${message}`,
+      // HTML version with RTL direction and line break conversion
+      html: `<div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6">
+        <p><strong>מאת:</strong> ${senderName} &lt;${senderEmail}&gt;</p>
+        <hr/>
+        <p>${message.replace(/\n/g, "<br/>")}</p>
+      </div>`,
+    })
 
-  return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    await logError(error.message, "/api/contact POST", error.stack)
+    return NextResponse.json({ error: "שגיאה בשליחת האימייל. בדקו את יומן השגיאות." }, { status: 500 })
+  }
 }

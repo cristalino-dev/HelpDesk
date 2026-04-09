@@ -18,6 +18,6 @@
  * — minor: incremental features, fixes
  */
 
-const APP_VERSION = "1.07"
+const APP_VERSION = "1.08"
 
 export default APP_VERSION
