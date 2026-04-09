@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import type { TicketWithUser } from "@/types/ticket"
+import APP_VERSION from "@/lib/version"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -273,6 +274,10 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+
+      <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#d1d5db" }}>
+        v{APP_VERSION} &copy; 2026 Alon Kerem
+      </footer>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

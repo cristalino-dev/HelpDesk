@@ -1,6 +1,7 @@
 "use client"
 import { signIn } from "next-auth/react"
 import Image from "next/image"
+import APP_VERSION from "@/lib/version"
 
 export default function LoginPage() {
   return (
@@ -74,6 +75,10 @@ export default function LoginPage() {
           כניסה מורשית לעובדי קריסטלינו בלבד
         </p>
       </div>
+
+      <p style={{ position: "fixed", bottom: "16px", left: "50%", transform: "translateX(-50%)", margin: 0, fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>
+        v{APP_VERSION} &copy; 2026 Alon Kerem
+      </p>
     </div>
   )
 }

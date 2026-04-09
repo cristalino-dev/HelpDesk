@@ -6,6 +6,7 @@ import Image from "next/image"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
+import APP_VERSION from "@/lib/version"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -156,6 +157,10 @@ export default function DashboardPage() {
           <TicketTable tickets={tickets} />
         )}
       </main>
+
+      <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#d1d5db" }}>
+        v{APP_VERSION} &copy; 2026 Alon Kerem
+      </footer>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
