@@ -40,14 +40,23 @@ function initials(name?: string | null) {
   return name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
 }
 
+interface UserRow { id: string; name: string | null; email: string; phone: string | null; station: string | null; isAdmin: boolean }
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [tab, setTab] = useState<"tickets" | "users">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
+  // Users tab
+  const [users, setUsers] = useState<UserRow[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [userSearch, setUserSearch] = useState("")
+  const [editingUser, setEditingUser] = useState<UserRow | null>(null)
+  const [userSaving, setUserSaving] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -90,11 +99,43 @@ export default function AdminPage() {
     }
   }
 
+  const loadUsers = async () => {
+    setUsersLoading(true)
+    try {
+      const res = await fetch("/api/users")
+      const data = await res.json()
+      setUsers(Array.isArray(data) ? data : [])
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  const saveUser = async () => {
+    if (!editingUser) return
+    setUserSaving(true)
+    try {
+      await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingUser),
+      })
+      await loadUsers()
+      setEditingUser(null)
+    } finally {
+      setUserSaving(false)
+    }
+  }
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.isAdmin) loadTickets()
   }, [status, session])
 
   if (status === "loading") return null
+
+  const filteredUsers = users.filter(u =>
+    (u.name ?? "").toLowerCase().includes(userSearch.toLowerCase()) ||
+    u.email.toLowerCase().includes(userSearch.toLowerCase())
+  )
 
   const urgentCount = tickets.filter(t => t.urgency === "דחוף").length
   const highCount = tickets.filter(t => t.urgency === "גבוה").length
@@ -135,6 +176,90 @@ export default function AdminPage() {
       </header>
 
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0" }}>
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"]] as const).map(([key, label]) => (
+            <button key={key} onClick={() => { setTab(key); if (key === "users" && users.length === 0) loadUsers() }}
+              style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0 }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+
+
+        {/* ── USERS TAB ── */}
+        {tab === "users" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Search */}
+            <input
+              value={userSearch}
+              onChange={e => setUserSearch(e.target.value)}
+              placeholder="חפש לפי שם או אימייל..."
+              style={{ padding: "10px 14px", borderRadius: "10px", border: "1px solid #e5e7eb", fontSize: "0.88rem", backgroundColor: "#fff", width: "100%", boxSizing: "border-box" }}
+            />
+
+            {usersLoading ? (
+              <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>טוען...</div>
+            ) : (
+              <div style={{ backgroundColor: "#fff", borderRadius: "14px", border: "1px solid #f3f4f6", overflow: "hidden" }}>
+                {/* Table header */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 140px 80px 80px", gap: "12px", padding: "10px 16px", backgroundColor: "#f9fafb", borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", fontWeight: 700, color: "#6b7280" }}>
+                  <span>שם</span><span>אימייל</span><span>טלפון</span><span>תחנה</span><span>מנהל</span><span></span>
+                </div>
+                {filteredUsers.length === 0 && <div style={{ padding: "32px", textAlign: "center", color: "#9ca3af", fontSize: "0.88rem" }}>לא נמצאו משתמשים</div>}
+                {filteredUsers.map(u => (
+                  <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 140px 80px 80px", gap: "12px", padding: "12px 16px", borderBottom: "1px solid #f9fafb", alignItems: "center", fontSize: "0.85rem", color: "#374151" }}>
+                    <span style={{ fontWeight: 600 }}>{u.name ?? "—"}</span>
+                    <span style={{ color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
+                    <span>{u.phone ?? "—"}</span>
+                    <span>{u.station ?? "—"}</span>
+                    <span style={{ color: u.isAdmin ? "#4f46e5" : "#9ca3af", fontWeight: u.isAdmin ? 700 : 400 }}>{u.isAdmin ? "כן" : "לא"}</span>
+                    <button onClick={() => setEditingUser({ ...u })} style={{ fontSize: "0.75rem", color: "#4f46e5", background: "#ede9fe", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>עריכה</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Edit modal */}
+            {editingUser && (
+              <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+                <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "420px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>עריכת משתמש</h3>
+                  <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{editingUser.email}</div>
+
+                  {[
+                    { label: "שם מלא", key: "name" as const, placeholder: "ישראל ישראלי" },
+                    { label: "טלפון", key: "phone" as const, placeholder: "050-0000000" },
+                    { label: "תחנת עבודה", key: "station" as const, placeholder: "PC-USER-01" },
+                  ].map(({ label, key, placeholder }) => (
+                    <div key={key}>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>{label}</label>
+                      <input value={editingUser[key] ?? ""} onChange={e => setEditingUser(u => u ? { ...u, [key]: e.target.value } : u)} placeholder={placeholder}
+                        style={{ width: "100%", padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "0.88rem", boxSizing: "border-box" }} />
+                    </div>
+                  ))}
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <input type="checkbox" id="isAdmin" checked={editingUser.isAdmin} onChange={e => setEditingUser(u => u ? { ...u, isAdmin: e.target.checked } : u)} />
+                    <label htmlFor="isAdmin" style={{ fontSize: "0.88rem", color: "#374151", fontWeight: 600 }}>הרשאת מנהל</label>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "10px", justifyContent: "flex-start" }}>
+                    <button onClick={saveUser} disabled={userSaving} style={{ background: "linear-gradient(135deg, #4f46e5, #2563eb)", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                      {userSaving ? "שומר..." : "שמור"}
+                    </button>
+                    <button onClick={() => setEditingUser(null)} style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── TICKETS TAB ── */}
+        {tab === "tickets" && <>
 
         {/* Stats row */}
         {!loading && (
@@ -273,10 +398,11 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+        </> }
       </main>
 
       <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#d1d5db" }}>
-        v{APP_VERSION} &copy; 2026 Alon Kerem
+        v{APP_VERSION} &copy; 2026 AK
       </footer>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

@@ -211,4 +211,4 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 
 ---
 
-&copy; 2026 Alon Kerem. All rights reserved.
+&copy; 2026 AK. All rights reserved.

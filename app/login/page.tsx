@@ -77,7 +77,7 @@ export default function LoginPage() {
       </div>
 
       <p style={{ position: "fixed", bottom: "16px", left: "50%", transform: "translateX(-50%)", margin: 0, fontSize: "0.72rem", color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>
-        v{APP_VERSION} &copy; 2026 Alon Kerem
+        v{APP_VERSION} &copy; 2026 AK
       </p>
     </div>
   )

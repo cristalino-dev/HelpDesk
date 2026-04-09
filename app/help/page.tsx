@@ -256,7 +256,7 @@ export default function HelpPage() {
       </main>
 
       <footer style={{ textAlign: "center", padding: "24px 0 32px", fontSize: "0.72rem", color: "#9ca3af" }}>
-        v{APP_VERSION} &copy; 2026 Alon Kerem
+        v{APP_VERSION} &copy; 2026 AK
       </footer>
     </div>
   )

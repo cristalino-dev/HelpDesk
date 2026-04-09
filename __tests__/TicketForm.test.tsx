@@ -66,6 +66,12 @@ describe("TicketForm", () => {
     expect(screen.queryByText("כיצד למצוא שם מחשב?")).not.toBeInTheDocument()
   })
 
+  it("pre-populates phone and station from defaults", () => {
+    render(<TicketForm onSuccess={jest.fn()} defaultPhone="050-1234567" defaultStation="PC-TEST-01" />)
+    expect(screen.getByPlaceholderText("050-0000000")).toHaveValue("050-1234567")
+    expect(screen.getByPlaceholderText("לדוגמה: PC-ALON-01")).toHaveValue("PC-TEST-01")
+  })
+
   it("shows loading state while submitting", async () => {
     mockFetch.mockImplementation(() => new Promise(() => {})) // never resolves
 

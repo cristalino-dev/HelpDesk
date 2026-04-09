@@ -65,6 +65,9 @@ Invoke-Command -Session $session -ScriptBlock {
     Write-Host "Installing dependencies..."
     npm install 2>&1 | Select-String -Pattern "added|error" | Select-Object -Last 5
 
+    Write-Host "Running database migrations..."
+    npx prisma migrate deploy 2>&1 | Select-String -Pattern "Migration|error|Applied"
+
     Write-Host "Generating Prisma client..."
     npx prisma generate 2>&1 | Select-String -Pattern "Generated|error"
 

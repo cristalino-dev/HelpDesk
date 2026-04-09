@@ -11,12 +11,12 @@ const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string 
   "דחוף":   { bg: "#fef2f2", text: "#dc2626", border: "#fca5a5" },
 }
 
-export default function TicketForm({ onSuccess }: { onSuccess: () => void }) {
+export default function TicketForm({ onSuccess, defaultPhone = "", defaultStation = "" }: { onSuccess: () => void; defaultPhone?: string; defaultStation?: string }) {
   const [form, setForm] = useState({
     subject: "",
     description: "",
-    phone: "",
-    computerName: "",
+    phone: defaultPhone,
+    computerName: defaultStation,
     urgency: "בינוני",
     category: "אחר",
   })
@@ -36,7 +36,7 @@ export default function TicketForm({ onSuccess }: { onSuccess: () => void }) {
       })
       if (!res.ok) throw new Error()
       onSuccess()
-      setForm({ subject: "", description: "", phone: "", computerName: "", urgency: "בינוני", category: "אחר" })
+      setForm({ subject: "", description: "", phone: defaultPhone, computerName: defaultStation, urgency: "בינוני", category: "אחר" })
     } catch {
       setError("אירעה שגיאה. נסו שנית.")
     } finally {
