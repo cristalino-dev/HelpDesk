@@ -34,7 +34,7 @@ export default function LoginPage() {
         <Image src="/logo.jpeg" alt="Cristalino Group" width={120} height={120} style={{ objectFit: "contain" }} />
 
         <div style={{ textAlign: "center" }}>
-          <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>helpdesk מערכת</h1>
+          <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>מערכת helpdesk</h1>
           <p style={{ margin: 0, color: "#6b7280", fontSize: "0.9rem", lineHeight: 1.5 }}>
             התחברו עם חשבון Google שלכם<br />לפתיחת פנייה או מעקב אחר הפניות
           </p>

@@ -1,4 +1,4 @@
-# helpdesk מערכת — Cristalino HelpDesk
+# מערכת helpdesk — Cristalino HelpDesk
 
 **Version 1.0** — Production baseline
 

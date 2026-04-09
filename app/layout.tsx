@@ -3,7 +3,7 @@ import "./globals.css"
 import Providers from "./providers"
 
 export const metadata: Metadata = {
-  title: "helpdesk מערכת",
+  title: "מערכת helpdesk",
   description: "מערכת לניהול פניות תמיכה",
 }
 
