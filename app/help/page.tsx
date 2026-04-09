@@ -14,7 +14,7 @@ export default function HelpPage() {
       <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת הלפדסק</span>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>helpdesk מערכת</span>
           <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש</span>
         </div>
         <Link href="/dashboard" style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.8)", textDecoration: "none" }}>חזרה ללוח הבקרה</Link>
@@ -24,7 +24,7 @@ export default function HelpPage() {
 
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת הלפדסק</h1>
+          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש בhelpdesk מערכת</h1>
           <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>כל מה שצריך לדעת כדי לפתוח פנייה ולעקוב אחריה</p>
         </div>
 
@@ -50,7 +50,7 @@ export default function HelpPage() {
               <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "36px 32px", width: "300px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
                 <Image src="/logo.jpeg" alt="Cristalino Group" width={90} height={90} style={{ objectFit: "contain" }} />
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "#111827", marginBottom: "6px" }}>מערכת הלפדסק</div>
+                  <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "#111827", marginBottom: "6px" }}>helpdesk מערכת</div>
                   <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>התחברו עם חשבון Google שלכם</div>
                 </div>
                 <div style={{ width: "100%", border: "1.5px solid #e5e7eb", borderRadius: "10px", padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", color: "#374151", fontSize: "0.88rem", fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>
@@ -84,7 +84,7 @@ export default function HelpPage() {
             <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Image src="/logo.jpeg" alt="" width={32} height={32} style={{ objectFit: "contain", borderRadius: "4px" }} />
-                <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem" }}>מערכת הלפדסק</span>
+                <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem" }}>helpdesk מערכת</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.65rem", fontWeight: 800 }}>יש</div>

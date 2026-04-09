@@ -65,7 +65,7 @@ export default function DashboardPage() {
               <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff", letterSpacing: "-0.01em" }}>מערכת הלפדסק</span>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff", letterSpacing: "-0.01em" }}>helpdesk מערכת</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
