@@ -208,3 +208,7 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 - **Inline styles**: Tailwind CSS classes are not used in page components — all styles are React inline styles to ensure they render correctly after server build
 - **No PM2**: PM2 dies when a WinRM session closes. Windows Task Scheduler running as SYSTEM is used instead
 - **Build on server**: Next.js Turbopack embeds absolute local paths in chunks — building locally and copying `.next` causes module hash mismatches on the server
+
+---
+
+&copy; 2026 Alon Kerem. All rights reserved.
