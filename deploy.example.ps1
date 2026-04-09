@@ -18,7 +18,11 @@ Compress-Archive -Path `
     "$local\lib", `
     "$local\prisma", `
     "$local\public", `
+    "$local\types", `
+    "$local\__tests__", `
     "$local\auth.ts", `
+    "$local\jest.config.ts", `
+    "$local\jest.setup.ts", `
     "$local\package.json", `
     "$local\package-lock.json", `
     "$local\tsconfig.json", `
