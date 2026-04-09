@@ -69,7 +69,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} style={{ objectFit: "contain", borderRadius: "6px" }} />
+          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
           <a href="/help" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>עזרה</a>
           {session?.user?.isAdmin && (
             <a href="/admin" style={{

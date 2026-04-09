@@ -122,7 +122,7 @@ export default function AdminPage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} style={{ objectFit: "contain", borderRadius: "6px" }} />
+          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
           <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</a>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>

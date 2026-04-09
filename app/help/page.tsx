@@ -13,7 +13,7 @@ export default function HelpPage() {
       {/* Header */}
       <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} style={{ objectFit: "contain", borderRadius: "6px" }} />
+          <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
           <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk</span>
           <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש</span>
         </div>
@@ -48,7 +48,7 @@ export default function HelpPage() {
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
             <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #1e40af 100%)", padding: "40px 24px", display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "36px 32px", width: "300px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
-                <Image src="/logo.jpeg" alt="Cristalino Group" width={90} height={90} style={{ objectFit: "contain" }} />
+                <Image src="/logo.jpeg" alt="Cristalino Group" width={90} height={90} loading="eager" style={{ objectFit: "contain" }} />
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "#111827", marginBottom: "6px" }}>מערכת helpdesk</div>
                   <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>התחברו עם חשבון Google שלכם</div>

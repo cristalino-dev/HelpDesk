@@ -31,7 +31,7 @@ export default function LoginPage() {
         position: "relative",
       }}>
         {/* Logo */}
-        <Image src="/logo.jpeg" alt="Cristalino Group" width={120} height={120} style={{ objectFit: "contain" }} />
+        <Image src="/logo.jpeg" alt="Cristalino Group" width={120} height={120} loading="eager" style={{ objectFit: "contain" }} />
 
         <div style={{ textAlign: "center" }}>
           <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>מערכת helpdesk</h1>
