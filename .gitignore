@@ -47,3 +47,4 @@ deploy.ps1
 check.ps1
 secrets.local.json
 prisma/dev.db
+HANDOFF.md
