@@ -26,10 +26,9 @@ A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit
 | Auth | NextAuth v5 (beta) with Google provider |
 | ORM | Prisma 5 |
 | Database | PostgreSQL 18 (AWS Lightsail RDS) |
-| Styling | Inline React styles (RTL-safe, no Tailwind in prod) |
-| Hosting | AWS Lightsail Windows Server 2022 |
-| Process manager | Windows Task Scheduler (runs as SYSTEM) |
-| Deployment | WinRM + PowerShell zip-upload-build-on-server |
+| OS | Ubuntu 24.04 LTS |
+| Process manager | PM2 (Process Manager 2) |
+| Deployment | SSH + SCP (deploy.sh) |
 
 ---
 
@@ -58,9 +57,10 @@ helpdesk/
 ├── prisma/
 │   └── schema.prisma           # User + Ticket models
 ├── auth.ts                     # NextAuth config — Google provider, session callback, auto-creates users
-├── deploy.example.ps1          # Deployment script template (fill in credentials → save as deploy.ps1)
-├── check.example.ps1           # Diagnostics script template
-├── .env.example                # Environment variable template
+├── deploy.sh                   # Linux deployment script
+├── setup-server.sh             # Ubuntu one-time setup
+├── ssl-init.sh                 # SSL initialization (Certbot)
+├── ecosystem.config.js         # PM2 configuration
 └── next.config.ts
 ```
 
@@ -152,30 +152,36 @@ npm run dev
 
 ---
 
-## Deployment (Windows Server via WinRM)
+## Deployment (Ubuntu Linux via SSH)
 
-This project deploys to an AWS Lightsail Windows Server 2022 instance. The build runs on the server (not locally) because Turbopack embeds absolute paths in compiled chunks.
+The application runs on an AWS Lightsail Ubuntu 24.04 LTS instance managed by PM2.
 
-```powershell
-# 1. Copy the example and fill in your server credentials
-cp deploy.example.ps1 deploy.ps1
-
-# 2. Run from local PowerShell (not from Claude Code — ConvertTo-SecureString requires Windows security modules)
-.\deploy.ps1
+### 1. One-time server setup
+Runs locally once to install Node.js, PM2, and prepare directories:
+```bash
+# Verify SERVER and USER in the script, then run:
+bash setup-server.sh
 ```
 
-The script:
-1. Zips source files (no `node_modules` or `.next`)
-2. Uploads the zip to the server via WinRM
-3. Extracts, runs `npm install` + `prisma generate` + `npm run build` on the server
-4. Restarts the "Helpdesk" Windows Scheduled Task
+### 2. Regular Deployment
+Deploys the current code to the server and restarts the process:
+```bash
+./deploy.sh
+```
+
+### 3. SSL Configuration (Optional)
+If ports 80 and 443 are open in the Lightsail firewall:
+```bash
+# Verify SERVER and EMAIL in the script, then run:
+bash ssl-init.sh
+```
 
 ### Server requirements
-
-- Node.js installed
-- WinRM enabled (port 5985 open in firewall)
-- Port 3000 open in Windows Firewall and Lightsail firewall rules
-- Windows Scheduled Task named **"Helpdesk"** configured to run `start.ps1` as SYSTEM
+- Ubuntu Linux (Debian-based)
+- SSH enabled
+- PM2 installed globally (`npm install -g pm2`)
+- Port 3000 (and 80/443 for web) open in Lightsail firewall rules
+- PM2 process named **"helpdesk"** configured via `ecosystem.config.js`
 
 ### Granting admin access
 
@@ -207,8 +213,7 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 
 - **nip.io domain**: `18.x.x.x.nip.io` is used because Google OAuth does not allow raw IP addresses as redirect URIs
 - **Inline styles**: Tailwind CSS classes are not used in page components — all styles are React inline styles to ensure they render correctly after server build
-- **No PM2**: PM2 dies when a WinRM session closes. Windows Task Scheduler running as SYSTEM is used instead
-- **Build on server**: Next.js Turbopack embeds absolute local paths in chunks — building locally and copying `.next` causes module hash mismatches on the server
+- **Build on server**: Next.js Turbopack embeds absolute local paths in chunks — building locally and copying `.next` causes module hash mismatches on the server. Deployment script always builds on target.
 
 ---
 
