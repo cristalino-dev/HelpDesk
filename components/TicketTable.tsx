@@ -146,9 +146,9 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
             <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "3px" }}>
               {ticket.subject}
             </div>
-            {/* Secondary info row: computer name · category · date */}
+            {/* Secondary info row: computer name · category · platform · date */}
             <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-              {ticket.computerName} · {ticket.category} · {new Date(ticket.createdAt).toLocaleDateString("he-IL")}
+              {ticket.computerName} · {ticket.category} · {ticket.platform} · {new Date(ticket.createdAt).toLocaleDateString("he-IL")}
             </div>
           </div>
 

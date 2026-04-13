@@ -284,7 +284,7 @@ export default function HelpPage() {
               </div>
               <div>
                 <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>נושא: HelpDesk Issues</div>
-                <div style={{ fontSize: "0.68rem", color: "#9ca3af" }}>ההודעה תישלח אל dev@cristalino.co.il</div>
+                <div style={{ fontSize: "0.68rem", color: "#9ca3af" }}>ההודעה תישלח אל helpdesk@cristalino.co.il</div>
               </div>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: "#9ca3af" }}>תארו את הבעיה שנתקלתם בה...</div>
               <div style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>

@@ -22,7 +22,7 @@
 ## 3. Architecture & Data Model
 ### Data Models (Prisma)
 - **User:** Stores OAuth metadata, display name, user preferences (phone/station), and `isAdmin` flag. Associated 1-to-Many to `Ticket`.
-- **Ticket:** Support requests detailing `subject`, `description`, `phone`, `computerName`, `urgency` (Low/Medium/High/Urgent), `category` (Hardware/Software/Network/Printer/Other), and `status` (Open/In Progress/Closed).
+- **Ticket:** Support requests detailing `subject`, `description`, `phone`, `computerName`, `urgency` (Low/Medium/High/Urgent), `category` (Hardware/Software/Network/Printer/Other), `platform` (Comax/Android/etc.), and `status` (Open/In Progress/Closed).
 - **Log:** Used solely for telemetry and error tracking (`timestamp`, `level`, `message`, `source`, `stack`, `date` for queries/cleanup).
 
 ### Key Application Layers

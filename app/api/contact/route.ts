@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
     await transporter.sendMail({
       from: `"HelpDesk System" <${smtpFrom}>`,
-      to: "dev@cristalino.co.il",             // Fixed destination — dev team inbox
+      to: "helpdesk@cristalino.co.il",         // Fixed destination — helpdesk inbox
       replyTo: `"${senderName}" <${senderEmail}>`, // Dev can Reply-To the employee directly
       subject: "HelpDesk Issues",             // Fixed subject for easy inbox filtering
       // Plain text fallback for email clients that don't render HTML

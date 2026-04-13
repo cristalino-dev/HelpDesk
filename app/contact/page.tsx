@@ -9,7 +9,7 @@
  *
  * EMAIL DELIVERY:
  * ────────────────
- *   To:       dev@cristalino.co.il  (hardcoded)
+ *   To:       helpdesk@cristalino.co.il  (hardcoded)
  *   Subject:  "HelpDesk Issues"     (hardcoded — easy to filter in inbox)
  *   From:     HelpDesk System <SMTP_FROM>
  *   Reply-To: <sender's Google email> — so the dev can reply directly
@@ -122,7 +122,7 @@ export default function ContactPage() {
         <form onSubmit={handleSubmit} style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)", border: "1px solid #f3f4f6", overflow: "hidden" }}>
           <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f4f6" }}>
             <p style={{ margin: 0, fontWeight: 700, color: "#374151", fontSize: "0.88rem" }}>נושא: HelpDesk Issues</p>
-            <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>ההודעה תישלח אל dev@cristalino.co.il</p>
+            <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>ההודעה תישלח אל helpdesk@cristalino.co.il</p>
           </div>
 
           <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>

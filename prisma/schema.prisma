@@ -26,6 +26,7 @@ model Ticket {
   computerName String
   urgency      String   @default("בינוני")
   category     String   @default("אחר")
+  platform     String   @default("מחשב אישי")
   status       String   @default("פתוח")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

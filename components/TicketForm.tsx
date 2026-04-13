@@ -48,6 +48,9 @@ import { useState } from "react"
 /** All available ticket categories. Displayed in the category <select>. */
 const CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"]
 
+/** All available platforms. */
+const PLATFORMS = ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"]
+
 /** All available urgency levels, from lowest to highest. */
 const URGENCIES = ["נמוך", "בינוני", "גבוה", "דחוף"]
 
@@ -83,6 +86,7 @@ export default function TicketForm({
     computerName: defaultStation, // Pre-filled from profile (if available)
     urgency: "בינוני",         // Default urgency: medium
     category: "אחר",           // Default category: other
+    platform: "מחשב אישי",
   })
 
   /** Whether the form is currently submitting (disables button, shows spinner). */
@@ -129,6 +133,7 @@ export default function TicketForm({
         computerName: defaultStation,
         urgency: "בינוני",
         category: "אחר",
+        platform: "מחשב אישי",
       })
     } catch {
       setError("אירעה שגיאה. נסו שנית.")
@@ -224,8 +229,14 @@ export default function TicketForm({
           </div>
         </div>
 
-        {/* ── Category + Urgency (two-column grid) ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        {/* ── Category + Urgency + Platform (three-column grid) ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+          <div>
+            <label>פלטפורמה</label>
+            <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
+              {PLATFORMS.map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
           <div>
             <label>קטגוריה</label>
             <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>

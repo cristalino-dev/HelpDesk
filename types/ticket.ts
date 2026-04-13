@@ -45,6 +45,7 @@ export interface Ticket {
   computerName: string
   urgency: string
   category: string
+  platform: string
   status: string
   createdAt: string
   updatedAt: string

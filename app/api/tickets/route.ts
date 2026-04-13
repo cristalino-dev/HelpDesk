@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { subject, description, phone, computerName, urgency, category } = await req.json()
+    const { subject, description, phone, computerName, urgency, category, platform } = await req.json()
 
     // Resolve the user's DB row — needed for the userId foreign key.
     // We use email (from Google OAuth) as the lookup key.
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
         computerName,
         urgency,
         category,
+        platform,
         userId: user.id,
         // status defaults to "פתוח" (see schema), createdAt/updatedAt are automatic
       },

@@ -496,7 +496,7 @@ export default function AdminPage() {
                       {ticket.subject}
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "2px" }}>
-                      {ticket.user?.name ?? ticket.user?.email} · {ticket.phone} · {ticket.computerName} · {ticket.category}
+                      {ticket.user?.name ?? ticket.user?.email} · {ticket.phone} · {ticket.computerName} · {ticket.category} · {ticket.platform}
                     </div>
                   </div>
 
