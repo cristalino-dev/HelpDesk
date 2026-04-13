@@ -17,7 +17,7 @@ export default function ManualPage() {
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מערכת Helpdesk קריסטלינו</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך שימוש לעובדי החברה</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "4px 16px", fontSize: "0.78rem", fontWeight: 600 }}>
-            Cristalino Group · 2026
+            Cristalino Group · 2026 · v2.1
           </div>
         </div>
 

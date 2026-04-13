@@ -23,6 +23,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
+import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { NextRequest, NextResponse } from "next/server"
 
 /**
@@ -100,7 +101,8 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await auth()
     // isAdmin is set by the session callback in auth.ts from the DB
-    if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const canUpdate = session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? "")
+    if (!canUpdate) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const { id, status } = await req.json()
 

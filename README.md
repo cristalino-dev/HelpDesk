@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.0 (Major Build)** — Linux Native & Multi-Platform Support
+**Version 2.1** — Staff Update: Advanced Permissions & All-Tickets View
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
 
@@ -53,7 +53,8 @@ helpdesk/
 │   ├── TicketForm.tsx          # New ticket form with urgency selector + computer name tooltip
 │   └── TicketTable.tsx         # Ticket cards with urgency-colored borders + hover effect
 ├── lib/
-│   └── db.ts                   # Prisma client singleton
+│   ├── db.ts                   # Prisma client singleton
+│   └── staffEmails.ts          # List of authorized staff (new in v2.1)
 ├── prisma/
 │   └── schema.prisma           # User + Ticket models
 ├── auth.ts                     # NextAuth config — Google provider, session callback, auto-creates users
