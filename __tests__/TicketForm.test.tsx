@@ -19,6 +19,7 @@ describe("TicketForm", () => {
     expect(screen.getByText("שם מחשב *")).toBeInTheDocument()
     expect(screen.getByText("טלפון *")).toBeInTheDocument()
     expect(screen.getByText("קטגוריה")).toBeInTheDocument()
+    expect(screen.getByText("פלטפורמה")).toBeInTheDocument()
     expect(screen.getByText("דחיפות")).toBeInTheDocument()
     expect(screen.getByText("תיאור מפורט *")).toBeInTheDocument()
   })
@@ -40,6 +41,12 @@ describe("TicketForm", () => {
     expect(categorySelect).toBeInTheDocument()
   })
 
+  it("has correct default platform (מחשב אישי)", () => {
+    render(<TicketForm onSuccess={jest.fn()} />)
+    const platformSelect = screen.getByDisplayValue("מחשב אישי")
+    expect(platformSelect).toBeInTheDocument()
+  })
+
   it("renders all urgency options", () => {
     render(<TicketForm onSuccess={jest.fn()} />)
     expect(screen.getByRole("option", { name: "נמוך" })).toBeInTheDocument()
@@ -55,6 +62,15 @@ describe("TicketForm", () => {
     expect(screen.getByRole("option", { name: "רשת" })).toBeInTheDocument()
     expect(screen.getByRole("option", { name: "מדפסת" })).toBeInTheDocument()
     expect(screen.getByRole("option", { name: "אחר" })).toBeInTheDocument()
+  })
+
+  it("renders all platform options", () => {
+    render(<TicketForm onSuccess={jest.fn()} />)
+    expect(screen.getByRole("option", { name: "comax" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "comax sales tracker" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "אנדרואיד" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "אייפד" })).toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "מחשב אישי" })).toBeInTheDocument()
   })
 
   it("shows tooltip when hovering over ? button", async () => {
@@ -140,5 +156,7 @@ describe("TicketForm", () => {
       method: "POST",
       body: expect.stringContaining('"subject":"מסך שחור"'),
     })))
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body).toHaveProperty("platform", "מחשב אישי")
   })
 })

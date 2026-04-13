@@ -9,7 +9,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit
 ## Features
 
 - **Google OAuth login** — employees sign in with their Cristalino Google account
-- **Ticket submission** — subject, description, computer name, phone, category, and urgency level
+- **Ticket submission** — subject, description, computer name, phone, platform, category, and urgency level
 - **My tickets view** — users see only their own tickets with live status
 - **Admin queue** — sorted by urgency (דחוף → גבוה → בינוני → נמוך), then by open time (FIFO)
 - **Status management** — admins can mark tickets as פתוח / בטיפול / סגור with one click
@@ -86,6 +86,7 @@ model Ticket {
   computerName String
   urgency      String   @default("בינוני")   // נמוך | בינוני | גבוה | דחוף
   category     String   @default("אחר")      // חומרה | תוכנה | רשת | מדפסת | אחר
+  platform     String   @default("מחשב אישי") // comax | comax sales tracker | אנדרואיד | אייפד | מחשב אישי
   status       String   @default("פתוח")     // פתוח | בטיפול | סגור
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

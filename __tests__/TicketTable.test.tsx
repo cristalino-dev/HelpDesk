@@ -11,6 +11,7 @@ const baseTicket: Ticket = {
   computerName: "PC-TEST-01",
   urgency: "גבוה",
   category: "רשת",
+  platform: "מחשב אישי",
   status: "פתוח",
   createdAt: "2026-04-09T10:00:00.000Z",
   updatedAt: "2026-04-09T10:00:00.000Z",
@@ -36,6 +37,11 @@ describe("TicketTable", () => {
   it("renders category", () => {
     render(<TicketTable tickets={[baseTicket]} />)
     expect(screen.getAllByText(/רשת/).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("renders platform", () => {
+    render(<TicketTable tickets={[baseTicket]} />)
+    expect(screen.getByText(/מחשב אישי/)).toBeInTheDocument()
   })
 
   it("renders urgency badge", () => {

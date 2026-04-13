@@ -129,7 +129,7 @@ export default function HelpPage() {
                 <div key={i} style={{ backgroundColor: "#fff", borderRadius: "10px", borderRight: `4px solid ${t.border}`, padding: "10px 14px 10px 12px", marginBottom: "8px", display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", gap: "10px" }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#111827" }}>{t.subject}</div>
-                    <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>{t.computer} · {t.cat}</div>
+                    <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>{t.computer} · {t.cat} · {t.platform ?? "מחשב אישי"}</div>
                   </div>
                   <span style={{ backgroundColor: t.urgencyBg, color: t.urgencyColor, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>{t.urgency}</span>
                   <span style={{ backgroundColor: t.statusBg, color: t.statusColor, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>{t.status}</span>
@@ -172,8 +172,9 @@ export default function HelpPage() {
                 <MockField label="שם מחשב *" placeholder="לדוגמה: PC-ALON-01" hint="?" />
                 <MockField label="טלפון *" placeholder="050-0000000" />
               </div>
-              {/* Category + Urgency */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              {/* Category + Urgency + Platform */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                <MockSelect label="פלטפורמה" value="מחשב אישי" />
                 <MockSelect label="קטגוריה" value="אחר" />
                 <MockSelect label="דחיפות" value="בינוני" colored />
               </div>
@@ -206,6 +207,10 @@ export default function HelpPage() {
               <FieldGuideItem
                 label="קטגוריה"
                 desc={<>בחרו את הקטגוריה המתאימה לבעיה: <Strong>חומרה</Strong> (מחשב, מסך, עכבר), <Strong>תוכנה</Strong> (תוכנית, מערכת הפעלה), <Strong>רשת</Strong> (אינטרנט, Wi-Fi), <Strong>מדפסת</Strong>, <Strong>אחר</Strong>.</>}
+              />
+              <FieldGuideItem
+                label="פלטפורמה"
+                desc={<>בחרו את הפלטפורמה שעליה מותקנת המערכת או שבה התגלתה הבעיה: <Strong>comax</Strong>, <Strong>comax sales tracker</Strong>, <Strong>אנדרואיד</Strong>, <Strong>אייפד</Strong>, או <Strong>מחשב אישי</Strong>.</>}
               />
               <FieldGuideItem
                 label="דחיפות"
