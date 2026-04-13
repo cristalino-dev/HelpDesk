@@ -20,7 +20,7 @@ jest.mock("@/lib/version", () => ({ __esModule: true, default: "test" }))
 describe("HelpPage", () => {
   it("renders the page title", () => {
     render(<HelpPage />)
-    expect(screen.getByText("מדריך שימוש במערכת helpdesk")).toBeInTheDocument()
+    expect(screen.getByText(/מדריך שימוש במערכת helpdesk/)).toBeInTheDocument()
   })
 
   it("renders all 5 sections", () => {

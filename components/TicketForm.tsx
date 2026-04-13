@@ -167,8 +167,9 @@ export default function TicketForm({
 
         {/* ── Subject Field ── */}
         <div>
-          <label>נושא הפנייה *</label>
+          <label htmlFor="subject-input">נושא הפנייה *</label>
           <input
+            id="subject-input"
             required
             value={form.subject}
             onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
@@ -182,7 +183,7 @@ export default function TicketForm({
           {/* Computer Name with tooltip */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px" }}>
-              <label style={{ margin: 0 }}>שם מחשב *</label>
+              <label htmlFor="computer-input" style={{ margin: 0 }}>שם מחשב *</label>
               {/* Tooltip trigger button — shows "how to find hostname" instructions */}
               <div style={{ position: "relative" }}>
                 <button
@@ -209,6 +210,7 @@ export default function TicketForm({
               </div>
             </div>
             <input
+              id="computer-input"
               required
               value={form.computerName}
               onChange={e => setForm(f => ({ ...f, computerName: e.target.value }))}
@@ -218,8 +220,9 @@ export default function TicketForm({
 
           {/* Phone */}
           <div>
-            <label>טלפון *</label>
+            <label htmlFor="phone-input">טלפון *</label>
             <input
+              id="phone-input"
               required
               type="tel"
               value={form.phone}
@@ -232,21 +235,30 @@ export default function TicketForm({
         {/* ── Category + Urgency + Platform (three-column grid) ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
           <div>
-            <label>פלטפורמה</label>
-            <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
+            <label htmlFor="platform-select">פלטפורמה</label>
+            <select
+              id="platform-select"
+              value={form.platform}
+              onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
+            >
               {PLATFORMS.map(p => <option key={p}>{p}</option>)}
             </select>
           </div>
           <div>
-            <label>קטגוריה</label>
-            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+            <label htmlFor="category-select">קטגוריה</label>
+            <select
+              id="category-select"
+              value={form.category}
+              onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+            >
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label>דחיפות</label>
+            <label htmlFor="urgency-select">דחיפות</label>
             {/* Background/text/border changes dynamically based on selected urgency */}
             <select
+              id="urgency-select"
               value={form.urgency}
               onChange={e => setForm(f => ({ ...f, urgency: e.target.value }))}
               style={{ backgroundColor: urgColor?.bg, color: urgColor?.text, borderColor: urgColor?.border, fontWeight: 600 }}
@@ -258,8 +270,9 @@ export default function TicketForm({
 
         {/* ── Description ── */}
         <div>
-          <label>תיאור מפורט *</label>
+          <label htmlFor="description-textarea">תיאור מפורט *</label>
           <textarea
+            id="description-textarea"
             required
             rows={4}
             value={form.description}

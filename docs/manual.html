@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מדריך שימוש – מערכת Helpdesk קריסטלינו</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1f2937;
+      direction: rtl;
+    }
+    .wrapper { max-width: 680px; margin: 0 auto; padding: 32px 16px; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      border-radius: 16px 16px 0 0;
+      padding: 36px 40px;
+      text-align: center;
+      color: #fff;
+    }
+    .header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+    .header p { font-size: 0.9rem; opacity: 0.85; }
+    .header .badge {
+      display: inline-block;
+      margin-top: 14px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px;
+      padding: 4px 16px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* Body */
+    .body {
+      background: #fff;
+      padding: 36px 40px;
+      border-right: 1px solid #e5e7eb;
+      border-left: 1px solid #e5e7eb;
+    }
+
+    .greeting { font-size: 1rem; line-height: 1.7; color: #374151; margin-bottom: 28px; }
+    .greeting strong { color: #1e3a8a; }
+
+    /* URL box */
+    .url-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 18px 24px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .url-box .label { font-size: 0.78rem; color: #6b7280; font-weight: 600; margin-bottom: 6px; }
+    .url-box a {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1d4ed8;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+
+    /* Section */
+    .section { margin-bottom: 32px; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #eff6ff;
+    }
+    .section-title .icon {
+      width: 30px; height: 30px;
+      background: #eff6ff;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 10px; }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      background: #2563eb;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text { font-size: 0.875rem; line-height: 1.6; color: #374151; }
+    .step-text strong { color: #111827; }
+
+    /* Info cards */
+    .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 0; }
+    .card {
+      flex: 1;
+      min-width: 160px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .card .card-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .card .card-title { font-size: 0.82rem; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    .card .card-desc { font-size: 0.75rem; color: #6b7280; line-height: 1.5; }
+
+    /* Status badges */
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .status-badge {
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .s-open   { background: #dbeafe; color: #1e40af; }
+    .s-active { background: #fef3c7; color: #92400e; }
+    .s-closed { background: #dcfce7; color: #166534; }
+
+    /* Urgency */
+    .urgency { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .u-badge {
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .u1 { background: #fee2e2; color: #991b1b; }
+    .u2 { background: #ffedd5; color: #9a3412; }
+    .u3 { background: #fef3c7; color: #92400e; }
+    .u4 { background: #dcfce7; color: #166534; }
+
+    /* Note box */
+    .note {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.82rem;
+      color: #713f12;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .note strong { color: #713f12; }
+
+    /* Admin section */
+    .admin-section {
+      background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+      border: 1px solid #c4b5fd;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .admin-section .admin-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #4f46e5;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .admin-tab {
+      background: #fff;
+      border: 1px solid #c4b5fd;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #4f46e5;
+    }
+    .admin-desc { font-size: 0.82rem; color: #374151; line-height: 1.7; }
+
+    /* Footer */
+    .footer {
+      background: #1e3a8a;
+      border-radius: 0 0 16px 16px;
+      padding: 24px 40px;
+      text-align: center;
+      color: rgba(255,255,255,0.75);
+      font-size: 0.78rem;
+      line-height: 1.8;
+    }
+    .footer a { color: rgba(255,255,255,0.9); }
+    .footer .brand { font-weight: 700; color: #fff; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🖥️ מערכת Helpdesk קריסטלינו</h1>
+    <p>מדריך שימוש לעובדי החברה</p>
+    <div class="badge">Cristalino Group · 2026</div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <p class="greeting">
+      שלום,<br /><br />
+      אנו שמחים להודיע על השקת <strong>מערכת ה-Helpdesk</strong> של קריסטלינו —
+      מערכת לניהול פניות תמיכה טכנית מקצה לקצה.<br /><br />
+      מעכשיו, כל תקלה, בקשה או שאלה טכנית מוגשת דרך המערכת, עוקבת אחר סטטוס הטיפול בזמן אמת,
+      ומתועדת לאורך כל תהליך הטיפול.
+    </p>
+
+    <!-- URL -->
+    <div class="url-box">
+      <div class="label">כתובת המערכת</div>
+      <a href="https://helpdesk.cristalino.co.il">helpdesk.cristalino.co.il</a>
+    </div>
+
+    <!-- Login -->
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">🔑</span>
+        כניסה למערכת
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">גשו לכתובת <strong>helpdesk.cristalino.co.il</strong> בדפדפן</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">לחצו על <strong>"התחברות עם Google"</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">בחרו את <strong>חשבון Google הארגוני</strong> שלכם (@cristalino.co.il)</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">הגעתם ללוח הבקרה האישי שלכם — ניתן להתחיל!</div>
+        </div>
+      </div>
+      <div class="note">
+        <strong>שימו לב:</strong> יש להיכנס עם חשבון Google הארגוני בלבד (@cristalino.co.il).
+        חשבונות Gmail פרטיים לא יתקבלו.
+      </div>
+    </div>
+
+    <!-- Submit ticket -->
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">📋</span>
+        פתיחת פנייה חדשה
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">בלוח הבקרה, לחצו על <strong>"+ פנייה חדשה"</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">מלאו את פרטי הפנייה: <strong>נושא, תיאור מפורט, טלפון ושם המחשב</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">בחרו <strong>קטגוריה, פלטפורמה ורמת דחיפות</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">לחצו <strong>"שלח פנייה"</strong> — הפנייה מועברת מיידית לצוות התמיכה</div>
+        </div>
+      </div>
+
+      <!-- Urgency levels -->
+      <p style="font-size:0.8rem;color:#6b7280;margin-top:18px;margin-bottom:4px;font-weight:600;">רמות דחיפות:</p>
+      <div class="urgency">
+        <span class="u-badge u1">דחוף — תקלה קריטית</span>
+        <span class="u-badge u2">גבוה — פגיעה בעבודה</span>
+        <span class="u-badge u3">בינוני — מוגבלות חלקית</span>
+        <span class="u-badge u4">נמוך — שאלה / בקשה</span>
+      </div>
+    </div>
+
+    <!-- Track tickets -->
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">🔍</span>
+        מעקב אחר הפניות שלי
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">בלוח הבקרה מוצגות <strong>כל הפניות שלכם</strong> לפי תאריך</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">בראש הדף מוצגות שלוש כרטיסיות סיכום: פתוחות, בטיפול, סגורות</div>
+        </div>
+      </div>
+
+      <p style="font-size:0.8rem;color:#6b7280;margin-top:18px;margin-bottom:4px;font-weight:600;">סטטוסים אפשריים:</p>
+      <div class="badges">
+        <span class="status-badge s-open">פתוח — הפנייה התקבלה, טרם טופלה</span>
+        <span class="status-badge s-active">בטיפול — צוות התמיכה מטפל כעת</span>
+        <span class="status-badge s-closed">סגור — הפנייה טופלה ונסגרה</span>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">👤</span>
+        פרופיל אישי
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">לחצו על <strong>שמכם</strong> בסרגל הניווט העליון</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">עדכנו <strong>מספר טלפון ושם תחנת עבודה</strong> — הם ימולאו אוטומטית בפניות הבאות</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin section -->
+    <div class="admin-section">
+      <div class="admin-title">🛡️ ממשק ניהול — לצוות התמיכה בלבד</div>
+      <div class="admin-tabs">
+        <span class="admin-tab">תור פניות</span>
+        <span class="admin-tab">ניהול משתמשים</span>
+        <span class="admin-tab">יומן שגיאות</span>
+      </div>
+      <div class="admin-desc">
+        <strong>תור פניות</strong> — כל הפניות הפתוחות ממוינות לפי דחיפות ואחר כך לפי זמן פתיחה.
+        לחיצה על פנייה מרחיבה אותה ומאפשרת שינוי סטטוס לפתוח / בטיפול / סגור.<br /><br />
+        <strong>ניהול משתמשים</strong> — צפייה, עריכה והגדרת הרשאות לכל משתמשי המערכת.<br /><br />
+        <strong>יומן שגיאות</strong> — מעקב אחר שגיאות המערכת לפי תאריך לצורכי דיאגנוסטיקה.
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="section">
+      <div class="section-title">
+        <span class="icon">💡</span>
+        טיפים לשימוש יעיל
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="card-icon">📝</div>
+          <div class="card-title">תיאור מפורט</div>
+          <div class="card-desc">פרטו מה קרה, מתי ואיך לשחזר — זה מקצר משמעותית את זמן הטיפול</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🖥️</div>
+          <div class="card-title">שם מחשב</div>
+          <div class="card-desc">ניתן למצוא בהגדרות המחשב ← אודות. ציון שם המחשב חוסך זמן</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">📞</div>
+          <div class="card-title">שמרו פרופיל</div>
+          <div class="card-desc">הזינו טלפון ותחנה בפרופיל פעם אחת — ימולאו אוטומטית בכל פנייה</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="note" style="background:#f0fdf4;border-color:#86efac;color:#166534;">
+      <strong>עזרה נוספת:</strong> לחצו על "עזרה" או "צרו קשר" בסרגל העליון של המערכת לקבלת תמיכה ישירה.
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="brand">מערכת Helpdesk — קריסטלינו גרופ</div>
+    <div style="margin-top:6px;">
+      <a href="https://helpdesk.cristalino.co.il">helpdesk.cristalino.co.il</a>
+    </div>
+    <div style="margin-top:8px;opacity:0.6;font-size:0.72rem;">
+      מייל זה נשלח אוטומטית על ידי מערכת ה-Helpdesk · אין להשיב למייל זה
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
