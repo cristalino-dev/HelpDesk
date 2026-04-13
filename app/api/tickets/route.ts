@@ -104,10 +104,20 @@ export async function PATCH(req: NextRequest) {
     const canUpdate = session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? "")
     if (!canUpdate) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const { id, status } = await req.json()
+    const { id, status, subject, description, phone, computerName, urgency, category, platform } = await req.json()
 
-    // updatedAt is automatically bumped by Prisma (@updatedAt directive in schema)
-    const ticket = await prisma.ticket.update({ where: { id }, data: { status } })
+    // Build update payload from only the fields that were sent
+    const data: Record<string, string> = {}
+    if (status      !== undefined) data.status      = status
+    if (subject     !== undefined) data.subject     = subject
+    if (description !== undefined) data.description = description
+    if (phone       !== undefined) data.phone       = phone
+    if (computerName !== undefined) data.computerName = computerName
+    if (urgency     !== undefined) data.urgency     = urgency
+    if (category    !== undefined) data.category    = category
+    if (platform    !== undefined) data.platform    = platform
+
+    const ticket = await prisma.ticket.update({ where: { id }, data })
     return NextResponse.json(ticket)
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))

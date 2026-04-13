@@ -110,6 +110,9 @@ export default function AdminPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
+  const [editingTicketId, setEditingTicketId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
+  const [editSaving, setEditSaving] = useState(false)
   // Users tab
   const [users, setUsers] = useState<UserRow[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
@@ -160,6 +163,22 @@ export default function AdminPage() {
     } finally {
       setUpdating(null)
       setExpanded(null)
+    }
+  }
+
+  const saveEdit = async () => {
+    if (!editingTicketId) return
+    setEditSaving(true)
+    try {
+      await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingTicketId, ...editForm }),
+      })
+      setEditingTicketId(null)
+      await loadTickets()
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -521,29 +540,79 @@ export default function AdminPage() {
                 {/* Expanded panel */}
                 {expanded === ticket.id && (
                   <div style={{ borderTop: "1px solid #f3f4f6", padding: "16px 20px", backgroundColor: "#fafbfc" }}>
-                    <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
-                      {["פתוח", "בטיפול", "סגור"].map(s => (
-                        <button
-                          key={s}
-                          disabled={updating === ticket.id || ticket.status === s}
-                          onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
-                          style={{
-                            padding: "5px 14px",
-                            borderRadius: "999px",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            border: "none",
-                            cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer",
-                            opacity: updating === ticket.id ? 0.5 : 1,
-                            ...(ticket.status === s ? STATUS_STYLES[s] : { backgroundColor: "#f3f4f6", color: "#374151" }),
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
+                    {editingTicketId === ticket.id ? (
+                      /* ── Edit mode ── */
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          <div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>נושא</div>
+                            <input value={editForm.subject} onChange={e => setEditForm(f => ({ ...f, subject: e.target.value }))}
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>טלפון</div>
+                            <input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>שם מחשב</div>
+                          <input value={editForm.computerName} onChange={e => setEditForm(f => ({ ...f, computerName: e.target.value }))}
+                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>תיאור</div>
+                          <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={4}
+                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", resize: "vertical", boxSizing: "border-box" }} />
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                          {([
+                            { label: "דחיפות", key: "urgency",  opts: ["נמוך", "בינוני", "גבוה", "דחוף"] },
+                            { label: "סטטוס",  key: "status",   opts: ["פתוח", "בטיפול", "סגור"] },
+                            { label: "קטגוריה", key: "category", opts: ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"] },
+                            { label: "פלטפורמה", key: "platform", opts: ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"] },
+                          ] as const).map(({ label, key, opts }) => (
+                            <div key={key}>
+                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>{label}</div>
+                              <select value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", background: "#fff" }}>
+                                {opts.map(o => <option key={o}>{o}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={e => { e.stopPropagation(); saveEdit() }} disabled={editSaving}
+                            style={{ background: "linear-gradient(135deg,#4f46e5,#2563eb)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
+                            {editSaving ? "שומר..." : "שמור"}
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); setEditingTicketId(null) }}
+                            style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                            ביטול
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── View mode ── */
+                      <>
+                        <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
+                          {["פתוח", "בטיפול", "סגור"].map(s => (
+                            <button key={s} disabled={updating === ticket.id || ticket.status === s}
+                              onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
+                              style={{ padding: "5px 14px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLES[s] : { backgroundColor: "#f3f4f6", color: "#374151" }) }}>
+                              {s}
+                            </button>
+                          ))}
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingTicketId(ticket.id); setEditForm({ subject: ticket.subject, description: ticket.description, phone: ticket.phone, computerName: ticket.computerName, urgency: ticket.urgency, category: ticket.category, platform: ticket.platform, status: ticket.status }) }}
+                            style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
+                            ✏️ עריכה
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

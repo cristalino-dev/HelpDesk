@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.1** — Staff Update: Advanced Permissions & All-Tickets View
+**Version 2.2** — Editing Update: Advanced Ticket Management for Staff
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
 
