@@ -123,8 +123,8 @@ export default function HelpPage() {
               </div>
               {/* Ticket card */}
               {[
-                { subject: "המדפסת לא מדפיסה", computer: "PC-ALON-01", cat: "מדפסת", urgency: "גבוה", urgencyBg: "#ffedd5", urgencyColor: "#9a3412", status: "בטיפול", statusBg: "#fef3c7", statusColor: "#92400e", border: "#f97316" },
-                { subject: "שגיאה בהתחברות לרשת", computer: "PC-SARA-02", cat: "רשת", urgency: "דחוף", urgencyBg: "#fee2e2", urgencyColor: "#991b1b", status: "פתוח", statusBg: "#dbeafe", statusColor: "#1e40af", border: "#ef4444" },
+                { subject: "המדפסת לא מדפיסה", computer: "PC-ALON-01", platform: "מחשב אישי", cat: "מדפסת", urgency: "גבוה", urgencyBg: "#ffedd5", urgencyColor: "#9a3412", status: "בטיפול", statusBg: "#fef3c7", statusColor: "#92400e", border: "#f97316" },
+                { subject: "שגיאה בהתחברות לרשת", computer: "PC-SARA-02", platform: "מחשב אישי", cat: "רשת", urgency: "דחוף", urgencyBg: "#fee2e2", urgencyColor: "#991b1b", status: "פתוח", statusBg: "#dbeafe", statusColor: "#1e40af", border: "#ef4444" },
               ].map((t, i) => (
                 <div key={i} style={{ backgroundColor: "#fff", borderRadius: "10px", borderRight: `4px solid ${t.border}`, padding: "10px 14px 10px 12px", marginBottom: "8px", display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", gap: "10px" }}>
                   <div>
