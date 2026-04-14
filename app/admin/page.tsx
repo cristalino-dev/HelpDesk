@@ -64,7 +64,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_MEMBERS } from "@/lib/staffEmails"
-import type { TicketWithUser, TicketNote } from "@/types/ticket"
+import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
@@ -116,10 +116,14 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
   const [editSaving, setEditSaving] = useState(false)
   // Notes per expanded ticket
-  const [expandedNotes, setExpandedNotes] = useState<Record<string, TicketNote[]>>({})
-  const [noteText, setNoteText]           = useState<Record<string, string>>({})
-  const [noteImages, setNoteImages]       = useState<Record<string, PendingImage[]>>({})
-  const [noteSaving, setNoteSaving]       = useState<string | null>(null)
+  const [expandedNotes, setExpandedNotes]       = useState<Record<string, TicketNote[]>>({})
+  const [noteText, setNoteText]                 = useState<Record<string, string>>({})
+  const [noteImages, setNoteImages]             = useState<Record<string, PendingImage[]>>({})
+  const [noteSaving, setNoteSaving]             = useState<string | null>(null)
+  // Messages (conversation with user) per expanded ticket
+  const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
+  const [replyText, setReplyText]               = useState<Record<string, string>>({})
+  const [replySaving, setReplySaving]           = useState<string | null>(null)
   // Users tab
   const [users, setUsers] = useState<UserRow[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
@@ -349,8 +353,8 @@ export default function AdminPage() {
                   <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{editingUser.email}</div>
 
                   {[
-                    { label: "שם מלא", key: "name" as const, placeholder: "ישראל ישראלי" },
-                    { label: "טלפון", key: "phone" as const, placeholder: "050-0000000" },
+                    { label: "שם מלא",     key: "name"    as const, placeholder: "ישראל ישראלי" },
+                    { label: "טלפון",      key: "phone"   as const, placeholder: "050-0000000" },
                     { label: "תחנת עבודה", key: "station" as const, placeholder: "PC-USER-01" },
                   ].map(({ label, key, placeholder }) => (
                     <div key={key}>
@@ -509,7 +513,11 @@ export default function AdminPage() {
                     if (next && !expandedNotes[next]) {
                       try {
                         const r = await fetch(`/api/tickets/${next}`)
-                        if (r.ok) { const d = await r.json(); setExpandedNotes(p => ({ ...p, [next]: d.notes ?? [] })) }
+                        if (r.ok) {
+                          const d = await r.json()
+                          setExpandedNotes(p => ({ ...p, [next]: d.notes ?? [] }))
+                          setExpandedMessages(p => ({ ...p, [next]: d.messages ?? [] }))
+                        }
                       } catch { /* silent */ }
                     }
                   }}
@@ -631,6 +639,61 @@ export default function AdminPage() {
                             style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, textDecoration: "none", background: "#f0fdf4", color: "#15803d" }}>
                             🔍 פתח פנייה מלאה
                           </a>
+                        </div>
+
+                        {/* ── Conversation with user ── */}
+                        <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginBottom: 14 }}>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>💬 שיחה עם המגיש</div>
+                          {(expandedMessages[ticket.id] ?? []).length === 0
+                            ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הודעות עדיין</div>
+                            : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (
+                                <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: msg.authorRole === "staff" ? "row-reverse" : "row", alignItems: "flex-start" }}>
+                                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
+                                    {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+                                  </div>
+                                  <div style={{ maxWidth: "70%" }}>
+                                    <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
+                                      {msg.authorName} · {new Date(msg.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
+                                    </div>
+                                    <div style={{ background: msg.authorRole === "staff" ? "#eef2ff" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                                  </div>
+                                </div>
+                              ))
+                          }
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                            <textarea
+                              rows={2}
+                              placeholder="כתוב תגובה למגיש..."
+                              value={replyText[ticket.id] ?? ""}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => setReplyText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                              style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
+                            />
+                            <button
+                              onClick={async e => {
+                                e.stopPropagation()
+                                const content = (replyText[ticket.id] ?? "").trim()
+                                if (!content) return
+                                setReplySaving(ticket.id)
+                                try {
+                                  const res = await fetch(`/api/tickets/${ticket.id}/messages`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ content }),
+                                  })
+                                  if (res.ok) {
+                                    const msg: TicketMessage = await res.json()
+                                    setExpandedMessages(prev => ({ ...prev, [ticket.id]: [...(prev[ticket.id] ?? []), msg] }))
+                                    setReplyText(prev => ({ ...prev, [ticket.id]: "" }))
+                                  }
+                                } finally { setReplySaving(null) }
+                              }}
+                              disabled={replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim()}
+                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#2563eb", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                            >
+                              {replySaving === ticket.id ? "..." : "שלח"}
+                            </button>
+                          </div>
                         </div>
 
                         {/* ── Notes ── */}

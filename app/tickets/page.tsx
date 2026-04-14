@@ -7,7 +7,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_MEMBERS } from "@/lib/staffEmails"
-import type { TicketWithUser, TicketNote } from "@/types/ticket"
+import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -61,10 +61,14 @@ export default function TicketsPage() {
   const [editSaving, setEditSaving] = useState(false)
 
   // Notes per expanded ticket
-  const [expandedNotes, setExpandedNotes]   = useState<Record<string, TicketNote[]>>({})
-  const [noteText, setNoteText]             = useState<Record<string, string>>({})
-  const [noteImages, setNoteImages]         = useState<Record<string, PendingImage[]>>({})
-  const [noteSaving, setNoteSaving]         = useState<string | null>(null)
+  const [expandedNotes, setExpandedNotes]       = useState<Record<string, TicketNote[]>>({})
+  const [noteText, setNoteText]                 = useState<Record<string, string>>({})
+  const [noteImages, setNoteImages]             = useState<Record<string, PendingImage[]>>({})
+  const [noteSaving, setNoteSaving]             = useState<string | null>(null)
+  // Messages (conversation with user) per expanded ticket
+  const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
+  const [replyText, setReplyText]               = useState<Record<string, string>>({})
+  const [replySaving, setReplySaving]           = useState<string | null>(null)
 
   const handleExpand = async (id: string) => {
     const next = expanded === id ? null : id
@@ -75,8 +79,29 @@ export default function TicketsPage() {
         if (res.ok) {
           const data = await res.json()
           setExpandedNotes(prev => ({ ...prev, [next]: data.notes ?? [] }))
+          setExpandedMessages(prev => ({ ...prev, [next]: data.messages ?? [] }))
         }
       } catch { /* silent */ }
+    }
+  }
+
+  const sendReply = async (ticketId: string) => {
+    const content = (replyText[ticketId] ?? "").trim()
+    if (!content) return
+    setReplySaving(ticketId)
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      })
+      if (res.ok) {
+        const msg: TicketMessage = await res.json()
+        setExpandedMessages(prev => ({ ...prev, [ticketId]: [...(prev[ticketId] ?? []), msg] }))
+        setReplyText(prev => ({ ...prev, [ticketId]: "" }))
+      }
+    } finally {
+      setReplySaving(null)
     }
   }
 
@@ -549,6 +574,44 @@ export default function TicketsPage() {
                               style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#f0fdf4", color: "#15803d", textDecoration: "none" }}>
                               🔍 פתח פנייה מלאה
                             </a>
+                          </div>
+
+                          {/* ── Conversation with user ── */}
+                          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginBottom: 14 }}>
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>💬 שיחה עם המגיש</div>
+                            {(expandedMessages[ticket.id] ?? []).length === 0
+                              ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הודעות עדיין</div>
+                              : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (
+                                  <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: msg.authorRole === "staff" ? "row-reverse" : "row", alignItems: "flex-start" }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
+                                      {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+                                    </div>
+                                    <div style={{ maxWidth: "70%" }}>
+                                      <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
+                                        {msg.authorName} · {new Date(msg.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
+                                      </div>
+                                      <div style={{ background: msg.authorRole === "staff" ? "#eef2ff" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                                    </div>
+                                  </div>
+                                ))
+                            }
+                            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                              <textarea
+                                rows={2}
+                                placeholder="כתוב תגובה למגיש..."
+                                value={replyText[ticket.id] ?? ""}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => setReplyText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                                style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
+                              />
+                              <button
+                                onClick={e => { e.stopPropagation(); sendReply(ticket.id) }}
+                                disabled={replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim()}
+                                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#2563eb", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                              >
+                                {replySaving === ticket.id ? "..." : "שלח"}
+                              </button>
+                            </div>
                           </div>
 
                           {/* ── Notes section ── */}

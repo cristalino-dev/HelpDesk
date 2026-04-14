@@ -81,7 +81,18 @@ export interface TicketAttachment {
   createdAt: string
 }
 
+export interface TicketMessage {
+  id: string
+  ticketId: string
+  content: string
+  authorName: string
+  authorEmail: string
+  authorRole: string  // "staff" | "user"
+  createdAt: string
+}
+
 export interface TicketDetail extends TicketWithUser {
   notes: TicketNote[]
   attachments: TicketAttachment[]
+  messages: TicketMessage[]
 }

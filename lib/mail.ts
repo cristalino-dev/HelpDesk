@@ -181,6 +181,36 @@ export function mailTicketStatusUser(t: TicketInfo) {
   `)
 }
 
+/** Sent to ticket owner when a staff member posts a message */
+export function mailNewMessageToUser(t: TicketInfo, messageContent: string, fromName: string) {
+  const url = ticketUrl(t.id)
+  return wrap(`
+    <div class="header">💬 תגובה חדשה על פנייתך</div>
+    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>${fromName} מצוות התמיכה הגיב על פנייתך:</p>
+    <div class="field"><div class="label">נושא הפנייה</div><div class="value">${t.subject}</div></div>
+    <div class="field"><div class="label">תגובה</div>
+      <div class="value" style="background:#f0f9ff;border-right:3px solid #2563eb;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${messageContent}</div>
+    </div>
+    <p style="color:#6b7280;font-size:13px">ניתן להגיב דרך המערכת.</p>
+    <a class="btn" href="${url}">פתח פנייה וענה ←</a>
+  `)
+}
+
+/** Sent to all staff when a user posts a message on a ticket */
+export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fromName: string) {
+  const url = ticketUrl(t.id)
+  return wrap(`
+    <div class="header">💬 תגובת משתמש על פנייה</div>
+    <p style="color:#374151;font-size:15px">${fromName} הגיב על פנייה:</p>
+    <div class="field"><div class="label">נושא</div><div class="value">${t.subject}</div></div>
+    <div class="field"><div class="label">מגיש</div><div class="value">${t.submitterName} &lt;${t.submitterEmail}&gt;</div></div>
+    <div class="field"><div class="label">תגובה</div>
+      <div class="value" style="background:#f9fafb;border-right:3px solid #6b7280;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${messageContent}</div>
+    </div>
+    <a class="btn" href="${url}">פתח פנייה ←</a>
+  `)
+}
+
 /** Sent to a mentioned staff member when they are @mentioned in a note */
 export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy: string) {
   const url = ticketUrl(t.id)

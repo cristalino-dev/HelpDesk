@@ -18,6 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         user: { select: { name: true, email: true } },
         attachments: { orderBy: { createdAt: "asc" } },
         notes: isStaff ? { orderBy: { createdAt: "asc" } } : false,
+        messages: { orderBy: { createdAt: "asc" } },
       },
     })
 

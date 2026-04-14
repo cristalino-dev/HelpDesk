@@ -14,8 +14,8 @@ export default function HelpPage() {
       <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk v2.6</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש (Quality & Documentation)</span>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk v2.7</span>
+          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש (Interactive Messaging)</span>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
@@ -27,8 +27,8 @@ export default function HelpPage() {
 
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת helpdesk 2.6</h1>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>מערכת ה-HelpDesk המשופרת — גרסה 2.6 עם תיעוד קוד מלא ומדריכים מעודכנים</p>
+          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת helpdesk 2.7</h1>
+          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>מערכת ה-HelpDesk המשופרת — עכשיו עם צ׳אט ישיר ושיחה עם צוות התמיכה</p>
         </div>
 
         {/* TOC */}
@@ -39,6 +39,7 @@ export default function HelpPage() {
             <li><a href="#dashboard" style={{ color: "#2563eb" }}>לוח הבקרה — הפניות שלי</a></li>
             <li><a href="#new-ticket" style={{ color: "#2563eb" }}>פתיחת פנייה חדשה</a></li>
             <li><a href="#notes-attachments" style={{ color: "#2563eb" }}>הערות ותמונות מצורפות</a></li>
+            <li><a href="#messaging" style={{ color: "#2563eb" }}>שיחה עם צוות התמיכה (חדש!)</a></li>
             <li><a href="#statuses" style={{ color: "#2563eb" }}>מצבי פנייה</a></li>
             <li><a href="#urgency" style={{ color: "#2563eb" }}>רמות דחיפות</a></li>
             <li><a href="#contact" style={{ color: "#2563eb" }}>צרו קשר עם תמיכת המערכת</a></li>
@@ -215,7 +216,7 @@ export default function HelpPage() {
               />
               <FieldGuideItem
                 label="דחיפות"
-                desc={<>בחרו את רמת הדחיפות בהתאם להשפעה על עבודתכם. ראו סעיף 5 למטה להסבר מלא על כל רמה.</>}
+                desc={<>בחרו את רמת הדחיפות בהתאם להשפעה על עבודתכם. ראו סעיף 7 למטה להסבר מלא על כל רמה.</>}
               />
               <FieldGuideItem
                 label="תיאור מפורט"
@@ -267,9 +268,35 @@ export default function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 5: STATUSES ── */}
+        {/* ── SECTION 5: MESSAGING (NEW!) ── */}
+        <section id="messaging" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <SectionTitle number="5" title="שיחה עם צוות התמיכה (Interactive Messaging)" />
+          <Card>
+            <p style={{ fontSize: "0.95rem", color: "#6b7280", lineHeight: 1.7, marginBottom: "20px" }}>
+              ניתן כעת לנהל שיחה ישירה עם צוות התמיכה בתוך כל פנייה.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              <div>
+                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>💬 צ׳אט אינטראקטיבי</span>
+                <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                  בתוך מסך הפנייה (או בלחיצה על פנייה בלוח הבבקרה), תמצאו את החלק &quot;שיחה עם הצוות&quot;.
+                  כאן תוכלו לכתוב הודעות ישירות לטכנאי המטפל.
+                </p>
+              </div>
+              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
+              <div>
+                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📧 התראות מייל</span>
+                <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                  כאשר איש צוות מגיב לפנייתכם, תקבלו מייל עדכון אוטומטי עם תוכן ההודעה וקישור ישיר למענה.
+                </p>
+              </div>
+            </div>
+          </Card>
+        </section>
+
+        {/* ── SECTION 6: STATUSES ── */}
         <section id="statuses" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="5" title="מצבי פנייה" />
+          <SectionTitle number="6" title="מצבי פנייה" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <StatusRow badge={badge("#dbeafe", "#1e40af", "פתוח")} title="פתוח" desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
@@ -281,9 +308,9 @@ export default function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 6: URGENCY ── */}
+        {/* ── SECTION 7: URGENCY ── */}
         <section id="urgency" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="6" title="רמות דחיפות — מתי לבחור מה?" />
+          <SectionTitle number="7" title="רמות דחיפות — מתי לבחור מה?" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <UrgencyRow badge={badge("#fee2e2", "#991b1b", "דחוף")} title="דחוף" desc="המחשב לא עולה כלל, אין גישה למערכות קריטיות, הבעיה מונעת עבודה לחלוטין." />
@@ -298,9 +325,9 @@ export default function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 7: CONTACT ── */}
+        {/* ── SECTION 8: CONTACT ── */}
         <section id="contact" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="7" title="צרו קשר עם תמיכת המערכת" />
+          <SectionTitle number="8" title="צרו קשר עם תמיכת המערכת" />
 
           {/* Contact form mockup */}
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
@@ -445,7 +472,7 @@ function MockField({ label, placeholder, hint }: { label: string; placeholder: s
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "5px" }}>
         <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#374151" }}>{label}</label>
-        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", fontSize: "0.6rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
+        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
       </div>
       <div style={{ border: "1px solid #d1d5db", borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: "#9ca3af", backgroundColor: "#fff" }}>{placeholder}</div>
     </div>

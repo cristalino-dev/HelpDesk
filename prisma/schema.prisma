@@ -34,6 +34,18 @@ model Ticket {
   user         User               @relation(fields: [userId], references: [id])
   notes        TicketNote[]
   attachments  TicketAttachment[]
+  messages     TicketMessage[]
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  content     String
+  authorName  String
+  authorEmail String
+  authorRole  String   // "staff" | "user"
+  createdAt   DateTime @default(now())
 }
 
 model TicketNote {

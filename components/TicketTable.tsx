@@ -114,30 +114,28 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       {tickets.map((ticket) => (
-        <div
+        <a
           key={ticket.id}
+          href={`/tickets/${ticket.id}`}
           onMouseEnter={() => setHoverId(ticket.id)}
           onMouseLeave={() => setHoverId(null)}
           style={{
             backgroundColor: "#fff",
             borderRadius: "12px",
             border: "1px solid #f3f4f6",
-            // RTL layout: borderRight in CSS is visually the RIGHT side in LTR,
-            // but in RTL it renders on the right (which is the reading start),
-            // creating the urgency colour stripe on the most-visible edge.
             borderRight: `4px solid ${URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb"}`,
-            // Hover lift effect: driven by hoverId state
             boxShadow: hoverId === ticket.id
               ? "0 4px 16px rgba(0,0,0,0.1)"
               : "0 1px 3px rgba(0,0,0,0.05)",
             display: "grid",
-            gridTemplateColumns: "1fr auto auto auto", // Subject | Urgency | Status | Arrow
+            gridTemplateColumns: "1fr auto auto auto",
             alignItems: "center",
             gap: "16px",
             padding: "14px 16px 14px 20px",
             transition: "box-shadow 0.15s, transform 0.1s",
             transform: hoverId === ticket.id ? "translateY(-1px)" : "none",
-            cursor: "default",
+            cursor: "pointer",
+            textDecoration: "none",
           }}
         >
           {/* ── Subject + meta row ── */}
@@ -167,7 +165,7 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
             {/* Left-pointing chevron — in RTL layout, this points toward the start */}
             <path d="M15 18l-6-6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </div>
+        </a>
       ))}
     </div>
   )

@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_MEMBERS } from "@/lib/staffEmails"
-import type { TicketDetail, TicketNote } from "@/types/ticket"
+import type { TicketDetail, TicketNote, TicketMessage } from "@/types/ticket"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "נמוך":   { background: "#dcfce7", color: "#166534" },
@@ -43,6 +43,8 @@ export default function TicketDetailPage() {
   const [noteImages, setNoteImages] = useState<PendingImage[]>([])
   const [noteSaving, setNoteSaving] = useState(false)
   const [noteError, setNoteError]   = useState("")
+  const [msgText, setMsgText]       = useState("")
+  const [msgSaving, setMsgSaving]   = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -118,6 +120,21 @@ export default function TicketDetailPage() {
       await load()
     } finally {
       setNoteSaving(false)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || !ticket) return
+    setMsgSaving(true)
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: msgText.trim() }),
+      })
+      if (res.ok) { setMsgText(""); await load() }
+    } finally {
+      setMsgSaving(false)
     }
   }
 
@@ -273,6 +290,61 @@ export default function TicketDetailPage() {
             />
           </div>
         )}
+
+        {/* Conversation — visible to everyone */}
+        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+          <h2 style={{ margin: "0 0 16px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>💬 שיחה עם הצוות</h2>
+
+          {ticket.messages.length === 0 && (
+            <div style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: 16 }}>אין הודעות עדיין</div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+            {ticket.messages.map((msg: TicketMessage) => {
+              const isMe = msg.authorEmail === session?.user?.email
+              const byStaff = msg.authorRole === "staff"
+              return (
+                <div key={msg.id} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
+                    {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+                  </div>
+                  <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4, flexDirection: isMe ? "row-reverse" : "row" }}>
+                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: byStaff ? "#4f46e5" : "#0891b2" }}>{msg.authorName}</span>
+                      {byStaff && <span style={{ fontSize: "0.65rem", background: "#eef2ff", color: "#4f46e5", borderRadius: 10, padding: "1px 7px", fontWeight: 600 }}>צוות</span>}
+                      <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{formatDate(msg.createdAt)}</span>
+                    </div>
+                    <div style={{ background: byStaff ? "#eef2ff" : "#f0f9ff", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Reply input */}
+          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 16 }}>
+            <textarea
+              rows={3}
+              placeholder="כתוב הודעה..."
+              value={msgText}
+              onChange={e => setMsgText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendMessage() }}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 8 }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>Ctrl+Enter לשליחה</span>
+              <button
+                onClick={sendMessage}
+                disabled={msgSaving || !msgText.trim()}
+                style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: msgSaving || !msgText.trim() ? "#e5e7eb" : "#2563eb", color: msgSaving || !msgText.trim() ? "#9ca3af" : "#fff", cursor: msgSaving || !msgText.trim() ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
+              >
+                {msgSaving ? "שולח..." : "שלח הודעה"}
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Notes — staff only */}
         {isStaff && (

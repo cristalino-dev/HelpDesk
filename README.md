@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.6** — Quality Update: Comprehensive Test Documentation & Manual Sync
+**Version 2.7** — Interactive Messaging: Direct User-Staff Chat & Email Notifications
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
 
@@ -152,6 +152,23 @@ npm run dev
 6. Make sure the OAuth app is **Published** (not in Testing mode) so all users can sign in
 
 ---
+
+## Version History
+
+| Version | Tag    | Key Changes |
+|---------|--------|-------------|
+| 1.0     | v1.0   | INITIAL RELEASE: Core ticket submission and admin dashboard |
+| 2.0     | v2.0   | MAJOR BUILD: Multi-platform support, Linux native, SSL domain ready |
+| 2.1     | v2.1   | STAFF UPDATE: Added Staff role with global ticket view |
+| 2.2     | v2.2   | EDITING UPDATE: Advanced ticket editing for Staff |
+| 2.3     | v2.3   | REFINED MANAGEMENT: Fast inline editing and UI optimizations |
+| 2.4     | v2.4   | NOTES & ATTACHMENTS: Collaborative notes for staff |
+| 2.5     | v2.5   | STAFF COLLABORATION: Mentions (@handle) and image support for notes |
+| 2.6     | v2.6   | QUALITY UPDATE: Comprehensive inline test documentation |
+| 2.7     | v2.7   | INTERACTIVE MESSAGING: Direct chat between users and staff with automated notifications |
+
+---
+
 
 ## Deployment (Ubuntu Linux via SSH)
 
