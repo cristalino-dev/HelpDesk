@@ -2,9 +2,8 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
-import { STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketDetail, TicketNote, TicketMessage } from "@/types/ticket"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
@@ -45,6 +44,7 @@ export default function TicketDetailPage() {
   const [noteError, setNoteError]   = useState("")
   const [msgText, setMsgText]       = useState("")
   const [msgSaving, setMsgSaving]   = useState(false)
+  const [assigning, setAssigning]   = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -135,6 +135,21 @@ export default function TicketDetailPage() {
       if (res.ok) { setMsgText(""); await load() }
     } finally {
       setMsgSaving(false)
+    }
+  }
+
+  const assignTicket = async (email: string) => {
+    if (!ticket) return
+    setAssigning(true)
+    try {
+      await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ticket.id, assignedTo: email }),
+      })
+      await load()
+    } finally {
+      setAssigning(false)
     }
   }
 
@@ -262,6 +277,39 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>נפתח</span>
               <span style={valueStyle}>{formatDate(ticket.createdAt)}</span>
             </div>
+          </div>
+
+          {/* Assignment row — staff can change, users see read-only */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>👤 מוקצה ל:</span>
+            {isStaff ? (
+              <>
+                <select
+                  value={ticket.assignedTo}
+                  disabled={assigning}
+                  onChange={e => assignTicket(e.target.value)}
+                  style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
+                >
+                  {STAFF_MEMBERS.map(m => (
+                    <option key={m.email} value={m.email}>{m.display}</option>
+                  ))}
+                </select>
+                {ticket.assignedTo !== session?.user?.email && (
+                  <button
+                    onClick={() => assignTicket(session?.user?.email ?? "")}
+                    disabled={assigning || !session?.user?.email}
+                    style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
+                  >
+                    הקצה לעצמי
+                  </button>
+                )}
+                {assigning && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
+              </>
+            ) : (
+              <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e3a8a" }}>
+                {STAFF_MEMBERS.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo}
+              </span>
+            )}
           </div>
 
           {/* Description */}

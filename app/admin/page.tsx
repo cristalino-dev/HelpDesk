@@ -102,6 +102,10 @@ function initials(name?: string | null) {
   return name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
 }
 
+function staffDisplay(email: string) {
+  return STAFF_MEMBERS.find(m => m.email === email)?.display ?? email.split("@")[0]
+}
+
 interface UserRow { id: string; name: string | null; email: string; phone: string | null; station: string | null; isAdmin: boolean }
 
 export default function AdminPage() {
@@ -136,6 +140,8 @@ export default function AdminPage() {
   const [logText, setLogText] = useState("")
   const [logCount, setLogCount] = useState(0)
   const [logsLoading, setLogsLoading] = useState(false)
+  // Assignment
+  const [assigning, setAssigning] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -175,6 +181,21 @@ export default function AdminPage() {
     } finally {
       setUpdating(null)
       setExpanded(null)
+    }
+  }
+
+  const assignTicket = async (ticketId: string, email: string) => {
+    setAssigning(ticketId)
+    try {
+      await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ticketId, assignedTo: email }),
+      })
+      // Optimistic local update so the row reflects the change immediately
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: email } : t))
+    } finally {
+      setAssigning(null)
     }
   }
 
@@ -526,7 +547,7 @@ export default function AdminPage() {
                       } catch { /* silent */ }
                     }
                   }}
-                  style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto", alignItems: "center", gap: "14px", padding: "14px 18px", cursor: "pointer" }}
+                  style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto", alignItems: "center", gap: "14px", padding: "14px 18px", cursor: "pointer" }}
                 >
                   {/* Queue position */}
                   <div style={{
@@ -559,6 +580,15 @@ export default function AdminPage() {
 
                   {/* Status */}
                   <span style={{ ...badge, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
+
+                  {/* Assignee */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
+                    title={ticket.assignedTo}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: ticket.assignedTo === session?.user?.email ? "#4f46e5" : "#64748b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.62rem", fontWeight: 700 }}>
+                      {staffDisplay(ticket.assignedTo).slice(0, 2).toUpperCase()}
+                    </div>
+                    <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>{staffDisplay(ticket.assignedTo)}</span>
+                  </div>
 
                   {/* Time */}
                   <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", whiteSpace: "nowrap", lineHeight: 1.5 }}>
@@ -630,6 +660,32 @@ export default function AdminPage() {
                     ) : (
                       /* ── View mode ── */
                       <>
+                        {/* Assignment row */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                          <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>👤 מוקצה ל:</span>
+                          <select
+                            value={ticket.assignedTo}
+                            disabled={assigning === ticket.id}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
+                            style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                          >
+                            {STAFF_MEMBERS.map(m => (
+                              <option key={m.email} value={m.email}>{m.display}</option>
+                            ))}
+                          </select>
+                          {ticket.assignedTo !== session?.user?.email && (
+                            <button
+                              onClick={e => { e.stopPropagation(); assignTicket(ticket.id, session?.user?.email ?? "") }}
+                              disabled={assigning === ticket.id || !session?.user?.email}
+                              style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                            >
+                              הקצה לעצמי
+                            </button>
+                          )}
+                          {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
+                        </div>
+
                         <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: 14 }}>
                           <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>

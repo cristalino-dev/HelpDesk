@@ -150,7 +150,7 @@ export default function DashboardPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
             {[
               { label: "פתוחות", count: open, color: "#2563eb", bg: "#eff6ff" },
-              { label: "בטיפול", count: inProgress, count: inProgress, color: "#d97706", bg: "#fffbeb" },
+              { label: "בטיפול", count: inProgress, color: "#d97706", bg: "#fffbeb" },
               { label: "סגורות", count: closed, color: "#16a34a", bg: "#f0fdf4" },
             ].map(({ label, count, color, bg }) => (
               <div key={label} style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "12px", border: "1px solid #f3f4f6" }}>

@@ -45,7 +45,7 @@
 
 "use client"
 import { useState } from "react"
-import APP_VERSION from "@/lib/version"
+import { VERSION as APP_VERSION } from "@/lib/version"
 
 interface Props {
   /** Renders as fixed-position overlay at viewport bottom. For login page. */

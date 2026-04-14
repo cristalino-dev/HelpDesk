@@ -4,10 +4,9 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
-import { STAFF_MEMBERS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 
 function initials(name?: string | null) {
@@ -471,6 +470,7 @@ export default function TicketsPage() {
                       </div>
                       <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
+                        {ticket.assignedTo && <> · 👤 {STAFF_MEMBERS.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo.split("@")[0]}</>}
                       </div>
                     </div>
 
