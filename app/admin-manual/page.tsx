@@ -144,7 +144,7 @@ export default function AdminManualPage() {
             <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", marginBottom: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
               <div style={{ padding: "12px 16px", background: "#1e293b", color: "#fff", fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
                 <span>Dashboard: Error Monitoring</span>
-                <span style={{ opacity: 0.6 }}>v2.8-ADMIN</span>
+                <span style={{ opacity: 0.6 }}>v2.9-ADMIN</span>
               </div>
               <div style={{ padding: "16px" }}>
                 {/* Stats row */}

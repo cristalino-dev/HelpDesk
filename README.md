@@ -166,7 +166,8 @@ npm run dev
 | 2.5     | v2.5   | STAFF COLLABORATION: Mentions (@handle) and image support for notes |
 | 2.6     | v2.6   | QUALITY UPDATE: Comprehensive inline test documentation |
 | 2.7     | v2.7   | INTERACTIVE MESSAGING: Direct chat between users and staff with automated notifications |
-| 2.8     | v2.8   | ADMIN LOGS: Dedicated Error Log Viewer screen with live filtering and system troubleshooting |
+| 2.8     | v2.8   | - **v2.8 — Error Monitoring**: Dedicated Admin Dashboard for system error analysis with statistics and clipboard integration. |
+| 2.9     | v2.9   | - **v2.9 — Navigation & Admin Presence**: Resolved header navigation bugs and implemented dynamic role-based badging (Admin/Staff) to improve dashboard clarity. |
 
 ---
 

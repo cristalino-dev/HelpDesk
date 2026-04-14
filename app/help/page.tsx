@@ -14,7 +14,7 @@ export default function HelpPage() {
       <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk v2.8</span>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk v2.9</span>
           <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש (Administration & Advanced Logs)</span>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -27,7 +27,7 @@ export default function HelpPage() {
 
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת helpdesk 2.8</h1>
+          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת helpdesk 2.9</h1>
           <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>מערכת ה-HelpDesk המשופרת — עכשיו עם לוח מעקב שגיאות מתקדם וכלי ניטור לצוות המנהלים</p>
         </div>
 
