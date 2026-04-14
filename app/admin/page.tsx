@@ -62,6 +62,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
@@ -284,12 +285,15 @@ export default function AdminPage() {
           <a href="/admin-manual" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>📖 מדריך מנהל</a>
           <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
           <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</a>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", transition: "opacity 0.2s" }}
+            onMouseOver={e => (e.currentTarget.style.opacity = "0.8")}
+            onMouseOut={e => (e.currentTarget.style.opacity = "1")}
+          >
             <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
               {initials(session?.user?.name)}
             </div>
-            <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)" }}>{session?.user?.name}</span>
-          </div>
+            <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{session?.user?.name}</span>
+          </Link>
           <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.65)", background: "none", border: "none", cursor: "pointer" }}>יציאה</button>
         </div>
       </header>

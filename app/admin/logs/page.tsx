@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
 
@@ -131,7 +132,9 @@ export default function AdminLogsPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
           <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#fff", letterSpacing: "-0.01em" }}>לוח מעקב שגיאות</span>
-          <span style={{ background: "rgba(56,189,248,0.2)", color: "#7dd3fc", fontSize: "0.7rem", fontWeight: 700, padding: "2px 10px", borderRadius: 20, border: "1px solid rgba(56,189,248,0.3)" }}>v2.8-ADMIN</span>
+          <span style={{ background: "rgba(56,189,248,0.2)", color: "#7dd3fc", fontSize: "0.7rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(56,189,248,0.3)", boxShadow: "0 0 10px rgba(56,189,248,0.15)" }}>
+            {isAdmin ? "Admin" : "v2.8-ADMIN"}
+          </span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -142,11 +145,15 @@ export default function AdminLogsPage() {
             ))}
           </nav>
           
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", borderRadius: 10, background: "rgba(255,255,255,0.1)" }}>
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", borderRadius: 10, background: "rgba(255,255,255,0.1)", textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
+            onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.18)")}
+            onMouseOut={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+          >
             <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#38bdf8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, color: "#fff" }}>
               {initials(session?.user?.name)}
             </div>
-          </div>
+            <span style={{ fontSize: "0.82rem", color: "#f8fafc", fontWeight: 500 }}>{session?.user?.name}</span>
+          </Link>
           <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: "#cbd5e1", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}>יציאה</button>
         </div>
       </header>

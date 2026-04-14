@@ -3,6 +3,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
@@ -289,8 +290,8 @@ export default function TicketsPage() {
             </svg>
           </div>
           <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>כל הפניות</span>
-          <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
-            Staff
+          <span style={{ background: session?.user?.isAdmin ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.72rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.3)", boxShadow: session?.user?.isAdmin ? "0 0 10px rgba(255,255,255,0.2)" : "none" }}>
+            {session?.user?.isAdmin ? "Admin" : "Staff"}
           </span>
         </div>
 
@@ -303,12 +304,15 @@ export default function TicketsPage() {
               <a href="/admin/logs" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>לוג שגיאות</a>
             </>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)" }}>
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
+            onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+            onMouseOut={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+          >
             <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
               {initials(session?.user?.name)}
             </div>
             <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{session?.user?.name}</span>
-          </div>
+          </Link>
           <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}>יציאה</button>
         </div>
       </header>
