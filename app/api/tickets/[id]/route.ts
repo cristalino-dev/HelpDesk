@@ -12,8 +12,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
 
+    // Accept both HDTC-N format and raw CUID for backward compat
+    const where = id.startsWith("HDTC-")
+      ? { ticketNumber: parseInt(id.slice(5), 10) }
+      : { id }
+
     const ticket = await prisma.ticket.findUnique({
-      where: { id },
+      where,
       include: {
         user: { select: { name: true, email: true } },
         attachments: { orderBy: { createdAt: "asc" } },

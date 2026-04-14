@@ -57,8 +57,8 @@ export async function sendMail({ to, subject, html }: MailOptions) {
 
 // ── Ticket link helper ────────────────────────────────────────────────────────
 
-export function ticketUrl(ticketId: string) {
-  return `${APP_URL}/tickets/${ticketId}`
+export function ticketUrl(ticketNumber: number) {
+  return `${APP_URL}/tickets/HDTC-${ticketNumber}`
 }
 
 // ── Shared HTML wrapper ───────────────────────────────────────────────────────
@@ -100,6 +100,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface TicketInfo {
   id: string
+  ticketNumber: number
   subject: string
   description: string
   urgency: string
@@ -114,7 +115,7 @@ interface TicketInfo {
 
 /** Sent to all staff when a new ticket is opened */
 export function mailTicketOpenedStaff(t: TicketInfo) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">🎫 פנייה חדשה נפתחה</div>
     <div class="field"><div class="label">נושא</div><div class="value">${t.subject}</div></div>
@@ -133,7 +134,7 @@ export function mailTicketOpenedStaff(t: TicketInfo) {
 
 /** Sent to the user who opened the ticket */
 export function mailTicketOpenedUser(t: TicketInfo) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">✅ פנייתך התקבלה</div>
     <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>פנייתך התקבלה בהצלחה. צוות התמיכה יטפל בה בהקדם.</p>
@@ -142,14 +143,14 @@ export function mailTicketOpenedUser(t: TicketInfo) {
       <div class="label">דחיפות</div>
       <div class="value"><span class="badge" style="${URGENCY_COLOR[t.urgency] ?? ""}">${t.urgency}</span></div>
     </div>
-    <div class="field"><div class="label">מספר פנייה</div><div class="value" style="font-family:monospace;font-size:13px">${t.id.slice(-8).toUpperCase()}</div></div>
+    <div class="field"><div class="label">מספר פנייה</div><div class="value" style="font-family:monospace;font-size:13px">HDTC-${t.ticketNumber}</div></div>
     <a class="btn" href="${url}">צפה בפנייה ←</a>
   `)
 }
 
 /** Sent to all staff on any field update (status, urgency, etc.) */
 export function mailTicketUpdatedStaff(t: TicketInfo, changedBy: string) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">🔄 פנייה עודכנה</div>
     <div class="field"><div class="label">עודכן על ידי</div><div class="value">${changedBy}</div></div>
@@ -169,7 +170,7 @@ export function mailTicketUpdatedStaff(t: TicketInfo, changedBy: string) {
 
 /** Sent to the user when their ticket moves to בטיפול or סגור */
 export function mailTicketStatusUser(t: TicketInfo) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   const msg = t.status === "סגור"
     ? "פנייתך טופלה וסומנה כסגורה. אנא פנה שוב אם הבעיה חוזרת."
     : "פנייתך נמצאת כעת בטיפול הצוות הטכני."
@@ -187,7 +188,7 @@ export function mailTicketStatusUser(t: TicketInfo) {
 
 /** Sent to ticket owner when a staff member posts a message */
 export function mailNewMessageToUser(t: TicketInfo, messageContent: string, fromName: string) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">💬 תגובה חדשה על פנייתך</div>
     <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>${fromName} מצוות התמיכה הגיב על פנייתך:</p>
@@ -202,7 +203,7 @@ export function mailNewMessageToUser(t: TicketInfo, messageContent: string, from
 
 /** Sent to all staff when a user posts a message on a ticket */
 export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fromName: string) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">💬 תגובת משתמש על פנייה</div>
     <p style="color:#374151;font-size:15px">${fromName} הגיב על פנייה:</p>
@@ -217,7 +218,7 @@ export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fro
 
 /** Sent to a mentioned staff member when they are @mentioned in a note */
 export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy: string) {
-  const url = ticketUrl(t.id)
+  const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">💬 הוזכרת בהערה</div>
     <p style="color:#374151;font-size:15px">${mentionedBy} הזכיר אותך בהערה על פנייה:</p>

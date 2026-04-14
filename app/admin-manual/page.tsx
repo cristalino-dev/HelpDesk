@@ -17,7 +17,7 @@ export default function AdminManualPage() {
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מדריך מנהל – Helpdesk</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך לצוות התמיכה הטכנית של קריסטלינו</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "4px 16px", fontSize: "0.78rem", fontWeight: 600 }}>
-            Staff Only · Cristalino Group · 2026 · v2.8
+            Staff Only · Cristalino Group · 2026 · v2.9
           </div>
         </div>
 
@@ -124,7 +124,7 @@ export default function AdminManualPage() {
             ]} />
           </Section>
 
-          <Section icon="🛠️" title='פאנל ניהול — /admin'>
+          <Section icon="🛠️" title="פאנל ניהול — /admin">
             <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
               נגיש לבעלי הרשאת מנהל מלאה בלבד.
             </p>
@@ -135,9 +135,9 @@ export default function AdminManualPage() {
             ]} />
           </Section>
 
-          <Section icon="⚠️" title='לוח מעקב שגיאות — /admin/logs'>
+          <Section icon="⚠️" title="לוח מעקב שגיאות — /admin/logs">
             <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
-              מסך "מרכז בקרה" ייעודי לניטור יציבות המערכת. מאפשר לזהות תקלות רוחביות או נקודתיות של משתמשים בזמן אמת.
+              מסך &quot;מרכז בקרה&quot; ייעודי לניטור יציבות המערכת. מאפשר לזהות תקלות רוחביות או נקודתיות של משתמשים בזמן אמת.
             </p>
 
             {/* Dashboard Mockup */}

@@ -39,6 +39,7 @@
 /** The base ticket shape returned by GET /api/tickets for regular users. */
 export interface Ticket {
   id: string
+  ticketNumber: number
   subject: string
   description: string
   phone: string

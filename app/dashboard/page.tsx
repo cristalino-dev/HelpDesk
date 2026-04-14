@@ -42,6 +42,7 @@ import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
@@ -115,24 +116,24 @@ export default function DashboardPage() {
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <a href="/help" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>עזרה</a>
-          <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
+          <Link href="/help" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>עזרה</Link>
+          <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
           {STAFF_EMAILS.includes(session?.user?.email ?? "") && (
-            <a href="/tickets" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.15)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
+            <Link href="/tickets" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.15)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
               כל הפניות
-            </a>
+            </Link>
           )}
           {session?.user?.isAdmin && (
-            <a href="/admin" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.2)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
+            <Link href="/admin" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.2)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
               ניהול פניות
-            </a>
+            </Link>
           )}
-          <a href="/profile" style={{ display: "flex", alignItems: "center", gap: "7px", textDecoration: "none", padding: "4px 10px 4px 6px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "7px", textDecoration: "none", padding: "4px 10px 4px 6px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
             <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
               {initials(session?.user?.name)}
             </div>
             <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{session?.user?.name}</span>
-          </a>
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}
@@ -149,7 +150,7 @@ export default function DashboardPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
             {[
               { label: "פתוחות", count: open, color: "#2563eb", bg: "#eff6ff" },
-              { label: "בטיפול", count: inProgress, color: "#d97706", bg: "#fffbeb" },
+              { label: "בטיפול", count: inProgress, count: inProgress, color: "#d97706", bg: "#fffbeb" },
               { label: "סגורות", count: closed, color: "#16a34a", bg: "#f0fdf4" },
             ].map(({ label, count, color, bg }) => (
               <div key={label} style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "12px", border: "1px solid #f3f4f6" }}>

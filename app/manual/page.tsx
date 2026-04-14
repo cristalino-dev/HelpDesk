@@ -43,7 +43,7 @@ export default function ManualPage() {
           <Section icon="🔑" title="כניסה למערכת">
             <Steps items={[
               <><strong>גשו לכתובת</strong> helpdesk.cristalino.co.il בדפדפן</>,
-              <>לחצו על <strong>"התחברות עם Google"</strong></>,
+              <>לחצו על <strong>&quot;התחברות עם Google&quot;</strong></>,
               <>בחרו את <strong>חשבון Google הארגוני</strong> שלכם (@cristalino.co.il)</>,
               <>הגעתם ללוח הבקרה האישי שלכם — ניתן להתחיל!</>,
             ]} />
@@ -54,10 +54,10 @@ export default function ManualPage() {
 
           <Section icon="📋" title="פתיחת פנייה חדשה">
             <Steps items={[
-              <>בלוח הבקרה, לחצו על <strong>"+ פנייה חדשה"</strong></>,
+              <>בלוח הבקרה, לחצו על <strong>&quot;+ פנייה חדשה&quot;</strong></>,
               <>מלאו: <strong>נושא, תיאור מפורט, טלפון ושם המחשב</strong></>,
               <>בחרו <strong>קטגוריה, פלטפורמה ורמת דחיפות</strong></>,
-              <>לחצו <strong>"שלח פנייה"</strong> — הפנייה מועברת מיידית לצוות התמיכה</>,
+              <>לחצו <strong>&quot;שלח פנייה&quot;</strong> — הפנייה מועברת מיידית לצוות התמיכה</>,
             ]} />
             <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 18, marginBottom: 6, fontWeight: 600 }}>רמות דחיפות:</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -100,7 +100,7 @@ export default function ManualPage() {
           <Section icon="📎" title="צירוף תמונה לפנייה">
             <Steps items={[
               <>בשדה <strong>תיאור מפורט</strong> ניתן לצרף צילום מסך או תמונה</>,
-              <>לחצו על אזור <strong>״גררו תמונה לכאן״</strong> מתחת לתיאור לבחירת קובץ</>,
+              <>לחצו על אזור <strong>&quot;גררו תמונה לכאן&quot;</strong> מתחת לתיאור לבחירת קובץ</>,
               <>לחלופין, <strong>הדביקו תמונה (Ctrl+V)</strong> ישירות לאחר שצילמתם מסך</>,
               <>ניתן לצרף מספר תמונות לאותה פנייה</>,
             ]} />
@@ -124,7 +124,7 @@ export default function ManualPage() {
           </Section>
 
           <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 18px", fontSize: "0.82rem", color: "#166534", lineHeight: 1.6 }}>
-            <strong>עזרה נוספת:</strong> לחצו על "עזרה" או "צרו קשר" בסרגל העליון של המערכת לקבלת תמיכה ישירה.
+            <strong>עזרה נוספת:</strong> לחצו על &quot;עזרה&quot; או &quot;צרו קשר&quot; בסרגל העליון של המערכת לקבלת תמיכה ישירה.
           </div>
         </div>
 

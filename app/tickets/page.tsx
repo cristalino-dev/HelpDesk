@@ -460,8 +460,11 @@ export default function TicketsPage() {
 
                     {/* Subject + meta */}
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <a href={`/tickets/${ticket.id}`} onClick={e => e.stopPropagation()} style={{ color: "inherit", textDecoration: "none" }}
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                          HDTC-{ticket.ticketNumber}
+                        </span>
+                        <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
                           onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
                           onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
                         >{ticket.subject}</a>
@@ -577,7 +580,7 @@ export default function TicketsPage() {
                               style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
                               ✏️ עריכה
                             </button>
-                            <a href={`/tickets/${ticket.id}`} onClick={e => e.stopPropagation()}
+                            <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
                               style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#f0fdf4", color: "#15803d", textDecoration: "none" }}>
                               🔍 פתח פנייה מלאה
                             </a>

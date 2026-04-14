@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
 
     // Send emails (non-blocking — don't await sequentially in the request)
     const ticketInfo = {
-      id: ticket.id, subject, description, urgency, category,
+      id: ticket.id, ticketNumber: ticket.ticketNumber,
+      subject, description, urgency, category,
       platform, phone, computerName, status: ticket.status,
       submitterName: session.user.name ?? session.user.email!,
       submitterEmail: session.user.email!,
@@ -142,6 +143,7 @@ export async function PATCH(req: NextRequest) {
     if (before) {
       const ticketInfo = {
         id: ticket.id,
+        ticketNumber: ticket.ticketNumber,
         subject:      ticket.subject,
         description:  ticket.description,
         urgency:      ticket.urgency,

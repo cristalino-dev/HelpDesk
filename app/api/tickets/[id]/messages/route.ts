@@ -40,7 +40,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     })
     if (ticket) {
       const ticketInfo = {
-        id: ticket.id, subject: ticket.subject, description: ticket.description,
+        id: ticket.id, ticketNumber: ticket.ticketNumber,
+        subject: ticket.subject, description: ticket.description,
         urgency: ticket.urgency, category: ticket.category, platform: ticket.platform,
         phone: ticket.phone, computerName: ticket.computerName, status: ticket.status,
         submitterName: ticket.user?.name ?? ticket.user?.email ?? "משתמש",

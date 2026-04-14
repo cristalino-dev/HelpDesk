@@ -35,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (ticket) {
         const ticketInfo = {
           id: ticket.id,
+          ticketNumber: ticket.ticketNumber,
           subject:      ticket.subject,
           description:  ticket.description,
           urgency:      ticket.urgency,

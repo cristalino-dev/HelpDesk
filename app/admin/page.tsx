@@ -541,8 +541,13 @@ export default function AdminPage() {
 
                   {/* Subject + user info */}
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {ticket.subject}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                        HDTC-{ticket.ticketNumber}
+                      </span>
+                      <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {ticket.subject}
+                      </span>
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "2px" }}>
                       {ticket.user?.name ?? ticket.user?.email} · {ticket.phone} · {ticket.computerName} · {ticket.category} · {ticket.platform}
@@ -640,7 +645,7 @@ export default function AdminPage() {
                             style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
                             ✏️ עריכה
                           </button>
-                          <a href={`/tickets/${ticket.id}`} onClick={e => e.stopPropagation()}
+                          <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
                             style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, textDecoration: "none", background: "#f0fdf4", color: "#15803d" }}>
                             🔍 פתח פנייה מלאה
                           </a>

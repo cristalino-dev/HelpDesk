@@ -116,7 +116,7 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
       {tickets.map((ticket) => (
         <a
           key={ticket.id}
-          href={`/tickets/${ticket.id}`}
+          href={`/tickets/HDTC-${ticket.ticketNumber}`}
           onMouseEnter={() => setHoverId(ticket.id)}
           onMouseLeave={() => setHoverId(null)}
           style={{
@@ -141,8 +141,13 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
           {/* ── Subject + meta row ── */}
           <div style={{ minWidth: 0 }}>
             {/* Subject — truncated with ellipsis if too long */}
-            <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: "3px" }}>
-              {ticket.subject}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+              <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                HDTC-{ticket.ticketNumber}
+              </span>
+              <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {ticket.subject}
+              </span>
             </div>
             {/* Secondary info row: computer name · category · platform · date */}
             <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>

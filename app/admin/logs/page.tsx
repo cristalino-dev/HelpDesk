@@ -1,3 +1,21 @@
+/**
+ * app/admin/logs/page.tsx — Admin Error Log Dashboard
+ * 
+ * PURPOSE:
+ * ─────────
+ * A centralized monitoring interface for technical staff and admins to 
+ * track system stability, troubleshoot client-side and server-side errors, 
+ * and perform log maintenance.
+ * 
+ * FEATURES:
+ * ──────────
+ * 1. Live Stats: Real-time calculation of total events, errors, and warnings.
+ * 2. Search & Filtering: Instant text-based filtering across messages, levels, and sources.
+ * 3. Copy Tools: One-click clipboard support for error messages and stack traces.
+ * 4. Maintenance: Ability for admins to clear the entire log database.
+ * 5. Security: Role-based access (Staff see logs, Admins can also delete them).
+ */
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -23,7 +41,6 @@ export default function AdminLogsPage() {
   const router = useRouter()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
 
@@ -47,11 +64,9 @@ export default function AdminLogsPage() {
       if (res.ok) {
         const data = await res.json()
         setLogs(data)
-      } else {
-        setError("Failed to fetch logs")
       }
     } catch (err) {
-      setError("An error occurred")
+      console.error("Fetch logs failed:", err)
     } finally {
       setLoading(false)
     }
@@ -73,7 +88,7 @@ export default function AdminLogsPage() {
         setLogs([])
       }
     } catch (err) {
-      alert("נכשל בניקוי הלוגים")
+      console.error("Clear logs failed:", err)
     }
   }
 

@@ -164,7 +164,7 @@ export default function TicketDetailPage() {
           ← חזרה
         </button>
         <h1 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937", flex: 1 }}>
-          פנייה #{ticket.id.slice(-6).toUpperCase()}
+          HDTC-{ticket.ticketNumber} · {ticket.subject}
         </h1>
         {isStaff && !editing && (
           <button
