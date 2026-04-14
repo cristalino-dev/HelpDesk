@@ -21,6 +21,7 @@ model User {
 model Ticket {
   id           String             @id @default(cuid())
   ticketNumber Int                @default(autoincrement()) @unique
+  assignedTo   String             @default("helpdesk@cristalino.co.il")
   subject      String
   description  String
   phone        String

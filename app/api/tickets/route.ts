@@ -118,18 +118,19 @@ export async function PATCH(req: NextRequest) {
     const canUpdate = session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? "")
     if (!canUpdate) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const { id, status, subject, description, phone, computerName, urgency, category, platform } = await req.json()
+    const { id, status, subject, description, phone, computerName, urgency, category, platform, assignedTo } = await req.json()
 
     // Build update payload from only the fields that were sent
     const data: Record<string, string> = {}
-    if (status      !== undefined) data.status      = status
-    if (subject     !== undefined) data.subject     = subject
-    if (description !== undefined) data.description = description
-    if (phone       !== undefined) data.phone       = phone
+    if (status       !== undefined) data.status       = status
+    if (subject      !== undefined) data.subject      = subject
+    if (description  !== undefined) data.description  = description
+    if (phone        !== undefined) data.phone        = phone
     if (computerName !== undefined) data.computerName = computerName
-    if (urgency     !== undefined) data.urgency     = urgency
-    if (category    !== undefined) data.category    = category
-    if (platform    !== undefined) data.platform    = platform
+    if (urgency      !== undefined) data.urgency      = urgency
+    if (category     !== undefined) data.category     = category
+    if (platform     !== undefined) data.platform     = platform
+    if (assignedTo   !== undefined) data.assignedTo   = assignedTo
 
     // Fetch ticket before update so we have submitter info for emails
     const before = await prisma.ticket.findUnique({

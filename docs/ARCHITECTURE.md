@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 1.08 · Last updated 2026-04-14 · v2.8 Admin Error Logs Release
+> Version 1.09 · Last updated 2026-04-14 · v2.9 Release
 
 ---
 
@@ -54,7 +54,7 @@ Authentication is Google OAuth only — employees use their corporate `@cristali
 | ORM | Prisma | 5.x | Type-safe DB client |
 | Database | PostgreSQL | 18 | AWS RDS (managed) |
 | Email | nodemailer | 7.x | Google Workspace SMTP |
-| Testing | Jest + RTL | 30 + 16 | 35 unit tests, gate the build |
+| Testing | Jest + RTL | 30 + 16 | 40+ unit tests, gate the build |
 | Hosting | Ubuntu Server | — | PM2 process manager |
 | Deploy | SSH + SCP | — | deploy.sh — build runs on server |
 

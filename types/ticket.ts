@@ -40,6 +40,7 @@
 export interface Ticket {
   id: string
   ticketNumber: number
+  assignedTo: string
   subject: string
   description: string
   phone: string
