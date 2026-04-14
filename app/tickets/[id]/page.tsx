@@ -3,7 +3,8 @@ import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
-import ImageAttachments from "@/components/ImageAttachments"
+import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
+import { STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketDetail, TicketNote } from "@/types/ticket"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
@@ -38,9 +39,10 @@ export default function TicketDetailPage() {
   const [editing, setEditing]     = useState(false)
   const [editForm, setEditForm]   = useState({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
   const [editSaving, setEditSaving] = useState(false)
-  const [noteText, setNoteText]   = useState("")
+  const [noteText, setNoteText]     = useState("")
+  const [noteImages, setNoteImages] = useState<PendingImage[]>([])
   const [noteSaving, setNoteSaving] = useState(false)
-  const [noteError, setNoteError] = useState("")
+  const [noteError, setNoteError]   = useState("")
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -90,17 +92,29 @@ export default function TicketDetailPage() {
   }
 
   const addNote = async () => {
-    if (!noteText.trim() || !ticket) return
+    if ((!noteText.trim() && noteImages.length === 0) || !ticket) return
     setNoteSaving(true)
     setNoteError("")
     try {
-      const res = await fetch(`/api/tickets/${ticket.id}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: noteText.trim() }),
-      })
-      if (!res.ok) { setNoteError("שגיאה בשמירת הערה"); return }
+      // Upload any pasted/attached images as ticket attachments
+      for (const img of noteImages) {
+        await fetch(`/api/tickets/${ticket.id}/attachments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
+        })
+      }
+      // Save note text (if any)
+      if (noteText.trim()) {
+        const res = await fetch(`/api/tickets/${ticket.id}/notes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: noteText.trim() }),
+        })
+        if (!res.ok) { setNoteError("שגיאה בשמירת הערה"); return }
+      }
       setNoteText("")
+      setNoteImages([])
       await load()
     } finally {
       setNoteSaving(false)
@@ -283,16 +297,29 @@ export default function TicketDetailPage() {
             <div style={{ borderTop: ticket.notes.length ? "1px solid #f3f4f6" : "none", paddingTop: ticket.notes.length ? 16 : 0 }}>
               <textarea
                 rows={3}
-                placeholder="הוסף הערה..."
+                placeholder="הוסף הערה... השתמש ב-@alon, @daniel, @dev, @helpdesk להזכרת צוות"
                 value={noteText}
                 onChange={e => setNoteText(e.target.value)}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 8 }}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 6 }}
               />
+              {/* @mention chips */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                <span style={{ fontSize: "0.72rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
+                {STAFF_MEMBERS.map(m => (
+                  <button key={m.handle} type="button"
+                    onClick={() => setNoteText(t => t ? `${t} @${m.handle}` : `@${m.handle}`)}
+                    style={{ padding: "2px 10px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+                  >@{m.handle}</button>
+                ))}
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <ImageAttachments images={noteImages} onChange={setNoteImages} />
+              </div>
               {noteError && <div style={{ fontSize: "0.8rem", color: "#dc2626", marginBottom: 8 }}>{noteError}</div>}
               <button
                 onClick={addNote}
-                disabled={noteSaving || !noteText.trim()}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: noteSaving || !noteText.trim() ? "#e5e7eb" : "#4f46e5", color: noteSaving || !noteText.trim() ? "#9ca3af" : "#fff", cursor: noteSaving || !noteText.trim() ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
+                disabled={noteSaving || (!noteText.trim() && noteImages.length === 0)}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#e5e7eb" : "#4f46e5", color: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#9ca3af" : "#fff", cursor: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
               >
                 {noteSaving ? "שומר..." : "הוסף הערה"}
               </button>

@@ -14,8 +14,8 @@ export default function HelpPage() {
       <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk v2.4</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש (Notes & Attachments)</span>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk v2.5</span>
+          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש (Staff Collaboration)</span>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
@@ -27,8 +27,8 @@ export default function HelpPage() {
 
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת helpdesk 2.4</h1>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>מערכת ה-HelpDesk המשופרת — עכשיו עם תמיכה בהערות ותמונות מצורפות</p>
+          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>מדריך שימוש במערכת helpdesk 2.5</h1>
+          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>מערכת ה-HelpDesk המשופרת — עכשיו עם תיוג אנשי צוות וצירוף תמונות להערות</p>
         </div>
 
         {/* TOC */}
@@ -255,10 +255,11 @@ export default function HelpPage() {
               </div>
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות (לצוות התמיכה בלבד)</span>
+                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות ותיוג (Mentions)</span>
                 <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  לאחר שליחת הפנייה, תוכלו להיכנס אליה מלוח הבקרה ולראות הערות שהוסיפו הטכנאים המטפלים.
-                  טכנאים יכולים להשתמש בשדה ההערות כדי לתעד את שלבי הטיפול או לבקש מידע נוסף.
+                  טכנאים יכולים להוסיף הערות וגם לתייג אנשי צוות אחרים באמצעות שימוש ב-&quot;@&quot; (לדוגמה: @alon). 
+                  ניתן ללחוץ על כפתורי השמות המופיעים מתחת לשדה ההערה כדי לתייג במהירות. 
+                  בנוסף, ניתן כעת לצרף תמונות וצילומי מסך ישירות לתוך ההערה.
                 </p>
               </div>
             </div>

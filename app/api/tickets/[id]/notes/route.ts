@@ -1,7 +1,8 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, parseMentions } from "@/lib/staffEmails"
+import { sendMail, mailNoteMention } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,6 +24,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         authorEmail: session.user.email,
       },
     })
+
+    // Send @mention emails (non-blocking)
+    const mentioned = parseMentions(content)
+    if (mentioned.length > 0) {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id },
+        include: { user: { select: { name: true, email: true } } },
+      })
+      if (ticket) {
+        const ticketInfo = {
+          id: ticket.id,
+          subject:      ticket.subject,
+          description:  ticket.description,
+          urgency:      ticket.urgency,
+          category:     ticket.category,
+          platform:     ticket.platform,
+          phone:        ticket.phone,
+          computerName: ticket.computerName,
+          status:       ticket.status,
+          submitterName:  ticket.user?.name ?? ticket.user?.email ?? "משתמש",
+          submitterEmail: ticket.user?.email ?? "",
+        }
+        const mentionedBy = session.user.name ?? session.user.email
+        void Promise.all(
+          mentioned.map(email =>
+            sendMail({
+              to: email,
+              subject: `הוזכרת בפנייה: ${ticket.subject}`,
+              html: mailNoteMention(ticketInfo, content.trim(), mentionedBy),
+            })
+          )
+        )
+      }
+    }
 
     return NextResponse.json(note)
   } catch (err) {

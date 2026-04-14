@@ -62,6 +62,8 @@ import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
+import { STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 
@@ -116,6 +118,7 @@ export default function AdminPage() {
   // Notes per expanded ticket
   const [expandedNotes, setExpandedNotes] = useState<Record<string, TicketNote[]>>({})
   const [noteText, setNoteText]           = useState<Record<string, string>>({})
+  const [noteImages, setNoteImages]       = useState<Record<string, PendingImage[]>>({})
   const [noteSaving, setNoteSaving]       = useState<string | null>(null)
   // Users tab
   const [users, setUsers] = useState<UserRow[]>([])
@@ -644,22 +647,45 @@ export default function AdminPage() {
                                 </div>
                               ))
                           }
-                          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-                            <textarea
-                              rows={2}
-                              placeholder="הוסף הערה..."
-                              value={noteText[ticket.id] ?? ""}
-                              onClick={e => e.stopPropagation()}
-                              onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                              style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
+                          <textarea
+                            rows={2}
+                            placeholder="הוסף הערה... @alon @daniel @dev @helpdesk"
+                            value={noteText[ticket.id] ?? ""}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box", marginBottom: 4 }}
+                          />
+                          <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+                            <span style={{ fontSize: "0.68rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
+                            {STAFF_MEMBERS.map(m => (
+                              <button key={m.handle} type="button"
+                                onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
+                                style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
+                              >@{m.handle}</button>
+                            ))}
+                          </div>
+                          <div onClick={e => e.stopPropagation()} style={{ marginBottom: 8 }}>
+                            <ImageAttachments
+                              images={noteImages[ticket.id] ?? []}
+                              onChange={imgs => setNoteImages(prev => ({ ...prev, [ticket.id]: imgs }))}
                             />
-                            <button
-                              onClick={async e => {
-                                e.stopPropagation()
-                                const content = (noteText[ticket.id] ?? "").trim()
-                                if (!content) return
-                                setNoteSaving(ticket.id)
-                                try {
+                          </div>
+                          <button
+                            onClick={async e => {
+                              e.stopPropagation()
+                              const content = (noteText[ticket.id] ?? "").trim()
+                              const imgs = noteImages[ticket.id] ?? []
+                              if (!content && !imgs.length) return
+                              setNoteSaving(ticket.id)
+                              try {
+                                for (const img of imgs) {
+                                  await fetch(`/api/tickets/${ticket.id}/attachments`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
+                                  })
+                                }
+                                if (content) {
                                   const res = await fetch(`/api/tickets/${ticket.id}/notes`, {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
@@ -668,16 +694,17 @@ export default function AdminPage() {
                                   if (res.ok) {
                                     const note: TicketNote = await res.json()
                                     setExpandedNotes(prev => ({ ...prev, [ticket.id]: [...(prev[ticket.id] ?? []), note] }))
-                                    setNoteText(prev => ({ ...prev, [ticket.id]: "" }))
                                   }
-                                } finally { setNoteSaving(null) }
-                              }}
-                              disabled={noteSaving === ticket.id || !(noteText[ticket.id] ?? "").trim()}
-                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || !(noteText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#4f46e5", color: noteSaving === ticket.id || !(noteText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
-                            >
-                              {noteSaving === ticket.id ? "..." : "הוסף"}
-                            </button>
-                          </div>
+                                }
+                                setNoteText(prev => ({ ...prev, [ticket.id]: "" }))
+                                setNoteImages(prev => ({ ...prev, [ticket.id]: [] }))
+                              } finally { setNoteSaving(null) }
+                            }}
+                            disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}
+                            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#4f46e5", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                          >
+                            {noteSaving === ticket.id ? "..." : "הוסף"}
+                          </button>
                         </div>
                       </>
                     )}
