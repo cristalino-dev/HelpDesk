@@ -135,19 +135,57 @@ export default function AdminManualPage() {
             ]} />
           </Section>
 
-          <Section icon="⚠️" title='מסך לוג שגיאות — /admin/logs'>
+          <Section icon="⚠️" title='לוח מעקב שגיאות — /admin/logs'>
             <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
-              מסך ייעודי לניטור ותקלות מערכת. מאפשר לראות שגיאות שנתקלו בהן המשתמשים בזמן אמת.
+              מסך "מרכז בקרה" ייעודי לניטור יציבות המערכת. מאפשר לזהות תקלות רוחביות או נקודתיות של משתמשים בזמן אמת.
             </p>
+
+            {/* Dashboard Mockup */}
+            <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", marginBottom: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+              <div style={{ padding: "12px 16px", background: "#1e293b", color: "#fff", fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
+                <span>Dashboard: Error Monitoring</span>
+                <span style={{ opacity: 0.6 }}>v2.8-ADMIN</span>
+              </div>
+              <div style={{ padding: "16px" }}>
+                {/* Stats row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "16px" }}>
+                  {[
+                    { l: "אירועים", v: "152", c: "#334155" },
+                    { l: "שגיאות", v: "14", c: "#ef4444" },
+                    { l: "אזהרות", v: "8", c: "#f59e0b" },
+                  ].map(s => (
+                    <div key={s.l} style={{ background: "#fff", borderRadius: "8px", padding: "10px", border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b", marginBottom: "2px" }}>{s.l}</div>
+                      <div style={{ fontSize: "1rem", fontWeight: 800, color: s.c }}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Table row */}
+                <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "0.7rem", overflow: "hidden" }}>
+                  <div style={{ padding: "6px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontWeight: 700, color: "#475569" }}>LATEST LOGS</div>
+                  <div style={{ padding: "8px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#ef4444", fontWeight: 800 }}>[ERROR]</span>
+                    <span style={{ flex: 1, marginRight: "8px", color: "#1e293b" }}>Failed to fetch tickets: Network Timeout</span>
+                    <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
+                  </div>
+                  <div style={{ padding: "8px 10px", display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#f59e0b", fontWeight: 800 }}>[WARN]</span>
+                    <span style={{ flex: 1, marginRight: "8px", color: "#1e293b" }}>Email delivery delayed (SMTP_RETRY)</span>
+                    <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <FeatureList items={[
-              "תצוגת טבלה אינטראקטיבית עם עדיפויות (Error / Warning)",
-              "חיפוש חופשי בתוכן השגיאה ובמקור השגיאה",
-              "מידע טכני מפורט כולל Stack Trace של השגיאה",
-              "אפשרות ניקוי לוגים למנהלי מערכת בלבד",
-              "גישה מהירה מהתפריט העליון של המנהל",
+              "לוח סטטיסטיקה: סה״כ אירועים, שגיאות קריטיות, אזהרות וזיהוי אוטומטי של מקור השגיאה השכיח ביותר",
+              "כפתורי העתקה מהירה: העתקת תוכן השגיאה או ה-Stack Trace בקיצור (Clipboard) לצורך דיווח טכני",
+              "תצוגת טבלה אינטראקטיבית עם קידוד צבעים לפי רמת חומרה (ERROR / WARN / INFO)",
+              "חיפוש חופשי בתוכן השגיאה, בנתיבי הקוד או ברמת האירוע",
+              "ניהול תחזוקה: אפשרות לניקוי יומן האירועים (למנהלי מערכת בלבד)",
             ]} />
             <Note>
-              השתמשו במסך זה כדי לוודא יציבות לאחר עדכוני גרסה או כאשר משתמש מדווח על תקלת מערכת.
+              <strong>טיפול בתקלות:</strong> כאשר משתמש מדווח על שגיאה לא צפויה, פתחו את הלוח וחפשו את האירוע האחרון. השתמשו בכפתור העתקת ה-Stack Trace כדי להעביר את המידע המלא לצוות הפיתוח.
             </Note>
           </Section>
 
