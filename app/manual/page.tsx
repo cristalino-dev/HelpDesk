@@ -17,7 +17,7 @@ export default function ManualPage() {
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מערכת Helpdesk קריסטלינו</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך שימוש לעובדי החברה</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "4px 16px", fontSize: "0.78rem", fontWeight: 600 }}>
-            Cristalino Group · 2026 · v2.5
+            Cristalino Group · 2026 · v2.6
           </div>
         </div>
 
@@ -97,12 +97,22 @@ export default function ManualPage() {
           </Section>
 
           {/* Tips */}
+          <Section icon="📎" title="צירוף תמונה לפנייה">
+            <Steps items={[
+              <>בשדה <strong>תיאור מפורט</strong> ניתן לצרף צילום מסך או תמונה</>,
+              <>לחצו על אזור <strong>״גררו תמונה לכאן״</strong> מתחת לתיאור לבחירת קובץ</>,
+              <>לחלופין, <strong>הדביקו תמונה (Ctrl+V)</strong> ישירות לאחר שצילמתם מסך</>,
+              <>ניתן לצרף מספר תמונות לאותה פנייה</>,
+            ]} />
+          </Section>
+
           <Section icon="💡" title="טיפים לשימוש יעיל">
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {[
                 { icon: "📝", title: "תיאור מפורט",  desc: "פרטו מה קרה, מתי ואיך לשחזר — זה מקצר משמעותית את זמן הטיפול" },
-                { icon: "🖥️", title: "שם מחשב",      desc: "מצאו בהגדרות ← אודות. ציון שם המחשב חוסך זמן לצוות" },
+                { icon: "🖥️", title: "שם מחשב",      desc: "מצאו בהגדרות ← אודות, או פתחו cmd והקלידו hostname" },
                 { icon: "📞", title: "שמרו פרופיל",  desc: "הזינו טלפון ותחנה בפרופיל פעם אחת — ימולאו אוטומטית בכל פנייה" },
+                { icon: "📧", title: "עדכונים במייל", desc: "תקבלו מייל אוטומטי כשהפנייה בטיפול וכשנסגרת" },
               ].map(c => (
                 <div key={c.title} style={{ flex: 1, minWidth: 160, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, textAlign: "center" }}>
                   <div style={{ fontSize: "1.5rem", marginBottom: 8 }}>{c.icon}</div>

@@ -52,12 +52,11 @@ Authentication is Google OAuth only — employees use their corporate `@cristali
 | Styling | Inline React styles | — | No Tailwind in components (Turbopack path issue) |
 | Auth | NextAuth | v5.0.0-beta.30 | Google OAuth, JWT sessions |
 | ORM | Prisma | 5.x | Type-safe DB client |
-| Database | PostgreSQL | 18 | AWS Lightsail managed RDS |
-| Email | nodemailer | 7.x | SMTP transport for /contact |
+| Database | PostgreSQL | 18 | AWS RDS (managed) |
+| Email | nodemailer | 7.x | Google Workspace SMTP |
 | Testing | Jest + RTL | 30 + 16 | 35 unit tests, gate the build |
-| Hosting | AWS Lightsail | — | Windows Server 2022 |
-| Process | Windows Task Scheduler | — | Runs as SYSTEM, task name "Helpdesk" |
-| Deploy | WinRM + PowerShell | — | Build runs on server |
+| Hosting | Ubuntu Server | — | PM2 process manager |
+| Deploy | SSH + SCP | — | deploy.sh — build runs on server |
 
 ---
 
@@ -745,45 +744,39 @@ Three separate mechanisms capture errors, all writing to the same `Log` database
 ## 10. Deployment Architecture
 
 ```
-Developer Machine (Windows)
+Developer Machine
         │
-        │  1. .\deploy.ps1
-        │     (requires native PowerShell — not from Claude Code)
+        │  1. ./deploy.sh
         │
-        │  2. Compress-Archive:
-        │     app/, components/, lib/, prisma/, public/,
-        │     types/, __tests__/, jest.config.ts, jest.setup.ts,
-        │     auth.ts, package.json, tsconfig.json, .env, .env.local,
-        │     next.config.ts → helpdesk-src.zip
+        │  2. tar: app/, components/, lib/, prisma/, public/,
+        │     types/, auth.ts, package.json, tsconfig.json,
+        │     next.config.ts → helpdesk-src.tar.gz
         │
-        │  3. WinRM: Copy-Item zip → server C:\Windows\Temp\
+        │  3. scp tar.gz → ubuntu@server:/home/ubuntu/helpdesk/
         │
         ▼
-AWS Lightsail — Windows Server 2022 (C:\helpdesk)
+Ubuntu Server — /home/ubuntu/helpdesk/
         │
-        │  4. Stop-ScheduledTask "Helpdesk"
-        │     Stop-Process node
+        │  4. pm2 stop helpdesk
         │
-        │  5. Expand-Archive → C:\helpdesk\
+        │  5. tar -xzf helpdesk-src.tar.gz
         │
         │  6. npm install
         │     npx prisma migrate deploy   ← applies pending migrations
-        │     npx prisma generate          ← regenerates Prisma Client
-        │     npm run build               ← jest --ci && next build
+        │     npx prisma generate         ← regenerates Prisma Client
+        │     npm run build               ← next build
         │
-        │  7. Start-ScheduledTask "Helpdesk"
-        │     (runs start.ps1 as SYSTEM → next start -p 3000)
+        │  7. pm2 start helpdesk
         │
         ▼
-     Port 3000 — accessible via nip.io domain
+     Port 3000 → nginx → https://helpdesk.cristalino.co.il
 
 IMPORTANT RULES:
 ─────────────────
 • NEVER build locally and copy .next — Turbopack embeds absolute paths
   from the build machine into compiled JS chunks. Building on a different
   machine causes module hash mismatches on the server.
-• NEVER use PM2 — it dies when a WinRM session closes.
-  Windows Task Scheduler (SYSTEM) is reliable and survives session end.
+• PM2 is configured with systemd (pm2 startup) so the app survives reboots.
 ```
 
 ---
@@ -796,8 +789,8 @@ IMPORTANT RULES:
 | `AUTH_SECRET` | ✓ | Secret for signing JWT cookies. Generate: `openssl rand -base64 32` |
 | `AUTH_GOOGLE_ID` | ✓ | Google OAuth Client ID from Google Cloud Console |
 | `AUTH_GOOGLE_SECRET` | ✓ | Google OAuth Client Secret |
-| `NEXTAUTH_URL` | ✓ | Public URL of the app. Must match Google OAuth redirect URI. E.g. `http://18.x.x.x.nip.io:3000` |
-| `AUTH_TRUST_HOST` | ✓ | Set to `true` when behind a proxy or non-localhost. Required on the Lightsail server. |
+| `NEXTAUTH_URL` | ✓ | Public URL of the app. Must match Google OAuth redirect URI. E.g. `https://helpdesk.cristalino.co.il` |
+| `AUTH_TRUST_HOST` | ✓ | Set to `true` when behind a reverse proxy (nginx). Required on the server. |
 | `ADMIN_EMAILS` | ✗ | Comma-separated list of emails to auto-grant admin on first login (optional). |
 | `SMTP_HOST` | ✗ | Mail server hostname for /contact. E.g. `smtp.office365.com` |
 | `SMTP_PORT` | ✗ | SMTP port. `587` (STARTTLS, recommended) or `465` (SSL). Default: `587` |

@@ -36,12 +36,29 @@ beforeEach(() => {
   } as Response)
 })
 
+/**
+ * ProfilePage.test.tsx
+ * 
+ * Verifies the user profile editing experience.
+ * Checks for default value loading and successful status updates via API.
+ */
+
 describe("ProfilePage", () => {
+  /**
+   * ARRANGE: Session state setup
+   * ACT: Component render
+   * ASSERT: Check for title presence.
+   */
   it("renders the page heading", async () => {
     render(<ProfilePage />)
     await waitFor(() => expect(screen.getByText("הגדרות חשבון")).toBeInTheDocument())
   })
 
+  /**
+   * ARRANGE: Mocked API response
+   * ACT: Component render
+   * ASSERT: Verify all form labels are present.
+   */
   it("renders all form fields", async () => {
     render(<ProfilePage />)
     await waitFor(() => expect(screen.getByText("שם פרטי")).toBeInTheDocument())

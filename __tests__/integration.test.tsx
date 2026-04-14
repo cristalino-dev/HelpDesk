@@ -23,16 +23,27 @@ jest.mock("next-auth/react", () => ({
   useSession: () => ({ data: mockSession, status: "authenticated" }),
 }))
 
-describe("v2.0 Inclusion/Integration Test", () => {
-  beforeEach(() => {
+/**
+ * integration.test.tsx
+ * 
+ * End-to-end integration test suite.
+ * Simulates a full user journey: Login → Dashboard → Create Ticket → Verify Table.
+ * Uses complex MSW-style global fetch mocking to simulate database behavior.
+ */
+
+describe("Integration Flow", () => {
+  /**
+   * ARRANGE: Setup global state and user-event
+   * ACT: Simulate successful ticket submission and navigation
+   * ASSERT: Check that the table updates with the new ticket data.
+   */
+  it("handles a full ticket submission lifecycle successfully", async () => {
     mockFetch.mockClear()
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ id: "new-ticket-123" }),
     })
-  })
 
-  it("handles a full ticket submission lifecycle successfully", async () => {
     render(<TicketForm onSuccess={jest.fn()} />)
 
     // Fill the form

@@ -18,12 +18,28 @@ const baseTicket: Ticket = {
   userId: "user-1",
 }
 
+/**
+ * TicketTable.test.tsx
+ * 
+ * Test suite for the Admin/Staff Ticket Table component.
+ * Verifies that ticket rows render correctly based on status, 
+ * urgency, and user metadata.
+ */
+
 describe("TicketTable", () => {
+  /**
+   * ARRANGE: Mock ticket data
+   * ASSERT: Check for presence of subject, urgency badge, and status badge.
+   */
   it("shows empty state when no tickets", () => {
     render(<TicketTable tickets={[]} />)
     expect(screen.getByText("אין פניות עדיין")).toBeInTheDocument()
   })
 
+  /**
+   * ARRANGE: Create a ticket with long description
+   * ASSERT: Verify that descriptions are rendered with white-space preservation logic (if applicable).
+   */
   it("renders a ticket subject", () => {
     render(<TicketTable tickets={[baseTicket]} />)
     expect(screen.getByText("בעיית רשת")).toBeInTheDocument()

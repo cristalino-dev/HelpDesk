@@ -11,7 +11,19 @@ beforeEach(() => {
   mockFetch.mockReset()
 })
 
+/**
+ * TicketForm.test.tsx
+ * 
+ * Test suite for the Ticket Creation Form component.
+ * Verifies field rendering, validation tooltips, loading states, and 
+ * successful/failed submissions with API mocking.
+ */
+
 describe("TicketForm", () => {
+  /**
+   * ARRANGE: Initial render
+   * ASSERT: Check that all localized Hebrew labels and required fields are present.
+   */
   it("renders all required fields", () => {
     render(<TicketForm onSuccess={jest.fn()} />)
 
@@ -104,6 +116,11 @@ describe("TicketForm", () => {
     expect(screen.getByRole("button", { name: "שולח..." })).toBeDisabled()
   })
 
+  /**
+   * ARRANGE: Setup user-event and mock a successful API response
+   * ACT: Fill in all required fields and click submit
+   * ASSERT: Verify that the success callback is called and form is cleared
+   */
   it("calls onSuccess and resets form after successful submit", async () => {
     mockFetch.mockResolvedValueOnce({ 
       ok: true, 
@@ -141,6 +158,11 @@ describe("TicketForm", () => {
     await waitFor(() => expect(screen.getByText("אירעה שגיאה. נסו שנית.")).toBeInTheDocument())
   })
 
+  /**
+   * ARRANGE: Mock successful submission
+   * ACT: Submit specific values
+   * ASSERT: Ensure the fetch payload correctly contains mapped fields (JSON matching)
+   */
   it("sends correct payload to API", async () => {
     mockFetch.mockResolvedValueOnce({ 
       ok: true, 

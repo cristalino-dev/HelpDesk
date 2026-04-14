@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.5** — Staff Collaboration: Mentions & Inline Note Attachments
+**Version 2.6** — Quality Update: Comprehensive Test Documentation & Manual Sync
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
 
@@ -212,7 +212,6 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 
 ## Notes
 
-- **nip.io domain**: `18.x.x.x.nip.io` is used because Google OAuth does not allow raw IP addresses as redirect URIs
 - **Inline styles**: Tailwind CSS classes are not used in page components — all styles are React inline styles to ensure they render correctly after server build
 - **Build on server**: Next.js Turbopack embeds absolute local paths in chunks — building locally and copying `.next` causes module hash mismatches on the server. Deployment script always builds on target.
 
