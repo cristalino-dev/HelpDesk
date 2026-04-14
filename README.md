@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.7** — Interactive Messaging: Direct User-Staff Chat & Email Notifications
+**Version 2.8** — Admin Error Log Viewer: Dedicated System Monitoring & Live Troubleshooting
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
 
@@ -166,6 +166,7 @@ npm run dev
 | 2.5     | v2.5   | STAFF COLLABORATION: Mentions (@handle) and image support for notes |
 | 2.6     | v2.6   | QUALITY UPDATE: Comprehensive inline test documentation |
 | 2.7     | v2.7   | INTERACTIVE MESSAGING: Direct chat between users and staff with automated notifications |
+| 2.8     | v2.8   | ADMIN LOGS: Dedicated Error Log Viewer screen with live filtering and system troubleshooting |
 
 ---
 

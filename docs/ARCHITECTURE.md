@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 1.07 · Last updated 2026-04-09
+> Version 1.08 · Last updated 2026-04-14 · v2.8 Admin Error Logs Release
 
 ---
 
@@ -36,7 +36,7 @@ Cristalino HelpDesk is an internal web application for Cristalino Group LTD empl
 | Role | Entry Point | Capabilities |
 |------|-------------|--------------|
 | **Employee** | `/dashboard` | Open tickets, view own tickets, edit profile |
-| **Admin (IT Staff)** | `/admin` | View all tickets, update status, manage users, view error logs |
+| **Admin (IT Staff)** | `/admin`, `/admin/logs` | View all tickets, update status, manage users, view dedicated error logs |
 
 Authentication is Google OAuth only — employees use their corporate `@cristalino` Google account. There are no passwords stored in the system.
 
@@ -100,8 +100,9 @@ Authentication is Google OAuth only — employees use their corporate `@cristali
 │  │  /api/tickets             — Ticket CRUD                        │  │
 │  │  /api/profile             — User profile read/write            │  │
 │  │  /api/users               — Admin: user management             │  │
-│  │  /api/logs                — Error log write/read               │  │
-│  │  /api/contact             — Send email via SMTP                │  │
+│  │  /api/admin/logs        — Admin: dedicated log fetch/clear   │  │
+│  │  /api/logs              — Public: write log entry (telemetry)│  │
+│  │  /api/contact           — Send email via SMTP                │  │
 │  ├───────────────────────────────────────────────────────────────┤  │
 │  │                     PRISMA ORM (lib/db.ts)                     │  │
 │  └───────────────────────────────────────────────────────────────┘  │

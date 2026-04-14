@@ -17,7 +17,7 @@ export default function AdminManualPage() {
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מדריך מנהל – Helpdesk</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך לצוות התמיכה הטכנית של קריסטלינו</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "4px 16px", fontSize: "0.78rem", fontWeight: 600 }}>
-            Staff Only · Cristalino Group · 2026 · v2.7
+            Staff Only · Cristalino Group · 2026 · v2.8
           </div>
         </div>
 
@@ -131,8 +131,24 @@ export default function AdminManualPage() {
             <FeatureList items={[
               "תור פניות — תצוגת כל הפניות הפתוחות עם עדיפות לדחופות",
               "ניהול משתמשים — עריכת שם, טלפון, תחנת עבודה, הרשאת מנהל",
-              "יומן שגיאות — צפייה בשגיאות מערכת לפי תאריך לצורך דיבאג",
+              "יומן שגיאות — צפייה בשגיאות מערכת גולמיות לפי תאריך",
             ]} />
+          </Section>
+
+          <Section icon="⚠️" title='מסך לוג שגיאות — /admin/logs'>
+            <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              מסך ייעודי לניטור ותקלות מערכת. מאפשר לראות שגיאות שנתקלו בהן המשתמשים בזמן אמת.
+            </p>
+            <FeatureList items={[
+              "תצוגת טבלה אינטראקטיבית עם עדיפויות (Error / Warning)",
+              "חיפוש חופשי בתוכן השגיאה ובמקור השגיאה",
+              "מידע טכני מפורט כולל Stack Trace של השגיאה",
+              "אפשרות ניקוי לוגים למנהלי מערכת בלבד",
+              "גישה מהירה מהתפריט העליון של המנהל",
+            ]} />
+            <Note>
+              השתמשו במסך זה כדי לוודא יציבות לאחר עדכוני גרסה או כאשר משתמש מדווח על תקלת מערכת.
+            </Note>
           </Section>
 
           <Section icon="👥" title="הרשאות גישה">

@@ -10,25 +10,22 @@
  */
 
 import nodemailer from "nodemailer"
+import { logError } from "@/lib/logError"
 
-const FROM      = '"מערכת הפניות" <helpdesk@cristalino.co.il>'
-const APP_URL   = process.env.NEXT_PUBLIC_APP_URL ?? "https://helpdesk.cristalino.co.il"
+const FROM    = '"מערכת הפניות" <helpdesk@cristalino.co.il>'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://helpdesk.cristalino.co.il"
 
-// Lazily created so the transporter is only built when actually sending
-let _transporter: nodemailer.Transporter | null = null
-
-function getTransporter() {
-  if (_transporter) return _transporter
+// Always build fresh from env — no singleton caching so env vars are always read
+function createTransporter() {
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
   if (!user || !pass) return null
-  _transporter = nodemailer.createTransport({
+  return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false, // STARTTLS
     auth: { user, pass },
   })
-  return _transporter
 }
 
 interface MailOptions {
@@ -38,16 +35,23 @@ interface MailOptions {
 }
 
 export async function sendMail({ to, subject, html }: MailOptions) {
-  const transporter = getTransporter()
-  if (!transporter) return // silently skip if not configured
+  const transporter = createTransporter()
+  if (!transporter) {
+    console.warn("[mail] SMTP_USER / SMTP_PASS not set — skipping email")
+    return
+  }
 
   const recipients = Array.isArray(to) ? to : [to]
   if (recipients.length === 0) return
 
   try {
     await transporter.sendMail({ from: FROM, to: recipients, subject, html })
-  } catch {
-    // Email failure should never break the main request
+    console.log(`[mail] sent "${subject}" → ${recipients.join(", ")}`)
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    console.error("[mail] send failed:", e.message)
+    // Log to admin error log so it appears in the logs tab
+    await logError(`Mail send failed: ${e.message}`, `sendMail → "${subject}"`, e.stack).catch(() => {})
   }
 }
 
