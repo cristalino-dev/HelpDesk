@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/auth"
-import prisma from "@/lib/prisma"
+import { prisma } from "@/lib/db"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 
 export async function GET() {
