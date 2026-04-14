@@ -44,6 +44,7 @@
 
 "use client"
 import { useState } from "react"
+import ImageAttachments, { PendingImage } from "./ImageAttachments"
 
 /** All available ticket categories. Displayed in the category <select>. */
 const CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"]
@@ -95,6 +96,9 @@ export default function TicketForm({
   /** Error message shown to the user if submission fails. */
   const [error, setError] = useState("")
 
+  /** Pending images to attach after ticket creation. */
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
+
   /**
    * Controls visibility of the computer-name tooltip.
    * Shown on hover or focus of the "?" button; hidden on blur/mouseleave.
@@ -123,6 +127,17 @@ export default function TicketForm({
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error()
+      const created = await res.json()
+
+      // Upload any pending images
+      for (const img of pendingImages) {
+        await fetch(`/api/tickets/${created.id}/attachments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
+        })
+      }
+
       onSuccess()
       // Reset form, but keep the pre-filled defaults (not blank strings)
       // so the next ticket opened in the same session is also pre-filled.
@@ -135,6 +150,7 @@ export default function TicketForm({
         category: "אחר",
         platform: "מחשב אישי",
       })
+      setPendingImages([])
     } catch {
       setError("אירעה שגיאה. נסו שנית.")
     } finally {
@@ -183,7 +199,7 @@ export default function TicketForm({
           {/* Computer Name with tooltip */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px" }}>
-              <label htmlFor="computer-input" style={{ margin: 0 }}>שם מחשב *</label>
+              <label htmlFor="computer-input" style={{ margin: 0 }}>שם מחשב</label>
               {/* Tooltip trigger button — shows "how to find hostname" instructions */}
               <div style={{ position: "relative" }}>
                 <button
@@ -211,7 +227,6 @@ export default function TicketForm({
             </div>
             <input
               id="computer-input"
-              required
               value={form.computerName}
               onChange={e => setForm(f => ({ ...f, computerName: e.target.value }))}
               placeholder="לדוגמה: PC-ALON-01"
@@ -280,6 +295,12 @@ export default function TicketForm({
             placeholder="פרט את הבעיה בצורה מלאה..."
             style={{ resize: "none" }}
           />
+        </div>
+
+        {/* ── Image Attachments ── */}
+        <div>
+          <label style={{ display: "block", marginBottom: 6 }}>תמונות מצורפות</label>
+          <ImageAttachments images={pendingImages} onChange={setPendingImages} />
         </div>
 
         {/* ── Error message (shown on submit failure) ── */}

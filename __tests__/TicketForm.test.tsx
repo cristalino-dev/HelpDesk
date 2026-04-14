@@ -16,7 +16,7 @@ describe("TicketForm", () => {
     render(<TicketForm onSuccess={jest.fn()} />)
 
     expect(screen.getByText("נושא הפנייה *")).toBeInTheDocument()
-    expect(screen.getByText("שם מחשב *")).toBeInTheDocument()
+    expect(screen.getByText("שם מחשב")).toBeInTheDocument()
     expect(screen.getByText("טלפון *")).toBeInTheDocument()
     expect(screen.getByText("קטגוריה")).toBeInTheDocument()
     expect(screen.getByText("פלטפורמה")).toBeInTheDocument()
@@ -105,7 +105,10 @@ describe("TicketForm", () => {
   })
 
   it("calls onSuccess and resets form after successful submit", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true } as Response)
+    mockFetch.mockResolvedValueOnce({ 
+      ok: true, 
+      json: jest.fn().mockResolvedValue({ id: "test-id" }) 
+    } as any)
     const onSuccess = jest.fn()
 
     render(<TicketForm onSuccess={onSuccess} />)
@@ -123,7 +126,7 @@ describe("TicketForm", () => {
   })
 
   it("shows error message when submit fails", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false } as Response)
+    mockFetch.mockResolvedValueOnce({ ok: false } as any)
 
     render(<TicketForm onSuccess={jest.fn()} />)
     const user = userEvent.setup()
@@ -139,7 +142,10 @@ describe("TicketForm", () => {
   })
 
   it("sends correct payload to API", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true } as Response)
+    mockFetch.mockResolvedValueOnce({ 
+      ok: true, 
+      json: jest.fn().mockResolvedValue({ id: "test-id" }) 
+    } as any)
     const onSuccess = jest.fn()
 
     render(<TicketForm onSuccess={onSuccess} />)

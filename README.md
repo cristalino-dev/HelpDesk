@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.3** — Refined Management: Advanced Inline Inline Editing for Staff
+**Version 2.4** — Notes & Attachments: Collaborative Support for Staff & Employees
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
 

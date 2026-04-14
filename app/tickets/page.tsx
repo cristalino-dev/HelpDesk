@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
-import type { TicketWithUser } from "@/types/ticket"
+import type { TicketWithUser, TicketNote } from "@/types/ticket"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -57,6 +57,45 @@ export default function TicketsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm]   = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
   const [editSaving, setEditSaving] = useState(false)
+
+  // Notes per expanded ticket
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, TicketNote[]>>({})
+  const [noteText, setNoteText]           = useState<Record<string, string>>({})
+  const [noteSaving, setNoteSaving]       = useState<string | null>(null)
+
+  const handleExpand = async (id: string) => {
+    const next = expanded === id ? null : id
+    setExpanded(next)
+    if (next && !expandedNotes[next]) {
+      try {
+        const res = await fetch(`/api/tickets/${next}`)
+        if (res.ok) {
+          const data = await res.json()
+          setExpandedNotes(prev => ({ ...prev, [next]: data.notes ?? [] }))
+        }
+      } catch { /* silent */ }
+    }
+  }
+
+  const addNote = async (ticketId: string) => {
+    const content = (noteText[ticketId] ?? "").trim()
+    if (!content) return
+    setNoteSaving(ticketId)
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      })
+      if (res.ok) {
+        const note: TicketNote = await res.json()
+        setExpandedNotes(prev => ({ ...prev, [ticketId]: [...(prev[ticketId] ?? []), note] }))
+        setNoteText(prev => ({ ...prev, [ticketId]: "" }))
+      }
+    } finally {
+      setNoteSaving(null)
+    }
+  }
 
   const startEdit = (ticket: TicketWithUser) => {
     setEditingId(ticket.id)
@@ -367,7 +406,7 @@ export default function TicketsPage() {
                 >
                   {/* Main row */}
                   <div
-                    onClick={() => setExpanded(isExpanded ? null : ticket.id)}
+                    onClick={() => handleExpand(ticket.id)}
                     style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
                     {/* Position */}
@@ -375,7 +414,12 @@ export default function TicketsPage() {
 
                     {/* Subject + meta */}
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</div>
+                      <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <a href={`/tickets/${ticket.id}`} onClick={e => e.stopPropagation()} style={{ color: "inherit", textDecoration: "none" }}
+                          onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
+                          onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
+                        >{ticket.subject}</a>
+                      </div>
                       <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
                       </div>
@@ -474,7 +518,7 @@ export default function TicketsPage() {
                             <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>📞 {ticket.phone}</span>
                             <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>💬 {ticket.user?.email}</span>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                             <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
                             {["פתוח", "בטיפול", "סגור"].map(s => (
                               <button key={s} disabled={updating === ticket.id || ticket.status === s}
@@ -484,9 +528,47 @@ export default function TicketsPage() {
                               </button>
                             ))}
                             <button onClick={e => { e.stopPropagation(); startEdit(ticket) }}
-                              style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
+                              style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
                               ✏️ עריכה
                             </button>
+                            <a href={`/tickets/${ticket.id}`} onClick={e => e.stopPropagation()}
+                              style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#f0fdf4", color: "#15803d", textDecoration: "none" }}>
+                              🔍 פתח פנייה מלאה
+                            </a>
+                          </div>
+
+                          {/* ── Notes section ── */}
+                          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14 }}>
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>📝 הערות טכנאי</div>
+                            {(expandedNotes[ticket.id] ?? []).length === 0
+                              ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הערות עדיין</div>
+                              : (expandedNotes[ticket.id] ?? []).map((note: TicketNote) => (
+                                  <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 10, marginBottom: 10 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#4f46e5" }}>{note.authorName}</span>
+                                      <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
+                                    </div>
+                                    <div style={{ fontSize: "0.82rem", color: "#374151", whiteSpace: "pre-wrap" }}>{note.content}</div>
+                                  </div>
+                                ))
+                            }
+                            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                              <textarea
+                                rows={2}
+                                placeholder="הוסף הערה..."
+                                value={noteText[ticket.id] ?? ""}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                                style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
+                              />
+                              <button
+                                onClick={e => { e.stopPropagation(); addNote(ticket.id) }}
+                                disabled={noteSaving === ticket.id || !(noteText[ticket.id] ?? "").trim()}
+                                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || !(noteText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#4f46e5", color: noteSaving === ticket.id || !(noteText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                              >
+                                {noteSaving === ticket.id ? "..." : "הוסף"}
+                              </button>
+                            </div>
                           </div>
                         </>
                       )}

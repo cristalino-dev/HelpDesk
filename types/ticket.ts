@@ -59,9 +59,29 @@ export interface Ticket {
  */
 export interface TicketWithUser extends Ticket {
   user?: {
-    /** Display name of the submitting employee. May be null if not set. */
     name?: string | null
-    /** Google email of the submitting employee. */
     email?: string | null
   }
+}
+
+export interface TicketNote {
+  id: string
+  ticketId: string
+  content: string
+  authorName: string
+  authorEmail: string
+  createdAt: string
+}
+
+export interface TicketAttachment {
+  id: string
+  ticketId: string
+  dataUrl: string
+  filename?: string | null
+  createdAt: string
+}
+
+export interface TicketDetail extends TicketWithUser {
+  notes: TicketNote[]
+  attachments: TicketAttachment[]
 }

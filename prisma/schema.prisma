@@ -19,19 +19,40 @@ model User {
 }
 
 model Ticket {
-  id           String   @id @default(cuid())
+  id           String             @id @default(cuid())
   subject      String
   description  String
   phone        String
   computerName String
-  urgency      String   @default("בינוני")
-  category     String   @default("אחר")
-  platform     String   @default("מחשב אישי")
-  status       String   @default("פתוח")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  urgency      String             @default("בינוני")
+  category     String             @default("אחר")
+  platform     String             @default("מחשב אישי")
+  status       String             @default("פתוח")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  user         User               @relation(fields: [userId], references: [id])
+  notes        TicketNote[]
+  attachments  TicketAttachment[]
+}
+
+model TicketNote {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  content     String
+  authorName  String
+  authorEmail String
+  createdAt   DateTime @default(now())
+}
+
+model TicketAttachment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  dataUrl   String
+  filename  String?
+  createdAt DateTime @default(now())
 }
 
 model Log {
