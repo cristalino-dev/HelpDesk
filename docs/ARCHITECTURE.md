@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 1.09 · Last updated 2026-04-14 · v2.9 Release
+> Version 1.09 · Last updated 2026-04-15 · v2.10 Release
 
 ---
 
@@ -337,7 +337,7 @@ app/
 │
 └── api/
     ├── auth/[...nextauth]/route.ts  — NextAuth OAuth handlers (GET + POST)
-    ├── tickets/route.ts             — GET (own/all) | POST (create) | PATCH (status)
+    ├── tickets/route.ts             — GET (own/all) | POST (create) | PATCH (status/assignedTo)
     ├── profile/route.ts             — GET (own profile) | PATCH (update)
     ├── users/route.ts               — GET (all users) | PATCH (any user) [admin]
     ├── logs/route.ts                — GET (by date) [admin] | POST (write entry)
@@ -535,6 +535,14 @@ The `Ticket` table represents every support request submitted by employees. Once
 │ user         │ User          │ —        │ Prisma relation (virtual).       │
 │              │               │          │ Populated by include: { user }   │
 │              │               │          │ in admin ticket fetches.         │
+├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
+│ assignedTo   │ String?       │ —        │ Email of the staff member        │
+│              │               │          │ currently responsible for this   │
+│              │               │          │ ticket. Optional (nullable).     │
+│              │               │          │ Set by admins via PATCH          │
+│              │               │          │ /api/tickets { assignedTo }.     │
+│              │               │          │ Shown in the ticket queue with   │
+│              │               │          │ a quick "הקצה לעצמי" button.     │
 └──────────────┴───────────────┴──────────┴──────────────────────────────────┘
 ```
 

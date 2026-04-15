@@ -69,6 +69,8 @@ export default function TicketsPage() {
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
   const [replyText, setReplyText]               = useState<Record<string, string>>({})
   const [replySaving, setReplySaving]           = useState<string | null>(null)
+  // Assignment
+  const [assigning, setAssigning]               = useState<string | null>(null)
 
   const handleExpand = async (id: string) => {
     const next = expanded === id ? null : id
@@ -82,6 +84,20 @@ export default function TicketsPage() {
           setExpandedMessages(prev => ({ ...prev, [next]: data.messages ?? [] }))
         }
       } catch { /* silent */ }
+    }
+  }
+
+  const assignTicket = async (ticketId: string, email: string) => {
+    setAssigning(ticketId)
+    try {
+      await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ticketId, assignedTo: email }),
+      })
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: email } : t))
+    } finally {
+      setAssigning(null)
     }
   }
 
@@ -567,6 +583,32 @@ export default function TicketsPage() {
                             <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>📞 {ticket.phone}</span>
                             <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>💬 {ticket.user?.email}</span>
                           </div>
+                          {/* Assignment */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
+                            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>👤 מוקצה ל:</span>
+                            <select
+                              value={ticket.assignedTo}
+                              disabled={assigning === ticket.id}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
+                              style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                            >
+                              {STAFF_MEMBERS.map(m => (
+                                <option key={m.email} value={m.email}>{m.display}</option>
+                              ))}
+                            </select>
+                            {ticket.assignedTo !== session?.user?.email && (
+                              <button
+                                onClick={e => { e.stopPropagation(); assignTicket(ticket.id, session?.user?.email ?? "") }}
+                                disabled={assigning === ticket.id || !session?.user?.email}
+                                style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                              >
+                                הקצה לעצמי
+                              </button>
+                            )}
+                            {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
+                          </div>
+
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                             <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
                             {["פתוח", "בטיפול", "סגור"].map(s => (

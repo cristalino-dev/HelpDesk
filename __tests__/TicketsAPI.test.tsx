@@ -128,6 +128,40 @@ describe("Tickets API", () => {
     })
   })
 
+  describe("PATCH /api/tickets — assignedTo", () => {
+    it("assigns ticket to a staff member without sending user email", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-1",
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-1",
+        status: "פתוח",
+        assignedTo: "staff@cristalino.co.il",
+        subject: "Test Issue",
+      })
+
+      const req = {
+        json: async () => ({
+          id: "ticket-1",
+          assignedTo: "staff@cristalino.co.il",
+        }),
+      } as any
+
+      const res = await PATCH(req) as any
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(data.assignedTo).toBe("staff@cristalino.co.il")
+      expect(prisma.ticket.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { assignedTo: "staff@cristalino.co.il" } })
+      )
+      // Only staff notification — no user email when there's no status change
+      expect(sendMail).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe("GET /api/tickets", () => {
     it("returns all tickets for admin", async () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true })
