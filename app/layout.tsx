@@ -32,7 +32,7 @@
  * static HTML. The client boundary begins inside <Providers> (see providers.tsx).
  */
 
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import Providers from "./providers"
 
@@ -43,6 +43,16 @@ import Providers from "./providers"
 export const metadata: Metadata = {
   title: "מערכת helpdesk",
   description: "מערכת לניהול פניות תמיכה",
+}
+
+/**
+ * Viewport — tells mobile browsers to render at the device's actual width
+ * instead of the default ~980px desktop emulation width.
+ * Without this the app appears zoomed out / "half the screen" on phones.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
