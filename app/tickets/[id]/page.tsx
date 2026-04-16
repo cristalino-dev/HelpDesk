@@ -173,7 +173,7 @@ export default function TicketDetailPage() {
       {/* Header */}
       <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "14px 24px", display: "flex", alignItems: "center", gap: 12 }}>
         <button
-          onClick={() => router.back()}
+          onClick={() => { if (window.history.length > 1) { router.back() } else { router.push("/tickets") } }}
           style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: "0.85rem", color: "#374151", display: "flex", alignItems: "center", gap: 6 }}
         >
           ← חזרה
