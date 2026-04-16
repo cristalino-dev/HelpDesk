@@ -44,6 +44,7 @@ export default function TicketDetailPage() {
   const [noteError, setNoteError]   = useState("")
   const [msgText, setMsgText]       = useState("")
   const [msgSaving, setMsgSaving]   = useState(false)
+  const [replyTo, setReplyTo]       = useState<{ email: string; name: string; msgId: string } | null>(null)
   const [assigning, setAssigning]   = useState(false)
 
   useEffect(() => {
@@ -130,9 +131,14 @@ export default function TicketDetailPage() {
       const res = await fetch(`/api/tickets/${ticket.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: msgText.trim() }),
+        body: JSON.stringify({
+          content: msgText.trim(),
+          replyToEmail: replyTo?.email,
+          replyToName:  replyTo?.name,
+          replyToMsgId: replyTo?.msgId,
+        }),
       })
-      if (res.ok) { setMsgText(""); await load() }
+      if (res.ok) { setMsgText(""); setReplyTo(null); await load() }
     } finally {
       setMsgSaving(false)
     }
@@ -351,8 +357,9 @@ export default function TicketDetailPage() {
             {ticket.messages.map((msg: TicketMessage) => {
               const isMe = msg.authorEmail === session?.user?.email
               const byStaff = msg.authorRole === "staff"
+              const isReplying = replyTo?.msgId === msg.id
               return (
-                <div key={msg.id} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start" }}>
+                <div key={msg.id} id={`msg-${msg.id}`} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start", scrollMarginTop: 80 }}>
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
                     {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                   </div>
@@ -362,9 +369,15 @@ export default function TicketDetailPage() {
                       {byStaff && <span style={{ fontSize: "0.65rem", background: "#eef2ff", color: "#4f46e5", borderRadius: 10, padding: "1px 7px", fontWeight: 600 }}>צוות</span>}
                       <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{formatDate(msg.createdAt)}</span>
                     </div>
-                    <div style={{ background: byStaff ? "#eef2ff" : "#f0f9ff", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div style={{ background: isReplying ? "#fffbeb" : byStaff ? "#eef2ff" : "#f0f9ff", border: isReplying ? "1px solid #fbbf24" : "none", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                       {msg.content}
                     </div>
+                    {!isMe && (
+                      <button
+                        onClick={() => { setReplyTo({ email: msg.authorEmail, name: msg.authorName, msgId: msg.id }); document.getElementById("msg-input")?.focus() }}
+                        style={{ marginTop: 4, fontSize: "0.7rem", color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4 }}
+                      >↩ ענה</button>
+                    )}
                   </div>
                 </div>
               )
@@ -373,7 +386,14 @@ export default function TicketDetailPage() {
 
           {/* Reply input */}
           <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 16 }}>
+            {replyTo && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "6px 12px", background: "#fffbeb", border: "1px solid #fbbf24", borderRadius: 8, fontSize: "0.8rem", color: "#92400e" }}>
+                <span>↩ מגיב ל: <strong>{replyTo.name}</strong></span>
+                <button onClick={() => setReplyTo(null)} style={{ marginRight: "auto", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem", lineHeight: 1 }}>✕</button>
+              </div>
+            )}
             <textarea
+              id="msg-input"
               rows={3}
               placeholder="כתוב הודעה..."
               value={msgText}

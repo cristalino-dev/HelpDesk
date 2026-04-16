@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
-import { sendMail, mailNewMessageToUser, mailNewMessageToStaff } from "@/lib/mail"
+import { sendMail, mailNewMessageToUser, mailNewMessageToStaff, mailReplyNotification } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { id } = await params
-    const { content } = await req.json()
+    const { content, replyToEmail, replyToName, replyToMsgId } = await req.json()
     if (!content?.trim()) return NextResponse.json({ error: "Content required" }, { status: 400 })
 
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
@@ -48,9 +48,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         submitterEmail: ticket.user?.email ?? "",
       }
       const authorName = session.user.name ?? session.user.email
+
+      // If this is a direct reply to a specific person — notify them first
+      if (replyToEmail && replyToEmail !== session.user.email) {
+        void sendMail({
+          to: replyToEmail,
+          subject: `${authorName} ענה לך בפנייה: ${ticket.subject}`,
+          html: mailReplyNotification(ticketInfo, content.trim(), authorName, replyToName ?? replyToEmail, message.id),
+        })
+      }
+
       if (isStaff) {
-        // Staff → notify ticket owner
-        if (ticket.user?.email) {
+        // Staff → notify ticket owner (unless they're the one being replied to — already notified above)
+        if (ticket.user?.email && ticket.user.email !== replyToEmail) {
           void sendMail({
             to: ticket.user.email,
             subject: `תגובה חדשה על פנייתך: ${ticket.subject}`,
@@ -58,12 +68,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           })
         }
       } else {
-        // User → notify all staff
-        void sendMail({
-          to: STAFF_EMAILS,
-          subject: `תגובת משתמש על פנייה: ${ticket.subject}`,
-          html: mailNewMessageToStaff(ticketInfo, content.trim(), authorName),
-        })
+        // User → notify all staff (excluding those already notified via reply)
+        const staffRecipients = STAFF_EMAILS.filter(e => e !== replyToEmail)
+        if (staffRecipients.length > 0) {
+          void sendMail({
+            to: staffRecipients,
+            subject: `תגובת משתמש על פנייה: ${ticket.subject}`,
+            html: mailNewMessageToStaff(ticketInfo, content.trim(), authorName),
+          })
+        }
       }
     }
 

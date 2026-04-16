@@ -216,6 +216,24 @@ export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fro
   `)
 }
 
+/** Sent to a specific person when someone replies directly to their message */
+export function mailReplyNotification(t: TicketInfo, replyContent: string, fromName: string, toName: string, messageId: string) {
+  const url = `${ticketUrl(t.ticketNumber)}#msg-${messageId}`
+  return wrap(`
+    <div class="header">↩ ${fromName} ענה לך בפנייה</div>
+    <p style="color:#374151;font-size:15px">שלום ${toName},<br><strong>${fromName}</strong> ענה להודעתך בפנייה <strong>"${t.subject}"</strong>:</p>
+    <div class="field">
+      <div class="label">תגובה</div>
+      <div class="value" style="background:#f0f9ff;border-right:3px solid #2563eb;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${replyContent}</div>
+    </div>
+    <a class="btn" href="${url}">לחץ כאן לצפייה בתגובה ←</a>
+    <div style="margin-top:20px;padding:14px 18px;background:#fff7ed;border:2px solid #f97316;border-radius:10px;text-align:center">
+      <div style="font-size:17px;font-weight:900;color:#c2410c;letter-spacing:0.01em;margin-bottom:6px">⚠️ אין להשיב למייל זה</div>
+      <div style="font-size:13px;color:#9a3412;font-weight:600;line-height:1.6">מייל זה נשלח אוטומטית ואינו מנוטר.<br>כדי להשיב — לחץ על הכפתור הכחול למעלה ורשום תגובה במערכת.</div>
+    </div>
+  `)
+}
+
 /** Sent to a mentioned staff member when they are @mentioned in a note */
 export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy: string) {
   const url = ticketUrl(t.ticketNumber)
