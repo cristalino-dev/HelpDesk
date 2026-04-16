@@ -10,56 +10,62 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read version
-        id: version
-        run: |
-          VER=$(grep -oP '(?<=VERSION = ")[^"]+' lib/version.ts || echo "unknown")
-          echo "version=$VER" >> $GITHUB_OUTPUT
+      - name: Install nodemailer
+        run: npm install nodemailer
 
       - name: Send commit notification email
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR: ${{ github.event.head_commit.author.name }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_REF: ${{ github.ref_name }}
+          COMMIT_URL: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
         run: |
+          VER=$(node -e "const fs=require('fs');const m=fs.readFileSync('lib/version.ts','utf8').match(/VERSION\s*=\s*\"([^\"]+)\"/);console.log(m?m[1]:'unknown')")
           node -e "
-          const nodemailer = require('nodemailer');
-          const t = nodemailer.createTransport({
-            host: 'smtp.gmail.com', port: 587, secure: false,
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-          });
-          const commit = '${{ github.event.head_commit.message }}'.replace(/'/g, \"'\");
-          const author = '${{ github.event.head_commit.author.name }}';
-          const sha    = '${{ github.sha }}'.slice(0, 7);
-          const ref    = '${{ github.ref_name }}';
-          const ver    = '${{ steps.version.outputs.version }}';
-          const repo   = '${{ github.repository }}';
-          const url    = 'https://github.com/' + repo + '/commit/${{ github.sha }}';
-          const html   = \`<!DOCTYPE html><html dir='rtl' lang='he'>
-          <head><meta charset='utf-8'><style>
-            body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:24px;direction:rtl}
-            .card{background:#fff;border-radius:12px;padding:28px 32px;max-width:560px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-            .header{font-size:20px;font-weight:700;color:#1e3a8a;margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:14px}
-            .field{margin-bottom:12px}.label{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase}
-            .value{font-size:15px;color:#111827;margin-top:2px;white-space:pre-wrap}
-            .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#dbeafe;color:#1e40af}
-            .btn{display:inline-block;margin-top:20px;padding:12px 24px;background:#2563eb;color:#fff!important;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px}
-            .footer{text-align:center;font-size:11px;color:#9ca3af;margin-top:20px}
-          </style></head>
-          <body><div class='card'>
-            <div class='header'>🚀 Push חדש ל-Helpdesk</div>
-            <div class='field'><div class='label'>גרסה</div><div class='value'><span class='badge'>v\${ver}</span></div></div>
-            <div class='field'><div class='label'>ענף</div><div class='value'>\${ref}</div></div>
-            <div class='field'><div class='label'>מחבר</div><div class='value'>\${author}</div></div>
-            <div class='field'><div class='label'>commit</div><div class='value' style='font-family:monospace;font-size:13px'>\${sha}</div></div>
-            <div class='field'><div class='label'>הודעת Commit</div><div class='value'>\${commit}</div></div>
-            <a class='btn' href='\${url}'>צפה ב-Commit ←</a>
-          </div>
-          <div class='footer'>מערכת הפניות – Cristalino &nbsp;|&nbsp; helpdesk.cristalino.co.il</div>
-          </body></html>\`;
-          t.sendMail({
-            from: '\"מערכת הפניות\" <helpdesk@cristalino.co.il>',
-            to: 'alon.k@cristalino.co.il',
-            subject: 'Push חדש – Helpdesk v' + ver + ' [' + sha + ']',
-            html
-          }).then(() => console.log('Email sent')).catch(e => { console.error(e); process.exit(1); });
-          "
+            const nodemailer = require('nodemailer');
+            if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+              console.warn('SMTP secrets not set — skipping email');
+              process.exit(0);
+            }
+            const t = nodemailer.createTransport({
+              host: 'smtp.gmail.com', port: 587, secure: false,
+              auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+            });
+            const ver    = process.env.VER || 'unknown';
+            const sha    = process.env.COMMIT_SHA.slice(0, 7);
+            const ref    = process.env.COMMIT_REF;
+            const author = process.env.COMMIT_AUTHOR;
+            const msg    = process.env.COMMIT_MSG;
+            const url    = process.env.COMMIT_URL;
+            const html = \`<!DOCTYPE html><html dir='rtl' lang='he'>
+            <head><meta charset='utf-8'><style>
+              body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:24px;direction:rtl}
+              .card{background:#fff;border-radius:12px;padding:28px 32px;max-width:560px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+              .header{font-size:20px;font-weight:700;color:#1e3a8a;margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:14px}
+              .field{margin-bottom:12px}.label{font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase}
+              .value{font-size:15px;color:#111827;margin-top:2px;white-space:pre-wrap}
+              .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#dbeafe;color:#1e40af}
+              .btn{display:inline-block;margin-top:20px;padding:12px 24px;background:#2563eb;color:#fff!important;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px}
+              .footer{text-align:center;font-size:11px;color:#9ca3af;margin-top:20px}
+            </style></head>
+            <body><div class='card'>
+              <div class='header'>🚀 Push חדש ל-Helpdesk</div>
+              <div class='field'><div class='label'>גרסה</div><div class='value'><span class='badge'>v\${ver}</span></div></div>
+              <div class='field'><div class='label'>ענף</div><div class='value'>\${ref}</div></div>
+              <div class='field'><div class='label'>מחבר</div><div class='value'>\${author}</div></div>
+              <div class='field'><div class='label'>Commit</div><div class='value' style='font-family:monospace;font-size:13px'>\${sha}</div></div>
+              <div class='field'><div class='label'>הודעת Commit</div><div class='value'>\${msg}</div></div>
+              <a class='btn' href='\${url}'>צפה ב-Commit ←</a>
+            </div>
+            <div class='footer'>מערכת הפניות – Cristalino &nbsp;|&nbsp; helpdesk.cristalino.co.il</div>
+            </body></html>\`;
+            t.sendMail({
+              from: '\"מערכת הפניות\" <' + process.env.SMTP_USER + '>',
+              to: 'alon.k@cristalino.co.il',
+              subject: 'Push חדש – Helpdesk v' + ver + ' [' + sha + ']',
+              html
+            }).then(() => console.log('Email sent')).catch(e => { console.error(e.message); process.exit(1); });
+          " VER="$VER"
