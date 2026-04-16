@@ -417,7 +417,10 @@ export default function TicketDetailPage() {
         {/* Notes — staff only */}
         {isStaff && (
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
-            <h2 style={{ margin: "0 0 16px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📝 הערות טכנאי</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📝 הערות טכנאי</h2>
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#7c3aed", background: "#ede9fe", borderRadius: 20, padding: "2px 10px", letterSpacing: "0.01em" }}>גלוי לצוות התמיכה בלבד</span>
+          </div>
 
             {ticket.notes.length === 0 && (
               <div style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: 16 }}>אין הערות עדיין</div>
