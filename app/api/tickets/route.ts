@@ -24,7 +24,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
-import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser } from "@/lib/mail"
+import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
 
 /**
@@ -169,10 +169,13 @@ export async function PATCH(req: NextRequest) {
     const mails: Promise<void>[] = [
       sendMail({ to: STAFF_EMAILS, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }),
     ]
-    // Notify user on status change — but not when they closed it themselves
-    if (status && (status === "בטיפול" || status === "סגור") && before.user?.email && before.user.email !== session.user.email) {
-      const statusLabel = status === "סגור" ? "נסגרה" : "בטיפול"
-      mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – ${statusLabel}`, html: mailTicketStatusUser(ticketInfo) }))
+    // Notify user on status change
+    if (status === "סגור" && before.user?.email) {
+      // Closure: always send the review-request email, even if the user closed it themselves
+      mails.push(sendMail({ to: before.user.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
+    } else if (status === "בטיפול" && before.user?.email && before.user.email !== session.user.email) {
+      // In-progress: only notify if a staff member (not the user) changed the status
+      mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – בטיפול`, html: mailTicketStatusUser(ticketInfo) }))
     }
     void Promise.all(mails)
 

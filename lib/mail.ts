@@ -55,10 +55,14 @@ export async function sendMail({ to, subject, html }: MailOptions) {
   }
 }
 
-// ── Ticket link helper ────────────────────────────────────────────────────────
+// ── URL helpers ───────────────────────────────────────────────────────────────
 
 export function ticketUrl(ticketNumber: number) {
   return `${APP_URL}/tickets/HDTC-${ticketNumber}`
+}
+
+export function reviewUrl(ticketId: string) {
+  return `${APP_URL}/review/${ticketId}`
 }
 
 // ── Shared HTML wrapper ───────────────────────────────────────────────────────
@@ -168,21 +172,42 @@ export function mailTicketUpdatedStaff(t: TicketInfo, changedBy: string) {
   `)
 }
 
-/** Sent to the user when their ticket moves to בטיפול or סגור */
+/** Sent to the user when their ticket moves to בטיפול */
 export function mailTicketStatusUser(t: TicketInfo) {
   const url = ticketUrl(t.ticketNumber)
-  const msg = t.status === "סגור"
-    ? "פנייתך טופלה וסומנה כסגורה. אנא פנה שוב אם הבעיה חוזרת."
-    : "פנייתך נמצאת כעת בטיפול הצוות הטכני."
   return wrap(`
     <div class="header">📬 עדכון על פנייתך</div>
-    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>${msg}</p>
+    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>פנייתך נמצאת כעת בטיפול הצוות הטכני.</p>
     <div class="field"><div class="label">נושא</div><div class="value">${t.subject}</div></div>
     <div class="field">
       <div class="label">סטטוס חדש</div>
-      <div class="value"><span class="badge" style="${STATUS_COLOR[t.status] ?? ""}">${t.status}</span></div>
+      <div class="value"><span class="badge" style="${STATUS_COLOR["בטיפול"]}">${"בטיפול"}</span></div>
     </div>
     <a class="btn" href="${url}">צפה בפנייה ←</a>
+  `)
+}
+
+/**
+ * Sent when a ticket is closed — includes a prominent CTA to rate the service.
+ * The review link uses the ticket's CUID as an unguessable token so no auth is needed.
+ */
+export function mailTicketClosedWithReview(t: TicketInfo) {
+  const ticketLink = ticketUrl(t.ticketNumber)
+  const rateLink   = reviewUrl(t.id)
+  return wrap(`
+    <div class="header">✅ פנייתך טופלה וסגורה</div>
+    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>
+      פנייה <strong style="font-family:monospace">HDTC-${t.ticketNumber}</strong> — <strong>${t.subject}</strong> — טופלה ונסגרה על ידי צוות התמיכה.
+    </p>
+    <div style="margin:24px 0;padding:22px 24px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:12px;border:1px solid #bbf7d0;text-align:center">
+      <div style="font-size:26px;margin-bottom:8px">⭐</div>
+      <div style="font-size:17px;font-weight:800;color:#166534;margin-bottom:6px">איך היה השירות?</div>
+      <div style="font-size:13px;color:#4b5563;margin-bottom:18px;line-height:1.6">שניה מזמנכם תעזור לנו להשתפר.<br>דרגו את חוויית התמיכה שלכם.</div>
+      <a href="${rateLink}" style="display:inline-block;padding:13px 32px;background:#16a34a;color:#fff!important;text-decoration:none;border-radius:9px;font-weight:800;font-size:15px;letter-spacing:0.01em">דרגו את השירות ←</a>
+    </div>
+    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0">
+      אם הבעיה חזרה, <a href="${ticketLink}" style="color:#2563eb">לחצו כאן לפתיחת פנייה חדשה</a>.
+    </p>
   `)
 }
 

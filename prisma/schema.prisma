@@ -37,6 +37,7 @@ model Ticket {
   notes        TicketNote[]
   attachments  TicketAttachment[]
   messages     TicketMessage[]
+  review       TicketReview?
 }
 
 model TicketMessage {
@@ -67,6 +68,17 @@ model TicketAttachment {
   dataUrl   String
   filename  String?
   createdAt DateTime @default(now())
+}
+
+model TicketReview {
+  id             String   @id @default(cuid())
+  ticketId       String   @unique
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  rating         Int      // 1–5
+  comment        String?
+  submitterName  String
+  submitterEmail String
+  createdAt      DateTime @default(now())
 }
 
 model Log {
