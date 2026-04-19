@@ -151,7 +151,7 @@ export default function OpenTicketPage() {
           <h1 style={{ margin: "0 0 8px", fontSize: "1.55rem", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>
             פתיחת פנייה לתמיכה טכנית
           </h1>
-          <p style={{ margin: 0, fontSize: "0.93rem", color: "#6b7280", lineHeight: 1.6, maxWidth: 520, margin: "0 auto" }}>
+          <p style={{ margin: "0 auto", fontSize: "0.93rem", color: "#6b7280", lineHeight: 1.6, maxWidth: 520 }}>
             יש בעיה טכנית? תקלה במחשב, תוכנה, רשת או מדפסת? קלו על הטופס — הצוות יחזור אליך בהקדם.
           </p>
         </div>
