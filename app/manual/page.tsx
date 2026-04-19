@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Image from "next/image"
+import VERSION from "@/lib/version"
 
 export const metadata: Metadata = {
   title: "מדריך שימוש – מערכת Helpdesk קריסטלינו",
@@ -17,7 +18,7 @@ export default function ManualPage() {
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מערכת Helpdesk קריסטלינו</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך שימוש לעובדי החברה</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "4px 16px", fontSize: "0.78rem", fontWeight: 600 }}>
-            Cristalino Group · 2026 · v2.8
+            Cristalino Group · 2026 · v{VERSION}
           </div>
         </div>
 
@@ -76,6 +77,9 @@ export default function ManualPage() {
             <Steps items={[
               <>בלוח הבקרה מוצגות <strong>כל הפניות שלכם</strong> לפי תאריך</>,
               <>בראש הדף: כרטיסיות סיכום — פתוחות, בטיפול, סגורות</>,
+              <><strong>פניות פעילות</strong> (פתוח / בטיפול) מופיעות בראש הרשימה בצבעים מלאים</>,
+              <><strong>פניות סגורות</strong> מופיעות בחלק התחתון מעומעמות, ניתנות ללחיצה לצפייה בפרטים</>,
+              <>להגביל פנייה פעילה — העבירו את העכבר מעל הכרטיס ולחצו <strong>✓ סגור</strong></>,
             ]} />
             <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 18, marginBottom: 6, fontWeight: 600 }}>סטטוסים:</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -89,6 +93,18 @@ export default function ManualPage() {
             </div>
           </Section>
 
+          <Section icon="⭐" title="דירוג השירות">
+            <Steps items={[
+              <>כאשר פנייה נסגרת, תקבלו <strong>מייל אוטומטי</strong> עם קישור לדירוג השירות</>,
+              <>לחצו על כפתור <strong>&quot;דרגו את השירות&quot;</strong> במייל</>,
+              <>בחרו <strong>1–5 כוכבים</strong> ובאופן אופציונלי הוסיפו הערה חופשית</>,
+              <>לחצו <strong>&quot;שלחו ביקורת&quot;</strong> — ניתן לחזור ולעדכן את הדירוג בכל עת</>,
+            ]} />
+            <Note>
+              הדירוג אינו דורש התחברות לחשבון. ניתן לגשת לאותו קישור שוב כדי לשנות את הדירוג.
+            </Note>
+          </Section>
+
           <Section icon="👤" title="פרופיל אישי">
             <Steps items={[
               <>לחצו על <strong>שמכם</strong> בסרגל הניווט העליון</>,
@@ -96,7 +112,6 @@ export default function ManualPage() {
             ]} />
           </Section>
 
-          {/* Tips */}
           <Section icon="📎" title="צירוף תמונה לפנייה">
             <Steps items={[
               <>בשדה <strong>תיאור מפורט</strong> ניתן לצרף צילום מסך או תמונה</>,
@@ -109,12 +124,13 @@ export default function ManualPage() {
           <Section icon="💡" title="טיפים לשימוש יעיל">
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {[
-                { icon: "📝", title: "תיאור מפורט",  desc: "פרטו מה קרה, מתי ואיך לשחזר — זה מקצר משמעותית את זמן הטיפול" },
-                { icon: "🖥️", title: "שם מחשב",      desc: "מצאו בהגדרות ← אודות, או פתחו cmd והקלידו hostname" },
-                { icon: "📞", title: "שמרו פרופיל",  desc: "הזינו טלפון ותחנה בפרופיל פעם אחת — ימולאו אוטומטית בכל פנייה" },
-                { icon: "📧", title: "עדכונים במייל", desc: "תקבלו מייל אוטומטי כשהפנייה בטיפול וכשנסגרת" },
+                { icon: "📝", title: "תיאור מפורט",    desc: "פרטו מה קרה, מתי ואיך לשחזר — זה מקצר משמעותית את זמן הטיפול" },
+                { icon: "🖥️", title: "שם מחשב",        desc: "מצאו בהגדרות ← אודות, או פתחו cmd והקלידו hostname" },
+                { icon: "📞", title: "שמרו פרופיל",    desc: "הזינו טלפון ותחנה בפרופיל פעם אחת — ימולאו אוטומטית בכל פנייה" },
+                { icon: "📧", title: "עדכונים במייל",  desc: "תקבלו מייל כשהפנייה בטיפול, וכשנסגרת — מייל עם קישור לדירוג השירות" },
+                { icon: "⭐", title: "דרגו את השירות", desc: "המשוב שלכם עוזר לנו להשתפר. ניתן לעדכן את הדירוג בכל עת" },
               ].map(c => (
-                <div key={c.title} style={{ flex: 1, minWidth: 160, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, textAlign: "center" }}>
+                <div key={c.title} style={{ flex: 1, minWidth: 150, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, textAlign: "center" }}>
                   <div style={{ fontSize: "1.5rem", marginBottom: 8 }}>{c.icon}</div>
                   <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#111827", marginBottom: 4 }}>{c.title}</div>
                   <div style={{ fontSize: "0.75rem", color: "#6b7280", lineHeight: 1.5 }}>{c.desc}</div>

@@ -16,7 +16,7 @@ export default function HelpPage() {
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
           <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>{`מערכת helpdesk v${VERSION}`}</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש (Administration & Advanced Logs)</span>
+          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש</span>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
@@ -29,21 +29,22 @@ export default function HelpPage() {
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
           <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>{`מדריך שימוש במערכת helpdesk ${VERSION}`}</h1>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>מערכת ה-HelpDesk המשופרת — עכשיו עם לוח מעקב שגיאות מתקדם וכלי ניטור לצוות המנהלים</p>
+          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>כל מה שצריך לדעת כדי לפתוח פנייה, לעקוב אחריה ולדרג את השירות שקיבלתם</p>
         </div>
 
         {/* TOC */}
         <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "24px 28px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
           <p style={{ margin: "0 0 14px", fontWeight: 700, color: "#374151", fontSize: "0.9rem" }}>תוכן עניינים</p>
           <ol style={{ margin: 0, padding: "0 20px", display: "flex", flexDirection: "column", gap: "8px", color: "#2563eb", fontSize: "0.9rem" }}>
-            <li><a href="#login" style={{ color: "#2563eb" }}>כניסה למערכת</a></li>
-            <li><a href="#dashboard" style={{ color: "#2563eb" }}>לוח הבקרה — הפניות שלי</a></li>
-            <li><a href="#new-ticket" style={{ color: "#2563eb" }}>פתיחת פנייה חדשה</a></li>
+            <li><a href="#login"           style={{ color: "#2563eb" }}>כניסה למערכת</a></li>
+            <li><a href="#dashboard"       style={{ color: "#2563eb" }}>לוח הבקרה — הפניות שלי</a></li>
+            <li><a href="#new-ticket"      style={{ color: "#2563eb" }}>פתיחת פנייה חדשה</a></li>
             <li><a href="#notes-attachments" style={{ color: "#2563eb" }}>הערות ותמונות מצורפות</a></li>
-            <li><a href="#messaging" style={{ color: "#2563eb" }}>שיחה עם צוות התמיכה (חדש!)</a></li>
-            <li><a href="#statuses" style={{ color: "#2563eb" }}>מצבי פנייה</a></li>
-            <li><a href="#urgency" style={{ color: "#2563eb" }}>רמות דחיפות</a></li>
-            <li><a href="#contact" style={{ color: "#2563eb" }}>צרו קשר עם תמיכת המערכת</a></li>
+            <li><a href="#messaging"       style={{ color: "#2563eb" }}>שיחה עם צוות התמיכה</a></li>
+            <li><a href="#statuses"        style={{ color: "#2563eb" }}>מצבי פנייה</a></li>
+            <li><a href="#urgency"         style={{ color: "#2563eb" }}>רמות דחיפות</a></li>
+            <li><a href="#review"          style={{ color: "#2563eb" }}>דירוג השירות לאחר סגירה</a></li>
+            <li><a href="#contact"         style={{ color: "#2563eb" }}>צרו קשר עם תמיכת המערכת</a></li>
           </ol>
         </div>
 
@@ -51,7 +52,6 @@ export default function HelpPage() {
         <section id="login" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="1" title="כניסה למערכת" />
 
-          {/* Mockup */}
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
             <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #1e40af 100%)", padding: "40px 24px", display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "36px 32px", width: "300px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
@@ -69,7 +69,6 @@ export default function HelpPage() {
             </div>
           </div>
 
-          {/* Steps */}
           <Card>
             <Steps steps={[
               { n: 1, text: <span>גשו לכתובת <Strong>helpdesk.cristalino.co.il</Strong> בדפדפן שלכם</span> },
@@ -85,9 +84,7 @@ export default function HelpPage() {
         <section id="dashboard" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="2" title='לוח הבקרה — "הפניות שלי"' />
 
-          {/* Mockup */}
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
-            {/* Header bar */}
             <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Image src="/logo.jpeg" alt="" width={32} height={32} style={{ objectFit: "contain", borderRadius: "4px" }} />
@@ -97,16 +94,9 @@ export default function HelpPage() {
                 {["עזרה", "צרו קשר"].map(t => (
                   <span key={t} style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.85)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>{t}</span>
                 ))}
-                <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "3px 8px 3px 5px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
-                  <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.55rem", fontWeight: 800 }}>יש</div>
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.68rem" }}>ישראל ישראלי</span>
-                </div>
-                <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.68rem", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.2)", backgroundColor: "rgba(255,255,255,0.08)" }}>יציאה</span>
               </div>
             </div>
-            {/* Body */}
             <div style={{ backgroundColor: "#f0f2f5", padding: "16px" }}>
-              {/* Stats */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
                 {[
                   { label: "פתוחות", count: 2, color: "#2563eb", bg: "#eff6ff" },
@@ -119,39 +109,48 @@ export default function HelpPage() {
                   </div>
                 ))}
               </div>
-              {/* Title row */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                 <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#1f2937" }}>הפניות שלי</span>
                 <div style={{ backgroundColor: "#2563eb", color: "#fff", fontSize: "0.78rem", fontWeight: 600, padding: "6px 14px", borderRadius: "8px" }}>+ פנייה חדשה</div>
               </div>
-              {/* Ticket card */}
-              {[
-                { subject: "המדפסת לא מדפיסה", computer: "PC-ALON-01", platform: "מחשב אישי", cat: "מדפסת", urgency: "גבוה", urgencyBg: "#ffedd5", urgencyColor: "#9a3412", status: "בטיפול", statusBg: "#fef3c7", statusColor: "#92400e", border: "#f97316" },
-                { subject: "שגיאה בהתחברות לרשת", computer: "PC-SARA-02", platform: "מחשב אישי", cat: "רשת", urgency: "דחוף", urgencyBg: "#fee2e2", urgencyColor: "#991b1b", status: "פתוח", statusBg: "#dbeafe", statusColor: "#1e40af", border: "#ef4444" },
-              ].map((t, i) => (
-                <div key={i} style={{ backgroundColor: "#fff", borderRadius: "10px", borderRight: `4px solid ${t.border}`, padding: "10px 14px 10px 12px", marginBottom: "8px", display: "grid", gridTemplateColumns: "1fr auto auto", alignItems: "center", gap: "10px" }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#111827" }}>{t.subject}</div>
-                    <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>{t.computer} · {t.cat} · {t.platform ?? "מחשב אישי"}</div>
-                  </div>
-                  <span style={{ backgroundColor: t.urgencyBg, color: t.urgencyColor, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>{t.urgency}</span>
-                  <span style={{ backgroundColor: t.statusBg, color: t.statusColor, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>{t.status}</span>
+              {/* Active ticket */}
+              <div style={{ backgroundColor: "#fff", borderRadius: "10px", borderRight: "4px solid #f97316", padding: "10px 14px 10px 12px", marginBottom: "6px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px" }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#111827" }}>המדפסת לא מדפיסה</div>
+                  <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>PC-ALON-01 · מדפסת · מחשב אישי</div>
                 </div>
-              ))}
+                <span style={{ backgroundColor: "#ffedd5", color: "#9a3412", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>גבוה</span>
+                <span style={{ backgroundColor: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>בטיפול</span>
+                <span style={{ fontSize: "0.6rem", color: "#9ca3af", opacity: 0.5 }}>‹</span>
+              </div>
+              {/* Divider */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 6px", padding: "0 2px" }}>
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#9ca3af", whiteSpace: "nowrap" }}>פניות סגורות (1)</span>
+                <div style={{ flex: 1, height: 1, backgroundColor: "#e5e7eb" }} />
+              </div>
+              {/* Closed ticket — grayed out */}
+              <div style={{ backgroundColor: "#f9fafb", borderRadius: "10px", borderRight: "4px solid #d1d5db", padding: "10px 14px 10px 12px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px", opacity: 0.52 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#6b7280" }}>שגיאה בהתחברות לרשת</div>
+                  <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>PC-SARA-02 · רשת · מחשב אישי</div>
+                </div>
+                <span style={{ backgroundColor: "#f3f4f6", color: "#9ca3af", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>נמוך</span>
+                <span style={{ backgroundColor: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>סגור</span>
+                <span style={{ fontSize: "0.6rem", color: "#9ca3af", opacity: 0.5 }}>‹</span>
+              </div>
             </div>
           </div>
 
-          {/* Explanation */}
           <Card>
             <p style={{ margin: "0 0 16px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
               לאחר הכניסה, תגיעו ללוח הבקרה שם תוכלו לראות את כל הפניות שלכם ולפתוח פנייה חדשה.
             </p>
             <FieldList items={[
-              { label: "סטטיסטיקה", desc: "שלושה כרטיסים בראש הדף מציגים כמה פניות פתוחות, בטיפול וסגורות" },
-              { label: "פניות פעילות", desc: "פניות פתוחות ובטיפול מופיעות בחלק העליון של הרשימה בצבעים מלאים" },
-              { label: "פניות סגורות", desc: 'פניות שטופלו מוצגות בחלק התחתון בצורה מעומעמת תחת הכותרת "פניות סגורות". ניתן ללחוץ עליהן לצפייה בפרטים' },
-              { label: "סגירת פנייה", desc: 'העבירו את העכבר מעל פנייה פעילה כדי לחשוף את כפתור "✓ סגור" בצד שמאל של הכרטיס' },
-              { label: "גבול צבעוני", desc: "הפס הצבעוני בצד ימין של כל פנייה מציין את רמת הדחיפות" },
+              { label: "סטטיסטיקה",       desc: "שלושה כרטיסים בראש הדף מציגים כמה פניות פתוחות, בטיפול וסגורות" },
+              { label: "פניות פעילות",     desc: "פניות פתוחות ובטיפול מופיעות בחלק העליון בצבעים מלאים" },
+              { label: "פניות סגורות",     desc: 'פניות שטופלו מוצגות בחלק התחתון בצורה מעומעמת תחת הכותרת "פניות סגורות". לחצו עליהן לצפייה בפרטים' },
+              { label: "סגירת פנייה",      desc: 'העבירו את העכבר מעל פנייה פעילה — כפתור "✓ סגור" יופיע בצד שמאל של הכרטיס' },
+              { label: "גבול צבעוני",      desc: "הפס הצבעוני בצד ימין של כל פנייה מציין את רמת הדחיפות" },
               { label: "כפתור פנייה חדשה", desc: 'לחצו על "+ פנייה חדשה" כדי לפתוח טופס הגשה' },
             ]} />
           </Card>
@@ -161,7 +160,6 @@ export default function HelpPage() {
         <section id="new-ticket" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="3" title="פתיחת פנייה חדשה" />
 
-          {/* Form mockup */}
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -170,62 +168,31 @@ export default function HelpPage() {
               <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>פתיחת פנייה חדשה</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-              {/* Subject */}
               <MockField label="נושא הפנייה *" placeholder="תאר בקצרה את הבעיה" />
-              {/* Computer + Phone */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <MockField label="שם מחשב *" placeholder="לדוגמה: PC-ALON-01" hint="?" />
                 <MockField label="טלפון *" placeholder="050-0000000" />
               </div>
-              {/* Category + Urgency + Platform */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                 <MockSelect label="פלטפורמה" value="מחשב אישי" />
                 <MockSelect label="קטגוריה" value="אחר" />
                 <MockSelect label="דחיפות" value="בינוני" colored />
               </div>
-              {/* Description */}
               <MockTextarea label="תיאור מפורט *" />
-              {/* Button */}
               <div style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
             </div>
           </div>
 
-          {/* Field guide */}
           <Card>
             <p style={{ margin: "0 0 18px", fontWeight: 700, color: "#1f2937", fontSize: "0.95rem" }}>מה למלא בכל שדה</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <FieldGuideItem
-                label="נושא הפנייה"
-                required
-                desc="תיאור קצר ותמציתי של הבעיה. לדוגמה: המדפסת לא מדפיסה, אין חיבור לאינטרנט, שגיאה בפתיחת Outlook."
-              />
-              <FieldGuideItem
-                label="שם מחשב"
-                required
-                desc={<>שם הזיהוי של המחשב שלכם ברשת. לחצו על סמל <Strong>?</Strong> שליד השדה לקבלת הסבר כיצד למצוא אותו (Start → cmd → hostname).</>}
-              />
-              <FieldGuideItem
-                label="טלפון"
-                required
-                desc="מספר הטלפון שבו ניתן לחזור אליכם."
-              />
-              <FieldGuideItem
-                label="קטגוריה"
-                desc={<>בחרו את הקטגוריה המתאימה לבעיה: <Strong>חומרה</Strong> (מחשב, מסך, עכבר), <Strong>תוכנה</Strong> (תוכנית, מערכת הפעלה), <Strong>רשת</Strong> (אינטרנט, Wi-Fi), <Strong>מדפסת</Strong>, <Strong>אחר</Strong>.</>}
-              />
-              <FieldGuideItem
-                label="פלטפורמה"
-                desc={<>בחרו את הפלטפורמה שעליה מותקנת המערכת או שבה התגלתה הבעיה: <Strong>comax</Strong>, <Strong>comax sales tracker</Strong>, <Strong>אנדרואיד</Strong>, <Strong>אייפד</Strong>, או <Strong>מחשב אישי</Strong>.</>}
-              />
-              <FieldGuideItem
-                label="דחיפות"
-                desc={<>בחרו את רמת הדחיפות בהתאם להשפעה על עבודתכם. ראו סעיף 7 למטה להסבר מלא על כל רמה.</>}
-              />
-              <FieldGuideItem
-                label="תיאור מפורט"
-                required
-                desc="פרטו את הבעיה בצורה מלאה: מתי התחילה, מה קרה לפני שהתחילה, האם הופיעה הודעת שגיאה. ככל שתפרטו יותר — כך הטיפול יהיה מהיר יותר."
-              />
+              <FieldGuideItem label="נושא הפנייה" required desc="תיאור קצר ותמציתי של הבעיה. לדוגמה: המדפסת לא מדפיסה, אין חיבור לאינטרנט, שגיאה בפתיחת Outlook." />
+              <FieldGuideItem label="שם מחשב" required desc={<>שם הזיהוי של המחשב שלכם ברשת. לחצו על סמל <Strong>?</Strong> שליד השדה לקבלת הסבר כיצד למצוא אותו (Start → cmd → hostname).</>} />
+              <FieldGuideItem label="טלפון" required desc="מספר הטלפון שבו ניתן לחזור אליכם." />
+              <FieldGuideItem label="קטגוריה" desc={<>בחרו את הקטגוריה המתאימה לבעיה: <Strong>חומרה</Strong>, <Strong>תוכנה</Strong>, <Strong>רשת</Strong>, <Strong>מדפסת</Strong>, <Strong>אחר</Strong>.</>} />
+              <FieldGuideItem label="פלטפורמה" desc={<>בחרו את הפלטפורמה הרלוונטית: <Strong>comax</Strong>, <Strong>comax sales tracker</Strong>, <Strong>אנדרואיד</Strong>, <Strong>אייפד</Strong>, או <Strong>מחשב אישי</Strong>.</>} />
+              <FieldGuideItem label="דחיפות" desc={<>בחרו את רמת הדחיפות בהתאם להשפעה על עבודתכם. ראו סעיף 7 למטה להסבר מלא.</>} />
+              <FieldGuideItem label="תיאור מפורט" required desc="פרטו את הבעיה בצורה מלאה: מתי התחילה, מה קרה לפני שהתחילה, האם הופיעה הודעת שגיאה." />
             </div>
             <Note text="שדות המסומנים ב-* הם חובה. לא ניתן לשלוח את הטופס ללא מילוי שדות אלה." />
           </Card>
@@ -235,8 +202,8 @@ export default function HelpPage() {
             <Steps steps={[
               { n: 1, text: <span>הפנייה נשמרת במערכת ומופיעה מיד תחת &quot;הפניות שלי&quot;</span> },
               { n: 2, text: <span>צוות התמיכה רואה את הפנייה בתור הניהול, ממוינת לפי דחיפות</span> },
-              { n: 3, text: <span>כשהטכנאי מתחיל לטפל, המצב יתעדכן ל-<Strong>בטיפול</Strong></span> },
-              { n: 4, text: <span>בסיום הטיפול המצב יתעדכן ל-<Strong>סגור</Strong></span> },
+              { n: 3, text: <span>כשהטכנאי מתחיל לטפל, המצב יתעדכן ל-<Strong>בטיפול</Strong> ותקבלו מייל</span> },
+              { n: 4, text: <span>בסיום הטיפול המצב יתעדכן ל-<Strong>סגור</Strong> ותקבלו מייל עם קישור לדירוג השירות</span> },
             ]} />
           </Card>
         </section>
@@ -250,20 +217,16 @@ export default function HelpPage() {
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📎 העלאת תמונות (Clip & Drag)</span>
+                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📎 העלאת תמונות</span>
                 <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  ניתן לגרור תמונות לאזור המסומן בתחתית הטופס, או ללחוץ עליו לבחירת קבצים.
-                  <br />
-                  <Strong>חדש:</Strong> ניתן להדביק תמונה (Ctrl+V) ישירות מה-Clipboard. ניתן לצרף מספר תמונות לאותה פנייה.
+                  גררו תמונות לאזור המסומן בתחתית הטופס, לחצו לבחירת קבצים, או <Strong>הדביקו (Ctrl+V)</Strong> ישירות מה-Clipboard. ניתן לצרף מספר תמונות לאותה פנייה.
                 </p>
               </div>
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות ותיוג (Mentions)</span>
+                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות ותיוג</span>
                 <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  טכנאים יכולים להוסיף הערות וגם לתייג אנשי צוות אחרים באמצעות שימוש ב-&quot;@&quot; (לדוגמה: @alon). 
-                  ניתן ללחוץ על כפתורי השמות המופיעים מתחת לשדה ההערה כדי לתייג במהירות. 
-                  בנוסף, ניתן כעת לצרף תמונות וצילומי מסך ישירות לתוך ההערה.
+                  בתוך מסך הפנייה ניתן לכתוב הערות. טכנאים יכולים לתייג אנשי צוות אחרים באמצעות <Strong>@</Strong> (לדוגמה: @alon) ולצרף תמונות ישירות להערה.
                 </p>
               </div>
             </div>
@@ -271,19 +234,18 @@ export default function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 5: MESSAGING (NEW!) ── */}
+        {/* ── SECTION 5: MESSAGING ── */}
         <section id="messaging" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="5" title="שיחה עם צוות התמיכה (Interactive Messaging)" />
+          <SectionTitle number="5" title="שיחה עם צוות התמיכה" />
           <Card>
             <p style={{ fontSize: "0.95rem", color: "#6b7280", lineHeight: 1.7, marginBottom: "20px" }}>
-              ניתן כעת לנהל שיחה ישירה עם צוות התמיכה בתוך כל פנייה.
+              ניתן לנהל שיחה ישירה עם צוות התמיכה בתוך כל פנייה.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
                 <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>💬 צ׳אט אינטראקטיבי</span>
                 <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  בתוך מסך הפנייה (או בלחיצה על פנייה בלוח הבבקרה), תמצאו את החלק &quot;שיחה עם הצוות&quot;.
-                  כאן תוכלו לכתוב הודעות ישירות לטכנאי המטפל.
+                  בתוך מסך הפנייה תמצאו את החלק &quot;שיחה עם הצוות&quot;. כתבו הודעות ישירות לטכנאי המטפל.
                 </p>
               </div>
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
@@ -302,11 +264,11 @@ export default function HelpPage() {
           <SectionTitle number="6" title="מצבי פנייה" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <StatusRow badge={badge("#dbeafe", "#1e40af", "פתוח")} title="פתוח" desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
+              <StatusRow badge={badge("#dbeafe", "#1e40af", "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <StatusRow badge={badge("#fef3c7", "#92400e", "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. ייתכן שיצרו איתכם קשר בקרוב." />
+              <StatusRow badge={badge("#fef3c7", "#92400e", "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. תקבלו מייל עדכון. ייתכן שיצרו איתכם קשר בקרוב." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <StatusRow badge={badge("#dcfce7", "#166534", "סגור")} title="סגור" desc="הבעיה טופלה וסגורה. אם הבעיה חזרה, פתחו פנייה חדשה." />
+              <StatusRow badge={badge("#dcfce7", "#166534", "סגור")}   title="סגור"   desc="הבעיה טופלה וסגורה. תקבלו מייל עם קישור לדירוג השירות. אם הבעיה חזרה, פתחו פנייה חדשה." />
             </div>
           </Card>
         </section>
@@ -316,23 +278,58 @@ export default function HelpPage() {
           <SectionTitle number="7" title="רמות דחיפות — מתי לבחור מה?" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <UrgencyRow badge={badge("#fee2e2", "#991b1b", "דחוף")} title="דחוף" desc="המחשב לא עולה כלל, אין גישה למערכות קריטיות, הבעיה מונעת עבודה לחלוטין." />
+              <UrgencyRow badge={badge("#fee2e2", "#991b1b", "דחוף")}   title="דחוף"   desc="המחשב לא עולה כלל, אין גישה למערכות קריטיות, הבעיה מונעת עבודה לחלוטין." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <UrgencyRow badge={badge("#ffedd5", "#9a3412", "גבוה")} title="גבוה" desc="קושי משמעותי בעבודה השוטפת, בעיה שפוגעת בפרודוקטיביות אך ניתן לעבוד בחלקה." />
+              <UrgencyRow badge={badge("#ffedd5", "#9a3412", "גבוה")}   title="גבוה"   desc="קושי משמעותי בעבודה השוטפת, בעיה שפוגעת בפרודוקטיביות אך ניתן לעבוד בחלקה." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
               <UrgencyRow badge={badge("#fef3c7", "#92400e", "בינוני")} title="בינוני" desc="בעיה שיש לטפל בה אך אינה מונעת עבודה. ברירת המחדל לרוב הפניות." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <UrgencyRow badge={badge("#dcfce7", "#166534", "נמוך")} title="נמוך" desc="בקשה שאינה דחופה: שדרוג, התקנת תוכנה, שאלה כללית." />
+              <UrgencyRow badge={badge("#dcfce7", "#166534", "נמוך")}   title="נמוך"   desc="בקשה שאינה דחופה: שדרוג, התקנת תוכנה, שאלה כללית." />
             </div>
-            <Note text='אנא בחרו את רמת הדחיפות בצורה מדויקת. דחיפות גבוהה מדי עלולה לדחות פניות אחרות שצריכות טיפול מיידי.' />
+            <Note text="אנא בחרו את רמת הדחיפות בצורה מדויקת. דחיפות גבוהה מדי עלולה לדחות פניות אחרות שצריכות טיפול מיידי." />
           </Card>
         </section>
 
-        {/* ── SECTION 8: CONTACT ── */}
-        <section id="contact" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="8" title="צרו קשר עם תמיכת המערכת" />
+        {/* ── SECTION 8: REVIEW ── */}
+        <section id="review" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <SectionTitle number="8" title="דירוג השירות לאחר סגירה" />
 
-          {/* Contact form mockup */}
+          {/* Review page mockup */}
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
+            <div style={{ background: "linear-gradient(135deg, #f0f9ff, #e0f2fe, #f0fdf4)", padding: "32px 24px", display: "flex", justifyContent: "center" }}>
+              <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px 28px 24px", width: "340px", textAlign: "center", boxShadow: "0 8px 30px rgba(0,0,0,0.10)", border: "1px solid #e5e7eb" }}>
+                <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#1e40af", borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
+                <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "#1f2937", marginBottom: 4 }}>איך היה השירות?</div>
+                <div style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4 }}>מוראל לוי סגירת יוזר קומקס</div>
+                <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginBottom: 20 }}>שניה מזמנכם תעזור לנו להשתפר</div>
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+                  {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: n <= 4 ? "1.8rem" : "1.4rem", filter: n <= 4 ? "none" : "grayscale(1) opacity(0.3)" }}>⭐</span>)}
+                </div>
+                <div style={{ height: 18, fontSize: "0.78rem", fontWeight: 600, color: "#16a34a", marginBottom: 12 }}>טוב</div>
+                <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 10px", fontSize: "0.75rem", color: "#9ca3af", textAlign: "right", marginBottom: 12 }}>הוסיפו הערה (לא חובה)...</div>
+                <div style={{ background: "#16a34a", color: "#fff", padding: "10px", borderRadius: 8, fontWeight: 700, fontSize: "0.82rem" }}>שלחו ביקורת</div>
+              </div>
+            </div>
+          </div>
+
+          <Card>
+            <p style={{ margin: "0 0 16px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
+              כאשר פנייה נסגרת, תקבלו מייל אוטומטי עם קישור לדירוג השירות. הדירוג עוזר לצוות התמיכה להשתפר.
+            </p>
+            <FieldList items={[
+              { label: "מייל סגירה",    desc: 'תקבלו מייל עם כפתור ירוק "דרגו את השירות ←" שמוביל לדף הדירוג' },
+              { label: "דף הדירוג",    desc: 'בחרו 1–5 כוכבים ובאופן אופציונלי הוסיפו הערה חופשית. לא נדרשת כניסה לחשבון' },
+              { label: "עריכת דירוג",  desc: "אפשר לחזור לאותו קישור ולשנות את הדירוג בכל עת — הדירוג הקודם יוחלף" },
+              { label: "פניות סגורות", desc: "ניתן לגשת לכל פנייה סגורה דרך לוח הבקרה ולצפות בפרטי הטיפול" },
+            ]} />
+            <Note text="הקישור לדירוג נשלח רק למגיש הפנייה ותקף כל עוד הפנייה סגורה. אין צורך בהתחברות לחשבון." />
+          </Card>
+        </section>
+
+        {/* ── SECTION 9: CONTACT ── */}
+        <section id="contact" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <SectionTitle number="9" title="צרו קשר עם תמיכת המערכת" />
+
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -341,17 +338,6 @@ export default function HelpPage() {
               <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>צרו קשר עם תמיכת HelpDesk</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div style={{ backgroundColor: "#f9fafb", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "0.68rem", fontWeight: 700 }}>יש</div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#1f2937" }}>ישראל ישראלי</div>
-                  <div style={{ fontSize: "0.72rem", color: "#6b7280" }}>israel@cristalino.co.il</div>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>נושא: HelpDesk Issues</div>
-                <div style={{ fontSize: "0.68rem", color: "#9ca3af" }}>ההודעה תישלח אל helpdesk@cristalino.co.il</div>
-              </div>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: "#9ca3af" }}>תארו את הבעיה שנתקלתם בה...</div>
               <div style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
             </div>
@@ -359,12 +345,12 @@ export default function HelpPage() {
 
           <Card>
             <p style={{ margin: "0 0 14px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
-              דף זה מיועד לדיווח על בעיות <Strong>במערכת ה-HelpDesk עצמה</Strong> — לא לבקשות תמיכה רגילות. לתקלת מחשב, רשת או מדפסת — פתחו פנייה רגילה.
+              דף זה מיועד לדיווח על בעיות <Strong>במערכת ה-HelpDesk עצמה</Strong> — לא לבקשות תמיכה רגילות.
             </p>
             <FieldList items={[
-              { label: "כפתור \"צרו קשר\"", desc: "נמצא בכל דף במערכת — בתפריט הראשי בראש הדף" },
-              { label: "נושא קבוע", desc: "ההודעה נשלחת תמיד עם הנושא \"HelpDesk Issues\" לצוות הפיתוח" },
-              { label: "שולח אוטומטי", desc: "שמכם ואימייל Google שלכם נשלחים אוטומטית — אין צורך למלא" },
+              { label: 'כפתור "צרו קשר"', desc: "נמצא בכל דף במערכת — בתפריט הראשי בראש הדף" },
+              { label: "נושא קבוע",        desc: 'ההודעה נשלחת תמיד עם הנושא "HelpDesk Issues" לצוות הפיתוח' },
+              { label: "שולח אוטומטי",     desc: "שמכם ואימייל Google שלכם נשלחים אוטומטית — אין צורך למלא" },
             ]} />
             <Note text="לאחר שליחת ההודעה תופיע הודעת אישור על המסך. הצוות יחזור אליכם בהקדם." />
           </Card>

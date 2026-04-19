@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Image from "next/image"
+import VERSION from "@/lib/version"
 
 export const metadata: Metadata = {
   title: "מדריך מנהל – מערכת Helpdesk קריסטלינו",
@@ -17,7 +18,7 @@ export default function AdminManualPage() {
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מדריך מנהל – Helpdesk</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך לצוות התמיכה הטכנית של קריסטלינו</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 999, padding: "4px 16px", fontSize: "0.78rem", fontWeight: 600 }}>
-            Staff Only · Cristalino Group · 2026 · v2.9
+            Staff Only · Cristalino Group · 2026 · v{VERSION}
           </div>
         </div>
 
@@ -26,17 +27,18 @@ export default function AdminManualPage() {
 
           <p style={{ fontSize: "1rem", lineHeight: 1.7, color: "#374151", marginBottom: 28 }}>
             מדריך זה מיועד לצוות התמיכה הטכנית בלבד.<br />
-            הוא מפרט את כל הכלים העומדים לרשותכם לניהול פניות, משתמשים ומעקב אחר המערכת.
+            הוא מפרט את כל הכלים העומדים לרשותכם לניהול פניות, משתמשים, ביקורות ומעקב אחר המערכת.
           </p>
 
           {/* Quick links */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 32 }}>
             {[
-              { label: "כל הפניות",    href: "/tickets", color: "#2563eb", bg: "#eff6ff" },
-              { label: "פאנל ניהול",   href: "/admin",   color: "#4f46e5", bg: "#eef2ff" },
-              { label: "לוח אישי",     href: "/dashboard", color: "#0891b2", bg: "#ecfeff" },
+              { label: "כל הפניות",   href: "/tickets",        color: "#2563eb", bg: "#eff6ff" },
+              { label: "פאנל ניהול",  href: "/admin",          color: "#4f46e5", bg: "#eef2ff" },
+              { label: "ביקורות",     href: "/admin/reviews",  color: "#16a34a", bg: "#f0fdf4" },
+              { label: "לוח אישי",    href: "/dashboard",      color: "#0891b2", bg: "#ecfeff" },
             ].map(l => (
-              <a key={l.href} href={l.href} style={{ display: "block", textAlign: "center", padding: "14px 10px", borderRadius: 10, background: l.bg, color: l.color, fontWeight: 700, fontSize: "0.88rem", textDecoration: "none", border: `1px solid ${l.bg}` }}>
+              <a key={l.href} href={l.href} style={{ display: "block", textAlign: "center", padding: "14px 10px", borderRadius: 10, background: l.bg, color: l.color, fontWeight: 700, fontSize: "0.85rem", textDecoration: "none", border: `1px solid ${l.bg}` }}>
                 {l.label} ←
               </a>
             ))}
@@ -49,7 +51,7 @@ export default function AdminManualPage() {
             <FeatureList items={[
               "סינון בין פניות פתוחות לכל הפניות (כולל סגורות)",
               "חיפוש חופשי בכל השדות — נושא, שם, קטגוריה, פלטפורמה, סטטוס, תאריך",
-              "מיון לחיצה על כותרות עמודות (דחיפות, סטטוס, תאריך, זמן טיפול)",
+              "מיון בלחיצה על כותרות עמודות (דחיפות, סטטוס, תאריך, זמן טיפול)",
               "כרטיסיות סטטיסטיקה: סה״כ, פתוחות, בטיפול, סגורות, נפתחו/נסגרו היום",
               "זמני סגירה: ממוצע, מהיר ביותר, ארוך ביותר",
               "לחיצה על שם הפנייה — פתיחת מסך פנייה מלאה",
@@ -101,9 +103,9 @@ export default function AdminManualPage() {
           <Section icon="🔄" title="שינוי סטטוס">
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
               {[
-                { label: "פתוח",   bg: "#dbeafe", color: "#1e40af", desc: "פנייה חדשה שטרם טופלה" },
-                { label: "בטיפול", bg: "#fef3c7", color: "#92400e", desc: "הצוות עובד על הפנייה — משתמש מקבל מייל" },
-                { label: "סגור",   bg: "#dcfce7", color: "#166534", desc: "הפנייה טופלה — משתמש מקבל מייל" },
+                { label: "פתוח",   bg: "#dbeafe", color: "#1e40af", desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
+                { label: "בטיפול", bg: "#fef3c7", color: "#92400e", desc: "הצוות עובד על הפנייה — מגיש מקבל מייל עדכון" },
+                { label: "סגור",   bg: "#dcfce7", color: "#166534", desc: "הפנייה טופלה — מגיש מקבל מייל עם קישור לדירוג השירות" },
               ].map(s => (
                 <div key={s.label} style={{ flex: 1, minWidth: 140, padding: "12px 14px", borderRadius: 10, border: "1px solid #e5e7eb" }}>
                   <span style={{ display: "inline-block", padding: "3px 12px", borderRadius: 999, fontSize: "0.78rem", fontWeight: 700, background: s.bg, color: s.color, marginBottom: 6 }}>{s.label}</span>
@@ -111,17 +113,39 @@ export default function AdminManualPage() {
                 </div>
               ))}
             </div>
-            <Note>שינוי סטטוס ל-<strong>בטיפול</strong> או <strong>סגור</strong> שולח מייל אוטומטי למגיש הפנייה.</Note>
+            <Note>
+              סגירת פנייה שולחת למגיש מייל עם כפתור <strong>&quot;דרגו את השירות&quot;</strong> המוביל לדף דירוג ⭐.
+              המייל נשלח גם כשהמשתמש עצמו סוגר את הפנייה.
+            </Note>
           </Section>
 
           <Section icon="📧" title="מערכת המיילים">
             <FeatureList items={[
-              "פנייה חדשה נפתחת → מייל לכל צוות התמיכה + אישור למגיש",
+              "פנייה חדשה נפתחת → מייל לכל צוות התמיכה + אישור קבלה למגיש",
               "עדכון פנייה (עריכה/סטטוס) → מייל לכל הצוות",
-              'שינוי סטטוס לבטיפול/סגור → מייל נוסף למגיש',
+              "שינוי סטטוס לבטיפול → מייל עדכון למגיש",
+              "סגירת פנייה → מייל עם כפתור דירוג שירות ⭐ למגיש (תמיד, ללא תלות במי סגר)",
               "@mention בהערה → מייל אישי לאיש הצוות שהוזכר",
+              "הודעה חדשה בשיחה → מייל לצד השני",
               "כל המיילים נשלחים מ-helpdesk@cristalino.co.il",
             ]} />
+          </Section>
+
+          <Section icon="⭐" title="ביקורות שירות — /admin/reviews">
+            <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              לאחר סגירת כל פנייה, המגיש מקבל מייל עם בקשת דירוג. הדירוגים מרוכזים בדשבורד הביקורות.
+            </p>
+            <FeatureList items={[
+              "גישה מהירה: לחצו ⭐ ביקורות בסרגל הניווט של פאנל הניהול",
+              "סיכום בראש הדף: סה״כ ביקורות, ציון ממוצע, פילוח 5→1 עם תרשים",
+              "רשימה מלאה ממוינת לפי תאריך — חדשות ראשון",
+              "כל ביקורת מציגה: כוכבים, מספר פנייה + נושא, שם המגיש, הערה חופשית, תאריך ושעה",
+              "לחיצה על מספר הפנייה מנווטת ישירות למסך הפנייה",
+              "משתמשים יכולים לעדכן את הדירוג שלהם בכל עת — המערכת שומרת את הגרסה האחרונה",
+            ]} />
+            <Note>
+              הדירוג מגיע ישירות מהמשתמש ללא תיווך — אין אפשרות לערוך ביקורת מצד הצוות. משוב שלילי הוא הזדמנות לשיפור.
+            </Note>
           </Section>
 
           <Section icon="🛠️" title="פאנל ניהול — /admin">
@@ -132,22 +156,22 @@ export default function AdminManualPage() {
               "תור פניות — תצוגת כל הפניות הפתוחות עם עדיפות לדחופות",
               "ניהול משתמשים — עריכת שם, טלפון, תחנת עבודה, הרשאת מנהל",
               "יומן שגיאות — צפייה בשגיאות מערכת גולמיות לפי תאריך",
+              "ביקורות שירות — לחצו ⭐ ביקורות בסרגל הניווט",
             ]} />
           </Section>
 
           <Section icon="⚠️" title="לוח מעקב שגיאות — /admin/logs">
             <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
-              מסך &quot;מרכז בקרה&quot; ייעודי לניטור יציבות המערכת. מאפשר לזהות תקלות רוחביות או נקודתיות של משתמשים בזמן אמת.
+              מסך ייעודי לניטור יציבות המערכת. מאפשר לזהות תקלות רוחביות או נקודתיות בזמן אמת.
             </p>
 
             {/* Dashboard Mockup */}
             <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", marginBottom: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
               <div style={{ padding: "12px 16px", background: "#1e293b", color: "#fff", fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
                 <span>Dashboard: Error Monitoring</span>
-                <span style={{ opacity: 0.6 }}>v2.9-ADMIN</span>
+                <span style={{ opacity: 0.6 }}>v{VERSION}-ADMIN</span>
               </div>
               <div style={{ padding: "16px" }}>
-                {/* Stats row */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "16px" }}>
                   {[
                     { l: "אירועים", v: "152", c: "#334155" },
@@ -160,7 +184,6 @@ export default function AdminManualPage() {
                     </div>
                   ))}
                 </div>
-                {/* Table row */}
                 <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "0.7rem", overflow: "hidden" }}>
                   <div style={{ padding: "6px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontWeight: 700, color: "#475569" }}>LATEST LOGS</div>
                   <div style={{ padding: "8px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between" }}>
@@ -178,23 +201,22 @@ export default function AdminManualPage() {
             </div>
 
             <FeatureList items={[
-              "לוח סטטיסטיקה: סה״כ אירועים, שגיאות קריטיות, אזהרות וזיהוי אוטומטי של מקור השגיאה השכיח ביותר",
-              "כפתורי העתקה מהירה: העתקת תוכן השגיאה או ה-Stack Trace בקיצור (Clipboard) לצורך דיווח טכני",
+              "לוח סטטיסטיקה: סה״כ אירועים, שגיאות קריטיות, אזהרות וזיהוי מקור השגיאה השכיח ביותר",
+              "כפתורי העתקה מהירה: העתקת תוכן השגיאה או ה-Stack Trace ל-Clipboard לצורך דיווח טכני",
               "תצוגת טבלה אינטראקטיבית עם קידוד צבעים לפי רמת חומרה (ERROR / WARN / INFO)",
               "חיפוש חופשי בתוכן השגיאה, בנתיבי הקוד או ברמת האירוע",
-              "ניהול תחזוקה: אפשרות לניקוי יומן האירועים (למנהלי מערכת בלבד)",
             ]} />
             <Note>
-              <strong>טיפול בתקלות:</strong> כאשר משתמש מדווח על שגיאה לא צפויה, פתחו את הלוח וחפשו את האירוע האחרון. השתמשו בכפתור העתקת ה-Stack Trace כדי להעביר את המידע המלא לצוות הפיתוח.
+              <strong>טיפול בתקלות:</strong> כאשר משתמש מדווח על שגיאה לא צפויה, פתחו את הלוח וחפשו את האירוע האחרון. השתמשו בכפתור העתקת ה-Stack Trace להעברת המידע לצוות הפיתוח.
             </Note>
           </Section>
 
           <Section icon="👥" title="הרשאות גישה">
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                { role: "עובד רגיל",    color: "#0891b2", bg: "#ecfeff", perms: "פתיחת פניות, מעקב אחר הפניות שלו, עדכון פרופיל" },
-                { role: "צוות תמיכה",  color: "#4f46e5", bg: "#eef2ff", perms: "כל הפניות, עריכה, שינוי סטטוס, הערות, הדף /tickets" },
-                { role: "מנהל מערכת",  color: "#7c3aed", bg: "#f5f3ff", perms: "כל האמור + פאנל /admin, ניהול משתמשים, יומן שגיאות" },
+                { role: "עובד רגיל",    color: "#0891b2", bg: "#ecfeff", perms: "פתיחת פניות, מעקב אחר הפניות שלו, סגירת פנייה עצמית, דירוג שירות, עדכון פרופיל" },
+                { role: "צוות תמיכה",  color: "#4f46e5", bg: "#eef2ff", perms: "כל הפניות, עריכה, שינוי סטטוס, הערות, הדף /tickets, צפייה בביקורות" },
+                { role: "מנהל מערכת",  color: "#7c3aed", bg: "#f5f3ff", perms: "כל האמור + פאנל /admin, ניהול משתמשים, יומן שגיאות, לוח ביקורות" },
               ].map(r => (
                 <div key={r.role} style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #f3f4f6" }}>
                   <span style={{ padding: "3px 12px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 700, background: r.bg, color: r.color, flexShrink: 0 }}>{r.role}</span>
