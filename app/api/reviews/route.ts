@@ -3,19 +3,14 @@
  *
  * ENDPOINTS:
  * ───────────
- *   GET  /api/reviews               — Returns all reviews (admin/staff only)
- *   GET  /api/reviews?ticket={id}   — Returns ticket info + review status (public,
- *                                     used by the /review/[ticketId] page to bootstrap)
- *   POST /api/reviews               — Submit a star-rating review for a closed ticket
- *                                     (public — auth not required; the unguessable
- *                                     ticketId CUID acts as the access token)
+ *   GET   /api/reviews               — Returns all reviews (admin/staff only)
+ *   GET   /api/reviews?ticket={id}   — Returns ticket info + existing review if any
+ *                                      (public — used to bootstrap the review page)
+ *   POST  /api/reviews               — Submit a new review for a closed ticket
+ *   PATCH /api/reviews               — Update an existing review (change rating/comment)
  *
- * SECURITY:
- * ──────────
- * The review submission endpoint is intentionally unauthenticated. The ticket's
- * CUID is random and unguessable (128 bits of entropy), so only someone who
- * received the closure email can realistically access the review URL.
- * One review per ticket is enforced at the DB level via @unique on ticketId.
+ * Both POST and PATCH are public (no auth). The ticket's CUID is unguessable
+ * so only the email recipient can reach the review URL.
  */
 
 import { auth } from "@/auth"
@@ -39,8 +34,11 @@ export async function GET(req: NextRequest) {
       })
       if (!ticket) return NextResponse.json({ error: "לא נמצאה פנייה" }, { status: 404 })
 
-      const existing = await prisma.ticketReview.findUnique({ where: { ticketId } })
-      return NextResponse.json({ ticket, hasReview: !!existing })
+      const existing = await prisma.ticketReview.findUnique({
+        where: { ticketId },
+        select: { id: true, rating: true, comment: true },
+      })
+      return NextResponse.json({ ticket, existingReview: existing ?? null })
     }
 
     // ── Admin list ──
@@ -86,10 +84,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ניתן לדרג רק פניות סגורות" }, { status: 400 })
     }
 
-    // Enforce one review per ticket
+    // Enforce one review per ticket (use PATCH to update)
     const existing = await prisma.ticketReview.findUnique({ where: { ticketId } })
     if (existing) {
-      return NextResponse.json({ error: "ביקורת כבר נשלחה לפנייה זו" }, { status: 409 })
+      return NextResponse.json({ error: "ביקורת כבר קיימת — השתמשו ב-PATCH לעדכון" }, { status: 409 })
     }
 
     const review = await prisma.ticketReview.create({
@@ -106,6 +104,51 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/reviews POST", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
+}
+
+// ── PATCH ─────────────────────────────────────────────────────────────────────
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { ticketId, rating, comment } = await req.json()
+
+    if (!ticketId || typeof ticketId !== "string") {
+      return NextResponse.json({ error: "ticketId חסר" }, { status: 400 })
+    }
+    if (!rating || typeof rating !== "number" || rating < 1 || rating > 5) {
+      return NextResponse.json({ error: "דירוג חייב להיות בין 1 ל-5" }, { status: 400 })
+    }
+
+    // Ticket must still exist and be closed
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { status: true },
+    })
+    if (!ticket) return NextResponse.json({ error: "לא נמצאה פנייה" }, { status: 404 })
+    if (ticket.status !== "סגור") {
+      return NextResponse.json({ error: "ניתן לדרג רק פניות סגורות" }, { status: 400 })
+    }
+
+    // Review must already exist
+    const existing = await prisma.ticketReview.findUnique({ where: { ticketId } })
+    if (!existing) {
+      return NextResponse.json({ error: "לא נמצאה ביקורת לעדכון — השתמשו ב-POST" }, { status: 404 })
+    }
+
+    const updated = await prisma.ticketReview.update({
+      where: { ticketId },
+      data: {
+        rating,
+        comment: comment && typeof comment === "string" && comment.trim() ? comment.trim() : null,
+      },
+    })
+
+    return NextResponse.json(updated)
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/reviews PATCH", e.stack)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

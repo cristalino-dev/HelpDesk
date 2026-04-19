@@ -9,13 +9,20 @@
  *
  * STATES:
  * ────────
- *  loading    — fetching ticket info from /api/reviews?ticket={id}
+ *  loading    — fetching ticket info + existing review from GET /api/reviews?ticket=
  *  notFound   — ticket doesn't exist
  *  notClosed  — ticket exists but is not yet closed
- *  already    — a review was already submitted for this ticket
- *  rating     — the main interactive rating form
- *  submitting — waiting for POST /api/reviews to complete
- *  done       — thank-you screen after successful submission
+ *  rating     — the interactive rating form (new OR editing existing review)
+ *  submitting — waiting for POST / PATCH to complete
+ *  done       — thank-you screen after first submission
+ *  updated    — confirmation screen after updating an existing review
+ *
+ * EDIT FLOW:
+ * ──────────
+ * When the user already submitted a review, the page loads their previous
+ * rating and comment into the form and shows an "עורכים ביקורת קיימת" banner.
+ * Submitting calls PATCH instead of POST. There is no longer a dead-end
+ * "already reviewed" screen.
  */
 
 "use client"
@@ -23,7 +30,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
-type State = "loading" | "notFound" | "notClosed" | "already" | "rating" | "submitting" | "done"
+type State = "loading" | "notFound" | "notClosed" | "rating" | "submitting" | "done" | "updated"
 
 interface TicketInfo {
   ticketNumber: number
@@ -32,17 +39,26 @@ interface TicketInfo {
   createdAt: string
 }
 
+interface ExistingReview {
+  id: string
+  rating: number
+  comment: string | null
+}
+
 const STAR_LABELS = ["", "גרוע", "לא טוב", "בסדר", "טוב", "מעולה!"]
 
 export default function ReviewPage({ params }: { params: { ticketId: string } }) {
   const { ticketId } = params
 
-  const [state,   setState]   = useState<State>("loading")
-  const [ticket,  setTicket]  = useState<TicketInfo | null>(null)
-  const [rating,  setRating]  = useState(0)
-  const [hovered, setHovered] = useState(0)
-  const [comment, setComment] = useState("")
-  const [error,   setError]   = useState("")
+  const [state,          setState]          = useState<State>("loading")
+  const [ticket,         setTicket]         = useState<TicketInfo | null>(null)
+  const [existingReview, setExistingReview] = useState<ExistingReview | null>(null)
+  const [rating,         setRating]         = useState(0)
+  const [hovered,        setHovered]        = useState(0)
+  const [comment,        setComment]        = useState("")
+  const [error,          setError]          = useState("")
+
+  const isUpdate = existingReview !== null
 
   useEffect(() => {
     fetch(`/api/reviews?ticket=${encodeURIComponent(ticketId)}`)
@@ -51,7 +67,12 @@ export default function ReviewPage({ params }: { params: { ticketId: string } })
         if (data.error) { setState("notFound"); return }
         setTicket(data.ticket)
         if (data.ticket.status !== "סגור") { setState("notClosed"); return }
-        if (data.hasReview) { setState("already"); return }
+        if (data.existingReview) {
+          // Pre-populate form with previous values so the user can edit them
+          setExistingReview(data.existingReview)
+          setRating(data.existingReview.rating)
+          setComment(data.existingReview.comment ?? "")
+        }
         setState("rating")
       })
       .catch(() => setState("notFound"))
@@ -62,12 +83,12 @@ export default function ReviewPage({ params }: { params: { ticketId: string } })
     setError("")
     setState("submitting")
     const res = await fetch("/api/reviews", {
-      method: "POST",
+      method: isUpdate ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticketId, rating, comment }),
     })
     if (res.ok) {
-      setState("done")
+      setState(isUpdate ? "updated" : "done")
     } else {
       const d = await res.json()
       setError(d.error ?? "שגיאה בשליחה")
@@ -130,43 +151,41 @@ export default function ReviewPage({ params }: { params: { ticketId: string } })
           <>
             <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
             <h2 style={{ margin: "0 0 10px", color: "#1f2937", fontSize: "1.2rem" }}>הפנייה עדיין פתוחה</h2>
-            <p style={{ margin: "0 0 6px", color: "#6b7280", fontSize: "0.9rem" }}>
-              HDTC-{ticket.ticketNumber}: {ticket.subject}
-            </p>
+            <p style={{ margin: "0 0 6px", color: "#6b7280", fontSize: "0.9rem" }}>HDTC-{ticket.ticketNumber}: {ticket.subject}</p>
             <p style={{ margin: "0 0 24px", color: "#6b7280", fontSize: "0.85rem" }}>ניתן לדרג את השירות רק לאחר סגירת הפנייה.</p>
             <Link href="/dashboard" style={{ color: "#2563eb", fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
           </>
         )}
 
-        {/* ── Already reviewed ── */}
-        {state === "already" && ticket && (
-          <>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-            <h2 style={{ margin: "0 0 10px", color: "#166534", fontSize: "1.2rem" }}>הביקורת שלכם נשלחה</h2>
-            <p style={{ margin: "0 0 6px", color: "#6b7280", fontSize: "0.9rem" }}>
-              HDTC-{ticket.ticketNumber}: {ticket.subject}
-            </p>
-            <p style={{ margin: "0 0 24px", color: "#6b7280", fontSize: "0.85rem" }}>כבר שלחתם ביקורת על פנייה זו. תודה!</p>
-            <Link href="/dashboard" style={{ color: "#2563eb", fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
-          </>
-        )}
-
-        {/* ── Rating form ── */}
+        {/* ── Rating form (new or editing) ── */}
         {(state === "rating" || state === "submitting") && ticket && (
           <>
+            {/* Edit banner — shown only when updating an existing review */}
+            {isUpdate && (
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                backgroundColor: "#fffbeb", border: "1px solid #fde68a",
+                borderRadius: 8, padding: "7px 14px", marginBottom: 20,
+                fontSize: "0.78rem", fontWeight: 600, color: "#92400e",
+              }}>
+                <span>✏️</span>
+                <span>עורכים ביקורת קיימת — שינויים יחליפו את הדירוג הקודם</span>
+              </div>
+            )}
+
             {/* Ticket pill */}
             <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#1e40af", borderRadius: 8, padding: "3px 12px", fontSize: "0.75rem", fontWeight: 700, marginBottom: 20 }}>
               HDTC-{ticket.ticketNumber}
             </div>
 
             <h1 style={{ margin: "0 0 8px", fontSize: "1.4rem", fontWeight: 800, color: "#1f2937", lineHeight: 1.3 }}>
-              איך היה השירות?
+              {isUpdate ? "עדכנו את הביקורת שלכם" : "איך היה השירות?"}
             </h1>
             <p style={{ margin: "0 0 6px", color: "#374151", fontSize: "0.95rem", fontWeight: 500 }}>
               {ticket.subject}
             </p>
             <p style={{ margin: "0 0 28px", color: "#9ca3af", fontSize: "0.82rem" }}>
-              שניה מזמנכם תעזור לנו להשתפר
+              {isUpdate ? "שנו את הדירוג או ההערה ולחצו שמור" : "שניה מזמנכם תעזור לנו להשתפר"}
             </p>
 
             {/* Stars */}
@@ -179,8 +198,7 @@ export default function ReviewPage({ params }: { params: { ticketId: string } })
                   onMouseLeave={() => setHovered(0)}
                   disabled={state === "submitting"}
                   style={{
-                    background: "none",
-                    border: "none",
+                    background: "none", border: "none",
                     cursor: state === "submitting" ? "default" : "pointer",
                     padding: "4px",
                     fontSize: n <= active ? "2.4rem" : "2rem",
@@ -207,55 +225,65 @@ export default function ReviewPage({ params }: { params: { ticketId: string } })
               placeholder="הוסיפו הערה (לא חובה)..."
               rows={3}
               style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: "1px solid #e5e7eb",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: "0.88rem",
-                color: "#374151",
-                resize: "vertical",
-                fontFamily: "inherit",
-                direction: "rtl",
-                outline: "none",
-                marginBottom: 6,
+                width: "100%", boxSizing: "border-box",
+                border: "1px solid #e5e7eb", borderRadius: 10,
+                padding: "10px 14px", fontSize: "0.88rem", color: "#374151",
+                resize: "vertical", fontFamily: "inherit", direction: "rtl",
+                outline: "none", marginBottom: 6,
               }}
             />
 
-            {error && (
-              <p style={{ margin: "0 0 12px", color: "#dc2626", fontSize: "0.82rem" }}>{error}</p>
-            )}
+            {error && <p style={{ margin: "0 0 12px", color: "#dc2626", fontSize: "0.82rem" }}>{error}</p>}
 
             <button
               onClick={submit}
               disabled={state === "submitting"}
               style={{
-                width: "100%",
-                padding: "13px",
-                background: state === "submitting" ? "#9ca3af" : "linear-gradient(135deg, #16a34a, #15803d)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontWeight: 800,
-                fontSize: "0.95rem",
+                width: "100%", padding: "13px",
+                background: state === "submitting" ? "#9ca3af" : isUpdate
+                  ? "linear-gradient(135deg, #2563eb, #1d4ed8)"
+                  : "linear-gradient(135deg, #16a34a, #15803d)",
+                color: "#fff", border: "none", borderRadius: 10,
+                fontWeight: 800, fontSize: "0.95rem",
                 cursor: state === "submitting" ? "default" : "pointer",
                 marginTop: 8,
-                boxShadow: state === "submitting" ? "none" : "0 4px 14px rgba(22,163,74,0.35)",
+                boxShadow: state === "submitting" ? "none"
+                  : isUpdate ? "0 4px 14px rgba(37,99,235,0.35)"
+                  : "0 4px 14px rgba(22,163,74,0.35)",
                 transition: "all 0.15s",
               }}
             >
-              {state === "submitting" ? "שולח..." : "שלחו ביקורת"}
+              {state === "submitting" ? "שומר..." : isUpdate ? "שמרו עדכון" : "שלחו ביקורת"}
             </button>
           </>
         )}
 
-        {/* ── Done / thank you ── */}
+        {/* ── Done / first submission ── */}
         {state === "done" && (
           <>
             <div style={{ fontSize: 52, marginBottom: 16, animation: "pop 0.3s ease" }}>🎉</div>
             <h2 style={{ margin: "0 0 10px", color: "#166534", fontSize: "1.35rem", fontWeight: 800 }}>תודה רבה!</h2>
             <p style={{ margin: "0 0 6px", color: "#374151", fontSize: "0.95rem" }}>
               {rating >= 4 ? "שמחים שיכולנו לעזור 😊" : "נקח את המשוב שלכם לשיפור השירות."}
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", gap: 4, margin: "14px 0 20px" }}>
+              {[1,2,3,4,5].map(n => (
+                <span key={n} style={{ fontSize: "1.4rem", filter: n <= rating ? "none" : "grayscale(1) opacity(0.25)" }}>⭐</span>
+              ))}
+            </div>
+            <Link href="/dashboard" style={{ display: "inline-block", padding: "10px 24px", background: "#2563eb", color: "#fff", textDecoration: "none", borderRadius: 9, fontWeight: 700, fontSize: "0.88rem" }}>
+              חזרה ללוח הבקרה
+            </Link>
+          </>
+        )}
+
+        {/* ── Updated / edited confirmation ── */}
+        {state === "updated" && (
+          <>
+            <div style={{ fontSize: 52, marginBottom: 16, animation: "pop 0.3s ease" }}>✅</div>
+            <h2 style={{ margin: "0 0 10px", color: "#1e40af", fontSize: "1.35rem", fontWeight: 800 }}>הביקורת עודכנה!</h2>
+            <p style={{ margin: "0 0 6px", color: "#374151", fontSize: "0.95rem" }}>
+              הדירוג החדש שלכם נשמר בהצלחה.
             </p>
             <div style={{ display: "flex", justifyContent: "center", gap: 4, margin: "14px 0 20px" }}>
               {[1,2,3,4,5].map(n => (
