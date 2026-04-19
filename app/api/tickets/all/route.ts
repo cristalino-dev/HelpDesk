@@ -1,14 +1,15 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
     const session = await auth()
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    if (!STAFF_EMAILS.includes(session.user.email)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const canView = STAFF_EMAILS.includes(session.user.email) || VIEWER_EMAILS.includes(session.user.email)
+    if (!canView) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const tickets = await prisma.ticket.findMany({
       orderBy: { createdAt: "desc" },

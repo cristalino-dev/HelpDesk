@@ -47,7 +47,7 @@ import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -129,6 +129,11 @@ export default function DashboardPage() {
           <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
           {STAFF_EMAILS.includes(session?.user?.email ?? "") && (
             <Link href="/tickets" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.15)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
+              כל הפניות
+            </Link>
+          )}
+          {VIEWER_EMAILS.includes(session?.user?.email ?? "") && (
+            <Link href="/tickets/view" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.15)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
               כל הפניות
             </Link>
           )}

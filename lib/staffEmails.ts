@@ -5,6 +5,12 @@ export const STAFF_EMAILS = [
   "daniel.l@cristalino.co.il",
 ]
 
+/** Read-only observers — can view all tickets but cannot modify anything */
+export const VIEWER_EMAILS = [
+  "ran@cristalino.co.il",
+  "itay@cristalino.co.il",
+]
+
 /** Staff members with @mention handles for the notes system */
 export const STAFF_MEMBERS = [
   { email: "alon@cristalino.co.il",     handle: "alon",     display: "אלון" },
