@@ -124,7 +124,92 @@ describe("Tickets API", () => {
       expect(res.status).toBe(200)
       expect(data.status).toBe("בטיפול")
       expect(prisma.ticket.update).toHaveBeenCalled()
+      // Staff notification + user notification for status change
       expect(sendMail).toHaveBeenCalledTimes(2)
+    })
+
+    it("allows non-admin staff to close a ticket", async () => {
+      mockSession({ email: "staff@cristalino.co.il", isAdmin: false, name: "Staff" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-2",
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-2",
+        status: "סגור",
+        subject: "Test Issue",
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-2", status: "סגור" }),
+      } as any
+
+      const res = await PATCH(req) as any
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(data.status).toBe("סגור")
+      // Staff notification + user notification for closure
+      expect(sendMail).toHaveBeenCalledTimes(2)
+    })
+
+    it("allows ticket owner (regular user) to close their own ticket", async () => {
+      mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-3",
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-3",
+        status: "סגור",
+        subject: "Test Issue",
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-3", status: "סגור" }),
+      } as any
+
+      const res = await PATCH(req) as any
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(data.status).toBe("סגור")
+      // Only staff notification — no self-notification when user closes own ticket
+      expect(sendMail).toHaveBeenCalledTimes(1)
+    })
+
+    it("rejects regular user closing someone else's ticket", async () => {
+      mockSession({ email: "other@cristalino.co.il", isAdmin: false, name: "Other" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-4",
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-4", status: "סגור" }),
+      } as any
+
+      const res = await PATCH(req) as any
+
+      expect(res.status).toBe(403)
+      expect(prisma.ticket.update).not.toHaveBeenCalled()
+    })
+
+    it("rejects regular user changing status to non-close value", async () => {
+      mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-5",
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-5", status: "בטיפול" }),
+      } as any
+
+      const res = await PATCH(req) as any
+
+      expect(res.status).toBe(403)
+      expect(prisma.ticket.update).not.toHaveBeenCalled()
     })
   })
 

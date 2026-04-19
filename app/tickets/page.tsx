@@ -417,7 +417,7 @@ export default function TicketsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 
             {/* ── Column headers ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
               <div />
               {([
                 { key: "subject",     label: "נושא / מגיש" },
@@ -444,6 +444,7 @@ export default function TicketsPage() {
                 </button>
               ))}
               <div />
+              <div />
             </div>
 
             {filtered.map((ticket, i) => {
@@ -468,7 +469,7 @@ export default function TicketsPage() {
                   {/* Main row */}
                   <div
                     onClick={() => handleExpand(ticket.id)}
-                    style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
                     {/* Position */}
                     <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? "#fef3c7" : "#f3f4f6", color: i === 0 && !showAll ? "#92400e" : "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
@@ -512,6 +513,20 @@ export default function TicketsPage() {
                       </div>
                     ) : (
                       <div style={{ width: 80 }} />
+                    )}
+
+                    {/* Quick close button */}
+                    {!isClosed ? (
+                      <button
+                        onClick={e => { e.stopPropagation(); updateStatus(ticket.id, "סגור") }}
+                        disabled={updating === ticket.id}
+                        title="סגור פנייה"
+                        style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: updating === ticket.id ? "#e5e7eb" : "#dcfce7", color: updating === ticket.id ? "#9ca3af" : "#15803d", fontWeight: 700, fontSize: "0.72rem", cursor: updating === ticket.id ? "default" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                      >
+                        {updating === ticket.id ? "..." : "✓ סגור"}
+                      </button>
+                    ) : (
+                      <div style={{ width: 60 }} />
                     )}
 
                     {/* Expand chevron */}

@@ -114,59 +114,67 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth()
-    // isAdmin is set by the session callback in auth.ts from the DB
-    const canUpdate = session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? "")
-    if (!canUpdate) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+    const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email ?? "")
     const { id, status, subject, description, phone, computerName, urgency, category, platform, assignedTo } = await req.json()
 
-    // Build update payload from only the fields that were sent
-    const data: Record<string, string> = {}
-    if (status       !== undefined) data.status       = status
-    if (subject      !== undefined) data.subject      = subject
-    if (description  !== undefined) data.description  = description
-    if (phone        !== undefined) data.phone        = phone
-    if (computerName !== undefined) data.computerName = computerName
-    if (urgency      !== undefined) data.urgency      = urgency
-    if (category     !== undefined) data.category     = category
-    if (platform     !== undefined) data.platform     = platform
-    if (assignedTo   !== undefined) data.assignedTo   = assignedTo
-
-    // Fetch ticket before update so we have submitter info for emails
+    // Fetch ticket first so we can check ownership for non-staff
     const before = await prisma.ticket.findUnique({
       where: { id },
       include: { user: { select: { name: true, email: true } } },
     })
+    if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    if (!isStaff) {
+      // Regular users may only close their own ticket — nothing else
+      const isOwner = before.user?.email === session.user.email
+      if (!isOwner || status !== "סגור") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+    }
+
+    // Build update payload from only the fields that were sent
+    const data: Record<string, string> = {}
+    if (status       !== undefined) data.status       = status
+    if (isStaff) {
+      if (subject      !== undefined) data.subject      = subject
+      if (description  !== undefined) data.description  = description
+      if (phone        !== undefined) data.phone        = phone
+      if (computerName !== undefined) data.computerName = computerName
+      if (urgency      !== undefined) data.urgency      = urgency
+      if (category     !== undefined) data.category     = category
+      if (platform     !== undefined) data.platform     = platform
+      if (assignedTo   !== undefined) data.assignedTo   = assignedTo
+    }
 
     const ticket = await prisma.ticket.update({ where: { id }, data })
 
     // Send email notifications (non-blocking)
-    if (before) {
-      const ticketInfo = {
-        id: ticket.id,
-        ticketNumber: ticket.ticketNumber,
-        subject:      ticket.subject,
-        description:  ticket.description,
-        urgency:      ticket.urgency,
-        category:     ticket.category,
-        platform:     ticket.platform,
-        phone:        ticket.phone,
-        computerName: ticket.computerName,
-        status:       ticket.status,
-        submitterName:  before.user?.name ?? before.user?.email ?? "משתמש",
-        submitterEmail: before.user?.email ?? "",
-      }
-      const changedBy = session?.user?.name ?? session?.user?.email ?? "צוות תמיכה"
-      const mails: Promise<void>[] = [
-        sendMail({ to: STAFF_EMAILS, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }),
-      ]
-      // Notify user only on status change to בטיפול or סגור
-      if (status && (status === "בטיפול" || status === "סגור") && before.user?.email) {
-        const statusLabel = status === "סגור" ? "נסגרה" : "בטיפול"
-        mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – ${statusLabel}`, html: mailTicketStatusUser(ticketInfo) }))
-      }
-      void Promise.all(mails)
+    const ticketInfo = {
+      id: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      subject:      ticket.subject,
+      description:  ticket.description,
+      urgency:      ticket.urgency,
+      category:     ticket.category,
+      platform:     ticket.platform,
+      phone:        ticket.phone,
+      computerName: ticket.computerName,
+      status:       ticket.status,
+      submitterName:  before.user?.name ?? before.user?.email ?? "משתמש",
+      submitterEmail: before.user?.email ?? "",
     }
+    const changedBy = session.user.name ?? session.user.email ?? "צוות תמיכה"
+    const mails: Promise<void>[] = [
+      sendMail({ to: STAFF_EMAILS, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }),
+    ]
+    // Notify user on status change — but not when they closed it themselves
+    if (status && (status === "בטיפול" || status === "סגור") && before.user?.email && before.user.email !== session.user.email) {
+      const statusLabel = status === "סגור" ? "נסגרה" : "בטיפול"
+      mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – ${statusLabel}`, html: mailTicketStatusUser(ticketInfo) }))
+    }
+    void Promise.all(mails)
 
     return NextResponse.json(ticket)
   } catch (err) {

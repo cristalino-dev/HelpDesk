@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 1.09 · Last updated 2026-04-16 · v2.11 Release
+> Version 1.10 · Last updated 2026-04-19 · v2.12 Release
 
 ---
 

@@ -80,6 +80,15 @@ export default function DashboardPage() {
     }
   }
 
+  const closeTicket = async (id: string) => {
+    await fetch("/api/tickets", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "סגור" }),
+    })
+    await loadTickets()
+  }
+
   useEffect(() => {
     if (status === "authenticated") {
       loadTickets()
@@ -191,7 +200,7 @@ export default function DashboardPage() {
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען פניות...</p>
           </div>
         ) : (
-          <TicketTable tickets={tickets} />
+          <TicketTable tickets={tickets} onClose={closeTicket} />
         )}
       </main>
 

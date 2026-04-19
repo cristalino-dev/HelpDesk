@@ -41,6 +41,11 @@
 import { useState } from "react"
 import type { Ticket } from "@/types/ticket"
 
+type Props = {
+  tickets: Ticket[]
+  onClose?: (id: string) => Promise<void> | void
+}
+
 /**
  * Inline style objects for status badges.
  * Each status has its own background/text colour combination.
@@ -88,12 +93,9 @@ const badge: React.CSSProperties = {
   letterSpacing: "0.01em",
 }
 
-export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
-  /**
-   * Tracks which ticket card is currently hovered.
-   * null = no card hovered. Used to drive the lift/shadow hover effect.
-   */
+export default function TicketTable({ tickets, onClose }: Props) {
   const [hoverId, setHoverId] = useState<string | null>(null)
+  const [closingId, setClosingId] = useState<string | null>(null)
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (!tickets.length) {
@@ -114,9 +116,8 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       {tickets.map((ticket) => (
-        <a
+        <div
           key={ticket.id}
-          href={`/tickets/HDTC-${ticket.ticketNumber}`}
           onMouseEnter={() => setHoverId(ticket.id)}
           onMouseLeave={() => setHoverId(null)}
           style={{
@@ -128,19 +129,16 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
               ? "0 4px 16px rgba(0,0,0,0.1)"
               : "0 1px 3px rgba(0,0,0,0.05)",
             display: "grid",
-            gridTemplateColumns: "1fr auto auto auto",
+            gridTemplateColumns: onClose ? "1fr auto auto auto auto" : "1fr auto auto auto",
             alignItems: "center",
             gap: "16px",
             padding: "14px 16px 14px 20px",
             transition: "box-shadow 0.15s, transform 0.1s",
             transform: hoverId === ticket.id ? "translateY(-1px)" : "none",
-            cursor: "pointer",
-            textDecoration: "none",
           }}
         >
-          {/* ── Subject + meta row ── */}
-          <div style={{ minWidth: 0 }}>
-            {/* Subject — truncated with ellipsis if too long */}
+          {/* ── Subject + meta row (clickable link) ── */}
+          <a href={`/tickets/HDTC-${ticket.ticketNumber}`} style={{ minWidth: 0, textDecoration: "none", cursor: "pointer" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
               <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                 HDTC-{ticket.ticketNumber}
@@ -149,11 +147,10 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
                 {ticket.subject}
               </span>
             </div>
-            {/* Secondary info row: computer name · category · platform · date */}
             <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
               {ticket.computerName} · {ticket.category} · {ticket.platform} · {new Date(ticket.createdAt).toLocaleDateString("he-IL")}
             </div>
-          </div>
+          </a>
 
           {/* ── Urgency badge ── */}
           <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}) }}>
@@ -165,12 +162,30 @@ export default function TicketTable({ tickets }: { tickets: Ticket[] }) {
             {ticket.status}
           </span>
 
-          {/* ── RTL arrow indicator (decorative, shows list item affordance) ── */}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-            {/* Left-pointing chevron — in RTL layout, this points toward the start */}
-            <path d="M15 18l-6-6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </a>
+          {/* ── Quick close button (only when onClose is provided) ── */}
+          {onClose && (
+            ticket.status !== "סגור" ? (
+              <button
+                onClick={async () => {
+                  setClosingId(ticket.id)
+                  try { await onClose(ticket.id) } finally { setClosingId(null) }
+                }}
+                disabled={closingId === ticket.id}
+                title="סגור פנייה"
+                style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: closingId === ticket.id ? "#e5e7eb" : "#dcfce7", color: closingId === ticket.id ? "#9ca3af" : "#15803d", fontWeight: 700, fontSize: "0.72rem", cursor: closingId === ticket.id ? "default" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+              >
+                {closingId === ticket.id ? "..." : "✓ סגור"}
+              </button>
+            ) : <div style={{ width: 60 }} />
+          )}
+
+          {/* ── RTL arrow indicator ── */}
+          <a href={`/tickets/HDTC-${ticket.ticketNumber}`} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
+              <path d="M15 18l-6-6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </a>
+        </div>
       ))}
     </div>
   )
