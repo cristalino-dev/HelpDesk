@@ -46,6 +46,7 @@ export default function TicketDetailPage() {
   const [msgSaving, setMsgSaving]   = useState(false)
   const [replyTo, setReplyTo]       = useState<{ email: string; name: string; msgId: string } | null>(null)
   const [assigning, setAssigning]   = useState(false)
+  const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -141,6 +142,21 @@ export default function TicketDetailPage() {
       if (res.ok) { setMsgText(""); setReplyTo(null); await load() }
     } finally {
       setMsgSaving(false)
+    }
+  }
+
+  const deleteMessage = async (msgId: string) => {
+    if (!ticket) return
+    setDeletingMsgId(msgId)
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/messages`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: msgId }),
+      })
+      if (res.ok) await load()
+    } finally {
+      setDeletingMsgId(null)
     }
   }
 
@@ -354,10 +370,13 @@ export default function TicketDetailPage() {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-            {ticket.messages.map((msg: TicketMessage) => {
+            {(() => {
+              const lastMsgId = ticket.messages.length > 0 ? ticket.messages[ticket.messages.length - 1].id : null
+              return ticket.messages.map((msg: TicketMessage) => {
               const isMe = msg.authorEmail === session?.user?.email
               const byStaff = msg.authorRole === "staff"
               const isReplying = replyTo?.msgId === msg.id
+              const isLastMsg = msg.id === lastMsgId
               return (
                 <div key={msg.id} id={`msg-${msg.id}`} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start", scrollMarginTop: 80 }}>
                   <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
@@ -378,10 +397,20 @@ export default function TicketDetailPage() {
                         style={{ marginTop: 4, fontSize: "0.7rem", color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4 }}
                       >↩ ענה</button>
                     )}
+                    {isMe && isLastMsg && (
+                      <button
+                        onClick={() => deleteMessage(msg.id)}
+                        disabled={deletingMsgId === msg.id}
+                        style={{ marginTop: 4, fontSize: "0.7rem", color: "#dc2626", background: "none", border: "none", cursor: deletingMsgId === msg.id ? "not-allowed" : "pointer", padding: "2px 4px", borderRadius: 4, opacity: deletingMsgId === msg.id ? 0.5 : 1 }}
+                      >
+                        {deletingMsgId === msg.id ? "מוחק..." : "🗑 מחק"}
+                      </button>
+                    )}
                   </div>
                 </div>
               )
             })}
+            )()}
           </div>
 
           {/* Reply input */}

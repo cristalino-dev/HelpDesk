@@ -87,3 +87,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const { id } = await params
+    const { messageId } = await req.json()
+    if (!messageId) return NextResponse.json({ error: "messageId required" }, { status: 400 })
+
+    // Fetch the message and verify it belongs to this ticket
+    const message = await prisma.ticketMessage.findUnique({ where: { id: messageId } })
+    if (!message || message.ticketId !== id) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    // Only the original author may delete
+    if (message.authorEmail !== session.user.email) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    // The message must be the very last one on this ticket
+    const lastMessage = await prisma.ticketMessage.findFirst({
+      where: { ticketId: id },
+      orderBy: { createdAt: "desc" },
+    })
+    if (!lastMessage || lastMessage.id !== messageId) {
+      return NextResponse.json({ error: "ניתן למחוק רק את ההודעה האחרונה" }, { status: 400 })
+    }
+
+    await prisma.ticketMessage.delete({ where: { id: messageId } })
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/tickets/[id]/messages DELETE", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
+}
