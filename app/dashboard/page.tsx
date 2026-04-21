@@ -62,6 +62,7 @@ export default function DashboardPage() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
 
 
   useEffect(() => {
@@ -190,25 +191,52 @@ export default function DashboardPage() {
       {/* ── Main ───────────────────────────────────────────────────────────── */}
       <main style={{ maxWidth: "920px", margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
 
-        {/* Stats row */}
+        {/* Stats row — clickable to filter the list */}
         {!loading && tickets.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? "8px" : "12px" }}>
             {[
-              { label: "פתוחות", count: open,       color: "#2563eb", bg: "#eff6ff" },
-              { label: "בטיפול", count: inProgress, color: "#d97706", bg: "#fffbeb" },
-              { label: "סגורות", count: closed,     color: "#16a34a", bg: "#f0fdf4" },
-            ].map(({ label, count, color, bg }) => (
-              <div key={label} style={{ backgroundColor: "#fff", borderRadius: "12px", padding: isMobile ? "10px 12px" : "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px", border: "1px solid #f3f4f6" }}>
-                <div style={{ width: isMobile ? "30px" : "36px", height: isMobile ? "30px" : "36px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
-                <span style={{ fontSize: isMobile ? "0.75rem" : "0.82rem", color: "#6b7280", fontWeight: 500 }}>{label}</span>
-              </div>
-            ))}
+              { label: "פתוחות", status: "פתוח",   count: open,       color: "#2563eb", bg: "#eff6ff", activeBorder: "#2563eb" },
+              { label: "בטיפול", status: "בטיפול", count: inProgress, color: "#d97706", bg: "#fffbeb", activeBorder: "#d97706" },
+              { label: "סגורות", status: "סגור",   count: closed,     color: "#16a34a", bg: "#f0fdf4", activeBorder: "#16a34a" },
+            ].map(({ label, status, count, color, bg, activeBorder }) => {
+              const isActive = statusFilter === status
+              return (
+                <button
+                  key={label}
+                  onClick={() => setStatusFilter(f => f === status ? null : status)}
+                  style={{
+                    backgroundColor: isActive ? bg : "#fff",
+                    borderRadius: "12px",
+                    padding: isMobile ? "10px 12px" : "16px 20px",
+                    boxShadow: isActive
+                      ? `0 0 0 2px ${activeBorder}, 0 2px 8px rgba(0,0,0,0.08)`
+                      : "0 1px 4px rgba(0,0,0,0.06)",
+                    display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px",
+                    border: isActive ? `2px solid ${activeBorder}` : "1px solid #f3f4f6",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    width: "100%", textAlign: "right",
+                  }}
+                >
+                  <div style={{ width: isMobile ? "30px" : "36px", height: isMobile ? "30px" : "36px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
+                  <span style={{ fontSize: isMobile ? "0.75rem" : "0.82rem", color: isActive ? color : "#6b7280", fontWeight: isActive ? 700 : 500 }}>{label}</span>
+                  {isActive && <span style={{ marginRight: "auto", fontSize: "0.65rem", color, fontWeight: 700, opacity: 0.8 }}>✕</span>}
+                </button>
+              )
+            })}
           </div>
         )}
 
         {/* Title + new-ticket button */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937", letterSpacing: "-0.01em" }}>הפניות שלי</h2>
+          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937", letterSpacing: "-0.01em" }}>
+            הפניות שלי
+            {statusFilter && (
+              <span style={{ marginRight: 8, fontSize: "0.75rem", fontWeight: 500, color: "#6b7280" }}>
+                — מסנן: {statusFilter === "פתוח" ? "פתוחות" : statusFilter === "בטיפול" ? "בטיפול" : "סגורות"}
+              </span>
+            )}
+          </h2>
           <button
             onClick={() => setShowForm(f => !f)}
             style={{
@@ -237,7 +265,10 @@ export default function DashboardPage() {
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען פניות...</p>
           </div>
         ) : (
-          <TicketTable tickets={tickets} onClose={closeTicket} />
+          <TicketTable
+            tickets={statusFilter ? tickets.filter(t => t.status === statusFilter) : tickets}
+            onClose={closeTicket}
+          />
         )}
       </main>
 
