@@ -8,6 +8,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
+import { isStaleOpen, openDays } from "@/lib/staleTicket"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -172,8 +173,8 @@ export default function TicketsPage() {
       setEditSaving(false)
     }
   }
-  const [sortKey, setSortKey]   = useState<"subject" | "submitter" | "urgency" | "status" | "createdAt" | "resolveTime" | null>(null)
-  const [sortDir, setSortDir]   = useState<"asc" | "desc">("asc")
+  const [sortKey, setSortKey]   = useState<"subject" | "submitter" | "urgency" | "status" | "createdAt" | "updatedAt" | "resolveTime" | null>("updatedAt")
+  const [sortDir, setSortDir]   = useState<"asc" | "desc">("desc")
 
   const handleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -270,18 +271,15 @@ export default function TicketsPage() {
           return dir * ((ORDER[a.status] ?? 0) - (ORDER[b.status] ?? 0))
         }
         case "createdAt":   return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        case "updatedAt":   return dir * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
         case "resolveTime": {
           const msA = new Date(a.updatedAt).getTime() - new Date(a.createdAt).getTime()
           const msB = new Date(b.updatedAt).getTime() - new Date(b.createdAt).getTime()
           return dir * (msA - msB)
         }
         default:
-          // Default: urgency for open-only view, newest-first for all
-          if (!showAll) {
-            const rd = (URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2)
-            if (rd !== 0) return rd
-          }
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          // Fallback: most-recently-updated first
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       }
     })
   }, [tickets, showAll, search, sortKey, sortDir])
@@ -417,13 +415,38 @@ export default function TicketsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 
             {/* ── Column headers ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
               <div />
+              {/* Subject cell: two stacked sort buttons */}
+              <div style={{ display: "flex", gap: 6 }}>
+                {([
+                  { key: "subject",   label: "נושא" },
+                  { key: "submitter", label: "מגיש" },
+                ] as const).map(col => (
+                  <button
+                    key={col.key}
+                    onClick={() => handleSort(col.key)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 3,
+                      background: sortKey === col.key ? "#eef2ff" : "none",
+                      border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 6,
+                      fontSize: "0.72rem", fontWeight: 700,
+                      color: sortKey === col.key ? "#4f46e5" : "#9ca3af",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {col.label}
+                    <span style={{ fontSize: "0.65rem", opacity: sortKey === col.key ? 1 : 0.4 }}>
+                      {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : "⇅"}
+                    </span>
+                  </button>
+                ))}
+              </div>
               {([
-                { key: "subject",     label: "נושא / מגיש" },
                 { key: "urgency",     label: "דחיפות" },
                 { key: "status",      label: "סטטוס" },
                 { key: "createdAt",   label: "נפתח" },
+                { key: "updatedAt",   label: "עודכן" },
                 { key: "resolveTime", label: "זמן טיפול" },
               ] as const).map(col => (
                 <button
@@ -431,7 +454,8 @@ export default function TicketsPage() {
                   onClick={() => handleSort(col.key)}
                   style={{
                     display: "flex", alignItems: "center", gap: 4,
-                    background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6,
+                    background: sortKey === col.key ? "#eef2ff" : "none",
+                    border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6,
                     fontSize: "0.72rem", fontWeight: 700,
                     color: sortKey === col.key ? "#4f46e5" : "#9ca3af",
                     whiteSpace: "nowrap",
@@ -451,6 +475,8 @@ export default function TicketsPage() {
               const isClosed    = ticket.status === "סגור"
               const resolveMs   = isClosed ? new Date(ticket.updatedAt).getTime() - new Date(ticket.createdAt).getTime() : null
               const isExpanded  = expanded === ticket.id
+              const isStale     = isStaleOpen(ticket)
+              const ageDays     = openDays(ticket.createdAt)
 
               return (
                 <div
@@ -458,10 +484,15 @@ export default function TicketsPage() {
                   onMouseEnter={() => setHoverId(ticket.id)}
                   onMouseLeave={() => setHoverId(null)}
                   style={{
-                    background: "#fff", borderRadius: 12,
-                    border: "1px solid #f3f4f6",
-                    borderRight: `4px solid ${URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb"}`,
-                    boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)",
+                    background: isStale ? "#fff8f2" : "#fff",
+                    borderRadius: 12,
+                    border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
+                    borderRight: `4px solid ${isStale ? "#f97316" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
+                    boxShadow: isStale
+                      ? "0 0 0 1px #fed7aa, 0 2px 8px rgba(249,115,22,0.12)"
+                      : hoverId === ticket.id
+                        ? "0 4px 16px rgba(0,0,0,0.09)"
+                        : "0 1px 3px rgba(0,0,0,0.05)",
                     overflow: "hidden", transition: "box-shadow 0.15s",
                     opacity: isClosed ? 0.75 : 1,
                   }}
@@ -469,7 +500,7 @@ export default function TicketsPage() {
                   {/* Main row */}
                   <div
                     onClick={() => handleExpand(ticket.id)}
-                    style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
+                    style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
                     {/* Position */}
                     <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? "#fef3c7" : "#f3f4f6", color: i === 0 && !showAll ? "#92400e" : "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
@@ -480,6 +511,11 @@ export default function TicketsPage() {
                         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                           HDTC-{ticket.ticketNumber}
                         </span>
+                        {isStale && (
+                          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", flexShrink: 0, whiteSpace: "nowrap" }}>
+                            ⏰ {ageDays} ימים
+                          </span>
+                        )}
                         <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
                           onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
                           onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
@@ -498,10 +534,17 @@ export default function TicketsPage() {
                     <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
 
                     {/* Date opened */}
-                    <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: "0.72rem", color: isStale ? "#c2410c" : "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
                       <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>נפתח</div>
                       {new Date(ticket.createdAt).toLocaleDateString("he-IL")}<br />
                       {new Date(ticket.createdAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+
+                    {/* Date updated */}
+                    <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>עודכן</div>
+                      {new Date(ticket.updatedAt).toLocaleDateString("he-IL")}<br />
+                      {new Date(ticket.updatedAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
                     </div>
 
                     {/* Date closed + resolve time (closed only) */}

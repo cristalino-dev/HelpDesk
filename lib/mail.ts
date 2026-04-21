@@ -259,6 +259,117 @@ export function mailReplyNotification(t: TicketInfo, replyContent: string, fromN
   `)
 }
 
+// ── Daily digest ─────────────────────────────────────────────────────────────
+
+interface DigestTicket {
+  ticketNumber: number
+  subject: string
+  urgency: string
+  status: string
+  createdAt: string | Date
+  user?: { name?: string | null; email?: string | null } | null
+}
+
+const URGENCY_RANK_DIGEST: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
+
+/**
+ * Sent every morning to all staff with a table of all non-closed tickets,
+ * sorted by priority (דחוף → גבוה → בינוני → נמוך) then by age (oldest first).
+ * Stale tickets (open > 4 days) are highlighted in red.
+ */
+export function mailDailyDigest(tickets: DigestTicket[]) {
+  const STALE_MS = 4 * 24 * 60 * 60 * 1000
+
+  const daysSince = (d: string | Date) => {
+    const days = Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24))
+    return days === 0 ? "היום" : `${days} ימים`
+  }
+
+  const sorted = [...tickets].sort((a, b) => {
+    const pd = (URGENCY_RANK_DIGEST[a.urgency] ?? 2) - (URGENCY_RANK_DIGEST[b.urgency] ?? 2)
+    if (pd !== 0) return pd
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+
+  const staleCount  = sorted.filter(t => (Date.now() - new Date(t.createdAt).getTime()) > STALE_MS).length
+  const urgentCount = sorted.filter(t => t.urgency === "דחוף").length
+  const highCount   = sorted.filter(t => t.urgency === "גבוה").length
+
+  const tableRows = sorted.map(t => {
+    const ageMs  = Date.now() - new Date(t.createdAt).getTime()
+    const isStale = ageMs > STALE_MS
+    const age     = daysSince(t.createdAt)
+    const url     = ticketUrl(t.ticketNumber)
+    const uc      = URGENCY_COLOR[t.urgency] ?? "background:#f3f4f6;color:#374151"
+    const ageStyle = isStale ? "color:#dc2626;font-weight:700" : "color:#6b7280"
+    const rowBg    = isStale ? "background:#fff8f0" : "background:#fff"
+    return `
+      <tr style="${rowBg};border-bottom:1px solid #f3f4f6">
+        <td style="padding:9px 8px;white-space:nowrap">
+          <a href="${url}" style="color:#2563eb;font-weight:700;text-decoration:none;font-size:12px">HDTC-${t.ticketNumber}</a>
+        </td>
+        <td style="padding:9px 8px;font-size:13px;color:#111827;max-width:220px">${t.subject}</td>
+        <td style="padding:9px 8px;white-space:nowrap">
+          <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;${uc}">${t.urgency}</span>
+        </td>
+        <td style="padding:9px 8px;font-size:12px;${ageStyle}">${age}${isStale ? " ⏰" : ""}</td>
+        <td style="padding:9px 8px;font-size:12px;color:#6b7280">${t.user?.name ?? t.user?.email ?? "—"}</td>
+      </tr>`
+  }).join("")
+
+  const now = new Date().toLocaleDateString("he-IL", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    timeZone: "Asia/Jerusalem",
+  })
+
+  const summaryCards = [
+    `<div style="background:#eff6ff;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
+       <div style="font-size:22px;font-weight:800;color:#2563eb">${tickets.length}</div>
+       <div style="font-size:11px;color:#6b7280;margin-top:2px">סה״כ פתוחות</div>
+     </div>`,
+    urgentCount > 0
+      ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
+           <div style="font-size:22px;font-weight:800;color:#dc2626">${urgentCount}</div>
+           <div style="font-size:11px;color:#6b7280;margin-top:2px">דחוף 🔴</div>
+         </div>`
+      : "",
+    highCount > 0
+      ? `<div style="background:#fff7ed;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
+           <div style="font-size:22px;font-weight:800;color:#ea580c">${highCount}</div>
+           <div style="font-size:11px;color:#6b7280;margin-top:2px">גבוה 🟠</div>
+         </div>`
+      : "",
+    staleCount > 0
+      ? `<div style="background:#fff8f0;border:1px solid #fdba74;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
+           <div style="font-size:22px;font-weight:800;color:#c2410c">${staleCount}</div>
+           <div style="font-size:11px;color:#6b7280;margin-top:2px">⏰ 4+ ימים</div>
+         </div>`
+      : "",
+  ].filter(Boolean).join("")
+
+  return wrap(`
+    <div class="header">📋 סיכום יומי — פניות פתוחות</div>
+    <p style="color:#6b7280;font-size:13px;margin:0 0 16px">${now}</p>
+
+    <div style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap">${summaryCards}</div>
+
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:#f9fafb;border-bottom:2px solid #e5e7eb">
+          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">מס׳</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">נושא</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">דחיפות</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">גיל</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">מגיש</th>
+        </tr>
+      </thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+
+    <a class="btn" href="${APP_URL}/tickets">פתח את לוח הפניות ←</a>
+  `)
+}
+
 /** Sent to a mentioned staff member when they are @mentioned in a note */
 export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy: string) {
   const url = ticketUrl(t.ticketNumber)

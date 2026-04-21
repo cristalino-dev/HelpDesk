@@ -23,6 +23,8 @@ jest.mock("@/lib/mail", () => ({
   mailTicketOpenedUser: jest.fn(),
   mailTicketUpdatedStaff: jest.fn(),
   mailTicketStatusUser: jest.fn(),
+  mailTicketClosedWithReview: jest.fn(),
+  mailDailyDigest: jest.fn(),
 }))
 
 jest.mock("@/lib/logError", () => ({
@@ -174,8 +176,8 @@ describe("Tickets API", () => {
 
       expect(res.status).toBe(200)
       expect(data.status).toBe("סגור")
-      // Only staff notification — no self-notification when user closes own ticket
-      expect(sendMail).toHaveBeenCalledTimes(1)
+      // Staff notification + review CTA email to the ticket owner (even self-close)
+      expect(sendMail).toHaveBeenCalledTimes(2)
     })
 
     it("rejects regular user closing someone else's ticket", async () => {

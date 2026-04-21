@@ -67,6 +67,32 @@ ssh -i "$KEY" -o StrictHostKeyChecking=no "$USER@$SERVER" bash << 'ENDSSH'
   pm2 start ecosystem.config.js
   pm2 save
 
+  # ── Daily digest cron (09:00 Israel time) ────────────────────────────────
+  echo "Setting up daily digest cron..."
+  mkdir -p /home/ubuntu/helpdesk/logs
+
+  # Write wrapper script that reads the secret at runtime
+  cat > /home/ubuntu/helpdesk/send-digest.sh << 'CRONSCRIPT'
+#!/bin/bash
+# Read DIGEST_SECRET from the deployed .env.local at runtime
+SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+  | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
+if [ -z "$SECRET" ]; then
+  echo "[digest] DIGEST_SECRET not set — skipping" >> /home/ubuntu/helpdesk/logs/digest.log
+  exit 0
+fi
+RESULT=$(curl -sf -X POST "http://localhost:3000/api/admin/digest" \
+  -H "x-digest-secret: ${SECRET}" \
+  -H "Content-Type: application/json" 2>&1)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/digest.log
+CRONSCRIPT
+  chmod +x /home/ubuntu/helpdesk/send-digest.sh
+
+  # Install cron entry (idempotent — removes old entry then re-adds)
+  (crontab -l 2>/dev/null | grep -v "send-digest.sh"; \
+   echo "TZ=Asia/Jerusalem 0 9 * * * /home/ubuntu/helpdesk/send-digest.sh") | crontab -
+  echo "Digest cron installed: 09:00 Israel time daily"
+
   echo ""
   echo "=== Port 3000 ==="
   ss -tlnp | grep :3000 || echo "Not yet listening"
