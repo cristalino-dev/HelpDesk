@@ -52,12 +52,22 @@ describe("isStaleOpen", () => {
     expect(isStaleOpen({ status: "פתוח", createdAt: daysAgo(7) })).toBe(true)
   })
 
-  it("returns false for a 'בטיפול' ticket even if very old", () => {
-    expect(isStaleOpen({ status: "בטיפול", createdAt: daysAgo(30) })).toBe(false)
+  it("returns true for a 'בטיפול' ticket older than the threshold", () => {
+    // A ticket stuck in-progress for 7 days is just as stale as an open one
+    expect(isStaleOpen({ status: "בטיפול", createdAt: daysAgo(7) })).toBe(true)
+  })
+
+  it("returns false for a 'בטיפול' ticket within the threshold", () => {
+    expect(isStaleOpen({ status: "בטיפול", createdAt: daysAgo(2) })).toBe(false)
   })
 
   it("returns false for a 'סגור' ticket even if very old", () => {
     expect(isStaleOpen({ status: "סגור", createdAt: daysAgo(30) })).toBe(false)
+  })
+
+  it("returns false for a 'סגור' ticket regardless of status change", () => {
+    // Closed tickets are never stale, even past STALE_DAYS
+    expect(isStaleOpen({ status: "סגור", createdAt: daysAgo(100) })).toBe(false)
   })
 
   it("respects a custom staleDays threshold", () => {
