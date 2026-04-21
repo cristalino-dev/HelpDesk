@@ -185,9 +185,12 @@ export async function PATCH(req: NextRequest) {
       submitterEmail: before.user?.email ?? "",
     }
     const changedBy = session.user.name ?? session.user.email ?? "צוות תמיכה"
-    const mails: Promise<void>[] = [
-      sendMail({ to: STAFF_EMAILS, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }),
-    ]
+    // Exclude the person who made the change — no need to email yourself about your own action
+    const staffRecipients = STAFF_EMAILS.filter(e => e !== session.user.email)
+    const mails: Promise<void>[] = []
+    if (staffRecipients.length > 0) {
+      mails.push(sendMail({ to: staffRecipients, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }))
+    }
     // Notify user on status change
     if (status === "סגור" && before.user?.email) {
       // Closure: always send the review-request email, even if the user closed it themselves

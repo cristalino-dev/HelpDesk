@@ -151,8 +151,9 @@ describe("Tickets API", () => {
 
       expect(res.status).toBe(200)
       expect(data.status).toBe("סגור")
-      // Staff notification + user notification for closure
-      expect(sendMail).toHaveBeenCalledTimes(2)
+      // Actor IS in STAFF_EMAILS so they are excluded from the staff notification.
+      // Only the closure email to the ticket owner is sent.
+      expect(sendMail).toHaveBeenCalledTimes(1)
     })
 
     it("allows ticket owner (regular user) to close their own ticket", async () => {
