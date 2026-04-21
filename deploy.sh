@@ -10,7 +10,9 @@ LOCAL="$(cd "$(dirname "$0")" && pwd)"
 chmod 600 "$KEY"
 
 # ── Read version from lib/version.ts ────────────────────────────────────────
-VERSION=$(grep -oP '"[0-9]+\.[0-9]+"' "$LOCAL/lib/version.ts" | head -1 | tr -d '"')
+# sed is used instead of grep -P because grep's Perl mode has locale issues
+# on some platforms (e.g. Git Bash on Windows).
+VERSION=$(sed -n 's/export const VERSION = "\(.*\)"/\1/p' "$LOCAL/lib/version.ts" | head -1)
 echo "Deploying version $VERSION..."
 
 # ── Generate maintenance.html locally (version baked in) ────────────────────
