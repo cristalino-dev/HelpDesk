@@ -5,6 +5,7 @@ import type { Ticket } from "@/types/ticket"
 
 const baseTicket: Ticket = {
   id: "1",
+  ticketNumber: 1,
   subject: "בעיית רשת",
   description: "אין חיבור לאינטרנט",
   phone: "050-1234567",
@@ -16,6 +17,7 @@ const baseTicket: Ticket = {
   createdAt: "2026-04-09T10:00:00.000Z",
   updatedAt: "2026-04-09T10:00:00.000Z",
   userId: "user-1",
+  assignedTo: "",
 }
 
 /**

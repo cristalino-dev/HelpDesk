@@ -48,6 +48,7 @@ import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
+import { useIsMobile } from "@/lib/useIsMobile"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -96,86 +97,116 @@ export default function DashboardPage() {
     }
   }, [status])
 
+  const isMobile = useIsMobile()
+
   if (status === "loading") return null
 
   const open = tickets.filter(t => t.status === "פתוח").length
   const inProgress = tickets.filter(t => t.status === "בטיפול").length
   const closed = tickets.filter(t => t.status === "סגור").length
 
+  // Shared nav-button style helpers
+  const navBtn = {
+    fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none",
+    padding: "6px 12px", borderRadius: "8px",
+    border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500,
+  } as const
+  const navBtnStrong = {
+    ...navBtn, color: "#fff", fontWeight: 600,
+    backgroundColor: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
+  } as const
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header style={{
         background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
-        padding: "0 28px",
+        padding: isMobile ? "0 14px" : "0 28px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: "64px",
+        height: "56px",
         boxShadow: "0 4px 16px rgba(37,99,235,0.25)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        {/* Left: logo + title */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+          <div style={{ width: "30px", height: "30px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
               <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff", letterSpacing: "-0.01em" }}>מערכת helpdesk</span>
+          {!isMobile && (
+            <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff", letterSpacing: "-0.01em" }}>מערכת helpdesk</span>
+          )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <Link href="/help" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>עזרה</Link>
-          <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
+        {/* Right: nav */}
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "6px" : "8px" }}>
+          <Image src="/logo.jpeg" alt="Cristalino Group" width={isMobile ? 34 : 44} height={isMobile ? 34 : 44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
+
+          {/* Secondary links — hidden on mobile */}
+          {!isMobile && <Link href="/help" style={navBtn}>עזרה</Link>}
+          {!isMobile && <Link href="/contact" style={navBtn}>צרו קשר</Link>}
+
+          {/* Staff / admin links — always shown (abbreviated on mobile) */}
           {STAFF_EMAILS.includes(session?.user?.email ?? "") && (
-            <Link href="/tickets" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.15)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
-              כל הפניות
+            <Link href="/tickets" style={navBtnStrong}>
+              {isMobile ? "פניות" : "כל הפניות"}
             </Link>
           )}
           {VIEWER_EMAILS.includes(session?.user?.email ?? "") && (
-            <Link href="/tickets/view" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.15)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
-              כל הפניות
+            <Link href="/tickets/view" style={navBtnStrong}>
+              {isMobile ? "פניות" : "כל הפניות"}
             </Link>
           )}
           {session?.user?.isAdmin && (
-            <Link href="/admin" style={{ fontSize: "0.8rem", color: "#fff", fontWeight: 600, textDecoration: "none", backgroundColor: "rgba(255,255,255,0.2)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.3)" }}>
-              ניהול פניות
+            <Link href="/admin" style={{ ...navBtnStrong, backgroundColor: "rgba(255,255,255,0.2)" }}>
+              {isMobile ? "ניהול" : "ניהול פניות"}
             </Link>
           )}
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "7px", textDecoration: "none", padding: "4px 10px 4px 6px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
+
+          {/* Profile avatar (+ name on desktop) */}
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "7px", textDecoration: "none", padding: isMobile ? "4px 6px" : "4px 10px 4px 6px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
             <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
               {initials(session?.user?.name)}
             </div>
-            <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{session?.user?.name}</span>
+            {!isMobile && (
+              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
+                {session?.user?.name}
+              </span>
+            )}
           </Link>
+
+          {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}
+            style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", cursor: "pointer", padding: isMobile ? "6px 8px" : "6px 12px", fontWeight: 500 }}
           >
-            יציאה
+            {isMobile ? "↩" : "יציאה"}
           </button>
         </div>
       </header>
 
-      <main style={{ maxWidth: "920px", margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* ── Main ───────────────────────────────────────────────────────────── */}
+      <main style={{ maxWidth: "920px", margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
 
         {/* Stats row */}
         {!loading && tickets.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? "8px" : "12px" }}>
             {[
-              { label: "פתוחות", count: open, color: "#2563eb", bg: "#eff6ff" },
+              { label: "פתוחות", count: open,       color: "#2563eb", bg: "#eff6ff" },
               { label: "בטיפול", count: inProgress, color: "#d97706", bg: "#fffbeb" },
-              { label: "סגורות", count: closed, color: "#16a34a", bg: "#f0fdf4" },
+              { label: "סגורות", count: closed,     color: "#16a34a", bg: "#f0fdf4" },
             ].map(({ label, count, color, bg }) => (
-              <div key={label} style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "12px", border: "1px solid #f3f4f6" }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", fontWeight: 800, color }}>{count}</div>
-                <span style={{ fontSize: "0.82rem", color: "#6b7280", fontWeight: 500 }}>{label}</span>
+              <div key={label} style={{ backgroundColor: "#fff", borderRadius: "12px", padding: isMobile ? "10px 12px" : "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px", border: "1px solid #f3f4f6" }}>
+                <div style={{ width: isMobile ? "30px" : "36px", height: isMobile ? "30px" : "36px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
+                <span style={{ fontSize: isMobile ? "0.75rem" : "0.82rem", color: "#6b7280", fontWeight: 500 }}>{label}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Title + button */}
+        {/* Title + new-ticket button */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937", letterSpacing: "-0.01em" }}>הפניות שלי</h2>
           <button
@@ -184,13 +215,14 @@ export default function DashboardPage() {
               backgroundColor: showForm ? "#f3f4f6" : "#2563eb",
               color: showForm ? "#374151" : "#fff",
               fontWeight: 600,
-              padding: "9px 18px",
+              padding: isMobile ? "8px 14px" : "9px 18px",
               borderRadius: "10px",
               border: "none",
               cursor: "pointer",
-              fontSize: "0.85rem",
+              fontSize: isMobile ? "0.82rem" : "0.85rem",
               boxShadow: showForm ? "none" : "0 4px 12px rgba(37,99,235,0.3)",
               transition: "all 0.15s",
+              whiteSpace: "nowrap",
             }}
           >
             {showForm ? "ביטול" : "+ פנייה חדשה"}
