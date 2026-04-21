@@ -39,7 +39,7 @@ export default function TicketsViewPage() {
   const [showAll, setShowAll] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
-  const [sortKey, setSortKey] = useState<"subject" | "urgency" | "status" | "createdAt" | null>(null)
+  const [sortKey, setSortKey] = useState<"subject" | "urgency" | "status" | "createdAt" | "updatedAt" | null>(null)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   const isAllowed = (email: string) =>
@@ -93,10 +93,12 @@ export default function TicketsViewPage() {
           return dir * ((O[a.status] ?? 0) - (O[b.status] ?? 0))
         }
         case "createdAt": return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-        default:
+        case "updatedAt": return dir * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
+        default: {
           const rd = (URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2)
           if (rd !== 0) return rd
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        }
       }
     })
   }, [tickets, showAll, search, sortKey, sortDir])
@@ -193,6 +195,7 @@ export default function TicketsViewPage() {
                 { key: "urgency",   label: "דחיפות" },
                 { key: "status",    label: "סטטוס" },
                 { key: "createdAt", label: "נפתח" },
+                { key: "updatedAt", label: "עודכן" },
               ] as const).map(col => (
                 <button key={col.key} onClick={() => handleSort(col.key)}
                   style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? "#4f46e5" : "#9ca3af", whiteSpace: "nowrap" }}

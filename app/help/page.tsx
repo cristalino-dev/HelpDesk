@@ -268,8 +268,9 @@ export default function HelpPage() {
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
               <StatusRow badge={badge("#fef3c7", "#92400e", "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. תקבלו מייל עדכון. ייתכן שיצרו איתכם קשר בקרוב." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <StatusRow badge={badge("#dcfce7", "#166534", "סגור")}   title="סגור"   desc="הבעיה טופלה וסגורה. תקבלו מייל עם קישור לדירוג השירות. אם הבעיה חזרה, פתחו פנייה חדשה." />
+              <StatusRow badge={badge("#dcfce7", "#166534", "סגור")}   title="סגור"   desc="הבעיה טופלה וסגורה. תקבלו מייל עם קישור לדירוג השירות." />
             </div>
+            <Note text='פנייה סגורה ניתנת לפתיחה מחדש תוך 4 שבועות מרגע הסגירה — לחצו על כפתור "↩ פתח מחדש" בטבלת הפניות שלכם. לאחר 4 שבועות יש לפתוח פנייה חדשה.' />
           </Card>
         </section>
 

@@ -213,6 +213,82 @@ describe("Tickets API", () => {
       expect(res.status).toBe(403)
       expect(prisma.ticket.update).not.toHaveBeenCalled()
     })
+
+    it("allows ticket owner to reopen within 4 weeks", async () => {
+      mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
+      // Closed 1 day ago — within the 4-week window
+      const closedAt = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-6",
+        status: "סגור",
+        updatedAt: closedAt,
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-6",
+        status: "פתוח",
+        subject: "Test Issue",
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-6", status: "פתוח" }),
+      } as any
+
+      const res = await PATCH(req) as any
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(data.status).toBe("פתוח")
+      expect(prisma.ticket.update).toHaveBeenCalled()
+    })
+
+    it("rejects reopen attempt after 4-week window has expired", async () => {
+      mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
+      // Closed 30 days ago — outside the 4-week window
+      const closedAt = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-7",
+        status: "סגור",
+        updatedAt: closedAt,
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-7", status: "פתוח" }),
+      } as any
+
+      const res = await PATCH(req) as any
+
+      expect(res.status).toBe(403)
+      expect(prisma.ticket.update).not.toHaveBeenCalled()
+    })
+
+    it("allows admin to reopen a ticket with no time limit", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+      // Closed 60 days ago — well past the user's 4-week window
+      const closedAt = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-8",
+        status: "סגור",
+        updatedAt: closedAt,
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-8",
+        status: "פתוח",
+        subject: "Old Issue",
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-8", status: "פתוח" }),
+      } as any
+
+      const res = await PATCH(req) as any
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(data.status).toBe("פתוח")
+    })
   })
 
   describe("PATCH /api/tickets — assignedTo", () => {

@@ -91,6 +91,15 @@ export default function DashboardPage() {
     await loadTickets()
   }
 
+  const reopenTicket = async (id: string) => {
+    await fetch("/api/tickets", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "פתוח" }),
+    })
+    await loadTickets()
+  }
+
   useEffect(() => {
     if (status === "authenticated") {
       loadTickets()
@@ -268,6 +277,7 @@ export default function DashboardPage() {
           <TicketTable
             tickets={statusFilter ? tickets.filter(t => t.status === statusFilter) : tickets}
             onClose={closeTicket}
+            onReopen={reopenTicket}
           />
         )}
       </main>

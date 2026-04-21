@@ -98,17 +98,23 @@ export async function POST(req: NextRequest) {
 /**
  * PATCH /api/tickets
  *
- * Updates the status of an existing ticket. Admin-only endpoint.
- * Only the `status` field can be changed through this endpoint; all other
- * ticket fields are immutable after creation (subject, urgency, etc.).
+ * Updates fields of an existing ticket.
  *
  * REQUEST BODY (JSON):
  *   id      {string}  The CUID of the ticket to update
  *   status  {string}  New status: "פתוח" | "בטיפול" | "סגור"
+ *   …other fields (staff only): subject, description, phone, computerName,
+ *                               urgency, category, platform, assignedTo
+ *
+ * AUTHORIZATION:
+ *   Staff / admin — may set any status, edit any field, reassign.
+ *   Regular user  — may close their own ticket at any time.
+ *                   May re-open their own ticket within 4 weeks of closure.
+ *                   Cannot change any other status or ticket owned by someone else.
  *
  * RESPONSE:
  *   200 — The updated Ticket object (JSON)
- *   403 — Not an admin
+ *   403 — Forbidden (wrong owner, invalid transition, or reopen window expired)
  *   500 — Database or unexpected error (logged to Log table)
  */
 export async function PATCH(req: NextRequest) {
@@ -126,10 +132,23 @@ export async function PATCH(req: NextRequest) {
     })
     if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+    // 4-week window during which the ticket owner may re-open a closed ticket
+    const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
+
     if (!isStaff) {
-      // Regular users may only close their own ticket — nothing else
       const isOwner = before.user?.email === session.user.email
-      if (!isOwner || status !== "סגור") {
+      if (!isOwner) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+      if (status === "סגור") {
+        // Closing own ticket — always allowed.
+      } else if (status === "פתוח" && before.status === "סגור") {
+        // Re-opening own ticket — allowed only within 4 weeks of closure.
+        const msSinceClosed = Date.now() - new Date(before.updatedAt).getTime()
+        if (msSinceClosed > FOUR_WEEKS_MS) {
+          return NextResponse.json({ error: "Reopen window expired" }, { status: 403 })
+        }
+      } else {
+        // Any other transition (e.g. setting to "בטיפול") is staff-only.
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     }
@@ -176,6 +195,9 @@ export async function PATCH(req: NextRequest) {
     } else if (status === "בטיפול" && before.user?.email && before.user.email !== session.user.email) {
       // In-progress: only notify if a staff member (not the user) changed the status
       mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – בטיפול`, html: mailTicketStatusUser(ticketInfo) }))
+    } else if (status === "פתוח" && before.status === "סגור" && before.user?.email && before.user.email !== session.user.email) {
+      // Staff-initiated re-open: notify the ticket owner
+      mails.push(sendMail({ to: before.user.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
     }
     void Promise.all(mails)
 

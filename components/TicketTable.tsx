@@ -36,9 +36,12 @@ import { useState } from "react"
 import type { Ticket } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
 
+const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
+
 type Props = {
   tickets: Ticket[]
-  onClose?: (id: string) => Promise<void> | void
+  onClose?:  (id: string) => Promise<void> | void
+  onReopen?: (id: string) => Promise<void> | void
 }
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
@@ -86,24 +89,34 @@ function Chevron() {
 function TicketCard({
   ticket,
   onClose,
+  onReopen,
   closingId,
   setClosingId,
+  reopeningId,
+  setReopeningId,
   hoverId,
   setHoverId,
   isMobile,
 }: {
   ticket: Ticket
-  onClose?: (id: string) => Promise<void> | void
-  closingId: string | null
+  onClose?:  (id: string) => Promise<void> | void
+  onReopen?: (id: string) => Promise<void> | void
+  closingId:    string | null
   setClosingId: (id: string | null) => void
-  hoverId: string | null
+  reopeningId:    string | null
+  setReopeningId: (id: string | null) => void
+  hoverId:    string | null
   setHoverId: (id: string | null) => void
   isMobile: boolean
 }) {
   const isClosed  = ticket.status === "סגור"
   const isHovered = hoverId === ticket.id
-  const isClosing = closingId === ticket.id
-  const showClose = !!onClose && !isClosed
+  const isClosing   = closingId   === ticket.id
+  const isReopening = reopeningId === ticket.id
+  const showClose  = !!onClose  && !isClosed
+  // Reopen button: closed ticket, has handler, and within 4-week window
+  const canReopen  = isClosed && !!onReopen &&
+    (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
   const borderColor = isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
   const meta = `${ticket.computerName} · ${ticket.category} · ${ticket.platform} · ${new Date(ticket.createdAt).toLocaleDateString("he-IL")}`
@@ -139,6 +152,35 @@ function TicketCard({
       }}
     >
       {isClosing ? "..." : "✓ סגור"}
+    </button>
+  ) : null
+
+  const reopenBtn = canReopen ? (
+    <button
+      onClick={async (e) => {
+        e.preventDefault()
+        setReopeningId(ticket.id)
+        try { await onReopen!(ticket.id) } finally { setReopeningId(null) }
+      }}
+      disabled={isReopening}
+      title="פתח מחדש"
+      style={{
+        padding: "3px 10px",
+        borderRadius: 8,
+        border: "1px solid #bfdbfe",
+        background: isReopening ? "#e5e7eb" : "#dbeafe",
+        color:  isReopening ? "#9ca3af" : "#1d4ed8",
+        fontWeight: 700,
+        fontSize: "0.72rem",
+        cursor: isReopening ? "default" : "pointer",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+        opacity: isMobile || isHovered || isReopening ? 1 : 0,
+        pointerEvents: isMobile || isHovered || isReopening ? "auto" : "none",
+        transition: "opacity 0.18s",
+      }}
+    >
+      {isReopening ? "..." : "↩ פתח מחדש"}
     </button>
   ) : null
 
@@ -183,11 +225,12 @@ function TicketCard({
           {meta}
         </div>
 
-        {/* Row 3: badges + close button */}
+        {/* Row 3: badges + action buttons */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span style={{ ...pill, ...urgencyStyle }}>{ticket.urgency}</span>
           <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
           {closeBtn}
+          {reopenBtn}
         </div>
       </div>
     )
@@ -244,9 +287,10 @@ function TicketCard({
       {/* Status badge */}
       <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
 
-      {/* Action area: hover-reveal close + arrow */}
+      {/* Action area: hover-reveal close/reopen + arrow */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {closeBtn}
+        {reopenBtn}
         <a href={`/tickets/HDTC-${ticket.ticketNumber}`} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <Chevron />
         </a>
@@ -257,15 +301,16 @@ function TicketCard({
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export default function TicketTable({ tickets, onClose }: Props) {
-  const [hoverId,   setHoverId]   = useState<string | null>(null)
-  const [closingId, setClosingId] = useState<string | null>(null)
+export default function TicketTable({ tickets, onClose, onReopen }: Props) {
+  const [hoverId,     setHoverId]     = useState<string | null>(null)
+  const [closingId,   setClosingId]   = useState<string | null>(null)
+  const [reopeningId, setReopeningId] = useState<string | null>(null)
   const isMobile = useIsMobile()
 
   const activeTickets = tickets.filter(t => t.status !== "סגור")
   const closedTickets = tickets.filter(t => t.status === "סגור")
 
-  const cardProps = { onClose, closingId, setClosingId, hoverId, setHoverId, isMobile }
+  const cardProps = { onClose, onReopen, closingId, setClosingId, reopeningId, setReopeningId, hoverId, setHoverId, isMobile }
 
   // ── Empty state ─────────────────────────────────────────────────────────────
   if (!tickets.length) {

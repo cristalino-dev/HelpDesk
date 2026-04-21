@@ -59,7 +59,7 @@
 
 "use client"
 import { useSession, signOut } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -142,6 +142,16 @@ export default function AdminPage() {
   const [logsLoading, setLogsLoading] = useState(false)
   // Assignment
   const [assigning, setAssigning] = useState<string | null>(null)
+  // Ticket-tab filters / sort
+  const [showAll,  setShowAll]  = useState(false)
+  const [ticketSearch, setTicketSearch] = useState("")
+  const [sortKey, setSortKey] = useState<"subject" | "urgency" | "status" | "createdAt" | "updatedAt" | null>(null)
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc")
+    else { setSortKey(key); setSortDir("asc") }
+  }
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -153,21 +163,59 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/tickets")
       const data = await res.json()
-      const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
-      const open = (Array.isArray(data) ? data : [] as TicketWithUser[])
-        .filter((t: TicketWithUser) => t.status !== "סגור")
-        .sort((a: TicketWithUser, b: TicketWithUser) => {
-          const urgencyDiff = (URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2)
-          if (urgencyDiff !== 0) return urgencyDiff
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        })
-      setTickets(open)
+      setTickets(Array.isArray(data) ? data : [])
     } catch {
       setTickets([])
     } finally {
       setLoading(false)
     }
   }
+
+  // ── Derived ticket lists ─────────────────────────────────────────────────
+  const { displayTickets, openTickets } = useMemo(() => {
+    const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
+    const openTickets = tickets.filter(t => t.status !== "סגור")
+
+    let list = showAll ? tickets : openTickets
+    if (ticketSearch.trim()) {
+      const q = ticketSearch.trim().toLowerCase()
+      list = list.filter(t =>
+        t.subject.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        (t.user?.name ?? "").toLowerCase().includes(q) ||
+        (t.user?.email ?? "").toLowerCase().includes(q) ||
+        t.computerName.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        t.urgency.toLowerCase().includes(q) ||
+        t.status.toLowerCase().includes(q) ||
+        new Date(t.createdAt).toLocaleDateString("he-IL").includes(q)
+      )
+    }
+
+    const displayTickets = [...list].sort((a, b) => {
+      if (sortKey) {
+        const dir = sortDir === "asc" ? 1 : -1
+        switch (sortKey) {
+          case "subject":   return dir * a.subject.localeCompare(b.subject, "he")
+          case "urgency":   return dir * ((URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2))
+          case "status": {
+            const ORDER: Record<string, number> = { "פתוח": 0, "בטיפול": 1, "סגור": 2 }
+            return dir * ((ORDER[a.status] ?? 0) - (ORDER[b.status] ?? 0))
+          }
+          case "createdAt": return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+          case "updatedAt": return dir * (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
+        }
+      }
+      // Default: urgency priority then FIFO (queue mode), or updatedAt DESC (all mode)
+      if (!showAll) {
+        const urgencyDiff = (URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2)
+        if (urgencyDiff !== 0) return urgencyDiff
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      }
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
+    return { displayTickets, openTickets }
+  }, [tickets, showAll, ticketSearch, sortKey, sortDir])
 
   const updateStatus = async (id: string, newStatus: string) => {
     setUpdating(id)
@@ -276,8 +324,8 @@ export default function AdminPage() {
     u.email.toLowerCase().includes(userSearch.toLowerCase())
   )
 
-  const urgentCount = tickets.filter(t => t.urgency === "דחוף").length
-  const highCount = tickets.filter(t => t.urgency === "גבוה").length
+  const urgentCount = openTickets.filter(t => t.urgency === "דחוף").length
+  const highCount   = openTickets.filter(t => t.urgency === "גבוה").length
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
@@ -473,34 +521,81 @@ export default function AdminPage() {
 
         {/* Stats row */}
         {!loading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px" }}>
             {[
-              { label: "סה״כ בתור", count: tickets.length, color: "#4f46e5", bg: "#ede9fe" },
-              { label: "דחוף", count: urgentCount, color: "#dc2626", bg: "#fee2e2" },
-              { label: "גבוה", count: highCount, color: "#ea580c", bg: "#ffedd5" },
-              { label: "בטיפול", count: tickets.filter(t => t.status === "בטיפול").length, color: "#d97706", bg: "#fef3c7" },
+              { label: "בתור (פתוח)", count: openTickets.length,                                       color: "#4f46e5", bg: "#ede9fe" },
+              { label: "דחוף",        count: urgentCount,                                               color: "#dc2626", bg: "#fee2e2" },
+              { label: "גבוה",        count: highCount,                                                 color: "#ea580c", bg: "#ffedd5" },
+              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: "#d97706", bg: "#fef3c7" },
+              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,           color: "#16a34a", bg: "#f0fdf4" },
             ].map(({ label, count, color, bg }) => (
-              <div key={label} style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "12px", border: "1px solid #f3f4f6" }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", fontWeight: 800, color }}>{count}</div>
-                <span style={{ fontSize: "0.8rem", color: "#6b7280", fontWeight: 500 }}>{label}</span>
+              <div key={label} style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "10px", border: "1px solid #f3f4f6" }}>
+                <div style={{ width: "34px", height: "34px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
+                <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 500 }}>{label}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Title row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>תור פניות פתוחות</h2>
-            {!loading && <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "#9ca3af" }}>ממוין לפי דחיפות, אחר כך לפי זמן פתיחה</p>}
+        {/* Toolbar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <input
+            value={ticketSearch}
+            onChange={e => setTicketSearch(e.target.value)}
+            placeholder="חיפוש לפי נושא, שם, קטגוריה..."
+            style={{ flex: 1, minWidth: 200, padding: "8px 13px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.85rem", background: "#fff" }}
+          />
+          {/* Open / All toggle */}
+          <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+            {[{ label: "פתוחות", val: false }, { label: "הכל", val: true }].map(opt => (
+              <button key={String(opt.val)} onClick={() => setShowAll(opt.val)}
+                style={{ padding: "7px 16px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem",
+                  background: showAll === opt.val ? "#312e81" : "transparent",
+                  color:      showAll === opt.val ? "#fff"    : "#6b7280",
+                  transition: "all 0.15s" }}
+              >{opt.label}</button>
+            ))}
           </div>
-          <button
-            onClick={loadTickets}
-            style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.82rem", color: "#4f46e5", background: "#ede9fe", border: "none", cursor: "pointer", padding: "7px 14px", borderRadius: "8px", fontWeight: 600 }}
+          {/* Sort buttons */}
+          <div style={{ display: "flex", gap: 4 }}>
+            {([
+              { key: "urgency",   label: "דחיפות" },
+              { key: "status",    label: "סטטוס" },
+              { key: "createdAt", label: "נפתח" },
+              { key: "updatedAt", label: "עודכן" },
+              { key: "subject",   label: "נושא" },
+            ] as const).map(col => (
+              <button key={col.key} onClick={() => handleSort(col.key)}
+                style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700,
+                  background: sortKey === col.key ? "#ede9fe" : "#f3f4f6",
+                  color:      sortKey === col.key ? "#4f46e5" : "#9ca3af" }}
+              >
+                {col.label}
+                <span style={{ fontSize: "0.6rem" }}>
+                  {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : "⇅"}
+                </span>
+              </button>
+            ))}
+          </div>
+          <button onClick={loadTickets}
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#4f46e5", background: "#ede9fe", border: "none", cursor: "pointer", padding: "7px 14px", borderRadius: 8, fontWeight: 600 }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             רענן
           </button>
+          <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{displayTickets.length} פניות</span>
+        </div>
+
+        {/* Title */}
+        <div>
+          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>
+            {showAll ? "כל הפניות" : "תור פניות פתוחות"}
+          </h2>
+          {!loading && !sortKey && (
+            <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "#9ca3af" }}>
+              {showAll ? "ממוין לפי תאריך עדכון אחרון" : "ממוין לפי דחיפות, אחר כך לפי זמן פתיחה"}
+            </p>
+          )}
         </div>
 
         {/* Ticket list */}
@@ -509,15 +604,17 @@ export default function AdminPage() {
             <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: "#4f46e5", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען...</p>
           </div>
-        ) : tickets.length === 0 ? (
+        ) : displayTickets.length === 0 ? (
           <div style={{ textAlign: "center", padding: "70px 24px", backgroundColor: "#fff", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>✓</div>
-            <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>כל הפניות טופלו!</p>
-            <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>אין פניות פתוחות כרגע</p>
+            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>{openTickets.length === 0 && !showAll ? "✓" : "🔍"}</div>
+            <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>{openTickets.length === 0 && !showAll ? "כל הפניות טופלו!" : "לא נמצאו פניות"}</p>
+            <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>{openTickets.length === 0 && !showAll ? "אין פניות פתוחות כרגע" : "נסו לשנות את החיפוש או הסינון"}</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {tickets.map((ticket, i) => (
+            {displayTickets.map((ticket, i) => {
+              const isClosed = ticket.status === "סגור"
+              return (
               <div
                 key={ticket.id}
                 onMouseEnter={() => setHoverId(ticket.id)}
@@ -526,10 +623,11 @@ export default function AdminPage() {
                   backgroundColor: "#fff",
                   borderRadius: "12px",
                   border: "1px solid #f3f4f6",
-                  borderRight: `4px solid ${URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb"}`,
+                  borderRight: `4px solid ${isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
                   boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)",
                   overflow: "hidden",
                   transition: "box-shadow 0.15s",
+                  opacity: isClosed ? 0.72 : 1,
                 }}
               >
                 {/* Main row */}
@@ -553,8 +651,8 @@ export default function AdminPage() {
                   {/* Queue position */}
                   <div style={{
                     width: "26px", height: "26px", borderRadius: "50%",
-                    backgroundColor: i === 0 ? "#fef3c7" : "#f3f4f6",
-                    color: i === 0 ? "#92400e" : "#9ca3af",
+                    backgroundColor: i === 0 && !showAll && !sortKey ? "#fef3c7" : "#f3f4f6",
+                    color: i === 0 && !showAll && !sortKey ? "#92400e" : "#9ca3af",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: "0.7rem", fontWeight: 800, flexShrink: 0,
                   }}>
@@ -842,7 +940,8 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-            ))}
+            )
+            })}
           </div>
         )}
         </> }
