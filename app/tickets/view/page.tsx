@@ -7,6 +7,7 @@ import Link from "next/link"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import type { TicketWithUser } from "@/types/ticket"
+import { useIsMobile } from "@/lib/useIsMobile"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -32,6 +33,8 @@ const URGENCY_BORDER: Record<string, string> = {
 export default function TicketsViewPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isMobile = useIsMobile()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,12 +111,13 @@ export default function TicketsViewPage() {
   const isViewer = VIEWER_EMAILS.includes(session?.user?.email ?? "")
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
       <header style={{
         background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
         padding: "0 28px", height: 64,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "0 4px 16px rgba(15,23,42,0.35)",
+        position: "relative",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -122,26 +126,57 @@ export default function TicketsViewPage() {
             </svg>
           </div>
           <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>כל הפניות</span>
-          <span style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", fontSize: "0.72rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
-            צפייה בלבד
-          </span>
+          {!isMobile && (
+            <span style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", fontSize: "0.72rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
+              צפייה בלבד
+            </span>
+          )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Image src="/logo.jpeg" alt="Cristalino" width={44} height={44} style={{ objectFit: "contain", borderRadius: 6 }} />
-          <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>לוח אישי</a>
+        {isMobile ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Image src="/logo.jpeg" alt="Cristalino" width={36} height={36} style={{ objectFit: "contain", borderRadius: 6 }} />
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              {menuOpen ? "✕" : "☰"}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Image src="/logo.jpeg" alt="Cristalino" width={44} height={44} style={{ objectFit: "contain", borderRadius: 6 }} />
+            <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>לוח אישי</a>
+            {!isViewer && (
+              <a href="/tickets" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>ניהול פניות</a>
+            )}
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", textDecoration: "none" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
+                {initials(session?.user?.name)}
+              </div>
+              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{session?.user?.name}</span>
+            </Link>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}>יציאה</button>
+          </div>
+        )}
+      </header>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && isMobile && (
+        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
+          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח אישי</a>
           {!isViewer && (
-            <a href="/tickets" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>ניהול פניות</a>
+            <a href="/tickets" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>ניהול פניות</a>
           )}
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", textDecoration: "none" }}>
+          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
               {initials(session?.user?.name)}
             </div>
-            <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{session?.user?.name}</span>
+            {session?.user?.name}
           </Link>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}>יציאה</button>
+          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: "rgba(255,255,255,0.7)", background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
         </div>
-      </header>
+      )}
 
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
@@ -187,27 +222,29 @@ export default function TicketsViewPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {/* Column headers */}
-            <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
-              <div />
-              {([
-                { key: "subject",   label: "נושא / מגיש" },
-                { key: "urgency",   label: "דחיפות" },
-                { key: "status",    label: "סטטוס" },
-                { key: "createdAt", label: "נפתח" },
-                { key: "updatedAt", label: "עודכן" },
-              ] as const).map(col => (
-                <button key={col.key} onClick={() => handleSort(col.key)}
-                  style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? "#4f46e5" : "#9ca3af", whiteSpace: "nowrap" }}
-                >
-                  {col.label}
-                  <span style={{ fontSize: "0.65rem", opacity: sortKey === col.key ? 1 : 0.4 }}>
-                    {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : "⇅"}
-                  </span>
-                </button>
-              ))}
-              <div />
-            </div>
+            {/* Column headers — desktop only */}
+            {!isMobile && (
+              <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
+                <div />
+                {([
+                  { key: "subject",   label: "נושא / מגיש" },
+                  { key: "urgency",   label: "דחיפות" },
+                  { key: "status",    label: "סטטוס" },
+                  { key: "createdAt", label: "נפתח" },
+                  { key: "updatedAt", label: "עודכן" },
+                ] as const).map(col => (
+                  <button key={col.key} onClick={() => handleSort(col.key)}
+                    style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? "#4f46e5" : "#9ca3af", whiteSpace: "nowrap" }}
+                  >
+                    {col.label}
+                    <span style={{ fontSize: "0.65rem", opacity: sortKey === col.key ? 1 : 0.4 }}>
+                      {sortKey === col.key ? (sortDir === "asc" ? "▲" : "▼") : "⇅"}
+                    </span>
+                  </button>
+                ))}
+                <div />
+              </div>
+            )}
 
             {filtered.map((ticket, i) => {
               const isClosed   = ticket.status === "סגור"
@@ -219,6 +256,26 @@ export default function TicketsViewPage() {
                   style={{ background: "#fff", borderRadius: 12, border: "1px solid #f3f4f6", borderRight: `4px solid ${URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb"}`, boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)", overflow: "hidden", transition: "box-shadow 0.15s", opacity: isClosed ? 0.75 : 1 }}
                 >
                   {/* Main row */}
+                  {isMobile ? (
+                    <div onClick={() => setExpanded(expanded === ticket.id ? null : ticket.id)}
+                      style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", cursor: "pointer" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
+                          <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
+                        <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
+                        <span style={{ fontSize: "0.68rem", color: "#9ca3af" }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
+                      </div>
+                    </div>
+                  ) : (
                   <div onClick={() => setExpanded(expanded === ticket.id ? null : ticket.id)}
                     style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
@@ -247,6 +304,7 @@ export default function TicketsViewPage() {
                       <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
+                  )}
 
                   {/* Expanded — read-only details */}
                   {isExpanded && (

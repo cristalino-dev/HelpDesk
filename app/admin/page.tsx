@@ -67,6 +67,7 @@ import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
+import { useIsMobile } from "@/lib/useIsMobile"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -111,6 +112,9 @@ interface UserRow { id: string; name: string | null; email: string; phone: strin
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isMobile = useIsMobile()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [statFilter, setStatFilter] = useState<string | null>(null)
   const [tab, setTab] = useState<"tickets" | "users" | "logs">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,7 +180,7 @@ export default function AdminPage() {
     const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
     const openTickets = tickets.filter(t => t.status !== "סגור")
 
-    let list = showAll ? tickets : openTickets
+    let list = statFilter ? [...tickets] : (showAll ? tickets : openTickets)
     if (ticketSearch.trim()) {
       const q = ticketSearch.trim().toLowerCase()
       list = list.filter(t =>
@@ -191,6 +195,12 @@ export default function AdminPage() {
         new Date(t.createdAt).toLocaleDateString("he-IL").includes(q)
       )
     }
+
+    if (statFilter === "queue")        list = list.filter(t => t.status !== "סגור")
+    else if (statFilter === "urgent")  list = list.filter(t => t.urgency === "דחוף" && t.status !== "סגור")
+    else if (statFilter === "high")    list = list.filter(t => t.urgency === "גבוה" && t.status !== "סגור")
+    else if (statFilter === "inprog")  list = list.filter(t => t.status === "בטיפול")
+    else if (statFilter === "closed")  list = list.filter(t => t.status === "סגור")
 
     const displayTickets = [...list].sort((a, b) => {
       if (sortKey) {
@@ -215,7 +225,7 @@ export default function AdminPage() {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
     return { displayTickets, openTickets }
-  }, [tickets, showAll, ticketSearch, sortKey, sortDir])
+  }, [tickets, showAll, ticketSearch, sortKey, sortDir, statFilter])
 
   const updateStatus = async (id: string, newStatus: string) => {
     setUpdating(id)
@@ -328,7 +338,7 @@ export default function AdminPage() {
   const highCount   = openTickets.filter(t => t.urgency === "גבוה").length
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5", position: "relative" }}>
       {/* Header */}
       <header style={{
         background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)",
@@ -338,6 +348,7 @@ export default function AdminPage() {
         justifyContent: "space-between",
         height: "64px",
         boxShadow: "0 4px 16px rgba(79,70,229,0.3)",
+        position: "relative",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -345,41 +356,73 @@ export default function AdminPage() {
               <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.25)" }}>ניהול</span>
+          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>{isMobile ? "ניהול" : "מערכת helpdesk"}</span>
+          {!isMobile && (
+            <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.25)" }}>ניהול</span>
+          )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <a href="/admin-manual" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>📖 מדריך מנהל</a>
-          <a href="/admin/reviews" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>⭐ ביקורות</a>
-          <a href="/admin/logs" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>⚠️ לוג שגיאות</a>
-          <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
-          <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</a>
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", transition: "opacity 0.2s" }}
-            onMouseOver={e => (e.currentTarget.style.opacity = "0.8")}
-            onMouseOut={e => (e.currentTarget.style.opacity = "1")}
-          >
-            <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
+        {isMobile ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Image src="/logo.jpeg" alt="Cristalino Group" width={36} height={36} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              {menuOpen ? "✕" : "☰"}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
+            <a href="/admin-manual" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>📖 מדריך מנהל</a>
+            <a href="/admin/reviews" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>⭐ ביקורות</a>
+            <a href="/admin/logs" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>⚠️ לוג שגיאות</a>
+            <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
+            <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</a>
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", transition: "opacity 0.2s" }}
+              onMouseOver={e => (e.currentTarget.style.opacity = "0.8")}
+              onMouseOut={e => (e.currentTarget.style.opacity = "1")}
+            >
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
+                {initials(session?.user?.name)}
+              </div>
+              <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{session?.user?.name}</span>
+            </Link>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.65)", background: "none", border: "none", cursor: "pointer" }}>יציאה</button>
+          </div>
+        )}
+      </header>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && isMobile && (
+        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
+          <a href="/admin-manual" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>📖 מדריך מנהל</a>
+          <a href="/admin/reviews" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>⭐ ביקורות</a>
+          <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>⚠️ לוג שגיאות</a>
+          <a href="/contact" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>צרו קשר</a>
+          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.75)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח משתמש</a>
+          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
               {initials(session?.user?.name)}
             </div>
-            <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{session?.user?.name}</span>
+            {session?.user?.name}
           </Link>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.65)", background: "none", border: "none", cursor: "pointer" }}>יציאה</button>
+          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: "rgba(255,255,255,0.7)", background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
         </div>
-      </header>
+      )}
 
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0" }}>
+        <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
           {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
               if (key === "users" && users.length === 0) loadUsers()
               if (key === "logs") loadLogs(logDate)
             }}
-              style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0 }}>
+              style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
               {label}
             </button>
           ))}
@@ -521,19 +564,27 @@ export default function AdminPage() {
 
         {/* Stats row */}
         {!loading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)", gap: "12px" }}>
             {[
-              { label: "בתור (פתוח)", count: openTickets.length,                                       color: "#4f46e5", bg: "#ede9fe" },
-              { label: "דחוף",        count: urgentCount,                                               color: "#dc2626", bg: "#fee2e2" },
-              { label: "גבוה",        count: highCount,                                                 color: "#ea580c", bg: "#ffedd5" },
-              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: "#d97706", bg: "#fef3c7" },
-              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,           color: "#16a34a", bg: "#f0fdf4" },
-            ].map(({ label, count, color, bg }) => (
-              <div key={label} style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "10px", border: "1px solid #f3f4f6" }}>
-                <div style={{ width: "34px", height: "34px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
-                <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 500 }}>{label}</span>
-              </div>
-            ))}
+              { label: "בתור (פתוח)", count: openTickets.length,                                    color: "#4f46e5", bg: "#ede9fe", filterKey: "queue" },
+              { label: "דחוף",        count: urgentCount,                                            color: "#dc2626", bg: "#fee2e2", filterKey: "urgent" },
+              { label: "גבוה",        count: highCount,                                              color: "#ea580c", bg: "#ffedd5", filterKey: "high" },
+              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length, color: "#d97706", bg: "#fef3c7", filterKey: "inprog" },
+              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,        color: "#16a34a", bg: "#f0fdf4", filterKey: "closed" },
+            ].map(({ label, count, color, bg, filterKey }) => {
+              const isActive = statFilter === filterKey
+              return (
+                <button
+                  key={label}
+                  onClick={() => setStatFilter(f => f === filterKey ? null : filterKey)}
+                  style={{ backgroundColor: isActive ? bg : "#fff", borderRadius: "14px", padding: "14px 16px", boxShadow: isActive ? `0 0 0 1px ${color}44` : "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "10px", border: isActive ? `2px solid ${color}` : "1px solid #f3f4f6", cursor: "pointer", textAlign: "right", width: "100%" }}
+                >
+                  <div style={{ width: "34px", height: "34px", borderRadius: "10px", backgroundColor: isActive ? "#fff" : bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
+                  <span style={{ fontSize: "0.78rem", color: isActive ? color : "#6b7280", fontWeight: isActive ? 700 : 500, flex: 1 }}>{label}</span>
+                  {isActive && <span style={{ fontSize: "0.7rem", color, fontWeight: 700 }}>✕</span>}
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -586,6 +637,14 @@ export default function AdminPage() {
           <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{displayTickets.length} פניות</span>
         </div>
 
+        {/* Active stat filter indicator */}
+        {statFilter && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#ede9fe", border: "1px solid #c4b5fd", borderRadius: 10, fontSize: "0.82rem", color: "#4f46e5" }}>
+            <span>מסנן: {statFilter === "queue" ? "בתור (פתוח)" : statFilter === "urgent" ? "דחוף" : statFilter === "high" ? "גבוה" : statFilter === "inprog" ? "בטיפול" : "סגורות"}</span>
+            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4f46e5", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
+          </div>
+        )}
+
         {/* Title */}
         <div>
           <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>
@@ -631,6 +690,40 @@ export default function AdminPage() {
                 }}
               >
                 {/* Main row */}
+                {isMobile ? (
+                  <div
+                    onClick={async () => {
+                      const next = expanded === ticket.id ? null : ticket.id
+                      setExpanded(next)
+                      if (next && !expandedNotes[next]) {
+                        try {
+                          const r = await fetch(`/api/tickets/${next}`)
+                          if (r.ok) {
+                            const d = await r.json()
+                            setExpandedNotes(p => ({ ...p, [next]: d.notes ?? [] }))
+                            setExpandedMessages(p => ({ ...p, [next]: d.messages ?? [] }))
+                          }
+                        } catch { /* silent */ }
+                      }
+                    }}
+                    style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", cursor: "pointer" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transition: "transform 0.2s", transform: expanded === ticket.id ? "rotate(-90deg)" : "rotate(0)" }}>
+                        <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}), padding: "2px 8px" }}>{ticket.urgency}</span>
+                      <span style={{ ...badge, ...(STATUS_STYLES[ticket.status] ?? {}), padding: "2px 8px" }}>{ticket.status}</span>
+                      <span style={{ fontSize: "0.68rem", color: "#9ca3af" }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
+                    </div>
+                  </div>
+                ) : (
                 <div
                   onClick={async () => {
                     const next = expanded === ticket.id ? null : ticket.id
@@ -700,6 +793,7 @@ export default function AdminPage() {
                     <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
+                )}
 
                 {/* Expanded panel */}
                 {expanded === ticket.id && (
