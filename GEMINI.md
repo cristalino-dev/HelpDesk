@@ -1,52 +1,76 @@
 # Gemini Project Review — Cristalino HelpDesk
 
 ## 1. Project Overview
-**Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system developed for the Cristalino Group LTD. It allows employees to submit IT support tickets and IT staff (Admins) to manage them through a dedicated dashboard. 
+
+**Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
+Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
+
+**Current version:** 3.06  
+**Live:** https://helpdesk.cristalino.co.il  
+**Tests:** 133 passing (13 suites)
 
 **Key Features:**
-- **Google OAuth Authentication** (strictly for `@cristalino` Google accounts).
-- **Employee Portal (`/dashboard`)**: Submit tickets, view personal tickets, and edit profile data (phone, workstation).
-- **Admin Portal (`/admin`, `/admin/logs`)**: Queue management with urgency and status sorting, user management, and advanced system error log viewer.
-- **RTL & Hebrew**: Full Right-to-Left styling natively applied across all portals.
-- **Email Integration**: Built-in support form (`/contact`) using Nodemailer and SMTP.
-- **Error Logging System**: Multi-layered (ErrorBoundary, ClientErrorHandler, Server-side try-catch) error caching written directly into a robust `Log` DB table.
+- **Google OAuth Authentication** — strictly for `@cristalino.co.il` accounts
+- **Employee Portal (`/dashboard`)** — submit tickets, view own tickets, search all fields, filter by status, re-open within 4 weeks, update profile
+- **Staff Portal (`/tickets`)** — all tickets with search, sort, stat-card filters, inline expand/edit
+- **Viewer Portal (`/tickets/view`)** — read-only ticket list with search
+- **Admin Portal (`/admin`, `/admin/logs`, `/admin/reviews`)** — queue management, user management, error log viewer, service review dashboard
+- **Full-text search** — every page has a search bar querying all ticket fields
+- **Clickable stat-card filters** — toggle-filter summary cards on dashboard, /tickets, /admin
+- **Mobile-first** — hamburger menu (☰) on all staff pages; responsive layouts throughout
+- **Email automation** — new ticket, status change, staff update, @mention, closure + rating request, daily digest
+- **Service ratings** — 1–5 stars with comment; admin review dashboard
+- **Error logging** — ErrorBoundary + ClientErrorHandler + server logError() → DB Log table
+- **RTL & Hebrew** — full Right-to-Left styling natively applied across all portals
 
 ## 2. Technology Stack
-- **Framework:** Next.js 16.2.2 (App Router with Turbopack). *Warning: This repo uses Next.js 16 which includes breaking APIs compared to standard legacy versions.*
+
+- **Framework:** Next.js 16.2.2 (App Router, Turbopack). ⚠️ Breaking changes vs. legacy Next.js.
 - **Auth:** NextAuth v5.0.0-beta.30 (Google Provider only).
-- **Hosting:** AWS Lightsail Linux Instance (Ubuntu 24.04 LTS).
-- **Process Manager:** PM2 (Process Manager 2) with auto-restart on crash and boot.
-- **Deployment:** SSH + SCP via bash script (`deploy.sh`). Build runs strictly on the target server.
+- **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
+- **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
+- **Process Manager:** PM2 with auto-restart and boot persistence.
+- **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on target server.
+- **Mail:** nodemailer v7, SMTP via helpdesk@cristalino.co.il.
 
 ## 3. Architecture & Data Model
+
 ### Data Models (Prisma)
-- **User:** Stores OAuth metadata, display name, user preferences (phone/station), and `isAdmin` flag. Associated 1-to-Many to `Ticket`.
-- **Ticket:** Support requests detailing `subject`, `description`, `phone`, `computerName`, `urgency` (Low/Medium/High/Urgent), `category` (Hardware/Software/Network/Printer/Other), `platform` (Comax/Android/etc.), and `status` (Open/In Progress/Closed).
-- **TicketAttachment**: Holds metadata for files (images/PDFs) linked to tickets or notes.
-- **TicketMessage**: High-level conversation thread between the user and staff (replies).
-- **v2.8 — Admin Error Logs**: Dedicated system monitoring screen with live filtering and troubleshooting tools.
-- **v2.7 — Interactive Messaging**: Two-way chat between users and staff with automated email threading.
-- **Log**: Used solely for telemetry and error tracking (`timestamp`, `level`, `message`, `source`, `stack`, `date` for queries/cleanup).
+
+- **User:** OAuth metadata, name, `isAdmin`, `phone`, `station`. 1-to-Many → Ticket.
+- **Ticket:** `ticketNumber` (autoincrement, human-readable ID), `subject`, `description`, `phone`, `computerName`, `urgency`, `category`, `platform`, `status`, `assignedTo`. Related: notes, attachments, messages, review.
+- **TicketNote:** Staff-only technician notes (hidden from user). Supports @mentions + image paste.
+- **TicketMessage:** Two-way user↔staff chat with email notifications.
+- **TicketAttachment:** Image attachments stored as dataUrl with filename.
+- **TicketReview:** 1–5 star service rating + optional comment. One per ticket, user-updatable.
+- **Log:** Telemetry and error tracking (`level`, `message`, `source`, `stack`, `date`). 30-day auto-cleanup.
 
 ### Key Application Layers
-- **UI & Layout:** `app/layout.tsx` guarantees global RTL & Hebrew setting.
-- **Components:** `TicketForm.tsx` handles submissions with profiles autofill; `TicketTable.tsx` lists interactive ticket cards. Both strictly use inline styles.
-- **API (`/api/...`)**: NextAuth handles `/auth`. Ticket/User REST operations explicitly check JWTs and the `isAdmin` boolean constraint. Logs have special endpoints for Admin extraction and UI hook population.
+
+- **UI:** All components use inline React styles. No Tailwind in page/component files.
+- **Mobile:** `useIsMobile` hook (640px breakpoint) used throughout. Hamburger menus on staff pages.
+- **Search:** Each page has a `useMemo`-derived `displayTickets`/`filtered` that chains status filter → text search → sort.
+- **Email:** `lib/mail.ts` has `sendMail()` + all HTML templates. Self-notification excluded on PATCH (actor filtered from recipients).
+- **Stale tickets:** `lib/staleTicket.ts` `isStaleOpen()` returns true for פתוח/בטיפול tickets older than 5 days.
+- **API:** NextAuth JWTs + `isAdmin` boolean guard all privileged routes.
 
 ## 4. Important Rules & Conventions
-1. **Server-Side Build Only**: Turbopack embeds absolute paths, thus you **CANNOT** build locally and copy `.next` to the server. Build is strictly run on the target machine script.
-2. **Styling Limitations**: DO NOT introduce Tailwind CSS component classes. Rely on inline styles everywhere except global resets.
-3. **PM2 Reliability**: The application is managed by PM2 with `restart_delay` and auto-boot enabled to ensure high availability.
-4. **Version Control Strategy**: The application's canonical version lives exclusively in `lib/version.ts`. It renders down to the `FooterCopyright` shared component.
 
-Deployment leverages a Bash script (`deploy.sh`) targeting a remote Ubuntu server via SSH.
-**Steps Context:** 
-1. `deploy.sh` runs locally to archive sources (excluding `node_modules` and `.next`).
-2. Tarball is uploaded and extracted at server `/home/ubuntu/helpdesk`.
-3. `npm install`, DB migration (`prisma migrate deploy`), Prisma client generation, and `npm run build` are triggered directly on the remote server via SSH.
-4. PM2 (`ecosystem.config.js`) manages the process on port `3000` with zero-downtime potential.
-5. SSL termination is handled via Nginx + Certbot (optional, initialized by `ssl-init.sh`).
+1. **Server-Side Build Only** — Turbopack embeds absolute paths. NEVER build locally and copy `.next`.
+2. **Inline Styles Only** — No Tailwind component classes. Only `globals.css` uses Tailwind resets.
+3. **Version in `lib/version.ts` only** — format `"X.YY"` (major.2digit-minor). Renders via `FooterCopyright`.
+4. **Build pipeline** — `prisma generate && jest --ci && next build`. Tests gate the deploy.
+5. **Rules of Hooks** — All hooks (useMemo, useEffect, etc.) before any conditional `return null`.
+6. **Stat-card filters** — toggle behavior: click sets filter, second click clears it. When active, search operates inside the filtered subset.
+7. **STAFF_EMAILS** — `alon@cristalino.co.il` is system admin and is listed first.
+
+### Deployment Steps
+
+1. `deploy.sh` runs locally: packages source, uploads via SCP, triggers remote build.
+2. Remote: `npm install` → `prisma migrate deploy` → `prisma generate` → `jest --ci` → `next build`.
+3. PM2 (`ecosystem.config.js`) restarts app on port 3000.
+4. SSL termination via Nginx + Certbot (`ssl-init.sh`).
 
 ---
-*Stable Production Build v2.8 — Admin Error Logs (Ubuntu/PM2). Documentation updated 2026-04-14.*
-*Generated by Gemini acting as Antigravity on 2026-04-14 based on the project's HANDOFF, ARCHITECTURE, and README documentation.*
+
+*Production Build v3.06 — Full-text search, mobile-first, clickable stat filters (Ubuntu/PM2). Updated 2026-04-23.*

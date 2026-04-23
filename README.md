@@ -1,20 +1,30 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 2.8** — Admin Error Log Viewer: Dedicated System Monitoring & Live Troubleshooting
+**Version 3.06** — Full-text search on all pages, mobile-first UI, clickable stat-card filters
 
-A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff manage the queue through a dedicated admin panel.
+A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
 ---
 
 ## Features
 
 - **Google OAuth login** — employees sign in with their Cristalino Google account
-- **Ticket submission** — subject, description, computer name, phone, platform, category, and urgency level
-- **My tickets view** — users see only their own tickets with live status
-- **Admin queue** — sorted by urgency (דחוף → גבוה → בינוני → נמוך), then by open time (FIFO)
-- **Status management** — admins can mark tickets as פתוח / בטיפול / סגור with one click
-- **Role-based access** — admin link only visible to authorized emails
+- **Ticket submission** — subject, description, computer name, phone, platform, category, urgency level
+- **My tickets dashboard** — users see only their own tickets with live status, search and status filter
+- **Full-text search** — every page has a search bar that queries all ticket fields simultaneously
+- **Clickable stat-card filters** — summary cards on dashboard, /tickets and /admin filter the list on click; click again to clear
+- **Mobile-first** — hamburger menu (☰) on all staff pages; responsive card layouts throughout
+- **Admin queue** — sorted by urgency (דחוף → גבוה → בינוני → נמוך), FIFO within urgency; sortable by any column
+- **Status management** — staff can mark tickets פתוח / בטיפול / סגור; automated emails on each transition
+- **Re-open tickets** — users can re-open closed tickets within 4 weeks; admins can always re-open
+- **Service ratings** — automatic rating request email after closure; 1–5 star review dashboard
+- **Staff collaboration** — technician notes with @mention email notifications and image support
+- **Two-way chat** — direct messaging between user and staff with email notifications
+- **Stale ticket warning** — visual flag on open/in-progress tickets idle for 5+ days
+- **Role-based access** — Employee / Staff / Viewer / Admin with per-role page guards
 - **Hebrew RTL** — full right-to-left layout throughout
+- **Error monitoring** — admin log viewer with live filtering and stack-trace clipboard copy
+- **Daily digest** — scheduled email summary of open tickets to staff each morning
 
 ---
 
@@ -22,13 +32,14 @@ A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
+| Framework | Next.js 16.2.2 (App Router, Turbopack) |
 | Auth | NextAuth v5 (beta) with Google provider |
-| ORM | Prisma 5 |
-| Database | PostgreSQL 18 (AWS Lightsail RDS) |
+| ORM | Prisma 5.22.0 |
+| Database | PostgreSQL (AWS RDS) |
 | OS | Ubuntu 24.04 LTS |
-| Process manager | PM2 (Process Manager 2) |
-| Deployment | SSH + SCP (deploy.sh) |
+| Process manager | PM2 |
+| Deployment | SSH + SCP (deploy.sh) — build runs on server |
+| Mail | nodemailer v7 — SMTP (helpdesk@cristalino.co.il) |
 
 ---
 
@@ -37,32 +48,45 @@ A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit
 ```
 helpdesk/
 ├── app/
-│   ├── layout.tsx              # Root layout — Hebrew RTL (lang="he" dir="rtl")
-│   ├── globals.css             # Base styles, input/label/button resets
-│   ├── providers.tsx           # NextAuth SessionProvider wrapper
-│   ├── login/
-│   │   └── page.tsx            # Google sign-in page
-│   ├── dashboard/
-│   │   └── page.tsx            # User ticket list + new ticket form
-│   ├── admin/
-│   │   └── page.tsx            # Admin queue (admins only)
-│   └── api/
-│       └── tickets/
-│           └── route.ts        # GET / POST / PATCH ticket API
+│   ├── layout.tsx                   # Root layout — Hebrew RTL (lang="he" dir="rtl")
+│   ├── page.tsx                     # Root redirect
+│   ├── login/page.tsx               # Google sign-in
+│   ├── dashboard/page.tsx           # User: ticket list + search + stat-card filters + new ticket form
+│   ├── admin/page.tsx               # Admin: queue + search + stat filters + sort + users + logs
+│   ├── admin/reviews/page.tsx       # Staff: service review dashboard
+│   ├── admin/logs/page.tsx          # Admin: error log viewer
+│   ├── admin-manual/page.tsx        # Staff/admin usage manual
+│   ├── tickets/page.tsx             # Staff: all tickets + search + stat filters + sort
+│   ├── tickets/view/page.tsx        # Viewer-role: read-only ticket list + search
+│   ├── tickets/[id]/page.tsx        # Full ticket detail — notes, messages, attachments, edit
+│   ├── help/page.tsx                # Hebrew user manual
+│   ├── contact/page.tsx             # Contact form (sends email to dev team)
+│   ├── profile/page.tsx             # User account settings
+│   ├── open/page.tsx                # Public ticket-open shortcut
+│   ├── review/[ticketId]/page.tsx   # Service rating (no login required)
+│   └── api/                         # REST API routes (tickets, notes, messages,
+│                                    #   attachments, reviews, profile, users, logs, digest)
 ├── components/
-│   ├── TicketForm.tsx          # New ticket form with urgency selector + computer name tooltip
-│   └── TicketTable.tsx         # Ticket cards with urgency-colored borders + hover effect
+│   ├── TicketForm.tsx               # New ticket form (pre-populates from profile)
+│   ├── TicketTable.tsx              # Ticket cards (isFiltered empty state)
+│   ├── ErrorBoundary.tsx            # React error boundary
+│   ├── ClientErrorHandler.tsx       # window.onerror logger
+│   └── FooterCopyright.tsx          # Shared footer
 ├── lib/
-│   ├── db.ts                   # Prisma client singleton
-│   └── staffEmails.ts          # List of authorized staff (new in v2.1)
-├── prisma/
-│   └── schema.prisma           # User + Ticket models
-├── auth.ts                     # NextAuth config — Google provider, session callback, auto-creates users
-├── deploy.sh                   # Linux deployment script
-├── setup-server.sh             # Ubuntu one-time setup
-├── ssl-init.sh                 # SSL initialization (Certbot)
-├── ecosystem.config.js         # PM2 configuration
-└── next.config.ts
+│   ├── db.ts                        # Prisma singleton
+│   ├── mail.ts                      # sendMail + email HTML templates
+│   ├── staffEmails.ts               # STAFF_EMAILS + VIEWER_EMAILS
+│   ├── staleTicket.ts               # isStaleOpen() — 5-day threshold
+│   ├── useIsMobile.ts               # useIsMobile hook (640px breakpoint)
+│   ├── logError.ts                  # Server-side error logging
+│   └── version.ts                   # ← single source of version truth
+├── __tests__/                       # 133 tests across 13 suites
+├── prisma/schema.prisma             # Full schema (see Data Model below)
+├── auth.ts                          # NextAuth config
+├── deploy.sh                        # Linux deployment script
+├── setup-server.sh                  # Ubuntu one-time setup
+├── ssl-init.sh                      # SSL via Certbot/Nginx
+└── ecosystem.config.js              # PM2 config
 ```
 
 ---
@@ -76,23 +100,46 @@ model User {
   name    String?
   image   String?
   isAdmin Boolean  @default(false)
+  phone   String?
+  station String?
   tickets Ticket[]
 }
 
 model Ticket {
-  id           String   @id @default(cuid())
+  id           String             @id @default(cuid())
+  ticketNumber Int                @unique @default(autoincrement())
+  assignedTo   String             @default("helpdesk@cristalino.co.il")
   subject      String
   description  String
   phone        String
   computerName String
-  urgency      String   @default("בינוני")   // נמוך | בינוני | גבוה | דחוף
-  category     String   @default("אחר")      // חומרה | תוכנה | רשת | מדפסת | אחר
-  platform     String   @default("מחשב אישי") // comax | comax sales tracker | אנדרואיד | אייפד | מחשב אישי
-  status       String   @default("פתוח")     // פתוח | בטיפול | סגור
+  urgency      String   // נמוך | בינוני | גבוה | דחוף
+  category     String   // חומרה | תוכנה | רשת | מדפסת | אחר
+  platform     String   // comax | comax sales tracker | אנדרואיד | אייפד | מחשב אישי
+  status       String   // פתוח | בטיפול | סגור
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  user         User               @relation(fields: [userId], references: [id])
+  notes        TicketNote[]
+  attachments  TicketAttachment[]
+  messages     TicketMessage[]
+  review       TicketReview?
+}
+
+model TicketNote       { id, ticketId, content, authorName, authorEmail, createdAt }
+model TicketMessage    { id, ticketId, content, authorName, authorEmail, authorRole, createdAt }
+model TicketAttachment { id, ticketId, dataUrl, filename, createdAt }
+model TicketReview     { id, ticketId(unique), rating 1–5, comment?, submitterName, submitterEmail, createdAt }
+
+model Log {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  level     String   // error | warn | info
+  message   String
+  source    String?
+  stack     String?
+  date      String   // "YYYY-MM-DD" for queries + 30-day auto-cleanup
 }
 ```
 
@@ -112,7 +159,6 @@ npm install
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local with your values
 ```
 
 Required variables:
@@ -120,12 +166,13 @@ Required variables:
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `AUTH_SECRET` | Random secret — generate with `openssl rand -base64 32` |
+| `AUTH_SECRET` | Random secret — `openssl rand -base64 32` |
 | `AUTH_GOOGLE_ID` | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
-| `NEXTAUTH_URL` | Public URL of the app (must match Google OAuth redirect URI) |
-| `AUTH_TRUST_HOST` | Set to `true` when running behind a proxy or non-localhost |
-| `ADMIN_EMAILS` | Comma-separated emails that get admin access on first login |
+| `NEXTAUTH_URL` | Public URL of the app |
+| `AUTH_TRUST_HOST` | `true` when behind a proxy |
+| `ADMIN_EMAILS` | Comma-separated emails granted admin on first login |
+| `SMTP_HOST/PORT/USER/PASS/FROM` | Mail server credentials |
 
 ### 3. Set up the database
 
@@ -144,95 +191,71 @@ npm run dev
 
 ## Google OAuth Setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
 2. Create an OAuth 2.0 Client ID (Web application)
 3. Add your app URL to **Authorized JavaScript origins**
 4. Add `{YOUR_URL}/api/auth/callback/google` to **Authorized redirect URIs**
 5. Copy the Client ID and Secret into `.env.local`
-6. Make sure the OAuth app is **Published** (not in Testing mode) so all users can sign in
+6. Make sure the OAuth app is **Published** (not Testing mode)
 
 ---
 
 ## Version History
 
-| Version | Tag    | Key Changes |
-|---------|--------|-------------|
-| 1.0     | v1.0   | INITIAL RELEASE: Core ticket submission and admin dashboard |
-| 2.0     | v2.0   | MAJOR BUILD: Multi-platform support, Linux native, SSL domain ready |
-| 2.1     | v2.1   | STAFF UPDATE: Added Staff role with global ticket view |
-| 2.2     | v2.2   | EDITING UPDATE: Advanced ticket editing for Staff |
-| 2.3     | v2.3   | REFINED MANAGEMENT: Fast inline editing and UI optimizations |
-| 2.4     | v2.4   | NOTES & ATTACHMENTS: Collaborative notes for staff |
-| 2.5     | v2.5   | STAFF COLLABORATION: Mentions (@handle) and image support for notes |
-| 2.6     | v2.6   | QUALITY UPDATE: Comprehensive inline test documentation |
-| 2.7     | v2.7   | INTERACTIVE MESSAGING: Direct chat between users and staff with automated notifications |
-| 2.8     | v2.8   | - **v2.8 — Error Monitoring**: Dedicated Admin Dashboard for system error analysis with statistics and clipboard integration. |
-| 2.9     | v2.9   | - **v2.9 — Navigation & Admin Presence**: Resolved header navigation bugs and implemented dynamic role-based badging (Admin/Staff) to improve dashboard clarity. |
+| Version | Key Changes |
+|---------|-------------|
+| 1.0     | INITIAL RELEASE: Core ticket submission and admin dashboard |
+| 2.0     | MAJOR BUILD: Multi-platform, Linux native, SSL domain |
+| 2.1     | STAFF UPDATE: Global ticket view with Staff role |
+| 2.2     | EDITING UPDATE: Advanced ticket editing for staff |
+| 2.3     | REFINED MANAGEMENT: Fast inline editing, full lifecycle |
+| 2.4     | NOTES & ATTACHMENTS: Collaborative notes, image upload |
+| 2.5     | STAFF COLLABORATION: @mention notifications in notes |
+| 2.6     | QUALITY UPDATE: Comprehensive test documentation |
+| 2.7     | INTERACTIVE MESSAGING: Two-way chat with email notifications |
+| 2.8     | ADMIN LOGS: Error log viewer with live filtering |
+| 2.9     | NAVIGATION: Role-based header badges, nav fixes |
+| 3.00    | REOPEN: 4-week re-open window; help page updated |
+| 3.01    | STALE FIX: Stale warning covers בטיפול as well as פתוח |
+| 3.02    | RELIABILITY: Self-notification exclusion; Prisma generate in build |
+| 3.04    | STAFF: Restore alon@cristalino.co.il to STAFF_EMAILS |
+| 3.05    | MOBILE: Hamburger menus on all staff pages; clickable stat-card filters |
+| 3.06    | SEARCH: Full-text search on all pages; dashboard search + stat-filter combo; fix Rules of Hooks |
 
 ---
 
-
 ## Deployment (Ubuntu Linux via SSH)
 
-The application runs on an AWS Lightsail Ubuntu 24.04 LTS instance managed by PM2.
-
-### 1. One-time server setup
-Runs locally once to install Node.js, PM2, and prepare directories:
 ```bash
-# Verify SERVER and USER in the script, then run:
-bash setup-server.sh
+./deploy.sh          # regular deploy — builds on server
+./setup-server.sh    # one-time server setup
+./ssl-init.sh        # optional SSL via Certbot
 ```
 
-### 2. Regular Deployment
-Deploys the current code to the server and restarts the process:
-```bash
-./deploy.sh
+**Build pipeline (runs on server):**
 ```
-
-### 3. SSL Configuration (Optional)
-If ports 80 and 443 are open in the Lightsail firewall:
-```bash
-# Verify SERVER and EMAIL in the script, then run:
-bash ssl-init.sh
+npm install → prisma migrate deploy → prisma generate → jest --ci → next build → pm2 restart
 ```
-
-### Server requirements
-- Ubuntu Linux (Debian-based)
-- SSH enabled
-- PM2 installed globally (`npm install -g pm2`)
-- Port 3000 (and 80/443 for web) open in Lightsail firewall rules
-- PM2 process named **"helpdesk"** configured via `ecosystem.config.js`
 
 ### Granting admin access
 
-Admin access is controlled two ways:
-
-**Via environment variable** (applied on first login):
+Via environment variable (applied on first login):
 ```
-ADMIN_EMAILS=user@company.com,other@company.com
+ADMIN_EMAILS=user@company.com
 ```
 
-**Via database** (for existing users):
+Via database:
 ```sql
 UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 ```
 
 ---
 
-## API
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/tickets` | User | Returns own tickets; returns all tickets for admins |
-| `POST` | `/api/tickets` | User | Creates a new ticket |
-| `PATCH` | `/api/tickets` | Admin | Updates ticket status |
-
----
-
 ## Notes
 
-- **Inline styles**: Tailwind CSS classes are not used in page components — all styles are React inline styles to ensure they render correctly after server build
-- **Build on server**: Next.js Turbopack embeds absolute local paths in chunks — building locally and copying `.next` causes module hash mismatches on the server. Deployment script always builds on target.
+- **Inline styles**: No Tailwind CSS in page components — all styles are inline React styles
+- **Build on server**: Turbopack embeds absolute paths — never build locally and copy `.next`
+- **Hooks before early returns**: All React hooks (useMemo, useEffect, etc.) must come before any conditional `return null`
 
 ---
 
