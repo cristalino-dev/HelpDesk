@@ -110,13 +110,8 @@ export default function DashboardPage() {
 
   const isMobile = useIsMobile()
 
-  if (status === "loading") return null
-
-  const open = tickets.filter(t => t.status === "פתוח").length
-  const inProgress = tickets.filter(t => t.status === "בטיפול").length
-  const closed = tickets.filter(t => t.status === "סגור").length
-
   // Combined filter: status card + free-text search across all fields
+  // Must be declared before any early return to satisfy Rules of Hooks.
   const displayTickets = useMemo(() => {
     let list = statusFilter ? tickets.filter(t => t.status === statusFilter) : tickets
     const q = search.trim().toLowerCase()
@@ -136,6 +131,12 @@ export default function DashboardPage() {
     }
     return list
   }, [tickets, statusFilter, search])
+
+  if (status === "loading") return null
+
+  const open = tickets.filter(t => t.status === "פתוח").length
+  const inProgress = tickets.filter(t => t.status === "בטיפול").length
+  const closed = tickets.filter(t => t.status === "סגור").length
 
   // Shared nav-button style helpers
   const navBtn = {
