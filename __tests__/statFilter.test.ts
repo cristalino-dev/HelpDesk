@@ -6,6 +6,9 @@
  * test it as plain functions mirroring what the useMemo does.
  */
 
+// Make this file a module so its declarations don't collide with other test files.
+export {}
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface MinTicket {

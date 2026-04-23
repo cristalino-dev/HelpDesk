@@ -42,6 +42,8 @@ type Props = {
   tickets: Ticket[]
   onClose?:  (id: string) => Promise<void> | void
   onReopen?: (id: string) => Promise<void> | void
+  /** When true the caller is filtering — empty state shows "no results" instead of "no tickets" */
+  isFiltered?: boolean
 }
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
@@ -301,7 +303,7 @@ function TicketCard({
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export default function TicketTable({ tickets, onClose, onReopen }: Props) {
+export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: Props) {
   const [hoverId,     setHoverId]     = useState<string | null>(null)
   const [closingId,   setClosingId]   = useState<string | null>(null)
   const [reopeningId, setReopeningId] = useState<string | null>(null)
@@ -321,15 +323,31 @@ export default function TicketTable({ tickets, onClose, onReopen }: Props) {
         border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
       }}>
         <div style={{
-          width: "52px", height: "52px", borderRadius: "14px", backgroundColor: "#eff6ff",
+          width: "52px", height: "52px", borderRadius: "14px", backgroundColor: isFiltered ? "#f3f4f6" : "#eff6ff",
           display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
         }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          {isFiltered ? (
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke="#9ca3af" strokeWidth="1.8"/>
+              <path d="M21 21l-4.35-4.35" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </div>
-        <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151", fontSize: "0.95rem" }}>אין פניות עדיין</p>
-        <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>לחצו על &quot;פנייה חדשה&quot; כדי לפתוח את הפנייה הראשונה שלכם</p>
+        {isFiltered ? (
+          <>
+            <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151", fontSize: "0.95rem" }}>לא נמצאו פניות</p>
+            <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>נסו לשנות את החיפוש או הסינון</p>
+          </>
+        ) : (
+          <>
+            <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151", fontSize: "0.95rem" }}>אין פניות עדיין</p>
+            <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>לחצו על &quot;פנייה חדשה&quot; כדי לפתוח את הפנייה הראשונה שלכם</p>
+          </>
+        )}
       </div>
     )
   }

@@ -39,7 +39,7 @@
 
 "use client"
 import { useSession, signOut } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
 
 
   useEffect(() => {
@@ -114,6 +115,27 @@ export default function DashboardPage() {
   const open = tickets.filter(t => t.status === "פתוח").length
   const inProgress = tickets.filter(t => t.status === "בטיפול").length
   const closed = tickets.filter(t => t.status === "סגור").length
+
+  // Combined filter: status card + free-text search across all fields
+  const displayTickets = useMemo(() => {
+    let list = statusFilter ? tickets.filter(t => t.status === statusFilter) : tickets
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter(t =>
+        t.subject.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        t.status.toLowerCase().includes(q) ||
+        t.urgency.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        t.platform.toLowerCase().includes(q) ||
+        t.computerName.toLowerCase().includes(q) ||
+        t.phone.toLowerCase().includes(q) ||
+        String(t.ticketNumber).includes(q) ||
+        new Date(t.createdAt).toLocaleDateString("he-IL").includes(q)
+      )
+    }
+    return list
+  }, [tickets, statusFilter, search])
 
   // Shared nav-button style helpers
   const navBtn = {
@@ -266,6 +288,58 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {/* Search bar */}
+        {!loading && tickets.length > 0 && (
+          <div style={{ position: "relative" }}>
+            <svg
+              width="15" height="15" viewBox="0 0 24 24" fill="none"
+              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4, pointerEvents: "none" }}
+            >
+              <circle cx="11" cy="11" r="8" stroke="#374151" strokeWidth="2"/>
+              <path d="M21 21l-4.35-4.35" stroke="#374151" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="חיפוש לפי נושא, סטטוס, קטגוריה, תאריך..."
+              style={{
+                width: "100%",
+                padding: "9px 36px 9px 36px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                fontSize: "0.87rem",
+                background: "#fff",
+                boxSizing: "border-box",
+                outline: "none",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", color: "#9ca3af", padding: "2px 6px" }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Active filter summary */}
+        {!loading && (search || statusFilter) && (
+          <div style={{ fontSize: "0.78rem", color: "#6b7280", display: "flex", alignItems: "center", gap: 8 }}>
+            <span>מציג {displayTickets.length} מתוך {tickets.length} פניות</span>
+            {(search || statusFilter) && (
+              <button
+                onClick={() => { setSearch(""); setStatusFilter(null) }}
+                style={{ fontSize: "0.75rem", color: "#2563eb", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}
+              >
+                נקה הכל
+              </button>
+            )}
+          </div>
+        )}
+
         {showForm && <TicketForm onSuccess={() => { setShowForm(false); loadTickets() }} defaultPhone={profile.phone} defaultStation={profile.station} />}
 
         {loading ? (
@@ -275,9 +349,10 @@ export default function DashboardPage() {
           </div>
         ) : (
           <TicketTable
-            tickets={statusFilter ? tickets.filter(t => t.status === statusFilter) : tickets}
+            tickets={displayTickets}
             onClose={closeTicket}
             onReopen={reopenTicket}
+            isFiltered={!!(search || statusFilter)}
           />
         )}
       </main>
