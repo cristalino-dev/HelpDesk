@@ -93,8 +93,20 @@ export interface TicketMessage {
   createdAt: string
 }
 
+export interface TicketHistoryEntry {
+  id: string
+  ticketId: string
+  field: string       // "created" | "status" | "urgency" | "assignedTo" | "edited"
+  oldValue?: string | null
+  newValue?: string | null
+  actorName: string
+  actorEmail: string
+  changedAt: string
+}
+
 export interface TicketDetail extends TicketWithUser {
   notes: TicketNote[]
   attachments: TicketAttachment[]
   messages: TicketMessage[]
+  history: TicketHistoryEntry[]
 }

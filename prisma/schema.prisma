@@ -38,6 +38,19 @@ model Ticket {
   attachments  TicketAttachment[]
   messages     TicketMessage[]
   review       TicketReview?
+  history      TicketHistory[]
+}
+
+model TicketHistory {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  field       String   // "created" | "status" | "urgency" | "assignedTo" | "edited"
+  oldValue    String?
+  newValue    String?
+  actorName   String
+  actorEmail  String
+  changedAt   DateTime @default(now())
 }
 
 model TicketMessage {

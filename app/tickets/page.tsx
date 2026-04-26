@@ -9,6 +9,7 @@ import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import { isStaleOpen, openDays } from "@/lib/staleTicket"
+import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
 
 function initials(name?: string | null) {
@@ -542,6 +543,9 @@ export default function TicketsPage() {
               const isExpanded  = expanded === ticket.id
               const isStale     = isStaleOpen(ticket)
               const ageDays     = openDays(ticket.createdAt)
+              const wdOpen      = isClosed
+                ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
+                : workdaysBetween(ticket.createdAt)
 
               return (
                 <div
@@ -568,7 +572,7 @@ export default function TicketsPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
                           <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
-                          {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {ageDays}י</span>}
+                          {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
                           <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -603,7 +607,7 @@ export default function TicketsPage() {
                         </span>
                         {isStale && (
                           <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", flexShrink: 0, whiteSpace: "nowrap" }}>
-                            ⏰ {ageDays} ימים
+                            ⏰ {formatWorkdays(ageDays)}
                           </span>
                         )}
                         <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
@@ -637,15 +641,18 @@ export default function TicketsPage() {
                       {new Date(ticket.updatedAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
                     </div>
 
-                    {/* Date closed + resolve time (closed only) */}
+                    {/* Date closed + workday resolve time (closed only) */}
                     {isClosed ? (
                       <div style={{ fontSize: "0.72rem", color: "#16a34a", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
                         <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>נסגר</div>
                         {new Date(ticket.updatedAt).toLocaleDateString("he-IL")}<br />
-                        <span style={{ color: "#059669", fontWeight: 600 }}>{formatDuration(resolveMs!)}</span>
+                        <span style={{ color: "#059669", fontWeight: 600 }}>{formatWorkdays(wdOpen)}</span>
                       </div>
                     ) : (
-                      <div style={{ width: 80 }} />
+                      <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>פתוח</div>
+                        <span style={{ color: isStale ? "#c2410c" : "#6b7280", fontWeight: 600 }}>{formatWorkdays(wdOpen)}</span>
+                      </div>
                     )}
 
                     {/* Quick close button */}

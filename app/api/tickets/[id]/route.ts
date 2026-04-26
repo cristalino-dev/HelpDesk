@@ -20,10 +20,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const ticket = await prisma.ticket.findUnique({
       where,
       include: {
-        user: { select: { name: true, email: true } },
+        user:        { select: { name: true, email: true } },
         attachments: { orderBy: { createdAt: "asc" } },
-        notes: isStaff ? { orderBy: { createdAt: "asc" } } : false,
-        messages: { orderBy: { createdAt: "asc" } },
+        notes:       isStaff ? { orderBy: { createdAt: "asc" } } : false,
+        messages:    { orderBy: { createdAt: "asc" } },
+        history:     { orderBy: { changedAt: "asc" } },
       },
     })
 

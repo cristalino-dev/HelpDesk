@@ -35,6 +35,7 @@
 import { useState } from "react"
 import type { Ticket } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
+import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
 
@@ -121,7 +122,14 @@ function TicketCard({
     (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
   const borderColor = isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
-  const meta = `${ticket.computerName} · ${ticket.category} · ${ticket.platform} · ${new Date(ticket.createdAt).toLocaleDateString("he-IL")}`
+  const openedDate = new Date(ticket.createdAt).toLocaleDateString("he-IL")
+  const wdCount = isClosed
+    ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
+    : workdaysBetween(ticket.createdAt)
+  const wdLabel = isClosed
+    ? `נסגר לאחר ${formatWorkdays(wdCount)}`
+    : `${formatWorkdays(wdCount)} פתוח`
+  const meta = `${ticket.computerName} · ${ticket.category} · ${ticket.platform} · ${openedDate} · ${wdLabel}`
 
   const urgencyStyle = isClosed
     ? { backgroundColor: "#f3f4f6", color: "#9ca3af" }

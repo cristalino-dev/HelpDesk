@@ -68,6 +68,7 @@ import { STAFF_MEMBERS } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
+import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -673,6 +674,9 @@ export default function AdminPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {displayTickets.map((ticket, i) => {
               const isClosed = ticket.status === "סגור"
+              const wdOpen = isClosed
+                ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
+                : workdaysBetween(ticket.createdAt)
               return (
               <div
                 key={ticket.id}
@@ -782,10 +786,12 @@ export default function AdminPage() {
                     <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>{staffDisplay(ticket.assignedTo)}</span>
                   </div>
 
-                  {/* Time */}
+                  {/* Time + workdays */}
                   <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                     <div>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</div>
-                    <div>{new Date(ticket.createdAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</div>
+                    <div style={{ color: isClosed ? "#16a34a" : "#6b7280", fontWeight: 600 }}>
+                      {isClosed ? `נסגר ${formatWorkdays(wdOpen)}` : formatWorkdays(wdOpen)}
+                    </div>
                   </div>
 
                   {/* Expand chevron */}

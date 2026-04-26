@@ -74,6 +74,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Write creation history entry
+    void prisma.ticketHistory.create({
+      data: {
+        ticketId:   ticket.id,
+        field:      "created",
+        newValue:   "פתוח",
+        actorName:  session.user.name ?? session.user.email!,
+        actorEmail: session.user.email!,
+      },
+    })
+
     // Send emails (non-blocking — don't await sequentially in the request)
     const ticketInfo = {
       id: ticket.id, ticketNumber: ticket.ticketNumber,
@@ -168,6 +179,33 @@ export async function PATCH(req: NextRequest) {
     }
 
     const ticket = await prisma.ticket.update({ where: { id }, data })
+
+    // Write history entries for each changed field
+    const actorName  = session.user.name ?? session.user.email ?? "צוות"
+    const actorEmail = session.user.email ?? ""
+    type HistoryRow = { ticketId: string; field: string; oldValue?: string | null; newValue?: string | null; actorName: string; actorEmail: string }
+    const historyEntries: HistoryRow[] = []
+
+    if (status !== undefined && status !== before.status) {
+      historyEntries.push({ ticketId: id, field: "status", oldValue: before.status, newValue: status, actorName, actorEmail })
+    }
+    if (isStaff) {
+      if (urgency    !== undefined && urgency    !== before.urgency)    historyEntries.push({ ticketId: id, field: "urgency",    oldValue: before.urgency,    newValue: urgency,    actorName, actorEmail })
+      if (assignedTo !== undefined && assignedTo !== before.assignedTo) historyEntries.push({ ticketId: id, field: "assignedTo", oldValue: before.assignedTo, newValue: assignedTo, actorName, actorEmail })
+      // Generic "edited" entry for text-field changes (subject, description, phone, computerName, category, platform)
+      const beforeFields: Record<string, string | null> = {
+        subject: before.subject, description: before.description,
+        phone: before.phone, computerName: before.computerName,
+        category: before.category, platform: before.platform,
+      }
+      const newFields: Record<string, string | undefined> = { subject, description, phone, computerName, category, platform }
+      const edited = Object.keys(beforeFields).some(f => newFields[f] !== undefined && newFields[f] !== beforeFields[f])
+      if (edited) historyEntries.push({ ticketId: id, field: "edited", actorName, actorEmail })
+    }
+
+    if (historyEntries.length > 0) {
+      void prisma.ticketHistory.createMany({ data: historyEntries })
+    }
 
     // Send email notifications (non-blocking)
     const ticketInfo = {

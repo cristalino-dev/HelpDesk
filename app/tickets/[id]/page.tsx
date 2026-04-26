@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
-import type { TicketDetail, TicketNote, TicketMessage } from "@/types/ticket"
+import type { TicketDetail, TicketNote, TicketMessage, TicketHistoryEntry } from "@/types/ticket"
+import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "נמוך":   { background: "#dcfce7", color: "#166534" },
@@ -33,6 +34,7 @@ export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>()
 
   const [ticket, setTicket]       = useState<TicketDetail | null>(null)
+  const [history, setHistory]     = useState<TicketHistoryEntry[]>([])
   const [loading, setLoading]     = useState(true)
   const [isStaff, setIsStaff]     = useState(false)
   const [editing, setEditing]     = useState(false)
@@ -65,6 +67,8 @@ export default function TicketDetailPage() {
       if (!res.ok) { router.push("/dashboard"); return }
       const data: TicketDetail = await res.json()
       setTicket(data)
+      // history is included in the ticket payload
+      setHistory(data.history ?? [])
       setEditForm({
         subject: data.subject, description: data.description,
         phone: data.phone, computerName: data.computerName,
@@ -298,6 +302,16 @@ export default function TicketDetailPage() {
             <div>
               <span style={labelStyle}>נפתח</span>
               <span style={valueStyle}>{formatDate(ticket.createdAt)}</span>
+              {ticket.status !== "סגור" && (
+                <span style={{ marginTop: 4, display: "block", fontSize: "0.75rem", color: "#6b7280" }}>
+                  {formatWorkdays(workdaysBetween(ticket.createdAt))} פתוח
+                </span>
+              )}
+              {ticket.status === "סגור" && (
+                <span style={{ marginTop: 4, display: "block", fontSize: "0.75rem", color: "#6b7280" }}>
+                  נסגר לאחר {formatWorkdays(workdaysBetween(ticket.createdAt, ticket.updatedAt))}
+                </span>
+              )}
             </div>
           </div>
 
@@ -499,7 +513,80 @@ export default function TicketDetailPage() {
           </div>
         )}
 
+        {/* ── History / Audit Timeline ──────────────────────────────────────── */}
+        {history.length > 0 && (
+          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+            <h2 style={{ margin: "0 0 20px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📋 היסטוריית שינויים</h2>
+            <div style={{ position: "relative" }}>
+              {/* Vertical line */}
+              <div style={{ position: "absolute", right: 11, top: 0, bottom: 0, width: 2, background: "#e5e7eb", zIndex: 0 }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {history.map((entry, i) => {
+                  const isLast = i === history.length - 1
+                  const icon = historyIcon(entry.field)
+                  const label = historyLabel(entry)
+                  return (
+                    <div key={entry.id} style={{ display: "flex", alignItems: "flex-start", gap: 14, paddingBottom: isLast ? 0 : 20, position: "relative", zIndex: 1 }}>
+                      {/* Dot */}
+                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: historyDotColor(entry.field), display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", flexShrink: 0, boxShadow: "0 0 0 3px #fff" }}>
+                        {icon}
+                      </div>
+                      <div style={{ flex: 1, paddingTop: 2 }}>
+                        <div style={{ fontSize: "0.85rem", color: "#1f2937", fontWeight: 500 }}>{label}</div>
+                        <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginTop: 2 }}>
+                          {entry.actorName} · {formatDate(entry.changedAt)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   )
+}
+
+// ── History helpers ──────────────────────────────────────────────────────────
+
+function historyIcon(field: string): string {
+  switch (field) {
+    case "created":    return "🟢"
+    case "status":     return "🔄"
+    case "urgency":    return "⚡"
+    case "assignedTo": return "👤"
+    case "edited":     return "✏️"
+    default:           return "📝"
+  }
+}
+
+function historyDotColor(field: string): string {
+  switch (field) {
+    case "created":    return "#dcfce7"
+    case "status":     return "#dbeafe"
+    case "urgency":    return "#fef3c7"
+    case "assignedTo": return "#ede9fe"
+    case "edited":     return "#f3f4f6"
+    default:           return "#f3f4f6"
+  }
+}
+
+function historyLabel(entry: TicketHistoryEntry): string {
+  switch (entry.field) {
+    case "created":
+      return "פנייה נפתחה"
+    case "status":
+      return `סטטוס שונה: ${entry.oldValue ?? "—"} ← ${entry.newValue ?? "—"}`
+    case "urgency":
+      return `דחיפות שונתה: ${entry.oldValue ?? "—"} ← ${entry.newValue ?? "—"}`
+    case "assignedTo":
+      return `הפנייה הוקצתה מחדש: ${entry.newValue ?? "—"}`
+    case "edited":
+      return "פרטי הפנייה עודכנו"
+    default:
+      return `${entry.field} עודכן`
+  }
 }

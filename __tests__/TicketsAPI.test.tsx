@@ -14,6 +14,10 @@ jest.mock("@/lib/db", () => ({
       findUnique: jest.fn(),
       findMany: jest.fn(),
     },
+    ticketHistory: {
+      create: jest.fn().mockResolvedValue({}),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
   },
 }))
 

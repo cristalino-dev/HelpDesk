@@ -8,6 +8,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import type { TicketWithUser } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
+import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -249,6 +250,9 @@ export default function TicketsViewPage() {
             {filtered.map((ticket, i) => {
               const isClosed   = ticket.status === "סגור"
               const isExpanded = expanded === ticket.id
+              const wdOpen = isClosed
+                ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
+                : workdaysBetween(ticket.createdAt)
               return (
                 <div key={ticket.id}
                   onMouseEnter={() => setHoverId(ticket.id)}
@@ -295,9 +299,11 @@ export default function TicketsViewPage() {
                     <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
 
                     <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
-                      <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>נפתח</div>
+                      <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>{isClosed ? "נסגר" : "נפתח"}</div>
                       {new Date(ticket.createdAt).toLocaleDateString("he-IL")}<br />
-                      {new Date(ticket.createdAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                      <span style={{ color: isClosed ? "#16a34a" : "#6b7280", fontWeight: 600 }}>
+                        {isClosed ? `נסגר לאחר ${formatWorkdays(wdOpen)}` : formatWorkdays(wdOpen)}
+                      </span>
                     </div>
 
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
