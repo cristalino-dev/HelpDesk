@@ -247,6 +247,37 @@ describe("Tickets API", () => {
       expect(prisma.ticket.update).toHaveBeenCalled()
     })
 
+    it("auto-sets urgency to lowest priority when closing a ticket", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-10",
+        urgency: "דחוף",
+        status: "בטיפול",
+        user: { name: "User", email: "user@cristalino.co.il" },
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-10",
+        status: "סגור",
+        urgency: "נמוך",
+        subject: "Test Issue",
+      })
+
+      const req = {
+        json: async () => ({ id: "ticket-10", status: "סגור" }),
+      } as any
+
+      const res = await PATCH(req) as any
+      const data = await res.json()
+
+      expect(res.status).toBe(200)
+      expect(data.urgency).toBe("נמוך")
+      expect(prisma.ticket.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: "סגור", urgency: "נמוך" }),
+        })
+      )
+    })
+
     it("rejects reopen attempt after 4-week window has expired", async () => {
       mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
       // Closed 30 days ago — outside the 4-week window

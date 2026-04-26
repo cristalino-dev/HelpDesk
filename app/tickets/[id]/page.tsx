@@ -67,8 +67,19 @@ export default function TicketDetailPage() {
       if (!res.ok) { router.push("/dashboard"); return }
       const data: TicketDetail = await res.json()
       setTicket(data)
-      // history is included in the ticket payload
-      setHistory(data.history ?? [])
+      // history is included in the ticket payload; synthesize "created" entry for pre-v3.08 tickets
+      const rawHistory: TicketHistoryEntry[] = data.history ?? []
+      const synthetic: TicketHistoryEntry[] = rawHistory.some(e => e.field === "created") ? [] : [{
+        id: "synthetic-created",
+        ticketId: data.id,
+        field: "created",
+        oldValue: null,
+        newValue: "פתוח",
+        actorName: data.user?.name ?? data.user?.email ?? "משתמש",
+        actorEmail: data.user?.email ?? "",
+        changedAt: data.createdAt,
+      }]
+      setHistory([...synthetic, ...rawHistory])
       setEditForm({
         subject: data.subject, description: data.description,
         phone: data.phone, computerName: data.computerName,
@@ -513,37 +524,35 @@ export default function TicketDetailPage() {
           </div>
         )}
 
-        {/* ── History / Audit Timeline ──────────────────────────────────────── */}
-        {history.length > 0 && (
-          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
-            <h2 style={{ margin: "0 0 20px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📋 היסטוריית שינויים</h2>
-            <div style={{ position: "relative" }}>
-              {/* Vertical line */}
-              <div style={{ position: "absolute", right: 11, top: 0, bottom: 0, width: 2, background: "#e5e7eb", zIndex: 0 }} />
-              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {history.map((entry, i) => {
-                  const isLast = i === history.length - 1
-                  const icon = historyIcon(entry.field)
-                  const label = historyLabel(entry)
-                  return (
-                    <div key={entry.id} style={{ display: "flex", alignItems: "flex-start", gap: 14, paddingBottom: isLast ? 0 : 20, position: "relative", zIndex: 1 }}>
-                      {/* Dot */}
-                      <div style={{ width: 24, height: 24, borderRadius: "50%", background: historyDotColor(entry.field), display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", flexShrink: 0, boxShadow: "0 0 0 3px #fff" }}>
-                        {icon}
-                      </div>
-                      <div style={{ flex: 1, paddingTop: 2 }}>
-                        <div style={{ fontSize: "0.85rem", color: "#1f2937", fontWeight: 500 }}>{label}</div>
-                        <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginTop: 2 }}>
-                          {entry.actorName} · {formatDate(entry.changedAt)}
-                        </div>
+        {/* ── History / Audit Timeline — staff only ────────────────────────── */}
+        {isStaff && <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+          <h2 style={{ margin: "0 0 20px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📋 היסטוריית שינויים</h2>
+          <div style={{ position: "relative" }}>
+            {/* Vertical line */}
+            <div style={{ position: "absolute", right: 11, top: 0, bottom: 0, width: 2, background: "#e5e7eb", zIndex: 0 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {history.map((entry, i) => {
+                const isLast = i === history.length - 1
+                const icon = historyIcon(entry.field)
+                const label = historyLabel(entry)
+                return (
+                  <div key={entry.id} style={{ display: "flex", alignItems: "flex-start", gap: 14, paddingBottom: isLast ? 0 : 20, position: "relative", zIndex: 1 }}>
+                    {/* Dot */}
+                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: historyDotColor(entry.field), display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", flexShrink: 0, boxShadow: "0 0 0 3px #fff" }}>
+                      {icon}
+                    </div>
+                    <div style={{ flex: 1, paddingTop: 2 }}>
+                      <div style={{ fontSize: "0.85rem", color: "#1f2937", fontWeight: 500 }}>{label}</div>
+                      <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginTop: 2 }}>
+                        {entry.actorName} · {formatDate(entry.changedAt)}
                       </div>
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
-        )}
+        </div>}
 
       </div>
     </div>

@@ -177,6 +177,8 @@ export async function PATCH(req: NextRequest) {
       if (platform     !== undefined) data.platform     = platform
       if (assignedTo   !== undefined) data.assignedTo   = assignedTo
     }
+    // Auto-force lowest urgency whenever a ticket is closed
+    if (status === "סגור") data.urgency = "נמוך"
 
     const ticket = await prisma.ticket.update({ where: { id }, data })
 
@@ -189,8 +191,12 @@ export async function PATCH(req: NextRequest) {
     if (status !== undefined && status !== before.status) {
       historyEntries.push({ ticketId: id, field: "status", oldValue: before.status, newValue: status, actorName, actorEmail })
     }
+    // Urgency history: covers both auto-downgrade on close and explicit staff edits
+    const effectiveUrgency = data.urgency
+    if (effectiveUrgency !== undefined && effectiveUrgency !== before.urgency) {
+      historyEntries.push({ ticketId: id, field: "urgency", oldValue: before.urgency ?? null, newValue: effectiveUrgency, actorName, actorEmail })
+    }
     if (isStaff) {
-      if (urgency    !== undefined && urgency    !== before.urgency)    historyEntries.push({ ticketId: id, field: "urgency",    oldValue: before.urgency,    newValue: urgency,    actorName, actorEmail })
       if (assignedTo !== undefined && assignedTo !== before.assignedTo) historyEntries.push({ ticketId: id, field: "assignedTo", oldValue: before.assignedTo, newValue: assignedTo, actorName, actorEmail })
       // Generic "edited" entry for text-field changes (subject, description, phone, computerName, category, platform)
       const beforeFields: Record<string, string | null> = {
