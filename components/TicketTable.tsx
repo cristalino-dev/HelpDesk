@@ -36,6 +36,7 @@ import { useState } from "react"
 import type { Ticket } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
+import { isStaleOpen } from "@/lib/staleTicket"
 
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
 
@@ -121,7 +122,8 @@ function TicketCard({
   const canReopen  = isClosed && !!onReopen &&
     (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
-  const borderColor = isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
+  const isStale = !isClosed && isStaleOpen(ticket)
+  const borderColor = isStale ? "#f97316" : isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
   const openedDate = new Date(ticket.createdAt).toLocaleDateString("he-IL")
   const wdCount = isClosed
     ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
@@ -198,9 +200,9 @@ function TicketCard({
   if (isMobile) {
     return (
       <div style={{
-        backgroundColor: isClosed ? "#f9fafb" : "#fff",
+        backgroundColor: isStale ? "#fff8f2" : isClosed ? "#f9fafb" : "#fff",
         borderRadius: 12,
-        border: "1px solid #f3f4f6",
+        border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
         borderRight: `4px solid ${borderColor}`,
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         padding: "12px 14px",
@@ -239,6 +241,11 @@ function TicketCard({
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <span style={{ ...pill, ...urgencyStyle }}>{ticket.urgency}</span>
           <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
+          {isStale && (
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+              ⏰ {formatWorkdays(wdCount)}
+            </span>
+          )}
           {closeBtn}
           {reopenBtn}
         </div>
@@ -252,9 +259,9 @@ function TicketCard({
       onMouseEnter={() => setHoverId(ticket.id)}
       onMouseLeave={() => setHoverId(null)}
       style={{
-        backgroundColor: isClosed ? "#f9fafb" : "#fff",
+        backgroundColor: isStale ? "#fff8f2" : isClosed ? "#f9fafb" : "#fff",
         borderRadius: "12px",
-        border: "1px solid #f3f4f6",
+        border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
         borderRight: `4px solid ${borderColor}`,
         boxShadow: isHovered && !isClosed
           ? "0 4px 16px rgba(0,0,0,0.10)"
@@ -294,8 +301,15 @@ function TicketCard({
       {/* Urgency badge */}
       <span style={{ ...pill, ...urgencyStyle }}>{ticket.urgency}</span>
 
-      {/* Status badge */}
-      <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
+      {/* Status badge + stale indicator */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
+        {isStale && (
+          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+            ⏰ {formatWorkdays(wdCount)}
+          </span>
+        )}
+      </div>
 
       {/* Action area: hover-reveal close/reopen + arrow */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

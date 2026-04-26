@@ -69,6 +69,7 @@ import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
+import { isStaleOpen } from "@/lib/staleTicket"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -608,8 +609,8 @@ export default function AdminPage() {
               >{opt.label}</button>
             ))}
           </div>
-          {/* Sort buttons */}
-          <div style={{ display: "flex", gap: 4 }}>
+          {/* Sort buttons — on mobile wrap to own full-width scrollable row */}
+          <div style={{ display: "flex", gap: 4, ...(isMobile ? { order: 99, width: "100%", overflowX: "auto", paddingBottom: 2 } : {}) }}>
             {([
               { key: "urgency",   label: "דחיפות" },
               { key: "status",    label: "סטטוס" },
@@ -618,7 +619,7 @@ export default function AdminPage() {
               { key: "subject",   label: "נושא" },
             ] as const).map(col => (
               <button key={col.key} onClick={() => handleSort(col.key)}
-                style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700,
+                style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
                   background: sortKey === col.key ? "#ede9fe" : "#f3f4f6",
                   color:      sortKey === col.key ? "#4f46e5" : "#9ca3af" }}
               >
@@ -674,6 +675,7 @@ export default function AdminPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {displayTickets.map((ticket, i) => {
               const isClosed = ticket.status === "סגור"
+              const isStale = !isClosed && isStaleOpen(ticket)
               const wdOpen = isClosed
                 ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
                 : workdaysBetween(ticket.createdAt)
@@ -683,10 +685,10 @@ export default function AdminPage() {
                 onMouseEnter={() => setHoverId(ticket.id)}
                 onMouseLeave={() => setHoverId(null)}
                 style={{
-                  backgroundColor: "#fff",
+                  backgroundColor: isStale ? "#fff8f2" : "#fff",
                   borderRadius: "12px",
-                  border: "1px solid #f3f4f6",
-                  borderRight: `4px solid ${isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
+                  border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
+                  borderRight: `4px solid ${isStale ? "#f97316" : isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
                   boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)",
                   overflow: "hidden",
                   transition: "box-shadow 0.15s",
@@ -724,7 +726,12 @@ export default function AdminPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}), padding: "2px 8px" }}>{ticket.urgency}</span>
                       <span style={{ ...badge, ...(STATUS_STYLES[ticket.status] ?? {}), padding: "2px 8px" }}>{ticket.status}</span>
-                      <span style={{ fontSize: "0.68rem", color: "#9ca3af" }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
+                      <span style={{ fontSize: "0.68rem", color: isStale ? "#c2410c" : "#9ca3af", fontWeight: isStale ? 700 : 400 }}>
+                        {new Date(ticket.createdAt).toLocaleDateString("he-IL")} · {formatWorkdays(wdOpen)}
+                      </span>
+                      {isStale && (
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px" }}>⏰ מוזנח</span>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -787,10 +794,10 @@ export default function AdminPage() {
                   </div>
 
                   {/* Time + workdays */}
-                  <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "0.72rem", color: isStale ? "#c2410c" : "#9ca3af", textAlign: "left", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                     <div>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</div>
-                    <div style={{ color: isClosed ? "#16a34a" : "#6b7280", fontWeight: 600 }}>
-                      {isClosed ? `נסגר ${formatWorkdays(wdOpen)}` : formatWorkdays(wdOpen)}
+                    <div style={{ color: isStale ? "#c2410c" : isClosed ? "#16a34a" : "#6b7280", fontWeight: 600 }}>
+                      {isStale ? "⏰ " : ""}{isClosed ? `נסגר ${formatWorkdays(wdOpen)}` : formatWorkdays(wdOpen)}
                     </div>
                   </div>
 
