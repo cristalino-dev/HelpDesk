@@ -146,6 +146,7 @@ export default function AdminPage() {
   const [logText, setLogText] = useState("")
   const [logCount, setLogCount] = useState(0)
   const [logsLoading, setLogsLoading] = useState(false)
+  const [copyLogStatus, setCopyLogStatus] = useState(false)
   // Assignment
   const [assigning, setAssigning] = useState<string | null>(null)
   // Ticket-tab filters / sort
@@ -168,6 +169,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const res = await fetch("/api/tickets")
+      if (!res.ok) { setTickets([]); return }
       const data = await res.json()
       setTickets(Array.isArray(data) ? data : [])
     } catch {
@@ -279,6 +281,7 @@ export default function AdminPage() {
     setUsersLoading(true)
     try {
       const res = await fetch("/api/users")
+      if (!res.ok) { setUsers([]); return }
       const data = await res.json()
       setUsers(Array.isArray(data) ? data : [])
     } finally {
@@ -290,6 +293,7 @@ export default function AdminPage() {
     setLogsLoading(true)
     try {
       const res = await fetch(`/api/logs?date=${date}`)
+      if (!res.ok) { setLogText(""); setLogCount(0); return }
       const data = await res.json()
       if (!Array.isArray(data)) { setLogText(""); setLogCount(0); return }
       setLogCount(data.length)
@@ -307,6 +311,22 @@ export default function AdminPage() {
     } finally {
       setLogsLoading(false)
     }
+  }
+
+  const copyLogText = async () => {
+    await navigator.clipboard.writeText(logText)
+    setCopyLogStatus(true)
+    setTimeout(() => setCopyLogStatus(false), 2000)
+  }
+
+  const downloadLog = () => {
+    const blob = new Blob([logText], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `error-log-${logDate}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const saveUser = async () => {
@@ -524,6 +544,22 @@ export default function AdminPage() {
                 <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>
                   {logCount} {logCount === 1 ? "רשומה" : "רשומות"}
                 </span>
+              )}
+              {logText && !logsLoading && (
+                <>
+                  <button
+                    onClick={copyLogText}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: copyLogStatus ? "#dcfce7" : "#ede9fe", color: copyLogStatus ? "#166534" : "#4f46e5", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                  >
+                    {copyLogStatus ? "✓ הועתק" : "📋 העתק הכל"}
+                  </button>
+                  <button
+                    onClick={downloadLog}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: "#f0fdf4", color: "#15803d", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                  >
+                    ⬇️ הורד
+                  </button>
+                </>
               )}
             </div>
 

@@ -43,6 +43,7 @@ export default function AdminLogsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
+  const [copyAllStatus, setCopyAllStatus] = useState(false)
 
   const isAdmin = session?.user?.isAdmin
   const isStaff = session?.user?.email && STAFF_EMAILS.includes(session.user.email)
@@ -96,6 +97,31 @@ export default function AdminLogsPage() {
     navigator.clipboard.writeText(text)
     setCopyStatus(id)
     setTimeout(() => setCopyStatus(null), 2000)
+  }
+
+  const formatLogsAsText = (entries: LogEntry[]) =>
+    entries.map(e => {
+      const time = new Date(e.timestamp).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "medium" })
+      const src = e.source ? ` [${e.source}]` : ""
+      const stack = e.stack ? `\n${e.stack}` : ""
+      return `[${time}] [${e.level.toUpperCase()}]${src}\n${e.message}${stack}`
+    }).join("\n\n---\n\n")
+
+  const copyAllLogs = async () => {
+    await navigator.clipboard.writeText(formatLogsAsText(filteredLogs))
+    setCopyAllStatus(true)
+    setTimeout(() => setCopyAllStatus(false), 2000)
+  }
+
+  const downloadAllLogs = () => {
+    const text = formatLogsAsText(filteredLogs)
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `error-logs-${new Date().toISOString().slice(0, 10)}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const filteredLogs = logs.filter(log => 
@@ -211,6 +237,16 @@ export default function AdminLogsPage() {
             <button onClick={fetchLogs} style={{ padding: "10px 18px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
               🔄 רענן נתונים
             </button>
+            {filteredLogs.length > 0 && (
+              <>
+                <button onClick={copyAllLogs} style={{ padding: "10px 18px", borderRadius: 12, border: "1px solid #e2e8f0", background: copyAllStatus ? "#dcfce7" : "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: copyAllStatus ? "#166534" : "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+                  {copyAllStatus ? "✓ הועתק" : "📋 העתק הכל"}
+                </button>
+                <button onClick={downloadAllLogs} style={{ padding: "10px 18px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
+                  ⬇️ הורד
+                </button>
+              </>
+            )}
           </div>
           {isAdmin && (
             <button 
