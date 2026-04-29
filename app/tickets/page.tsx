@@ -55,6 +55,7 @@ export default function TicketsPage() {
   const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
   const [statFilter, setStatFilter] = useState<string | null>(null)
+  const [statsView, setStatsView]   = useState<"week" | "total">("week")
 
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading]   = useState(true)
@@ -222,6 +223,13 @@ export default function TicketsPage() {
     const today      = new Date().toDateString()
     const openedToday = tickets.filter(t => new Date(t.createdAt).toDateString() === today).length
     const closedToday = closed.filter(t => new Date(t.updatedAt).toDateString() === today).length
+    // Weekly stats (last 7 days)
+    const weekAgo        = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const weekTickets    = tickets.filter(t => new Date(t.createdAt) >= weekAgo)
+    const weekOpen       = weekTickets.filter(t => t.status === "פתוח").length
+    const weekInProgress = weekTickets.filter(t => t.status === "בטיפול").length
+    const weekClosed     = tickets.filter(t => t.status === "סגור" && new Date(t.updatedAt) >= weekAgo)
+    const weekClosedMs   = weekClosed.map(t => new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime())
     return {
       total: tickets.length,
       open,
@@ -232,6 +240,14 @@ export default function TicketsPage() {
       slowestClose: closedMs.length ? Math.max(...closedMs) : 0,
       openedToday,
       closedToday,
+      // weekly
+      weekTotal:        weekTickets.length,
+      weekOpen,
+      weekInProgress,
+      weekClosed:       weekClosed.length,
+      weekAvgClose:     avgMs(weekClosedMs),
+      weekFastestClose: weekClosedMs.length ? Math.min(...weekClosedMs) : 0,
+      weekSlowestClose: weekClosedMs.length ? Math.max(...weekClosedMs) : 0,
     }
   }, [tickets])
 
@@ -256,12 +272,18 @@ export default function TicketsPage() {
       )
     }
     if (statFilter) {
-      const today = new Date().toDateString()
-      if (statFilter === "open")        list = list.filter(t => t.status === "פתוח")
-      else if (statFilter === "inprog") list = list.filter(t => t.status === "בטיפול")
-      else if (statFilter === "closed") list = list.filter(t => t.status === "סגור")
-      else if (statFilter === "openedToday") list = list.filter(t => new Date(t.createdAt).toDateString() === today)
-      else if (statFilter === "closedToday") list = list.filter(t => t.status === "סגור" && new Date(t.updatedAt).toDateString() === today)
+      const today   = new Date().toDateString()
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      if      (statFilter === "open")         list = list.filter(t => t.status === "פתוח")
+      else if (statFilter === "inprog")       list = list.filter(t => t.status === "בטיפול")
+      else if (statFilter === "closed")       list = list.filter(t => t.status === "סגור")
+      else if (statFilter === "openedToday")  list = list.filter(t => new Date(t.createdAt).toDateString() === today)
+      else if (statFilter === "closedToday")  list = list.filter(t => t.status === "סגור" && new Date(t.updatedAt).toDateString() === today)
+      // weekly filter keys
+      else if (statFilter === "weekAll")      list = list.filter(t => new Date(t.createdAt) >= weekAgo)
+      else if (statFilter === "weekOpen")     list = list.filter(t => t.status === "פתוח"   && new Date(t.createdAt) >= weekAgo)
+      else if (statFilter === "weekInprog")   list = list.filter(t => t.status === "בטיפול" && new Date(t.createdAt) >= weekAgo)
+      else if (statFilter === "weekClosed")   list = list.filter(t => t.status === "סגור"   && new Date(t.updatedAt) >= weekAgo)
     }
     return [...list].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1
@@ -370,16 +392,41 @@ export default function TicketsPage() {
 
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
+        {/* ── Stats view toggle ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            {([{ key: "week" as const, label: "שבוע אחרון" }, { key: "total" as const, label: "סה״כ" }]).map(opt => (
+              <button key={opt.key}
+                onClick={() => { setStatsView(opt.key); setStatFilter(null) }}
+                style={{ padding: "7px 20px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem",
+                  background: statsView === opt.key ? "#0f172a" : "transparent",
+                  color:      statsView === opt.key ? "#fff"    : "#6b7280",
+                  transition: "all 0.15s" }}
+              >{opt.label}</button>
+            ))}
+          </div>
+          {statsView === "week" && (
+            <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>7 ימים אחרונים</span>
+          )}
+        </div>
+
         {/* ── Stats grid ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-          {[
-            { label: "סה״כ פניות",    value: stats.total,       color: "#6366f1", bg: "#eef2ff", filterKey: null },
-            { label: "פתוחות",        value: stats.open,         color: "#2563eb", bg: "#eff6ff", filterKey: "open" },
-            { label: "בטיפול",        value: stats.inProgress,   color: "#d97706", bg: "#fffbeb", filterKey: "inprog" },
-            { label: "סגורות",        value: stats.closedCount,  color: "#16a34a", bg: "#f0fdf4", filterKey: "closed" },
-            { label: "נפתחו היום",    value: stats.openedToday,  color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" },
-            { label: "נסגרו היום",    value: stats.closedToday,  color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" },
-          ].map(s => {
+          {(statsView === "week" ? [
+            { label: "פניות השבוע",  value: stats.weekTotal,       color: "#6366f1", bg: "#eef2ff", filterKey: "weekAll"     as string | null },
+            { label: "פתוחות",       value: stats.weekOpen,         color: "#2563eb", bg: "#eff6ff", filterKey: "weekOpen"    as string | null },
+            { label: "בטיפול",       value: stats.weekInProgress,   color: "#d97706", bg: "#fffbeb", filterKey: "weekInprog"  as string | null },
+            { label: "נסגרו השבוע",  value: stats.weekClosed,       color: "#16a34a", bg: "#f0fdf4", filterKey: "weekClosed"  as string | null },
+            { label: "נפתחו היום",   value: stats.openedToday,      color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
+            { label: "נסגרו היום",   value: stats.closedToday,      color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" as string | null },
+          ] : [
+            { label: "סה״כ פניות",  value: stats.total,            color: "#6366f1", bg: "#eef2ff", filterKey: null                           },
+            { label: "פתוחות",       value: stats.open,              color: "#2563eb", bg: "#eff6ff", filterKey: "open"        as string | null },
+            { label: "בטיפול",       value: stats.inProgress,        color: "#d97706", bg: "#fffbeb", filterKey: "inprog"      as string | null },
+            { label: "סגורות",       value: stats.closedCount,       color: "#16a34a", bg: "#f0fdf4", filterKey: "closed"      as string | null },
+            { label: "נפתחו היום",   value: stats.openedToday,       color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
+            { label: "נסגרו היום",   value: stats.closedToday,       color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" as string | null },
+          ]).map(s => {
             const isActive = statFilter === s.filterKey && s.filterKey !== null
             return (
               <button
@@ -396,12 +443,12 @@ export default function TicketsPage() {
         </div>
 
         {/* ── Resolution stats ── */}
-        {stats.closedCount > 0 && (
+        {(statsView === "week" ? stats.weekClosed : stats.closedCount) > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
             {[
-              { label: "זמן סגירה ממוצע", value: formatDuration(stats.avgClose),     color: "#059669", bg: "#ecfdf5" },
-              { label: "סגירה מהירה ביותר", value: formatDuration(stats.fastestClose), color: "#2563eb", bg: "#eff6ff" },
-              { label: "סגירה ארוכה ביותר", value: formatDuration(stats.slowestClose), color: "#dc2626", bg: "#fef2f2" },
+              { label: "זמן סגירה ממוצע",    value: formatDuration(statsView === "week" ? stats.weekAvgClose     : stats.avgClose),      color: "#059669", bg: "#ecfdf5" },
+              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: "#2563eb", bg: "#eff6ff" },
+              { label: "סגירה ארוכה ביותר",  value: formatDuration(statsView === "week" ? stats.weekSlowestClose : stats.slowestClose),  color: "#dc2626", bg: "#fef2f2" },
             ].map(s => (
               <div key={s.label} style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: `1px solid ${s.bg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
                 <div style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, marginBottom: 4 }}>{s.label}</div>
@@ -449,7 +496,12 @@ export default function TicketsPage() {
         {/* Active stat filter indicator */}
         {statFilter && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: "0.82rem", color: "#1e40af" }}>
-            <span>מסנן: {statFilter === "open" ? "פתוחות" : statFilter === "inprog" ? "בטיפול" : statFilter === "closed" ? "סגורות" : statFilter === "openedToday" ? "נפתחו היום" : "נסגרו היום"}</span>
+            <span>מסנן: {({
+              open: "פתוחות", inprog: "בטיפול", closed: "סגורות",
+              openedToday: "נפתחו היום", closedToday: "נסגרו היום",
+              weekAll: "פניות השבוע", weekOpen: "פתוחות השבוע",
+              weekInprog: "בטיפול השבוע", weekClosed: "נסגרו השבוע",
+            } as Record<string, string>)[statFilter] ?? statFilter}</span>
             <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#2563eb", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
           </div>
         )}
