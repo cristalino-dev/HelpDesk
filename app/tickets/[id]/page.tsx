@@ -49,6 +49,7 @@ export default function TicketDetailPage() {
   const [replyTo, setReplyTo]       = useState<{ email: string; name: string; msgId: string } | null>(null)
   const [assigning, setAssigning]   = useState(false)
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null)
+  const [closing, setClosing]       = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -190,6 +191,21 @@ export default function TicketDetailPage() {
     }
   }
 
+  const closeTicket = async () => {
+    if (!ticket) return
+    setClosing(true)
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: ticket.id, status: "סגור" }),
+      })
+      if (res.ok) await load()
+    } finally {
+      setClosing(false)
+    }
+  }
+
   if (status === "loading" || loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
@@ -224,6 +240,15 @@ export default function TicketDetailPage() {
             style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "#f3f4f6", cursor: "pointer", fontSize: "0.85rem", color: "#374151", fontWeight: 600 }}
           >
             ✏️ עריכה
+          </button>
+        )}
+        {!isStaff && ticket.status !== "סגור" && ticket.user?.email === session?.user?.email && (
+          <button
+            onClick={closeTicket}
+            disabled={closing}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "#e5e7eb" : "#fee2e2", color: closing ? "#9ca3af" : "#dc2626", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
+          >
+            {closing ? "סוגר..." : "סגור פנייה"}
           </button>
         )}
         {isStaff && editing && (

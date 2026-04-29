@@ -1,6 +1,6 @@
 "use client"
 import { useSession, signIn } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 
@@ -55,10 +55,12 @@ function FieldLabel({ label, hint, required }: { label: string; hint?: string; r
 
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function OpenTicketPage() {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
     subject: "",
     description: "",
     phone: "",
@@ -74,6 +76,26 @@ export default function OpenTicketPage() {
   const [showTooltip, setShowTooltip] = useState(false)
 
   const urgColor = URGENCY_COLORS[form.urgency]
+
+  // Pre-fill phone, computerName, and name from saved profile when the user is authenticated
+  useEffect(() => {
+    if (status !== "authenticated") return
+    fetch("/api/profile")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return
+        const nameParts = (d.name ?? session?.user?.name ?? "").split(" ")
+        setForm(f => ({
+          ...f,
+          firstName: nameParts[0] ?? f.firstName,
+          lastName: nameParts.slice(1).join(" ") || f.lastName,
+          phone: d.phone ?? f.phone,
+          computerName: d.station ?? f.computerName,
+        }))
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,6 +117,13 @@ export default function OpenTicketPage() {
         })
       }
       setSubmitted({ ticketNumber: created.ticketNumber, subject: form.subject })
+      // Save personal details to profile so they are pre-filled on the next visit
+      const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ")
+      void fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName || undefined, phone: form.phone, station: form.computerName }),
+      }).then(r => { if (r.ok && fullName) void update({ name: fullName }) }).catch(() => {})
     } catch {
       setError("אירעה שגיאה בשליחת הפנייה. נסו שנית.")
     } finally {
@@ -212,7 +241,7 @@ export default function OpenTicketPage() {
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <button
-                onClick={() => { setSubmitted(null); setForm({ subject: "", description: "", phone: "", computerName: "", urgency: "בינוני", category: "אחר", platform: "מחשב אישי" }); setPendingImages([]) }}
+                onClick={() => { setSubmitted(null); setForm(f => ({ ...f, subject: "", description: "", urgency: "בינוני", category: "אחר", platform: "מחשב אישי" })); setPendingImages([]) }}
                 style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer" }}
               >
                 + פתח פנייה נוספת
@@ -242,6 +271,30 @@ export default function OpenTicketPage() {
             </div>
 
             <form onSubmit={handleSubmit} style={{ padding: "28px", display: "flex", flexDirection: "column", gap: 22 }}>
+
+              {/* Name */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <FieldLabel label="שם פרטי" required />
+                  <input
+                    required
+                    value={form.firstName}
+                    onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
+                    placeholder="ישראל"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <FieldLabel label="שם משפחה" required />
+                  <input
+                    required
+                    value={form.lastName}
+                    onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
+                    placeholder="ישראלי"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
 
               {/* Subject */}
               <div>
