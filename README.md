@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.06** — Full-text search on all pages, mobile-first UI, clickable stat-card filters
+**Version 3.12** — Centralized ticket mutations, workdays tracking, audit history, profile pre-fill
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -20,10 +20,15 @@ A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit
 - **Service ratings** — automatic rating request email after closure; 1–5 star review dashboard
 - **Staff collaboration** — technician notes with @mention email notifications and image support
 - **Two-way chat** — direct messaging between user and staff with email notifications
-- **Stale ticket warning** — visual flag on open/in-progress tickets idle for 5+ days
+- **Stale ticket warning** — visual flag (orange) on open/in-progress tickets idle for 4+ workdays (Israeli Sun-Thu week)
+- **Workdays display** — open duration shown in business days everywhere (e.g. "יע 3")
+- **Ticket history** — full audit trail of every field change with actor and timestamp
+- **Profile pre-fill** — /open and dashboard forms pre-populate name, phone, computer from saved profile
+- **Self-close** — users can close their own tickets from the ticket detail page
+- **Compound closure** — closing always auto-downgrades urgency to "נמוך" (server-enforced, single source of truth)
 - **Role-based access** — Employee / Staff / Viewer / Admin with per-role page guards
 - **Hebrew RTL** — full right-to-left layout throughout
-- **Error monitoring** — admin log viewer with live filtering and stack-trace clipboard copy
+- **Error monitoring** — admin log viewer with live filtering, copy-all and download buttons
 - **Daily digest** — scheduled email summary of open tickets to staff each morning
 
 ---

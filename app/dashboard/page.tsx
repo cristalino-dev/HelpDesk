@@ -49,6 +49,7 @@ import type { Ticket } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { useIsMobile } from "@/lib/useIsMobile"
+import { closeTicket as apiCloseTicket, setTicketStatus } from "@/lib/ticketApi"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -84,20 +85,13 @@ export default function DashboardPage() {
   }
 
   const closeTicket = async (id: string) => {
-    await fetch("/api/tickets", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "סגור" }),
-    })
+    // Urgency is automatically downgraded to "נמוך" by the server on closure
+    await apiCloseTicket(id)
     await loadTickets()
   }
 
   const reopenTicket = async (id: string) => {
-    await fetch("/api/tickets", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "פתוח" }),
-    })
+    await setTicketStatus(id, "פתוח")
     await loadTickets()
   }
 

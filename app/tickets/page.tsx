@@ -11,6 +11,7 @@ import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import { isStaleOpen, openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
+import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -96,11 +97,7 @@ export default function TicketsPage() {
   const assignTicket = async (ticketId: string, email: string) => {
     setAssigning(ticketId)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: ticketId, assignedTo: email }),
-      })
+      await updateTicket(ticketId, { assignedTo: email })
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: email } : t))
     } finally {
       setAssigning(null)
@@ -167,11 +164,7 @@ export default function TicketsPage() {
     if (!editingId) return
     setEditSaving(true)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingId, ...editForm }),
-      })
+      await updateTicket(editingId, editForm)
       setEditingId(null)
       await load()
     } finally {
@@ -209,13 +202,10 @@ export default function TicketsPage() {
   }, [status, session])
 
   const updateStatus = async (id: string, newStatus: string) => {
+    // Closing (status === "סגור") also downgrades urgency to "נמוך" — handled server-side
     setUpdating(id)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: newStatus }),
-      })
+      await setTicketStatus(id, newStatus)
       await load()
     } finally {
       setUpdating(null)

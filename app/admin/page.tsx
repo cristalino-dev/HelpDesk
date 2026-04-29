@@ -70,6 +70,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
+import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -232,13 +233,10 @@ export default function AdminPage() {
   }, [tickets, showAll, ticketSearch, sortKey, sortDir, statFilter])
 
   const updateStatus = async (id: string, newStatus: string) => {
+    // Closing (status === "סגור") also downgrades urgency to "נמוך" — handled server-side
     setUpdating(id)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: newStatus }),
-      })
+      await setTicketStatus(id, newStatus)
       await loadTickets()
     } finally {
       setUpdating(null)
@@ -249,11 +247,7 @@ export default function AdminPage() {
   const assignTicket = async (ticketId: string, email: string) => {
     setAssigning(ticketId)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: ticketId, assignedTo: email }),
-      })
+      await updateTicket(ticketId, { assignedTo: email })
       // Optimistic local update so the row reflects the change immediately
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: email } : t))
     } finally {
@@ -265,11 +259,7 @@ export default function AdminPage() {
     if (!editingTicketId) return
     setEditSaving(true)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingTicketId, ...editForm }),
-      })
+      await updateTicket(editingTicketId, editForm)
       setEditingTicketId(null)
       await loadTickets()
     } finally {

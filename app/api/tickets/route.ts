@@ -177,7 +177,11 @@ export async function PATCH(req: NextRequest) {
       if (platform     !== undefined) data.platform     = platform
       if (assignedTo   !== undefined) data.assignedTo   = assignedTo
     }
-    // Auto-force lowest urgency whenever a ticket is closed
+    // COMPOUND CLOSE — single source of truth for ticket closure.
+    // Any PATCH with status → "סגור" (any role) also downgrades urgency to
+    // "נמוך". Keeps the queue sorted and prevents stale high-urgency from
+    // appearing on closed tickets. Client code must not duplicate this logic;
+    // see lib/ticketApi.ts closeTicket() for the canonical client-side call.
     if (status === "סגור") data.urgency = "נמוך"
 
     const ticket = await prisma.ticket.update({ where: { id }, data })

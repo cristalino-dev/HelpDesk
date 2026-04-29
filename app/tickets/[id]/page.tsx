@@ -6,6 +6,7 @@ import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import type { TicketDetail, TicketNote, TicketMessage, TicketHistoryEntry } from "@/types/ticket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
+import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "נמוך":   { background: "#dcfce7", color: "#166534" },
@@ -100,12 +101,8 @@ export default function TicketDetailPage() {
     if (!ticket) return
     setEditSaving(true)
     try {
-      const res = await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: ticket.id, ...editForm }),
-      })
-      if (res.ok) { setEditing(false); await load() }
+      const ok = await updateTicket(ticket.id, editForm)
+      if (ok) { setEditing(false); await load() }
     } finally {
       setEditSaving(false)
     }
@@ -180,11 +177,7 @@ export default function TicketDetailPage() {
     if (!ticket) return
     setAssigning(true)
     try {
-      await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: ticket.id, assignedTo: email }),
-      })
+      await updateTicket(ticket.id, { assignedTo: email })
       await load()
     } finally {
       setAssigning(false)
@@ -195,12 +188,9 @@ export default function TicketDetailPage() {
     if (!ticket) return
     setClosing(true)
     try {
-      const res = await fetch("/api/tickets", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: ticket.id, status: "סגור" }),
-      })
-      if (res.ok) await load()
+      // Urgency is automatically downgraded to "נמוך" by the server on closure
+      const ok = await apiCloseTicket(ticket.id)
+      if (ok) await load()
     } finally {
       setClosing(false)
     }

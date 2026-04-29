@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 1.10 · Last updated 2026-04-19 · v2.12 Release
+> Version 1.11 · Last updated 2026-04-29 · v3.12 Release
 
 ---
 
@@ -668,7 +668,7 @@ The `Log` table stores all error events from both client and server. It is used 
 | GET/POST | `/api/auth/[...nextauth]` | — | NextAuth OAuth handler (managed by library) |
 | GET | `/api/tickets` | User | Own tickets (or all tickets if admin) |
 | POST | `/api/tickets` | User | Create new ticket |
-| PATCH | `/api/tickets` | Admin | Update ticket fields: `status`, `assignedTo`, and other editable fields |
+| PATCH | `/api/tickets` | Staff/User | Update ticket fields. **Closure is compound**: setting `status="סגור"` also forces `urgency="נמוך"` (single source of truth — see `lib/ticketApi.ts`). Users may close/reopen own tickets; staff may edit all fields |
 | GET | `/api/tickets/[id]` | User | Full ticket detail with messages, notes, and attachments |
 | POST | `/api/tickets/[id]/messages` | User | Post a conversation message. Accepts optional `replyToEmail`, `replyToName`, `replyToMsgId` to target a reply at a specific participant — sends them a deep-link notification email and avoids double-notifying via the general message email |
 | GET | `/api/profile` | User | Get own name/phone/station |
