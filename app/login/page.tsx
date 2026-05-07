@@ -75,7 +75,7 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          onClick={() => signIn("google", { callbackUrl: "/dashboard" }, { prompt: "select_account" })}
           style={{
             display: "flex",
             alignItems: "center",
