@@ -191,7 +191,12 @@ ssh -i "$KEY" -o StrictHostKeyChecking=no "$USER@$SERVER" bash << 'ENDSSH'
 
   # Stop app
   pm2 stop helpdesk 2>/dev/null || true
-  sleep 2
+  sleep 1
+
+  # Kill anything still holding port 3000 (orphaned maintenance server from a
+  # previous failed deploy) so the new maintenance server can bind cleanly.
+  fuser -k 3000/tcp 2>/dev/null || true
+  sleep 1
 
   # Start maintenance server if it exists from a previous deploy.
   # It reads /home/ubuntu/helpdesk/maintenance.html (already uploaded above)

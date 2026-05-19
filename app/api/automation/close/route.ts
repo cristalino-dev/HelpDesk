@@ -42,6 +42,10 @@
  *    and sends the owner an email notification.
  * 5. Sends the standard closure email (review request) to the ticket owner.
  * 6. Sends a staff update email (excluding helpdesk@ to avoid self-notification).
+ * 7. Runs a fire-and-forget urgency sweep — finds any closed tickets (status
+ *    "סגור") whose urgency is not "נמוך" and corrects them. This is a safety
+ *    net for tickets closed via paths that didn't enforce the compound-close
+ *    invariant (direct DB edits, legacy scripts, etc.).
  *
  * IDEMPOTENT:
  * ────────────
@@ -274,6 +278,15 @@ export async function POST(req: NextRequest) {
     }
 
     void Promise.all(mails)
+
+    // ── Urgency sweep — fix any closed tickets with stale high urgency ──────
+    // Runs fire-and-forget after every successful closure. Catches tickets
+    // that were closed via a path that didn't enforce the compound-close
+    // invariant (direct DB edits, legacy scripts, etc.).
+    void prisma.ticket.updateMany({
+      where: { status: "סגור", urgency: { not: "נמוך" } },
+      data:  { urgency: "נמוך" },
+    })
 
     // ── Response ───────────────────────────────────────────────────────────
     return NextResponse.json({
