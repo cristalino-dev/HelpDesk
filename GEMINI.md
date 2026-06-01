@@ -5,9 +5,9 @@
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
 Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
 
-**Current version:** 3.06  
+**Current version:** 3.17  
 **Live:** https://helpdesk.cristalino.co.il  
-**Tests:** 133 passing (13 suites)
+**Tests:** 364 passing (30 suites)
 
 **Key Features:**
 - **Google OAuth Authentication** — strictly for `@cristalino.co.il` accounts
@@ -22,6 +22,10 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **Service ratings** — 1–5 stars with comment; admin review dashboard
 - **Error logging** — ErrorBoundary + ClientErrorHandler + server logError() → DB Log table
 - **RTL & Hebrew** — full Right-to-Left styling natively applied across all portals
+- **Automated Closure API** — external scripts can securely close tickets using an API key (`/api/automation/close`)
+- **Account Switcher** — login page forces Google prompt to allow switching active account
+- **Weekly Stats View** — staff view displays performance charts/metrics for the last 7 days
+- **Periodic Urgency Sweep** — cron job executes every 5 minutes on the server to ensure closed tickets adhere to the compound-close invariant (urgency set to `"נמוך"`)
 
 ## 2. Technology Stack
 
@@ -73,4 +77,4 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 
 ---
 
-*Production Build v3.06 — Full-text search, mobile-first, clickable stat filters (Ubuntu/PM2). Updated 2026-04-23.*
+*Production Build v3.17 — Automated closed-ticket urgency sweeps, automated closure API, account switcher, weekly stats (Ubuntu/PM2). Updated 2026-06-01.*
