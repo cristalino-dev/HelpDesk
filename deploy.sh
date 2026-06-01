@@ -268,10 +268,33 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/di
 CRONSCRIPT
   chmod +x /home/ubuntu/helpdesk/send-digest.sh
 
-  # Install cron entry (idempotent — removes old entry then re-adds)
-  (crontab -l 2>/dev/null | grep -v "send-digest.sh"; \
-   echo "TZ=Asia/Jerusalem 0 9 * * * /home/ubuntu/helpdesk/send-digest.sh") | crontab -
-  echo "Digest cron installed: 09:00 Israel time daily"
+  # ── Ticket urgency sweep cron (every 5 minutes) ─────────────────────────
+  echo "Setting up ticket urgency sweep cron..."
+  cat > /home/ubuntu/helpdesk/run-sweep.sh << 'SWEEPSCRIPT'
+#!/bin/bash
+# Read SWEEP_SECRET or fall back to DIGEST_SECRET from the deployed .env.local
+SECRET=$(grep -E '^SWEEP_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+  | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
+if [ -z "$SECRET" ]; then
+  SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+    | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
+fi
+if [ -z "$SECRET" ]; then
+  echo "[sweep] Neither SWEEP_SECRET nor DIGEST_SECRET is set — skipping" >> /home/ubuntu/helpdesk/logs/sweep.log
+  exit 0
+fi
+RESULT=$(curl -sf -X POST "http://localhost:3000/api/admin/sweep" \
+  -H "x-sweep-secret: ${SECRET}" \
+  -H "Content-Type: application/json" 2>&1)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/sweep.log
+SWEEPSCRIPT
+  chmod +x /home/ubuntu/helpdesk/run-sweep.sh
+
+  # Install cron entries (idempotent — removes old entries then re-adds)
+  (crontab -l 2>/dev/null | grep -v "send-digest.sh" | grep -v "run-sweep.sh"; \
+   echo "TZ=Asia/Jerusalem 0 9 * * * /home/ubuntu/helpdesk/send-digest.sh"; \
+   echo "*/5 * * * * /home/ubuntu/helpdesk/run-sweep.sh") | crontab -
+  echo "Digest & Sweep crons installed"
 
   echo ""
   echo "=== Port 3000 ==="

@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.12** — Centralized ticket mutations, workdays tracking, audit history, profile pre-fill
+**Version 3.17** — Periodic closed-ticket urgency sweep, automated closure API, account switcher, weekly stats
 
 A Hebrew RTL internal helpdesk system built for Cristalino LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -226,6 +226,17 @@ npm run dev
 | 3.04    | STAFF: Restore alon@cristalino.co.il to STAFF_EMAILS |
 | 3.05    | MOBILE: Hamburger menus on all staff pages; clickable stat-card filters |
 | 3.06    | SEARCH: Full-text search on all pages; dashboard search + stat-filter combo; fix Rules of Hooks |
+| 3.07    | QUICK SUBMIT: /open shortcut page (no-login ticket form redirect) |
+| 3.08    | WORKDAYS: Business days count display (Israeli Sun-Thu week); ticket audit history timeline |
+| 3.09    | STALE HIGH: Stale red highlighting in all ticket lists; admin mobile layout fix |
+| 3.10    | LOG EXPORT: Copy and download buttons for error logs; r.ok guards on all fetch().json() calls |
+| 3.11    | PROFILE PRE-FILL: /open form pre-fills from profile (name/phone/computer); self-close button on ticket page |
+| 3.12    | CENTRALIZED API: Centralized ticket mutation helpers (lib/ticketApi.ts); compound close invariant |
+| 3.13    | WEEKLY STATS: Weekly stats view on /tickets — default to last 7 days |
+| 3.14    | M2M CLOSE: POST /api/automation/close — machine-to-machine ticket closure |
+| 3.15    | OAUTH: Force Google account picker on login — allow switching accounts |
+| 3.16    | URGENCIES: Urgency sweep on close + /open onboarding redirect |
+| 3.17    | SWEEP CRON: Periodic closed-ticket urgency sweep (runs every 5 minutes on AWS) |
 
 ---
 

@@ -128,14 +128,22 @@ export default function OpenTicketPage() {
           body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
         })
       }
-      setSubmitted({ ticketNumber: created.ticketNumber, subject: form.subject })
       // Save personal details to profile so they are pre-filled on the next visit
       const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ")
-      void fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName || undefined, phone: form.phone, station: form.computerName }),
-      }).then(r => { if (r.ok && fullName) void update({ name: fullName }) }).catch(() => {})
+      try {
+        const profileRes = await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: fullName || undefined, phone: form.phone, station: form.computerName }),
+        })
+        if (profileRes.ok && fullName) {
+          await update({ name: fullName })
+        }
+      } catch (profileErr) {
+        console.error("Failed to save profile on ticket open:", profileErr)
+      }
+
+      setSubmitted({ ticketNumber: created.ticketNumber, subject: form.subject })
     } catch {
       setError("אירעה שגיאה בשליחת הפנייה. נסו שנית.")
     } finally {
