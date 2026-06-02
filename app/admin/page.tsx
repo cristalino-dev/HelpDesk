@@ -554,7 +554,7 @@ export default function AdminPage() {
                       </button>
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "0.82rem", color: "#374151", fontWeight: 600 }}>בטוח? הפעולה בלתי הפיכה.</span>
+                        <span style={{ fontSize: "0.82rem", color: "#374151", fontWeight: 600 }}>בטוח? הפניות יועברו לחשבון helpdesk.</span>
                         <button
                           onClick={deleteUser}
                           disabled={userDeleting}

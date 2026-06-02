@@ -125,18 +125,19 @@ export async function PATCH(req: NextRequest) {
 /**
  * DELETE /api/users
  *
- * Permanently deletes a user account. Admin-only. Blocked if the user has
- * any tickets — ticket history must be preserved even when employees leave.
- * Also blocked for self-deletion.
+ * Permanently deletes a user account. Admin-only.
+ * If the user owns tickets, those tickets are first reassigned to the
+ * helpdesk fallback account (helpdesk@cristalino.co.il), which is
+ * created automatically if it doesn't already exist as a User record.
+ * Self-deletion is blocked.
  *
  * REQUEST BODY (JSON):
  *   id  {string}  CUID of the user to delete (required)
  *
  * RESPONSES:
- *   200 — { ok: true }
+ *   200 — { ok: true, reassigned: <count of reassigned tickets> }
  *   400 — Attempted self-deletion
  *   403 — Not an admin
- *   409 — User has existing tickets (cannot delete)
  *   500 — Database error (logged)
  */
 export async function DELETE(req: NextRequest) {
@@ -152,17 +153,21 @@ export async function DELETE(req: NextRequest) {
       if (self?.id === id) return NextResponse.json({ error: "לא ניתן למחוק את המשתמש שלך" }, { status: 400 })
     }
 
-    // Block deletion if the user owns any tickets (preserve history)
-    const ticketCount = await prisma.ticket.count({ where: { userId: id } })
-    if (ticketCount > 0) {
-      return NextResponse.json(
-        { error: `לא ניתן למחוק משתמש עם ${ticketCount} פניות קיימות` },
-        { status: 409 }
-      )
-    }
+    // Find or create the helpdesk fallback account that will inherit the tickets
+    const fallback = await prisma.user.upsert({
+      where:  { email: "helpdesk@cristalino.co.il" },
+      create: { email: "helpdesk@cristalino.co.il", name: "Helpdesk" },
+      update: {},
+    })
+
+    // Reassign all of the deleted user's tickets to the fallback account
+    const { count: reassigned } = await prisma.ticket.updateMany({
+      where: { userId: id },
+      data:  { userId: fallback.id },
+    })
 
     await prisma.user.delete({ where: { id } })
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, reassigned })
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/users DELETE", e.stack)
