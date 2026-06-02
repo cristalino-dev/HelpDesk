@@ -142,6 +142,9 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("")
   const [editingUser, setEditingUser] = useState<UserRow | null>(null)
   const [userSaving, setUserSaving] = useState(false)
+  const [userDeleting, setUserDeleting] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   // Logs tab
   const [logDate, setLogDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [logText, setLogText] = useState("")
@@ -329,9 +332,38 @@ export default function AdminPage() {
         body: JSON.stringify(editingUser),
       })
       await loadUsers()
-      setEditingUser(null)
+      closeEditModal()
     } finally {
       setUserSaving(false)
+    }
+  }
+
+  const closeEditModal = () => {
+    setEditingUser(null)
+    setDeleteConfirm(false)
+    setDeleteError(null)
+  }
+
+  const deleteUser = async () => {
+    if (!editingUser) return
+    setUserDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch("/api/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingUser.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDeleteError(data.error ?? "שגיאה במחיקה")
+        setDeleteConfirm(false)
+        return
+      }
+      await loadUsers()
+      closeEditModal()
+    } finally {
+      setUserDeleting(false)
     }
   }
 
@@ -503,7 +535,41 @@ export default function AdminPage() {
                     <button onClick={saveUser} disabled={userSaving} style={{ background: "linear-gradient(135deg, #4f46e5, #2563eb)", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
                       {userSaving ? "שומר..." : "שמור"}
                     </button>
-                    <button onClick={() => setEditingUser(null)} style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
+                    <button onClick={closeEditModal} style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
+                  </div>
+
+                  {/* Delete section */}
+                  <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginTop: 2 }}>
+                    {deleteError && (
+                      <div style={{ marginBottom: 10, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: "0.8rem", color: "#b91c1c" }}>
+                        {deleteError}
+                      </div>
+                    )}
+                    {!deleteConfirm ? (
+                      <button
+                        onClick={() => { setDeleteConfirm(true); setDeleteError(null) }}
+                        style={{ background: "none", border: "1px solid #fca5a5", color: "#dc2626", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.82rem" }}
+                      >
+                        🗑 מחק משתמש
+                      </button>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "0.82rem", color: "#374151", fontWeight: 600 }}>בטוח? הפעולה בלתי הפיכה.</span>
+                        <button
+                          onClick={deleteUser}
+                          disabled={userDeleting}
+                          style={{ background: "#dc2626", color: "#fff", fontWeight: 700, padding: "7px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.82rem", opacity: userDeleting ? 0.6 : 1 }}
+                        >
+                          {userDeleting ? "מוחק..." : "כן, מחק"}
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(false)}
+                          style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "7px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.82rem" }}
+                        >
+                          ביטול
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

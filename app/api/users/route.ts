@@ -121,3 +121,51 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
+
+/**
+ * DELETE /api/users
+ *
+ * Permanently deletes a user account. Admin-only. Blocked if the user has
+ * any tickets — ticket history must be preserved even when employees leave.
+ * Also blocked for self-deletion.
+ *
+ * REQUEST BODY (JSON):
+ *   id  {string}  CUID of the user to delete (required)
+ *
+ * RESPONSES:
+ *   200 — { ok: true }
+ *   400 — Attempted self-deletion
+ *   403 — Not an admin
+ *   409 — User has existing tickets (cannot delete)
+ *   500 — Database error (logged)
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    const { id } = await req.json()
+
+    // Prevent self-deletion
+    if (session.user.email) {
+      const self = await prisma.user.findUnique({ where: { email: session.user.email } })
+      if (self?.id === id) return NextResponse.json({ error: "לא ניתן למחוק את המשתמש שלך" }, { status: 400 })
+    }
+
+    // Block deletion if the user owns any tickets (preserve history)
+    const ticketCount = await prisma.ticket.count({ where: { userId: id } })
+    if (ticketCount > 0) {
+      return NextResponse.json(
+        { error: `לא ניתן למחוק משתמש עם ${ticketCount} פניות קיימות` },
+        { status: 409 }
+      )
+    }
+
+    await prisma.user.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/users DELETE", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
+}
