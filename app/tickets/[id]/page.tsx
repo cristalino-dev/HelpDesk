@@ -232,6 +232,15 @@ export default function TicketDetailPage() {
             ✏️ עריכה
           </button>
         )}
+        {session?.user?.isAdmin && ticket.status !== "סגור" && !editing && (
+          <button
+            onClick={closeTicket}
+            disabled={closing}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "#e5e7eb" : "#166534", color: closing ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
+          >
+            {closing ? "סוגר..." : "✓ סגור פנייה"}
+          </button>
+        )}
         {!isStaff && ticket.status !== "סגור" && ticket.user?.email === session?.user?.email && (
           <button
             onClick={closeTicket}
