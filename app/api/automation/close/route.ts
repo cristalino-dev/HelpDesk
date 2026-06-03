@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
     if (hasFieldEdit) {
       historyEntries.push({ ticketId: before.id, field: "edited", actorName, actorEmail })
     }
-    void prisma.ticketHistory.createMany({ data: historyEntries })
+    await prisma.ticketHistory.createMany({ data: historyEntries })
 
     // ── Technician note (internal, staff-only) ─────────────────────────────
     if (note?.trim()) {

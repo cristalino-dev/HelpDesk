@@ -222,7 +222,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (historyEntries.length > 0) {
-      void prisma.ticketHistory.createMany({ data: historyEntries })
+      await prisma.ticketHistory.createMany({ data: historyEntries })
     }
 
     // Send email notifications (non-blocking)
