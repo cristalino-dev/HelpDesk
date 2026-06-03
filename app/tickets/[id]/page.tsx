@@ -51,6 +51,7 @@ export default function TicketDetailPage() {
   const [assigning, setAssigning]   = useState(false)
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null)
   const [closing, setClosing]       = useState(false)
+  const [copied, setCopied]         = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -196,6 +197,26 @@ export default function TicketDetailPage() {
     }
   }
 
+  // Admin-only: assign to self → compound-close (status→סגור, urgency→נמוך)
+  const adminCloseTicket = async () => {
+    if (!ticket || !session?.user?.email) return
+    setClosing(true)
+    try {
+      await updateTicket(ticket.id, { assignedTo: session.user.email })
+      const ok = await apiCloseTicket(ticket.id)
+      if (ok) await load()
+    } finally {
+      setClosing(false)
+    }
+  }
+
+  const copyLink = () => {
+    const url = `${window.location.origin}/tickets/HDTC-${ticket?.ticketNumber}`
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (status === "loading" || loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
@@ -234,13 +255,19 @@ export default function TicketDetailPage() {
         )}
         {session?.user?.isAdmin && ticket.status !== "סגור" && !editing && (
           <button
-            onClick={closeTicket}
+            onClick={adminCloseTicket}
             disabled={closing}
             style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "#e5e7eb" : "#166534", color: closing ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
           >
-            {closing ? "סוגר..." : "✓ סגור פנייה"}
+            {closing ? "סוגר..." : "✓ סגור וקח אחריות"}
           </button>
         )}
+        <button
+          onClick={copyLink}
+          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: copied ? "#f0fdf4" : "#fff", color: copied ? "#166534" : "#6b7280", fontSize: "0.82rem", cursor: "pointer", fontWeight: 600, transition: "all 0.15s" }}
+        >
+          {copied ? "✓ הועתק" : "🔗 העתק קישור"}
+        </button>
         {!isStaff && ticket.status !== "סגור" && ticket.user?.email === session?.user?.email && (
           <button
             onClick={closeTicket}
