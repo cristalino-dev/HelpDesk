@@ -184,6 +184,13 @@ export async function PATCH(req: NextRequest) {
     // see lib/ticketApi.ts closeTicket() for the canonical client-side call.
     if (status === "סגור") data.urgency = "נמוך"
 
+    // AUTO-INPROGRESS — when staff assigns a ticket to themselves and the
+    // ticket is currently פתוח, automatically move it to בטיפול so the
+    // queue reflects that someone is actively working on it.
+    if (isStaff && assignedTo !== undefined && assignedTo === session.user.email && before.status === "פתוח" && status === undefined) {
+      data.status = "בטיפול"
+    }
+
     const ticket = await prisma.ticket.update({ where: { id }, data })
 
     // Write history entries for each changed field
@@ -192,8 +199,9 @@ export async function PATCH(req: NextRequest) {
     type HistoryRow = { ticketId: string; field: string; oldValue?: string | null; newValue?: string | null; actorName: string; actorEmail: string }
     const historyEntries: HistoryRow[] = []
 
-    if (status !== undefined && status !== before.status) {
-      historyEntries.push({ ticketId: id, field: "status", oldValue: before.status, newValue: status, actorName, actorEmail })
+    // Use data.status (not raw status) so auto-changes (e.g. auto-בטיפול on self-assign) are also recorded
+    if (data.status !== undefined && data.status !== before.status) {
+      historyEntries.push({ ticketId: id, field: "status", oldValue: before.status, newValue: data.status, actorName, actorEmail })
     }
     // Urgency history: covers both auto-downgrade on close and explicit staff edits
     const effectiveUrgency = data.urgency
@@ -240,13 +248,14 @@ export async function PATCH(req: NextRequest) {
       mails.push(sendMail({ to: staffRecipients, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }))
     }
     // Notify user on status change
-    if (status === "סגור" && before.user?.email) {
+    // Use data.status so auto-changes (e.g. auto-בטיפול on self-assign) also trigger notifications
+    if (data.status === "סגור" && before.user?.email) {
       // Closure: always send the review-request email, even if the user closed it themselves
       mails.push(sendMail({ to: before.user.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
-    } else if (status === "בטיפול" && before.user?.email && before.user.email !== session.user.email) {
+    } else if (data.status === "בטיפול" && before.user?.email && before.user.email !== session.user.email) {
       // In-progress: only notify if a staff member (not the user) changed the status
       mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – בטיפול`, html: mailTicketStatusUser(ticketInfo) }))
-    } else if (status === "פתוח" && before.status === "סגור" && before.user?.email && before.user.email !== session.user.email) {
+    } else if (data.status === "פתוח" && before.status === "סגור" && before.user?.email && before.user.email !== session.user.email) {
       // Staff-initiated re-open: notify the ticket owner
       mails.push(sendMail({ to: before.user.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
     }
