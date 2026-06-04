@@ -766,7 +766,7 @@ export default function TicketsPage() {
                             ]).map(({ label, key, opts }) => (
                               <div key={key}>
                                 <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>{label}</div>
-                                <select value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                                <select value={editForm[key as keyof typeof editForm]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
                                   style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", background: "#fff" }}>
                                   {opts.map(o => <option key={o}>{o}</option>)}
                                 </select>
