@@ -12,6 +12,7 @@ import { isStaleOpen, openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
+import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -59,6 +60,9 @@ export default function TicketsPage() {
 
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading]   = useState(true)
+  const [fieldUrgencies,  setFieldUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
+  const [fieldCategories, setFieldCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [fieldPlatforms,  setFieldPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
   const [showAll, setShowAll]   = useState(false)
   const [search, setSearch]     = useState("")
   const [hoverId, setHoverId]     = useState<string | null>(null)
@@ -199,7 +203,14 @@ export default function TicketsPage() {
   }
 
   useEffect(() => {
-    if (status === "authenticated" && STAFF_EMAILS.includes(session?.user?.email ?? "")) load()
+    if (status === "authenticated" && STAFF_EMAILS.includes(session?.user?.email ?? "")) {
+      load()
+      fetchFieldOptions().then(opts => {
+        setFieldUrgencies(opts.urgency)
+        setFieldCategories(opts.category)
+        setFieldPlatforms(opts.platform)
+      })
+    }
   }, [status, session])
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -748,11 +759,11 @@ export default function TicketsPage() {
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                             {([
-                              { label: "דחיפות",   key: "urgency",  opts: ["נמוך", "בינוני", "גבוה", "דחוף"] },
+                              { label: "דחיפות",   key: "urgency",  opts: fieldUrgencies },
                               { label: "סטטוס",    key: "status",   opts: ["פתוח", "בטיפול", "סגור"] },
-                              { label: "קטגוריה",  key: "category", opts: ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"] },
-                              { label: "פלטפורמה", key: "platform", opts: ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"] },
-                            ] as const).map(({ label, key, opts }) => (
+                              { label: "קטגוריה",  key: "category", opts: fieldCategories },
+                              { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
+                            ]).map(({ label, key, opts }) => (
                               <div key={key}>
                                 <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>{label}</div>
                                 <select value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}

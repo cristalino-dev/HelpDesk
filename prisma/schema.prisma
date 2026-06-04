@@ -94,6 +94,16 @@ model TicketReview {
   createdAt      DateTime @default(now())
 }
 
+model FieldOption {
+  id    String @id @default(cuid())
+  field String // "category" | "platform" | "urgency"
+  label String
+  order Int    @default(0)
+
+  @@unique([field, label])
+  @@index([field])
+}
+
 model Log {
   id        String   @id @default(cuid())
   timestamp DateTime @default(now())

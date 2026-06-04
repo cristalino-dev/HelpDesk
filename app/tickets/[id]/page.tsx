@@ -7,6 +7,7 @@ import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import type { TicketDetail, TicketNote, TicketMessage, TicketHistoryEntry } from "@/types/ticket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
+import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "נמוך":   { background: "#dcfce7", color: "#166534" },
@@ -20,10 +21,7 @@ const STATUS_STYLE: Record<string, React.CSSProperties> = {
   "סגור":   { background: "#dcfce7", color: "#166534" },
 }
 
-const URGENCIES = ["נמוך", "בינוני", "גבוה", "דחוף"]
 const STATUSES  = ["פתוח", "בטיפול", "סגור"]
-const CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"]
-const PLATFORMS  = ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"]
 
 function formatDate(s: string) {
   return new Date(s).toLocaleString("he-IL", { dateStyle: "medium", timeStyle: "short" })
@@ -52,6 +50,17 @@ export default function TicketDetailPage() {
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null)
   const [closing, setClosing]       = useState(false)
   const [copied, setCopied]         = useState(false)
+  const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
+
+  useEffect(() => {
+    fetchFieldOptions().then(opts => {
+      setUrgencies(opts.urgency)
+      setCategories(opts.category)
+      setPlatforms(opts.platform)
+    })
+  }, [])
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login")
@@ -316,7 +325,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>דחיפות</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.urgency} onChange={e => setEditForm(f => ({ ...f, urgency: e.target.value }))}>
-                    {URGENCIES.map(u => <option key={u}>{u}</option>)}
+                    {urgencies.map(u => <option key={u}>{u}</option>)}
                   </select>
                 : <span style={{ ...URGENCY_STYLE[ticket.urgency], borderRadius: 20, padding: "3px 12px", fontSize: "0.8rem", fontWeight: 600, display: "inline-block" }}>{ticket.urgency}</span>
               }
@@ -325,7 +334,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>קטגוריה</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    {categories.map(c => <option key={c}>{c}</option>)}
                   </select>
                 : <span style={valueStyle}>{ticket.category}</span>
               }
@@ -334,7 +343,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>פלטפורמה</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.platform} onChange={e => setEditForm(f => ({ ...f, platform: e.target.value }))}>
-                    {PLATFORMS.map(p => <option key={p}>{p}</option>)}
+                    {platforms.map(p => <option key={p}>{p}</option>)}
                   </select>
                 : <span style={valueStyle}>{ticket.platform}</span>
               }

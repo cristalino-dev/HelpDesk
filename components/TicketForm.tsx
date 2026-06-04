@@ -43,17 +43,9 @@
  */
 
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
-
-/** All available ticket categories. Displayed in the category <select>. */
-const CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"]
-
-/** All available platforms. */
-const PLATFORMS = ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"]
-
-/** All available urgency levels, from lowest to highest. */
-const URGENCIES = ["נמוך", "בינוני", "גבוה", "דחוף"]
+import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 
 /**
  * Colour palette for the urgency select box.
@@ -89,6 +81,19 @@ export default function TicketForm({
     category: "אחר",           // Default category: other
     platform: "מחשב אישי",
   })
+
+  /** Dynamic dropdown options fetched from /api/admin/field-options (falls back to defaults). */
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
+  const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
+
+  useEffect(() => {
+    fetchFieldOptions().then(opts => {
+      setCategories(opts.category)
+      setPlatforms(opts.platform)
+      setUrgencies(opts.urgency)
+    })
+  }, [])
 
   /** Whether the form is currently submitting (disables button, shows spinner). */
   const [loading, setLoading] = useState(false)
@@ -256,7 +261,7 @@ export default function TicketForm({
               value={form.platform}
               onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
             >
-              {PLATFORMS.map(p => <option key={p}>{p}</option>)}
+              {platforms.map(p => <option key={p}>{p}</option>)}
             </select>
           </div>
           <div>
@@ -266,7 +271,7 @@ export default function TicketForm({
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
             >
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              {categories.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
@@ -278,7 +283,7 @@ export default function TicketForm({
               onChange={e => setForm(f => ({ ...f, urgency: e.target.value }))}
               style={{ backgroundColor: urgColor?.bg, color: urgColor?.text, borderColor: urgColor?.border, fontWeight: 600 }}
             >
-              {URGENCIES.map(u => <option key={u}>{u}</option>)}
+              {urgencies.map(u => <option key={u}>{u}</option>)}
             </select>
           </div>
         </div>

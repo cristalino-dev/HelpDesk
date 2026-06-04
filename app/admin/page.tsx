@@ -71,6 +71,7 @@ import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
+import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
   "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
@@ -118,7 +119,7 @@ export default function AdminPage() {
   const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
   const [statFilter, setStatFilter] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tickets" | "users" | "logs">("tickets")
+  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -145,6 +146,16 @@ export default function AdminPage() {
   const [userDeleting, setUserDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // Fields tab
+  type FieldRecord = { id: string; label: string }
+  const [fieldRecords, setFieldRecords] = useState<Record<string, FieldRecord[]>>({ category: [], platform: [], urgency: [] })
+  const [fieldUrgencies,  setFieldUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
+  const [fieldCategories, setFieldCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [fieldPlatforms,  setFieldPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
+  const [newFieldValue, setNewFieldValue] = useState("")
+  const [newFieldType, setNewFieldType]   = useState<"category" | "platform" | "urgency">("category")
+  const [fieldSaving, setFieldSaving]     = useState(false)
+  const [fieldError,  setFieldError]      = useState<string | null>(null)
   // Logs tab
   const [logDate, setLogDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [logText, setLogText] = useState("")
@@ -367,8 +378,56 @@ export default function AdminPage() {
     }
   }
 
+  const loadFieldOpts = async () => {
+    const res = await fetch("/api/admin/field-options")
+    if (!res.ok) return
+    const data = await res.json()
+    setFieldUrgencies(data.urgency ?? DEFAULT_URGENCIES)
+    setFieldCategories(data.category ?? DEFAULT_CATEGORIES)
+    setFieldPlatforms(data.platform ?? DEFAULT_PLATFORMS)
+    setFieldRecords(data._records ?? { category: [], platform: [], urgency: [] })
+  }
+
+  const addFieldOption = async () => {
+    if (!newFieldValue.trim()) return
+    setFieldSaving(true)
+    setFieldError(null)
+    try {
+      const res = await fetch("/api/admin/field-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field: newFieldType, label: newFieldValue.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setFieldError(data.error ?? "שגיאה"); return }
+      setNewFieldValue("")
+      await loadFieldOpts()
+    } finally {
+      setFieldSaving(false)
+    }
+  }
+
+  const removeFieldOption = async (id: string) => {
+    setFieldError(null)
+    try {
+      const res = await fetch("/api/admin/field-options", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setFieldError(data.error ?? "שגיאה"); return }
+      await loadFieldOpts()
+    } catch {
+      setFieldError("שגיאה במחיקה")
+    }
+  }
+
   useEffect(() => {
-    if (status === "authenticated" && session?.user?.isAdmin) loadTickets()
+    if (status === "authenticated" && session?.user?.isAdmin) {
+      loadTickets()
+      loadFieldOpts()
+    }
   }, [status, session])
 
   if (status === "loading") return null
@@ -460,11 +519,12 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"]] as const).map(([key, label]) => (
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
               if (key === "users" && users.length === 0) loadUsers()
               if (key === "logs") loadLogs(logDate)
+              if (key === "fields") loadFieldOpts()
             }}
               style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
               {label}
@@ -650,6 +710,79 @@ export default function AdminPage() {
             <p style={{ margin: 0, fontSize: "0.72rem", color: "#9ca3af" }}>
               יומנים נמחקים אוטומטית לאחר 30 יום.
             </p>
+          </div>
+        )}
+
+        {/* ── FIELDS TAB ── */}
+        {tab === "fields" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {fieldError && (
+              <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#b91c1c", fontSize: "0.85rem" }}>{fieldError}</div>
+            )}
+
+            {/* Add new option */}
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+              <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>➕ הוסף ערך חדש</h3>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <select
+                  value={newFieldType}
+                  onChange={e => setNewFieldType(e.target.value as "category" | "platform" | "urgency")}
+                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", background: "#f9fafb" }}
+                >
+                  <option value="category">קטגוריה</option>
+                  <option value="platform">פלטפורמה</option>
+                  <option value="urgency">דחיפות</option>
+                </select>
+                <input
+                  value={newFieldValue}
+                  onChange={e => setNewFieldValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") addFieldOption() }}
+                  placeholder="שם הערך החדש..."
+                  style={{ flex: 1, minWidth: 160, padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem" }}
+                />
+                <button
+                  onClick={addFieldOption}
+                  disabled={fieldSaving || !newFieldValue.trim()}
+                  style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: fieldSaving || !newFieldValue.trim() ? "#e5e7eb" : "#4f46e5", color: fieldSaving || !newFieldValue.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: fieldSaving || !newFieldValue.trim() ? "not-allowed" : "pointer" }}
+                >
+                  {fieldSaving ? "שומר..." : "הוסף"}
+                </button>
+              </div>
+            </div>
+
+            {/* Current options per field */}
+            {([
+              { key: "category", label: "קטגוריה" },
+              { key: "platform", label: "פלטפורמה" },
+              { key: "urgency",  label: "דחיפות" },
+            ] as const).map(({ key, label }) => (
+              <div key={key} style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>{label}</h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(fieldRecords[key] ?? []).map(({ id, label: lbl }) => {
+                    const isProtected = key === "urgency"
+                    return (
+                      <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "#f3f4f6", fontSize: "0.85rem", fontWeight: 600, color: "#374151", border: "1px solid #e5e7eb" }}>
+                        {lbl}
+                        {!isProtected && (
+                          <button
+                            onClick={() => removeFieldOption(id)}
+                            title="מחק"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.9rem", lineHeight: 1, padding: 0 }}
+                          >✕</button>
+                        )}
+                        {isProtected && (
+                          <span title="ערך מערכת — לא ניתן למחיקה" style={{ color: "#d1d5db", fontSize: "0.75rem" }}>🔒</span>
+                        )}
+                      </span>
+                    )
+                  })}
+                  {(fieldRecords[key] ?? []).length === 0 && (
+                    <span style={{ fontSize: "0.82rem", color: "#9ca3af" }}>אין ערכים — הוסף אחד למעלה</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -930,11 +1063,11 @@ export default function AdminPage() {
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                           {([
-                            { label: "דחיפות", key: "urgency",  opts: ["נמוך", "בינוני", "גבוה", "דחוף"] },
+                            { label: "דחיפות", key: "urgency",  opts: fieldUrgencies },
                             { label: "סטטוס",  key: "status",   opts: ["פתוח", "בטיפול", "סגור"] },
-                            { label: "קטגוריה", key: "category", opts: ["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"] },
-                            { label: "פלטפורמה", key: "platform", opts: ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"] },
-                          ] as const).map(({ label, key, opts }) => (
+                            { label: "קטגוריה", key: "category", opts: fieldCategories },
+                            { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
+                          ]).map(({ label, key, opts }) => (
                             <div key={key}>
                               <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>{label}</div>
                               <select value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
