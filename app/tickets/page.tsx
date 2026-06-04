@@ -13,6 +13,7 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
+import { handleImagePaste } from "@/lib/pasteImage"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -892,10 +893,11 @@ export default function TicketsPage() {
                             }
                             <textarea
                               rows={2}
-                              placeholder="הוסף הערה... @alon @daniel @dev @helpdesk"
+                              placeholder="הוסף הערה... @alon @daniel @dev @helpdesk (ניתן להדביק תמונה)"
                               value={noteText[ticket.id] ?? ""}
                               onClick={e => e.stopPropagation()}
                               onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                              onPaste={e => handleImagePaste(e, img => setNoteImages(prev => ({ ...prev, [ticket.id]: [...(prev[ticket.id] ?? []), img] })))}
                               style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box", marginBottom: 4 }}
                             />
                             <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>

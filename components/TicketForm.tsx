@@ -46,6 +46,7 @@
 import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
+import { handleImagePaste } from "@/lib/pasteImage"
 
 /**
  * Colour palette for the urgency select box.
@@ -297,7 +298,8 @@ export default function TicketForm({
             rows={4}
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="פרט את הבעיה בצורה מלאה..."
+            onPaste={e => handleImagePaste(e, img => setPendingImages(prev => [...prev, img]))}
+            placeholder="פרט את הבעיה בצורה מלאה... (ניתן להדביק תמונה ישירות)"
             style={{ resize: "none" }}
           />
         </div>

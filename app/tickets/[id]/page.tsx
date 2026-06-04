@@ -8,6 +8,7 @@ import type { TicketDetail, TicketNote, TicketMessage, TicketHistoryEntry } from
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
+import { handleImagePaste } from "@/lib/pasteImage"
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "נמוך":   { background: "#dcfce7", color: "#166534" },
@@ -554,9 +555,10 @@ export default function TicketDetailPage() {
             <div style={{ borderTop: ticket.notes.length ? "1px solid #f3f4f6" : "none", paddingTop: ticket.notes.length ? 16 : 0 }}>
               <textarea
                 rows={3}
-                placeholder="הוסף הערה... השתמש ב-@alon, @daniel, @dev, @helpdesk להזכרת צוות"
+                placeholder="הוסף הערה... השתמש ב-@alon, @daniel, @dev, @helpdesk להזכרת צוות (ניתן להדביק תמונה)"
                 value={noteText}
                 onChange={e => setNoteText(e.target.value)}
+                onPaste={e => handleImagePaste(e, img => setNoteImages(prev => [...prev, img]))}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 6 }}
               />
               {/* @mention chips */}
