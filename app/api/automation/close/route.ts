@@ -74,7 +74,6 @@
 
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
 import {
   sendMail,
   mailTicketClosedWithReview,
@@ -254,8 +253,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Staff update (skip actorEmail to avoid self-notification)
-    const staffRecipients = STAFF_EMAILS.filter(e => e !== actorEmail)
+    // Staff update — closure is a status change, so notify only the assigned
+    // staff member (not all staff); skip actorEmail to avoid self-notification
+    const staffRecipients = [before.assignedTo].filter(Boolean).filter(e => e !== actorEmail)
     if (staffRecipients.length > 0) {
       mails.push(
         sendMail({

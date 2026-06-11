@@ -5,7 +5,7 @@
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
 Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
 
-**Current version:** 3.30  
+**Current version:** 3.31  
 **Live:** https://helpdesk.cristalino.co.il  
 **Repo:** https://github.com/cristalino-dev/HelpDesk.git  
 **Local path:** C:\Users\AlonKerem\Development\helpdesk
@@ -60,7 +60,7 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **UI:** All components use inline React styles. No Tailwind in page/component files.
 - **Mobile:** `useIsMobile` hook (640px breakpoint) used throughout. Hamburger menus on staff pages.
 - **Search:** Each page has a `useMemo`-derived `filtered` that chains stat-card filter → text search → sort.
-- **Email:** `lib/mail.ts` has `sendMail()` + all HTML templates. Self-notification excluded on PATCH. RTL is enforced with `dir="rtl"` + inline `direction:rtl;text-align:right` on the card div inside `wrap()` — Gmail strips html/body-level direction, so never rely on those.
+- **Email:** `lib/mail.ts` has `sendMail()` + all HTML templates. Self-notification excluded on PATCH. RTL is enforced with `dir="rtl"` + inline `direction:rtl;text-align:right` on the card div inside `wrap()` — Gmail strips html/body-level direction, so never rely on those. Status changes notify only the ticket owner + assigned staff member (not all staff); non-status edits still broadcast to STAFF_EMAILS.
 - **Stale tickets:** `lib/staleTicket.ts` `isStaleOpen()` returns true for פתוח/בטיפול tickets older than 5 days.
 - **API:** NextAuth JWTs + `isAdmin` boolean guard all privileged routes.
 - **Field options:** `lib/fieldOptions.ts` exports defaults + `fetchFieldOptions()`. All ticket forms call this on mount.
@@ -117,7 +117,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 | 3.28    | Staff roster purely DB-driven (isAdmin only, ex-admins drop out); /admin page wired to /api/staff; generic mention placeholders |
 | 3.29    | All emails render RTL/right-aligned (inline dir + direction on card div — Gmail strips html/body-level RTL) |
 | 3.30    | Admin "רישוי" licensing tab — License model, bulk key insert, editable categories, username/password/remark per license |
+| 3.31    | Status-change emails scoped to owner + assignee only (not all staff) |
 
 ---
 
-*Production Build v3.30 — Updated 2026-06-11.*
+*Production Build v3.31 — Updated 2026-06-11.*
