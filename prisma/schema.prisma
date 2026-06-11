@@ -94,6 +94,20 @@ model TicketReview {
   createdAt      DateTime @default(now())
 }
 
+model License {
+  id        String   @id @default(cuid())
+  key       String   // the license number / product key
+  category  String   @default("Office") // managed via FieldOption (field = "licenseCategory")
+  username  String?  // optional: account the license was activated with / given to
+  password  String?
+  remark    String?  // free-text note (e.g. who received it, which machine)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, key])
+  @@index([category])
+}
+
 model FieldOption {
   id    String @id @default(cuid())
   field String // "category" | "platform" | "urgency"

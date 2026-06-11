@@ -5,7 +5,7 @@
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
 Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
 
-**Current version:** 3.29  
+**Current version:** 3.30  
 **Live:** https://helpdesk.cristalino.co.il  
 **Repo:** https://github.com/cristalino-dev/HelpDesk.git  
 **Local path:** C:\Users\AlonKerem\Development\helpdesk
@@ -28,6 +28,7 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **Configurable Dropdowns** — category/platform/urgency values managed from admin panel (DB-driven)
 - **Image Paste** — Ctrl+V images in description and notes textareas become attachments
 - **Dynamic Staff Roster** — the assignment dropdown and @mention shortcuts show exactly the DB users with `isAdmin = true` (ex-admins drop out automatically). Served by `GET /api/staff`; consumed by `/admin`, `/tickets`, `/tickets/[id]`
+- **License Inventory (רישוי)** — admin tab for managing software license keys: bulk add (one per line or `;`-separated), editable categories (FieldOption field="licenseCategory"), optional username/password per license (masked, click-to-reveal) and remark; inline edit + two-step delete
 
 ## 2. Technology Stack
 
@@ -50,7 +51,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **TicketMessage:** Two-way user↔staff chat with email notifications.
 - **TicketAttachment:** Image attachments stored as dataUrl with filename.
 - **TicketReview:** 1–5 star service rating + optional comment. One per ticket.
-- **FieldOption:** Configurable dropdown values. Fields: id, field (`"category"|"platform"|"urgency"`), label, order. Unique constraint on (field, label). Auto-seeded with defaults on first GET.
+- **FieldOption:** Configurable dropdown values. Fields: id, field (`"category"|"platform"|"urgency"|"licenseCategory"`), label, order. Unique constraint on (field, label). Auto-seeded with defaults on first GET.
+- **License:** Software license inventory — key, category (default "Office"), optional username/password (recipient), remark, timestamps. Unique on (category, key); bulk insert skips duplicates.
 - **Log:** Telemetry and error tracking (`level`, `message`, `source`, `stack`, `date`). 30-day auto-cleanup.
 
 ### Key Application Layers
@@ -114,7 +116,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 | 3.27    | DB admins auto-included in assignment dropdown + @mention shortcuts (GET /api/staff); admins gain /tickets access |
 | 3.28    | Staff roster purely DB-driven (isAdmin only, ex-admins drop out); /admin page wired to /api/staff; generic mention placeholders |
 | 3.29    | All emails render RTL/right-aligned (inline dir + direction on card div — Gmail strips html/body-level RTL) |
+| 3.30    | Admin "רישוי" licensing tab — License model, bulk key insert, editable categories, username/password/remark per license |
 
 ---
 
-*Production Build v3.29 — Updated 2026-06-11.*
+*Production Build v3.30 — Updated 2026-06-11.*

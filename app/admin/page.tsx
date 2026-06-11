@@ -115,7 +115,7 @@ export default function AdminPage() {
   const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
   const [statFilter, setStatFilter] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields">("tickets")
+  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(STAFF_MEMBERS)
@@ -153,6 +153,21 @@ export default function AdminPage() {
   const [newFieldType, setNewFieldType]   = useState<"category" | "platform" | "urgency">("category")
   const [fieldSaving, setFieldSaving]     = useState(false)
   const [fieldError,  setFieldError]      = useState<string | null>(null)
+  // Licenses tab
+  type LicenseRow = { id: string; key: string; category: string; username: string | null; password: string | null; remark: string | null; createdAt: string }
+  const [licenses, setLicenses]       = useState<LicenseRow[]>([])
+  const [licLoading, setLicLoading]   = useState(false)
+  const [licCatRecords, setLicCatRecords] = useState<FieldRecord[]>([])
+  const [licForm, setLicForm]         = useState({ keys: "", category: "Office", username: "", password: "", remark: "" })
+  const [licSaving, setLicSaving]     = useState(false)
+  const [licMsg, setLicMsg]           = useState<{ kind: "ok" | "err"; text: string } | null>(null)
+  const [licFilter, setLicFilter]     = useState("")   // category filter, "" = all
+  const [licSearch, setLicSearch]     = useState("")
+  const [editingLic, setEditingLic]   = useState<LicenseRow | null>(null)
+  const [licEditSaving, setLicEditSaving] = useState(false)
+  const [newLicCat, setNewLicCat]     = useState("")
+  const [showPw, setShowPw]           = useState<Record<string, boolean>>({})
+  const [licDeleteConfirm, setLicDeleteConfirm] = useState<string | null>(null)
   // Logs tab
   const [logDate, setLogDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [logText, setLogText] = useState("")
@@ -386,6 +401,12 @@ export default function AdminPage() {
     setFieldCategories(data.category ?? DEFAULT_CATEGORIES)
     setFieldPlatforms(data.platform ?? DEFAULT_PLATFORMS)
     setFieldRecords(data._records ?? { category: [], platform: [], urgency: [] })
+    const licCats: FieldRecord[] = data._records?.licenseCategory ?? []
+    setLicCatRecords(licCats)
+    // Keep the add-form category valid if its current value was deleted
+    if (licCats.length && !licCats.some((c: FieldRecord) => c.label === licForm.category)) {
+      setLicForm(f => ({ ...f, category: licCats[0].label }))
+    }
   }
 
   const addFieldOption = async () => {
@@ -421,6 +442,86 @@ export default function AdminPage() {
     } catch {
       setFieldError("שגיאה במחיקה")
     }
+  }
+
+  // ── Licenses tab ───────────────────────────────────────────────────────────
+
+  const loadLicenses = async () => {
+    setLicLoading(true)
+    try {
+      const res = await fetch("/api/admin/licenses")
+      if (!res.ok) return
+      const data = await res.json()
+      setLicenses(Array.isArray(data) ? data : [])
+    } finally {
+      setLicLoading(false)
+    }
+  }
+
+  const addLicenses = async () => {
+    if (!licForm.keys.trim()) return
+    setLicSaving(true)
+    setLicMsg(null)
+    try {
+      const res = await fetch("/api/admin/licenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(licForm),
+      })
+      const data = await res.json()
+      if (!res.ok) { setLicMsg({ kind: "err", text: data.error ?? "שגיאה" }); return }
+      setLicMsg({ kind: "ok", text: `נוספו ${data.created} רישיונות${data.skipped ? ` · ${data.skipped} כפולים דולגו` : ""}` })
+      setLicForm(f => ({ ...f, keys: "", username: "", password: "", remark: "" }))
+      await loadLicenses()
+    } finally {
+      setLicSaving(false)
+    }
+  }
+
+  const saveLicEdit = async () => {
+    if (!editingLic) return
+    setLicEditSaving(true)
+    try {
+      const res = await fetch("/api/admin/licenses", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingLic),
+      })
+      if (!res.ok) return
+      setEditingLic(null)
+      await loadLicenses()
+    } finally {
+      setLicEditSaving(false)
+    }
+  }
+
+  const deleteLicense = async (id: string) => {
+    const res = await fetch("/api/admin/licenses", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+    setLicDeleteConfirm(null)
+    if (res.ok) await loadLicenses()
+  }
+
+  const addLicCategory = async () => {
+    if (!newLicCat.trim()) return
+    const res = await fetch("/api/admin/field-options", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field: "licenseCategory", label: newLicCat.trim() }),
+    })
+    if (res.ok) { setNewLicCat(""); await loadFieldOpts() }
+  }
+
+  const removeLicCategory = async (id: string) => {
+    const res = await fetch("/api/admin/field-options", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+    if (res.ok) await loadFieldOpts()
   }
 
   useEffect(() => {
@@ -523,12 +624,13 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"]] as const).map(([key, label]) => (
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
               if (key === "users" && users.length === 0) loadUsers()
               if (key === "logs") loadLogs(logDate)
               if (key === "fields") loadFieldOpts()
+              if (key === "licenses") { loadLicenses(); loadFieldOpts() }
             }}
               style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
               {label}
@@ -789,6 +891,182 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+
+        {/* ── LICENSES TAB ── */}
+        {tab === "licenses" && (() => {
+          const licCategories = licCatRecords.map(c => c.label)
+          const q = licSearch.trim().toLowerCase()
+          const filteredLicenses = licenses.filter(l => {
+            if (licFilter && l.category !== licFilter) return false
+            if (!q) return true
+            return [l.key, l.category, l.username ?? "", l.remark ?? ""].some(v => v.toLowerCase().includes(q))
+          })
+          const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.85rem", boxSizing: "border-box", width: "100%" }
+          const thStyle: React.CSSProperties = { padding: "8px", textAlign: "right", fontSize: "0.72rem", color: "#6b7280", fontWeight: 700, whiteSpace: "nowrap" }
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+              {/* Category manager */}
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>🏷️ קטגוריות רישוי</h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  {licCatRecords.map(c => (
+                    <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "#f3f4f6", fontSize: "0.85rem", fontWeight: 600, color: "#374151", border: "1px solid #e5e7eb" }}>
+                      {c.label}
+                      <button onClick={() => removeLicCategory(c.id)} title="מחק קטגוריה" style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.9rem", lineHeight: 1, padding: 0 }}>✕</button>
+                    </span>
+                  ))}
+                  <input
+                    value={newLicCat}
+                    onChange={e => setNewLicCat(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") addLicCategory() }}
+                    placeholder="קטגוריה חדשה..."
+                    style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.85rem", width: 150 }}
+                  />
+                  <button
+                    onClick={addLicCategory}
+                    disabled={!newLicCat.trim()}
+                    style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: newLicCat.trim() ? "#4f46e5" : "#e5e7eb", color: newLicCat.trim() ? "#fff" : "#9ca3af", fontWeight: 700, fontSize: "0.82rem", cursor: newLicCat.trim() ? "pointer" : "not-allowed" }}
+                  >הוסף</button>
+                </div>
+              </div>
+
+              {/* Add licenses */}
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>➕ הוספת רישיונות</h3>
+                <textarea
+                  rows={3}
+                  value={licForm.keys}
+                  onChange={e => setLicForm(f => ({ ...f, keys: e.target.value }))}
+                  placeholder="מפתח רישיון אחד בכל שורה, או כמה מפתחות מופרדים ב-;"
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "monospace", marginBottom: 10 }}
+                />
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 12 }}>
+                  <select
+                    value={licForm.category}
+                    onChange={e => setLicForm(f => ({ ...f, category: e.target.value }))}
+                    style={{ ...inputStyle, background: "#f9fafb" }}
+                  >
+                    {licCategories.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <input style={inputStyle} value={licForm.username} onChange={e => setLicForm(f => ({ ...f, username: e.target.value }))} placeholder="שם משתמש (אופציונלי)" />
+                  <input style={inputStyle} value={licForm.password} onChange={e => setLicForm(f => ({ ...f, password: e.target.value }))} placeholder="סיסמה (אופציונלי)" />
+                  <input style={inputStyle} value={licForm.remark} onChange={e => setLicForm(f => ({ ...f, remark: e.target.value }))} placeholder="הערה — למי ניתן (אופציונלי)" />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <button
+                    onClick={addLicenses}
+                    disabled={licSaving || !licForm.keys.trim()}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? "#e5e7eb" : "linear-gradient(135deg, #4f46e5, #2563eb)", color: licSaving || !licForm.keys.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
+                  >
+                    {licSaving ? "שומר..." : "הוסף רישיונות"}
+                  </button>
+                  {licMsg && (
+                    <span style={{ fontSize: "0.82rem", fontWeight: 600, color: licMsg.kind === "ok" ? "#166534" : "#b91c1c" }}>{licMsg.text}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* License list */}
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+                  <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>🔑 רישיונות ({filteredLicenses.length})</h3>
+                  <select
+                    value={licFilter}
+                    onChange={e => setLicFilter(e.target.value)}
+                    style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#f9fafb" }}
+                  >
+                    <option value="">כל הקטגוריות</option>
+                    {licCategories.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <input
+                    value={licSearch}
+                    onChange={e => setLicSearch(e.target.value)}
+                    placeholder="חיפוש לפי מפתח, משתמש, הערה..."
+                    style={{ flex: 1, minWidth: 160, padding: "6px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem" }}
+                  />
+                </div>
+
+                {licLoading && <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>טוען...</div>}
+                {!licLoading && filteredLicenses.length === 0 && (
+                  <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>אין רישיונות — הוסיפו למעלה</div>
+                )}
+
+                {!licLoading && filteredLicenses.length > 0 && (
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb" }}>
+                          <th style={thStyle}>מפתח רישיון</th>
+                          <th style={thStyle}>קטגוריה</th>
+                          <th style={thStyle}>שם משתמש</th>
+                          <th style={thStyle}>סיסמה</th>
+                          <th style={thStyle}>הערה</th>
+                          <th style={thStyle}>נוסף</th>
+                          <th style={thStyle}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredLicenses.map(l => editingLic?.id === l.id ? (
+                          <tr key={l.id} style={{ borderBottom: "1px solid #f3f4f6", background: "#fffbeb" }}>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, fontFamily: "monospace", minWidth: 180 }} value={editingLic.key} onChange={e => setEditingLic(p => p ? { ...p, key: e.target.value } : p)} /></td>
+                            <td style={{ padding: 8 }}>
+                              <select style={{ ...inputStyle, minWidth: 110 }} value={editingLic.category} onChange={e => setEditingLic(p => p ? { ...p, category: e.target.value } : p)}>
+                                {licCategories.map(c => <option key={c}>{c}</option>)}
+                              </select>
+                            </td>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 110 }} value={editingLic.username ?? ""} onChange={e => setEditingLic(p => p ? { ...p, username: e.target.value } : p)} /></td>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 110 }} value={editingLic.password ?? ""} onChange={e => setEditingLic(p => p ? { ...p, password: e.target.value } : p)} /></td>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 140 }} value={editingLic.remark ?? ""} onChange={e => setEditingLic(p => p ? { ...p, remark: e.target.value } : p)} /></td>
+                            <td style={{ padding: 8 }}></td>
+                            <td style={{ padding: 8, whiteSpace: "nowrap" }}>
+                              <button onClick={saveLicEdit} disabled={licEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
+                                {licEditSaving ? "שומר..." : "שמור"}
+                              </button>
+                              <button onClick={() => setEditingLic(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
+                            </td>
+                          </tr>
+                        ) : (
+                          <tr key={l.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                            <td style={{ padding: "9px 8px", fontFamily: "monospace", fontWeight: 600, fontSize: "0.8rem", color: "#111827", direction: "ltr", textAlign: "right" }}>{l.key}</td>
+                            <td style={{ padding: "9px 8px" }}>
+                              <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: "#eef2ff", color: "#4f46e5" }}>{l.category}</span>
+                            </td>
+                            <td style={{ padding: "9px 8px", color: "#374151" }}>{l.username || "—"}</td>
+                            <td style={{ padding: "9px 8px" }}>
+                              {l.password ? (
+                                <span
+                                  onClick={() => setShowPw(p => ({ ...p, [l.id]: !p[l.id] }))}
+                                  title={showPw[l.id] ? "הסתר" : "הצג"}
+                                  style={{ cursor: "pointer", fontFamily: "monospace", fontSize: "0.8rem", color: showPw[l.id] ? "#111827" : "#9ca3af", direction: "ltr", display: "inline-block" }}
+                                >
+                                  {showPw[l.id] ? l.password : "••••••"}
+                                </span>
+                              ) : "—"}
+                            </td>
+                            <td style={{ padding: "9px 8px", color: "#6b7280", fontSize: "0.8rem", maxWidth: 220 }}>{l.remark || "—"}</td>
+                            <td style={{ padding: "9px 8px", color: "#9ca3af", fontSize: "0.75rem", whiteSpace: "nowrap" }}>{new Date(l.createdAt).toLocaleDateString("he-IL")}</td>
+                            <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
+                              <button onClick={() => { setEditingLic({ ...l }); setLicDeleteConfirm(null) }} title="עריכה" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", marginLeft: 4 }}>✏️</button>
+                              {licDeleteConfirm === l.id ? (
+                                <>
+                                  <button onClick={() => deleteLicense(l.id)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontWeight: 700, fontSize: "0.75rem", cursor: "pointer", marginLeft: 4 }}>בטוח?</button>
+                                  <button onClick={() => setLicDeleteConfirm(null)} style={{ padding: "4px 8px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.75rem", cursor: "pointer" }}>ביטול</button>
+                                </>
+                              ) : (
+                                <button onClick={() => setLicDeleteConfirm(l.id)} title="מחק" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑</button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── TICKETS TAB ── */}
         {tab === "tickets" && <>

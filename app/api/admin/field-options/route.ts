@@ -15,13 +15,14 @@ import { logError } from "@/lib/logError"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, PROTECTED_URGENCIES } from "@/lib/fieldOptions"
 import { NextRequest, NextResponse } from "next/server"
 
-const FIELDS = ["category", "platform", "urgency"] as const
+const FIELDS = ["category", "platform", "urgency", "licenseCategory"] as const
 type Field = typeof FIELDS[number]
 
 const DEFAULTS: Record<Field, string[]> = {
   category: DEFAULT_CATEGORIES,
   platform: DEFAULT_PLATFORMS,
   urgency:  DEFAULT_URGENCIES,
+  licenseCategory: ["Office"], // license types for the admin "רישוי" tab
 }
 
 /** Ensure each field has at least the default values seeded. */
@@ -48,7 +49,7 @@ export async function GET() {
 
     const rows = await prisma.fieldOption.findMany({ orderBy: [{ field: "asc" }, { order: "asc" }, { label: "asc" }] })
 
-    const grouped: Record<string, { id: string; label: string }[]> = { category: [], platform: [], urgency: [] }
+    const grouped: Record<string, { id: string; label: string }[]> = { category: [], platform: [], urgency: [], licenseCategory: [] }
     for (const row of rows) {
       if (grouped[row.field]) grouped[row.field].push({ id: row.id, label: row.label })
     }
@@ -58,6 +59,7 @@ export async function GET() {
       category: grouped.category.map(r => r.label),
       platform: grouped.platform.map(r => r.label),
       urgency:  grouped.urgency.map(r => r.label),
+      licenseCategory: grouped.licenseCategory.map(r => r.label),
       // Full records for the admin management UI
       _records: grouped,
     })
