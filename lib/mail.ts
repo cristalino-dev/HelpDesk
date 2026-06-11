@@ -67,12 +67,19 @@ export function reviewUrl(ticketId: string) {
 
 // ── Shared HTML wrapper ───────────────────────────────────────────────────────
 
+/**
+ * NOTE ON RTL: Gmail (and most email clients) strip the <html>/<body> tags and
+ * the <style> block's body rules, so `dir` on <html> and `direction` on body
+ * are NOT reliable. The `dir="rtl"` attribute + inline direction/text-align
+ * must be ON THE CONTENT DIVS themselves — that's what makes Hebrew mails
+ * render right-aligned everywhere.
+ */
 function wrap(body: string) {
   return `<!DOCTYPE html><html dir="rtl" lang="he">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 24px; direction: rtl; }
-  .card { background: #fff; border-radius: 12px; padding: 28px 32px; max-width: 560px; margin: 0 auto; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .card { background: #fff; border-radius: 12px; padding: 28px 32px; max-width: 560px; margin: 0 auto; box-shadow: 0 2px 12px rgba(0,0,0,0.08); direction: rtl; text-align: right; }
   .header { font-size: 20px; font-weight: 700; color: #1e3a8a; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 14px; }
   .field { margin-bottom: 12px; }
   .label { font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -81,8 +88,9 @@ function wrap(body: string) {
   .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: #2563eb; color: #fff !important; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; }
   .footer { text-align: center; font-size: 11px; color: #9ca3af; margin-top: 20px; }
 </style></head>
-<body><div class="card">${body}</div>
-<div class="footer">מערכת הפניות – Cristalino &nbsp;|&nbsp; helpdesk.cristalino.co.il</div>
+<body dir="rtl" style="direction:rtl;text-align:right">
+<div class="card" dir="rtl" style="direction:rtl;text-align:right">${body}</div>
+<div class="footer" dir="rtl" style="text-align:center">מערכת הפניות – Cristalino &nbsp;|&nbsp; helpdesk.cristalino.co.il</div>
 </body></html>`
 }
 
