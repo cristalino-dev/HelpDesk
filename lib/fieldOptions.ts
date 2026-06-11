@@ -28,12 +28,15 @@ export const DEFAULT_FIELD_OPTIONS: FieldOptions = {
   urgency:  DEFAULT_URGENCIES,
 }
 
-/** Fetch all field options from the server. Falls back to defaults on any error. */
 export async function fetchFieldOptions(): Promise<FieldOptions> {
   try {
     const res = await fetch("/api/admin/field-options")
     if (!res.ok) return DEFAULT_FIELD_OPTIONS
-    return res.json()
+    const data = await res.json()
+    if (data && Array.isArray(data.category) && Array.isArray(data.platform) && Array.isArray(data.urgency)) {
+      return data as FieldOptions
+    }
+    return DEFAULT_FIELD_OPTIONS
   } catch {
     return DEFAULT_FIELD_OPTIONS
   }

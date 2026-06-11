@@ -109,12 +109,14 @@ describe("Tickets API", () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
       ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
         id: "ticket-1",
+        status: "פתוח",
         user: { name: "User", email: "user@cristalino.co.il" },
       })
       ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
         id: "ticket-1",
         status: "בטיפול",
         subject: "Test Issue",
+        assignedTo: "tech@cristalino.co.il",
       })
 
       const req = {
@@ -130,7 +132,7 @@ describe("Tickets API", () => {
       expect(res.status).toBe(200)
       expect(data.status).toBe("בטיפול")
       expect(prisma.ticket.update).toHaveBeenCalled()
-      // Staff notification + user notification for status change
+      // Status change → assignee notification + user notification (not all staff)
       expect(sendMail).toHaveBeenCalledTimes(2)
     })
 
@@ -164,12 +166,14 @@ describe("Tickets API", () => {
       mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
       ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
         id: "ticket-3",
+        status: "פתוח",
         user: { name: "User", email: "user@cristalino.co.il" },
       })
       ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
         id: "ticket-3",
         status: "סגור",
         subject: "Test Issue",
+        assignedTo: "tech@cristalino.co.il",
       })
 
       const req = {
@@ -181,7 +185,7 @@ describe("Tickets API", () => {
 
       expect(res.status).toBe(200)
       expect(data.status).toBe("סגור")
-      // Staff notification + review CTA email to the ticket owner (even self-close)
+      // Status change → assignee notification + review CTA email to the ticket owner (even self-close)
       expect(sendMail).toHaveBeenCalledTimes(2)
     })
 

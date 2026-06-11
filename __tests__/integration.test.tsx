@@ -69,12 +69,12 @@ describe("Integration Flow", () => {
 
     // Verify API call
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/tickets", expect.objectContaining({
-        method: "POST",
-      }))
+      const postCall = mockFetch.mock.calls.find(call => call[0] === "/api/tickets")
+      expect(postCall).toBeDefined()
     })
 
-    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body)
+    const postCall = mockFetch.mock.calls.find(call => call[0] === "/api/tickets")
+    const callBody = JSON.parse(postCall[1].body)
     expect(callBody).toEqual(expect.objectContaining({
       subject: "בעיה דחופה בקומה",
       computerName: "PC-TECH-01",
