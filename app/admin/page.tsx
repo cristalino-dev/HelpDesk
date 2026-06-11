@@ -482,13 +482,18 @@ export default function AdminPage() {
   const saveLicEdit = async () => {
     if (!editingLic) return
     setLicEditSaving(true)
+    setLicMsg(null)
     try {
       const res = await fetch("/api/admin/licenses", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingLic),
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setLicMsg({ kind: "err", text: d.error ?? "שגיאה בשמירת הרישיון" })
+        return
+      }
       setEditingLic(null)
       await loadLicenses()
     } finally {
@@ -988,6 +993,9 @@ export default function AdminPage() {
                   />
                 </div>
 
+                {licMsg?.kind === "err" && (
+                  <div style={{ marginBottom: 10, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: "0.8rem", color: "#b91c1c" }}>{licMsg.text}</div>
+                )}
                 {licLoading && <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>טוען...</div>}
                 {!licLoading && filteredLicenses.length === 0 && (
                   <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>אין רישיונות — הוסיפו למעלה</div>

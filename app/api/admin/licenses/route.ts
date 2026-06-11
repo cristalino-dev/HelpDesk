@@ -82,18 +82,24 @@ export async function PATCH(req: NextRequest) {
     if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const { id, key, category, username, password, remark } = await req.json() as {
-      id: string; key?: string; category?: string; username?: string; password?: string; remark?: string
+      id: string; key?: string | null; category?: string | null
+      username?: string | null; password?: string | null; remark?: string | null
     }
     if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 })
+
+    // Optional fields may arrive as null (the edit form sends the row as-is);
+    // normalize: undefined = don't touch, ""/null = clear the field
+    const optional = (v: string | null | undefined) =>
+      v === undefined ? undefined : (v?.trim() || null)
 
     const license = await prisma.license.update({
       where: { id },
       data: {
-        ...(key      !== undefined ? { key: key.trim() } : {}),
-        ...(category !== undefined ? { category: category.trim() } : {}),
-        ...(username !== undefined ? { username: username.trim() || null } : {}),
-        ...(password !== undefined ? { password: password.trim() || null } : {}),
-        ...(remark   !== undefined ? { remark:   remark.trim()   || null } : {}),
+        ...(key?.trim()      ? { key: key.trim() } : {}),
+        ...(category?.trim() ? { category: category.trim() } : {}),
+        ...(username !== undefined ? { username: optional(username) } : {}),
+        ...(password !== undefined ? { password: optional(password) } : {}),
+        ...(remark   !== undefined ? { remark:   optional(remark) } : {}),
       },
     })
     return NextResponse.json(license)
