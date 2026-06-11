@@ -898,7 +898,7 @@ export default function TicketsPage() {
                             }
                             <textarea
                               rows={2}
-                              placeholder="הוסף הערה... @alon @daniel @dev @helpdesk (ניתן להדביק תמונה)"
+                              placeholder="הוסף הערה... לחצו על שם למטה להזכרת איש צוות (ניתן להדביק תמונה)"
                               value={noteText[ticket.id] ?? ""}
                               onClick={e => e.stopPropagation()}
                               onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}

@@ -564,7 +564,7 @@ export default function TicketDetailPage() {
             <div style={{ borderTop: ticket.notes.length ? "1px solid #f3f4f6" : "none", paddingTop: ticket.notes.length ? 16 : 0 }}>
               <textarea
                 rows={3}
-                placeholder="הוסף הערה... השתמש ב-@alon, @daniel, @dev, @helpdesk להזכרת צוות (ניתן להדביק תמונה)"
+                placeholder="הוסף הערה... לחצו על שם למטה להזכרת איש צוות (ניתן להדביק תמונה)"
                 value={noteText}
                 onChange={e => setNoteText(e.target.value)}
                 onPaste={e => handleImagePaste(e, img => setNoteImages(prev => [...prev, img]))}

@@ -5,7 +5,7 @@
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
 Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
 
-**Current version:** 3.27  
+**Current version:** 3.28  
 **Live:** https://helpdesk.cristalino.co.il  
 **Repo:** https://github.com/cristalino-dev/HelpDesk.git  
 **Local path:** C:\Users\AlonKerem\Development\helpdesk
@@ -27,7 +27,7 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **Periodic Urgency Sweep** — cron every 5 min ensures closed tickets have urgency=נמוך
 - **Configurable Dropdowns** — category/platform/urgency values managed from admin panel (DB-driven)
 - **Image Paste** — Ctrl+V images in description and notes textareas become attachments
-- **Dynamic Staff Roster** — any `isAdmin` DB user is automatically a staff member (assignment dropdown, @mention shortcuts, note mentions, `/tickets` access). `GET /api/staff` merges hardcoded `STAFF_MEMBERS` with DB admins
+- **Dynamic Staff Roster** — the assignment dropdown and @mention shortcuts show exactly the DB users with `isAdmin = true` (ex-admins drop out automatically). Served by `GET /api/staff`; consumed by `/admin`, `/tickets`, `/tickets/[id]`
 
 ## 2. Technology Stack
 
@@ -72,7 +72,7 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 4. **User deletion** — `DELETE /api/users` upserts `helpdesk@cristalino.co.il` as fallback, bulk-reassigns all tickets, then deletes. Self-deletion blocked.
 5. **Admin close button** — calls `updateTicket({assignedTo: me})` then `apiCloseTicket()`. Two separate calls, not merged.
 6. **History writes gated** — only `await`, never `void`, for `ticketHistory.createMany()`.
-7. **Staff roster is dynamic** — assignment dropdown + @mention shortcuts must include all `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` merges hardcoded `STAFF_MEMBERS` with DB admins; clients fetch `GET /api/staff`. Admin implies staff: guards are `isAdmin || STAFF_EMAILS.includes(...)`.
+7. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` only supplies curated handles/names for matching emails (and is the empty-DB fallback). Clients fetch `GET /api/staff`. Admin implies staff: guards are `isAdmin || STAFF_EMAILS.includes(...)`.
 
 ## 4. Important Rules & Conventions
 
@@ -112,7 +112,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 | 3.25    | Admin "שדות מערכת" tab — DB-driven dropdown options (FieldOption) |
 | 3.26    | Paste images into textareas (Ctrl+V) |
 | 3.27    | DB admins auto-included in assignment dropdown + @mention shortcuts (GET /api/staff); admins gain /tickets access |
+| 3.28    | Staff roster purely DB-driven (isAdmin only, ex-admins drop out); /admin page wired to /api/staff; generic mention placeholders |
 
 ---
 
-*Production Build v3.27 — Updated 2026-06-11.*
+*Production Build v3.28 — Updated 2026-06-11.*

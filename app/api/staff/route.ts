@@ -1,11 +1,13 @@
 /**
  * app/api/staff/route.ts — Effective staff roster for assignment + @mentions
  *
- * GET /api/staff  — Returns the merged staff roster (hardcoded STAFF_MEMBERS +
- *                   all DB users with isAdmin = true). Available to any staff
- *                   member (admin or hardcoded staff email). Used by the ticket
- *                   pages to populate the assignment dropdown and the @mention
- *                   shortcut chips so newly-promoted admins appear automatically.
+ * GET /api/staff  — Returns the current staff roster: all DB users with
+ *                   isAdmin = true (and only them — revoking admin removes a
+ *                   user from the roster). Hardcoded STAFF_MEMBERS only supply
+ *                   curated handles/display names for matching admins.
+ *                   Available to any staff member (admin or hardcoded staff
+ *                   email). Used by /admin, /tickets, and /tickets/[id] to
+ *                   populate the assignment dropdown and @mention chips.
  *
  * RESPONSE: StaffMember[] — [{ email, handle, display }, ...]
  */
