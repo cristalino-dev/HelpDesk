@@ -1,7 +1,8 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
-import { STAFF_EMAILS, parseMentions } from "@/lib/staffEmails"
+import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { getAllStaffMembers, parseMentionsFromList } from "@/lib/staffMembers"
 import { sendMail, mailNoteMention } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -25,8 +26,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     })
 
-    // Send @mention emails (non-blocking)
-    const mentioned = parseMentions(content)
+    // Send @mention emails (non-blocking).
+    // Parse against the full roster (hardcoded staff + DB admins) so mentions
+    // of newly-promoted admins resolve correctly.
+    const staffRoster = await getAllStaffMembers()
+    const mentioned = parseMentionsFromList(content, staffRoster)
     if (mentioned.length > 0) {
       const ticket = await prisma.ticket.findUnique({
         where: { id },

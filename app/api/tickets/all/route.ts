@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const session = await auth()
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    const canView = STAFF_EMAILS.includes(session.user.email) || VIEWER_EMAILS.includes(session.user.email)
+    const canView = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email) || VIEWER_EMAILS.includes(session.user.email)
     if (!canView) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const tickets = await prisma.ticket.findMany({

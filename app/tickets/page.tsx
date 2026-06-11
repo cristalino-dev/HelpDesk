@@ -64,6 +64,7 @@ export default function TicketsPage() {
   const [fieldUrgencies,  setFieldUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [fieldCategories, setFieldCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [fieldPlatforms,  setFieldPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
+  const [staffMembers,    setStaffMembers]    = useState<{ email: string; handle: string; display: string }[]>(STAFF_MEMBERS)
   const [showAll, setShowAll]   = useState(false)
   const [search, setSearch]     = useState("")
   const [hoverId, setHoverId]     = useState<string | null>(null)
@@ -187,7 +188,7 @@ export default function TicketsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return }
-    if (status === "authenticated" && !STAFF_EMAILS.includes(session?.user?.email ?? "")) {
+    if (status === "authenticated" && !(session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? ""))) {
       router.push("/dashboard")
     }
   }, [status, session, router])
@@ -204,13 +205,17 @@ export default function TicketsPage() {
   }
 
   useEffect(() => {
-    if (status === "authenticated" && STAFF_EMAILS.includes(session?.user?.email ?? "")) {
+    if (status === "authenticated" && (session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? ""))) {
       load()
       fetchFieldOptions().then(opts => {
         setFieldUrgencies(opts.urgency)
         setFieldCategories(opts.category)
         setFieldPlatforms(opts.platform)
       })
+      fetch("/api/staff")
+        .then(r => r.ok ? r.json() : null)
+        .then(list => { if (Array.isArray(list) && list.length) setStaffMembers(list) })
+        .catch(() => {})
     }
   }, [status, session])
 
@@ -671,7 +676,7 @@ export default function TicketsPage() {
                       </div>
                       <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
-                        {ticket.assignedTo && <> · 👤 {STAFF_MEMBERS.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo.split("@")[0]}</>}
+                        {ticket.assignedTo && <> · 👤 {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo.split("@")[0]}</>}
                       </div>
                     </div>
 
@@ -803,7 +808,7 @@ export default function TicketsPage() {
                               onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
                               style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                             >
-                              {STAFF_MEMBERS.map(m => (
+                              {staffMembers.map(m => (
                                 <option key={m.email} value={m.email}>{m.display}</option>
                               ))}
                             </select>
@@ -902,7 +907,7 @@ export default function TicketsPage() {
                             />
                             <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
                               <span style={{ fontSize: "0.68rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
-                              {STAFF_MEMBERS.map(m => (
+                              {staffMembers.map(m => (
                                 <button key={m.handle} type="button"
                                   onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
                                   style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}

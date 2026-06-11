@@ -54,6 +54,7 @@ export default function TicketDetailPage() {
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
+  const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(STAFF_MEMBERS)
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {
@@ -69,7 +70,15 @@ export default function TicketDetailPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      setIsStaff(!!(session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? "")))
+      const staff = !!(session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? ""))
+      setIsStaff(staff)
+      // Staff get the full roster (hardcoded staff + DB admins) for assignment + @mentions
+      if (staff) {
+        fetch("/api/staff")
+          .then(r => r.ok ? r.json() : null)
+          .then(list => { if (Array.isArray(list) && list.length) setStaffMembers(list) })
+          .catch(() => {})
+      }
     }
   }, [status, session])
 
@@ -398,7 +407,7 @@ export default function TicketDetailPage() {
                   onChange={e => assignTicket(e.target.value)}
                   style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
                 >
-                  {STAFF_MEMBERS.map(m => (
+                  {staffMembers.map(m => (
                     <option key={m.email} value={m.email}>{m.display}</option>
                   ))}
                 </select>
@@ -415,7 +424,7 @@ export default function TicketDetailPage() {
               </>
             ) : (
               <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e3a8a" }}>
-                {STAFF_MEMBERS.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo}
+                {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo}
               </span>
             )}
           </div>
@@ -564,7 +573,7 @@ export default function TicketDetailPage() {
               {/* @mention chips */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                 <span style={{ fontSize: "0.72rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
-                {STAFF_MEMBERS.map(m => (
+                {staffMembers.map(m => (
                   <button key={m.handle} type="button"
                     onClick={() => setNoteText(t => t ? `${t} @${m.handle}` : `@${m.handle}`)}
                     style={{ padding: "2px 10px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
