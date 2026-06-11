@@ -168,6 +168,7 @@ export default function AdminPage() {
   const [newLicCat, setNewLicCat]     = useState("")
   const [showPw, setShowPw]           = useState<Record<string, boolean>>({})
   const [licDeleteConfirm, setLicDeleteConfirm] = useState<string | null>(null)
+  const [copiedLicId, setCopiedLicId] = useState<string | null>(null)
   // Logs tab
   const [logDate, setLogDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [logText, setLogText] = useState("")
@@ -1028,7 +1029,16 @@ export default function AdminPage() {
                           </tr>
                         ) : (
                           <tr key={l.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                            <td style={{ padding: "9px 8px", fontFamily: "monospace", fontWeight: 600, fontSize: "0.8rem", color: "#111827", direction: "ltr", textAlign: "right" }}>{l.key}</td>
+                            <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
+                              <span style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.8rem", color: "#111827", direction: "ltr", display: "inline-block" }}>{l.key}</span>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(l.key); setCopiedLicId(l.id); setTimeout(() => setCopiedLicId(null), 1500) }}
+                                title="העתק מפתח"
+                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.85rem", marginRight: 6, padding: 2, color: copiedLicId === l.id ? "#16a34a" : "#9ca3af", fontWeight: 700 }}
+                              >
+                                {copiedLicId === l.id ? "✓" : "📋"}
+                              </button>
+                            </td>
                             <td style={{ padding: "9px 8px" }}>
                               <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: "#eef2ff", color: "#4f46e5" }}>{l.category}</span>
                             </td>

@@ -5,7 +5,7 @@
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
 Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
 
-**Current version:** 3.31  
+**Current version:** 3.32  
 **Live:** https://helpdesk.cristalino.co.il  
 **Repo:** https://github.com/cristalino-dev/HelpDesk.git  
 **Local path:** C:\Users\AlonKerem\Development\helpdesk
@@ -118,7 +118,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 | 3.29    | All emails render RTL/right-aligned (inline dir + direction on card div — Gmail strips html/body-level RTL) |
 | 3.30    | Admin "רישוי" licensing tab — License model, bulk key insert, editable categories, username/password/remark per license |
 | 3.31    | Status-change emails scoped to owner + assignee only (not all staff) |
+| 3.32    | Copy-to-clipboard button next to each license key in the רישוי tab |
 
 ---
 
-*Production Build v3.31 — Updated 2026-06-11.*
+*Production Build v3.32 — Updated 2026-06-11.*
