@@ -316,6 +316,10 @@ SWEEPSCRIPT
   echo "Setting up email ingestion cron..."
   cat > /home/ubuntu/helpdesk/run-ingest.sh << 'INGESTSCRIPT'
 #!/bin/bash
+# Prevent overlapping runs (a slow IMAP scan must not let the next cron tick
+# start a second concurrent ingestion — that was the v3.34 duplication cause).
+exec 9>/home/ubuntu/helpdesk/.ingest.lock
+flock -n 9 || { echo "[$(date '+%Y-%m-%d %H:%M:%S')] previous run still active — skipping" >> /home/ubuntu/helpdesk/logs/ingest.log; exit 0; }
 # Read INGEST_SECRET or fall back to DIGEST_SECRET from the deployed .env.local
 SECRET=$(grep -E '^INGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)

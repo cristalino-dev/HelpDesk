@@ -67,12 +67,20 @@ export async function POST(req: NextRequest) {
 
   const tickets: number[] = []
 
+  /** Best-effort \Seen marking; never throws (so it can't abort the loop). */
+  const markSeen = async (uid: number) => {
+    try { await client.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true }) } catch { /* best effort */ }
+  }
+
   try {
     await client.connect()
     const lock = await client.getMailboxLock("INBOX")
     try {
-      // UIDs of all unread messages
-      const uids = (await client.search({ seen: false }, { uid: true })) || []
+      // Server-side filter: only UNSEEN messages whose subject contains the
+      // keyword. This avoids scanning the whole mailbox (which can be hundreds
+      // of unrelated unread messages) and keeps each run fast enough that the
+      // cron never overlaps itself.
+      const uids = (await client.search({ seen: false, subject: keyword }, { uid: true })) || []
 
       for (const uid of uids) {
         const msg = await client.fetchOne(String(uid), { source: true }, { uid: true })
@@ -81,8 +89,16 @@ export async function POST(req: NextRequest) {
         const parsed = await simpleParser(msg.source)
         const subject = parsed.subject ?? ""
 
-        // Only subjects containing the keyword become tickets; leave the rest unread.
-        if (!hasTicketKeyword(subject, keyword)) continue
+        // Double-check the keyword (IMAP SUBJECT search is a substring match).
+        if (!hasTicketKeyword(subject, keyword)) { await markSeen(uid); continue }
+
+        // Idempotency: never create two tickets from the same email. The
+        // Message-ID is unique per email; if we've already ingested it, skip.
+        const messageId = parsed.messageId ?? null
+        if (messageId) {
+          const existing = await prisma.ticket.findUnique({ where: { sourceMessageId: messageId } })
+          if (existing) { await markSeen(uid); continue }
+        }
 
         const from = Array.isArray(parsed.from?.value) ? parsed.from?.value[0] : undefined
         const t = buildIngestedTicket(
@@ -97,18 +113,33 @@ export async function POST(req: NextRequest) {
           update: {},
         })
 
-        const ticket = await prisma.ticket.create({
-          data: {
-            subject:      t.subject,
-            description:  t.description,
-            phone:        t.phone,
-            computerName: t.computerName,
-            urgency:      t.urgency,
-            category:     t.category,
-            platform:     t.platform,
-            userId:       reporter.id,
-          },
-        })
+        let ticket
+        try {
+          ticket = await prisma.ticket.create({
+            data: {
+              subject:      t.subject,
+              description:  t.description,
+              phone:        t.phone,
+              computerName: t.computerName,
+              urgency:      t.urgency,
+              category:     t.category,
+              platform:     t.platform,
+              userId:       reporter.id,
+              sourceMessageId: messageId,
+            },
+          })
+        } catch (e) {
+          // Unique violation on sourceMessageId = a concurrent run already
+          // ingested this email. Treat as success, mark seen, move on.
+          if (e instanceof Error && "code" in e && (e as { code?: string }).code === "P2002") {
+            await markSeen(uid)
+            continue
+          }
+          throw e
+        }
+
+        // Mark processed immediately so an overlapping run can't re-create it.
+        await markSeen(uid)
 
         await prisma.ticketHistory.create({
           data: {
@@ -132,8 +163,6 @@ export async function POST(req: NextRequest) {
           sendMail({ to: t.reporterEmail, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
         ])
 
-        // Mark processed so we never create a duplicate from the same email
-        await client.messageFlagsAdd(String(uid), ["\\Seen"], { uid: true })
         tickets.push(ticket.ticketNumber)
       }
     } finally {

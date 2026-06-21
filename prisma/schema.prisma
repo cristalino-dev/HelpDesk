@@ -34,6 +34,9 @@ model Ticket {
   updatedAt    DateTime           @updatedAt
   userId       String
   user         User               @relation(fields: [userId], references: [id])
+  // For email-ingested tickets: the source email's Message-ID. Unique so the
+  // same email can never create two tickets (idempotency). Null for UI tickets.
+  sourceMessageId String?         @unique
   notes        TicketNote[]
   attachments  TicketAttachment[]
   messages     TicketMessage[]
