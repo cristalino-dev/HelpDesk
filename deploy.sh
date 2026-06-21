@@ -312,11 +312,34 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/sw
 SWEEPSCRIPT
   chmod +x /home/ubuntu/helpdesk/run-sweep.sh
 
+  # ── Email-to-ticket ingestion cron (every 2 minutes) ────────────────────
+  echo "Setting up email ingestion cron..."
+  cat > /home/ubuntu/helpdesk/run-ingest.sh << 'INGESTSCRIPT'
+#!/bin/bash
+# Read INGEST_SECRET or fall back to DIGEST_SECRET from the deployed .env.local
+SECRET=$(grep -E '^INGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+  | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
+if [ -z "$SECRET" ]; then
+  SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+    | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
+fi
+if [ -z "$SECRET" ]; then
+  echo "[ingest] Neither INGEST_SECRET nor DIGEST_SECRET is set — skipping" >> /home/ubuntu/helpdesk/logs/ingest.log
+  exit 0
+fi
+RESULT=$(curl -sf -X POST "http://localhost:3000/api/admin/ingest-mail" \
+  -H "x-ingest-secret: ${SECRET}" \
+  -H "Content-Type: application/json" 2>&1)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/ingest.log
+INGESTSCRIPT
+  chmod +x /home/ubuntu/helpdesk/run-ingest.sh
+
   # Install cron entries (idempotent — removes old entries then re-adds)
-  (crontab -l 2>/dev/null | grep -v "send-digest.sh" | grep -v "run-sweep.sh"; \
+  (crontab -l 2>/dev/null | grep -v "send-digest.sh" | grep -v "run-sweep.sh" | grep -v "run-ingest.sh"; \
    echo "TZ=Asia/Jerusalem 0 9 * * * /home/ubuntu/helpdesk/send-digest.sh"; \
-   echo "*/5 * * * * /home/ubuntu/helpdesk/run-sweep.sh") | crontab -
-  echo "Digest & Sweep crons installed"
+   echo "*/5 * * * * /home/ubuntu/helpdesk/run-sweep.sh"; \
+   echo "*/2 * * * * /home/ubuntu/helpdesk/run-ingest.sh") | crontab -
+  echo "Digest, Sweep & Ingest crons installed"
 
   echo ""
   echo "=== Port 3000 ==="

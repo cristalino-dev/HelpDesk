@@ -5,7 +5,7 @@
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.  
 Employees submit IT tickets via web app (Google login). IT staff manage the queue through dedicated panels.
 
-**Current version:** 3.33  
+**Current version:** 3.34  
 **Live:** https://helpdesk.cristalino.co.il  
 **Repo:** https://github.com/cristalino-dev/HelpDesk.git  
 **Local path:** C:\Users\AlonKerem\Development\helpdesk
@@ -29,6 +29,7 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **Image Paste** — Ctrl+V images in description and notes textareas become attachments
 - **Dynamic Staff Roster** — the assignment dropdown and @mention shortcuts show exactly the DB users with `isAdmin = true` (ex-admins drop out automatically). Served by `GET /api/staff`; consumed by `/admin`, `/tickets`, `/tickets/[id]`
 - **License Inventory (רישוי)** — admin tab for managing software license keys: bulk add (one per line or `;`-separated), editable categories (FieldOption field="licenseCategory"), optional username/password per license (masked, click-to-reveal) and remark; inline edit + two-step delete
+- **Email-to-Ticket Ingestion** — inbound emails to `helpdesk@cristalino.co.il` whose subject contains the word "ticket" are automatically turned into URGENT tickets via IMAP polling (see §9 for the full spec)
 
 ## 2. Technology Stack
 
@@ -60,7 +61,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 - **UI:** All components use inline React styles. No Tailwind in page/component files.
 - **Mobile:** `useIsMobile` hook (640px breakpoint) used throughout. Hamburger menus on staff pages.
 - **Search:** Each page has a `useMemo`-derived `filtered` that chains stat-card filter → text search → sort.
-- **Email:** `lib/mail.ts` has `sendMail()` + all HTML templates. Self-notification excluded on PATCH. RTL is enforced with `dir="rtl"` + inline `direction:rtl;text-align:right` on the card div inside `wrap()` — Gmail strips html/body-level direction, so never rely on those. Status changes notify only the ticket owner + assigned staff member (not all staff); non-status edits still broadcast to STAFF_EMAILS.
+- **Email (outbound):** `lib/mail.ts` has `sendMail()` + all HTML templates. Self-notification excluded on PATCH. RTL is enforced with `dir="rtl"` + inline `direction:rtl;text-align:right` on the card div inside `wrap()` — Gmail strips html/body-level direction, so never rely on those. Status changes notify only the ticket owner + assigned staff member (not all staff); non-status edits still broadcast to STAFF_EMAILS.
+- **Email (inbound):** `lib/mailIngest.ts` (pure, testable logic) + `app/api/admin/ingest-mail/route.ts` (IMAP I/O via `imapflow` + `mailparser`). Polled by a cron every 2 min. See §9 for the full specification.
 - **Stale tickets:** `lib/staleTicket.ts` `isStaleOpen()` returns true for פתוח/בטיפול tickets older than 5 days.
 - **API:** NextAuth JWTs + `isAdmin` boolean guard all privileged routes.
 - **Field options:** `lib/fieldOptions.ts` exports defaults + `fetchFieldOptions()`. All ticket forms call this on mount.
@@ -120,7 +122,68 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 | 3.31    | Status-change emails scoped to owner + assignee only (not all staff) |
 | 3.32    | Copy-to-clipboard button next to each license key in the רישוי tab |
 | 3.33    | Fix license edit save (null optional fields crashed PATCH); edit errors surfaced in UI |
+| 3.34    | Email-to-ticket ingestion (IMAP poll → urgent tickets); new test suites (238 tests); deploy npm/prisma skip optimization |
+
+## 6. Email-to-Ticket Ingestion (v3.34) — Full Specification
+
+**Goal.** Anyone can email the helpdesk mailbox (`helpdesk@cristalino.co.il`); if the
+**subject contains the word "ticket"**, the system opens a new URGENT ticket automatically.
+
+### Trigger & field mapping
+
+| Ticket field | Source |
+|--------------|--------|
+| match condition | subject contains keyword `ticket` (case-insensitive substring; configurable via `TICKET_MAIL_KEYWORD`) |
+| `subject` | email subject **with the keyword removed**, whitespace + stray separators (`: - – — \|`) tidied. Fallback: `"פנייה מהמייל"` |
+| `description` | email **plain-text body**. Fallback: `"(לא צורף תוכן להודעה)"` |
+| `urgency` | **`דחוף`** (urgent) — always |
+| `category` | `אחר` (default) |
+| `platform` | `מחשב אישי` (default) |
+| `phone`, `computerName` | empty strings |
+| reporter (`userId`) | `prisma.user.upsert` on the sender's From address; name from the From display name (fallbacks: address, then `"שולח לא ידוע"`; address fallback `mail-ingest@cristalino.co.il`) |
+
+On success the route also: writes a `created` `TicketHistory` row, emails staff
+(`mailTicketOpenedStaff`) and the sender (`mailTicketOpenedUser`), and flags the IMAP
+message `\Seen` so it is never re-ingested. **Non-matching emails are left untouched**
+(still unread). Already-`\Seen` messages are ignored.
+
+### Architecture
+
+- **`lib/mailIngest.ts`** — pure, unit-tested logic (no I/O):
+  `hasTicketKeyword(subject, keyword)`, `stripTicketKeyword(subject, keyword)`,
+  `buildIngestedTicket(parsedMail, keyword)`, plus `INGEST_DEFAULTS` / `DEFAULT_TICKET_KEYWORD` / `INGEST_FALLBACK_EMAIL`.
+- **`app/api/admin/ingest-mail/route.ts`** — `POST` only. Validates `x-ingest-secret`,
+  connects via `imapflow` to `${IMAP_HOST}:993` (TLS), searches `{ seen: false }`,
+  parses each with `mailparser.simpleParser`, applies the helpers, persists, marks `\Seen`.
+  Returns `{ ok, created, tickets: number[] }`.
+- **Cron:** `run-ingest.sh` (written by `deploy.sh`) curls the endpoint `*/2 * * * *`,
+  logging to `logs/ingest.log`.
+- **Bundling:** `imapflow` and `mailparser` are in `next.config.ts` `serverExternalPackages`
+  (Node-only, like `nodemailer`).
+
+### Configuration (reuses existing secrets — nothing new is mandatory)
+
+| Var | Purpose | Default |
+|-----|---------|---------|
+| `SMTP_USER` / `SMTP_PASS` | IMAP auth (the existing Google **app password** works for IMAP) | — (already set) |
+| `IMAP_HOST` | IMAP server | `imap.gmail.com` |
+| `TICKET_MAIL_KEYWORD` | subject keyword | `ticket` |
+| `INGEST_SECRET` | cron-endpoint secret (`x-ingest-secret`) | falls back to `DIGEST_SECRET` |
+
+**Prerequisite:** IMAP must be **enabled** for `helpdesk@cristalino.co.il` in Gmail/Workspace
+settings (Settings → Forwarding and POP/IMAP → Enable IMAP).
+
+### Endpoint responses
+
+`200 { ok, created, tickets[] }` · `401` bad/missing secret · `503` mailbox not configured
+(`SMTP_USER`/`SMTP_PASS` missing) · `500` server error (logged via `logError`).
+
+### Querying ingested tickets (psycopg2)
+
+Ingested tickets look like any other ticket. The reporter is the email sender; description
+holds the email body. There is no special flag — they are `urgency='דחוף'` tickets whose
+`User` may be an external (non-OAuth) address.
 
 ---
 
-*Production Build v3.33 — Updated 2026-06-11.*
+*Production Build v3.34 — Updated 2026-06-11.*
