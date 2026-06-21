@@ -26,7 +26,7 @@
  */
 
 "use client"
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -47,8 +47,9 @@ interface ExistingReview {
 
 const STAR_LABELS = ["", "גרוע", "לא טוב", "בסדר", "טוב", "מעולה!"]
 
-export default function ReviewPage({ params }: { params: { ticketId: string } }) {
-  const { ticketId } = params
+export default function ReviewPage({ params }: { params: Promise<{ ticketId: string }> }) {
+  // Next.js 16: params is a Promise in client components — unwrap with use()
+  const { ticketId } = use(params)
 
   const [state,          setState]          = useState<State>("loading")
   const [ticket,         setTicket]         = useState<TicketInfo | null>(null)
