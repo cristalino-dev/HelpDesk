@@ -14,6 +14,7 @@ import {
   hasTicketKeyword,
   stripTicketKeyword,
   buildIngestedTicket,
+  fixCharsetLabels,
   DEFAULT_TICKET_KEYWORD,
   INGEST_DEFAULTS,
   INGEST_FALLBACK_EMAIL,
@@ -123,5 +124,32 @@ describe("buildIngestedTicket", () => {
 
   it("DEFAULT_TICKET_KEYWORD is 'ticket'", () => {
     expect(DEFAULT_TICKET_KEYWORD).toBe("ticket")
+  })
+})
+
+describe("fixCharsetLabels", () => {
+  it("relabels iso-8859-8-i to windows-1255 (quoted)", () => {
+    const src = Buffer.from('Content-Type: text/plain; charset="iso-8859-8-i"\r\n\r\nbody', "latin1")
+    expect(fixCharsetLabels(src).toString("latin1")).toContain('charset="windows-1255"')
+  })
+
+  it("relabels iso-8859-8-e and unquoted forms, case-insensitively", () => {
+    const src = Buffer.from("charset=ISO-8859-8-E", "latin1")
+    expect(fixCharsetLabels(src).toString("latin1")).toBe('charset="windows-1255"')
+  })
+
+  it("leaves a normal utf-8 / iso-8859-8 charset untouched and returns the same buffer", () => {
+    const src = Buffer.from('charset="utf-8"\r\ncharset="iso-8859-8"', "latin1")
+    const out = fixCharsetLabels(src)
+    expect(out).toBe(src) // unchanged → same reference
+    expect(out.toString("latin1")).not.toContain("windows-1255")
+  })
+
+  it("preserves all other bytes (only the charset label changes)", () => {
+    const src = Buffer.from('X: 1\r\nContent-Type: text/html; charset="iso-8859-8-i"\r\n\r\n<p>hi</p>', "latin1")
+    const out = fixCharsetLabels(src).toString("latin1")
+    expect(out).toContain("X: 1")
+    expect(out).toContain("<p>hi</p>")
+    expect(out).toContain('charset="windows-1255"')
   })
 })

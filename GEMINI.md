@@ -123,6 +123,8 @@ Employees submit IT tickets via web app (Google login). IT staff manage the queu
 | 3.32    | Copy-to-clipboard button next to each license key in the רישוי tab |
 | 3.33    | Fix license edit save (null optional fields crashed PATCH); edit errors surfaced in UI |
 | 3.34    | Email-to-ticket ingestion (IMAP poll → urgent tickets); new test suites (238 tests); deploy npm/prisma skip optimization |
+| 3.35    | Fix email-ingest duplication (subject-filtered search + Message-ID idempotency + flock cron) |
+| 3.36    | Fix Hebrew email bodies (charset iso-8859-8-i/-e → windows-1255 before parsing) |
 
 ## 6. Email-to-Ticket Ingestion (v3.34) — Full Specification
 
@@ -153,9 +155,12 @@ message `\Seen` so it is never re-ingested. **Non-matching emails are left untou
   `hasTicketKeyword(subject, keyword)`, `stripTicketKeyword(subject, keyword)`,
   `buildIngestedTicket(parsedMail, keyword)`, plus `INGEST_DEFAULTS` / `DEFAULT_TICKET_KEYWORD` / `INGEST_FALLBACK_EMAIL`.
 - **`app/api/admin/ingest-mail/route.ts`** — `POST` only. Validates `x-ingest-secret`,
-  connects via `imapflow` to `${IMAP_HOST}:993` (TLS), searches `{ seen: false }`,
-  parses each with `mailparser.simpleParser`, applies the helpers, persists, marks `\Seen`.
-  Returns `{ ok, created, tickets: number[] }`.
+  connects via `imapflow` to `${IMAP_HOST}:993` (TLS), searches `{ seen: false, subject: keyword }`
+  (server-side subject filter — avoids scanning the whole mailbox), runs the raw source through
+  `fixCharsetLabels` (relabels Hebrew `iso-8859-8-i/-e` → `windows-1255` so `mailparser` decodes
+  correctly), parses with `simpleParser`, dedupes by `Ticket.sourceMessageId` (unique), persists,
+  and marks `\Seen`. Returns `{ ok, created, tickets: number[] }`. The cron (`run-ingest.sh`) is
+  `flock`-guarded so runs can't overlap.
 - **Cron:** `run-ingest.sh` (written by `deploy.sh`) curls the endpoint `*/2 * * * *`,
   logging to `logs/ingest.log`.
 - **Bundling:** `imapflow` and `mailparser` are in `next.config.ts` `serverExternalPackages`
@@ -186,4 +191,4 @@ holds the email body. There is no special flag — they are `urgency='דחוף'`
 
 ---
 
-*Production Build v3.34 — Updated 2026-06-11.*
+*Production Build v3.36 — Updated 2026-06-21.*

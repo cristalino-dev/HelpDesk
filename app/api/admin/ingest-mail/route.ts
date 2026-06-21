@@ -39,7 +39,7 @@ import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser } from "@/lib/mail"
-import { hasTicketKeyword, buildIngestedTicket, DEFAULT_TICKET_KEYWORD } from "@/lib/mailIngest"
+import { hasTicketKeyword, buildIngestedTicket, fixCharsetLabels, DEFAULT_TICKET_KEYWORD } from "@/lib/mailIngest"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
@@ -86,7 +86,8 @@ export async function POST(req: NextRequest) {
         const msg = await client.fetchOne(String(uid), { source: true }, { uid: true })
         if (!msg || !msg.source) continue
 
-        const parsed = await simpleParser(msg.source)
+        // Relabel iso-8859-8-i/-e → windows-1255 so Hebrew decodes correctly
+        const parsed = await simpleParser(fixCharsetLabels(msg.source))
         const subject = parsed.subject ?? ""
 
         // Double-check the keyword (IMAP SUBJECT search is a substring match).

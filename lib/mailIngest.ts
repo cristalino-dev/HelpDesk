@@ -30,6 +30,24 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
+/**
+ * Some mail clients (notably Outlook) label Hebrew bodies as `iso-8859-8-i`
+ * or `iso-8859-8-e` — the `-i`/`-e` suffix only describes bidi display order,
+ * not the byte encoding. iconv-lite / mailparser don't recognise the suffix
+ * and fail to decode, producing replacement characters (gibberish Hebrew).
+ *
+ * The underlying bytes are plain ISO-8859-8 / windows-1255, so we relabel the
+ * charset to `windows-1255` (a superset that iconv-lite decodes correctly)
+ * before parsing. We operate on the raw RFC822 bytes via latin1, which
+ * round-trips every byte exactly, so non-header content (e.g. base64
+ * attachments) is left untouched.
+ */
+export function fixCharsetLabels(source: Buffer): Buffer {
+  const s = source.toString("latin1")
+  const fixed = s.replace(/charset\s*=\s*"?(iso-8859-8-[ie])"?/gi, 'charset="windows-1255"')
+  return fixed === s ? source : Buffer.from(fixed, "latin1")
+}
+
 /** True if `subject` contains `keyword` (case-insensitive substring match). */
 export function hasTicketKeyword(subject: string | null | undefined, keyword: string = DEFAULT_TICKET_KEYWORD): boolean {
   if (!subject || !keyword) return false
