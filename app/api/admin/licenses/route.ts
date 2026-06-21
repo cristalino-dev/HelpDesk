@@ -89,14 +89,17 @@ export async function PATCH(req: NextRequest) {
 
     // Optional fields may arrive as null (the edit form sends the row as-is);
     // normalize: undefined = don't touch, ""/null = clear the field
-    const optional = (v: string | null | undefined) =>
-      v === undefined ? undefined : (v?.trim() || null)
+    const optional = (v: string | null | undefined) => {
+      if (v === undefined) return undefined;
+      if (v === null) return null;
+      return v.trim() || null;
+    }
 
     const license = await prisma.license.update({
       where: { id },
       data: {
-        ...(key?.trim()      ? { key: key.trim() } : {}),
-        ...(category?.trim() ? { category: category.trim() } : {}),
+        ...(key && typeof key === "string" && key.trim() ? { key: key.trim() } : {}),
+        ...(category && typeof category === "string" && category.trim() ? { category: category.trim() } : {}),
         ...(username !== undefined ? { username: optional(username) } : {}),
         ...(password !== undefined ? { password: optional(password) } : {}),
         ...(remark   !== undefined ? { remark:   optional(remark) } : {}),

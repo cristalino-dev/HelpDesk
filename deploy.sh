@@ -224,14 +224,36 @@ ssh -i "$KEY" -o StrictHostKeyChecking=no "$USER@$SERVER" bash << 'ENDSSH'
 
   cd /home/ubuntu/helpdesk
 
-  echo "Installing dependencies..."
-  npm install 2>&1 | tail -3
+  # ── Dependencies: skip npm install when package-lock.json is unchanged ──────
+  # The lock file is re-uploaded every deploy; we hash it and compare against
+  # the hash stored from the last successful install. node_modules persists
+  # between deploys (it is NOT in the rm -rf list above), so when the lock is
+  # identical there is nothing to do — this saves ~30-60s on most deploys.
+  echo "Checking dependencies..."
+  LOCK_HASH=$(md5sum package-lock.json | cut -d' ' -f1)
+  if [ "$LOCK_HASH" = "$(cat .deploy-lock-hash 2>/dev/null)" ] && [ -d node_modules ]; then
+    echo "  package-lock.json unchanged — skipping npm install"
+  else
+    echo "  Installing dependencies..."
+    npm install --no-audit --no-fund 2>&1 | tail -3
+    echo "$LOCK_HASH" > .deploy-lock-hash
+  fi
 
   echo "Running database migrations..."
   npx prisma migrate deploy
 
-  echo "Generating Prisma client..."
-  npx prisma generate
+  # ── Prisma client: regenerate only when the schema changed ──────────────────
+  # Migrations are always derived from schema.prisma, so an unchanged schema
+  # means the generated client is already current. Guard on the schema hash
+  # (and on the client actually existing) to skip the ~300ms generate step.
+  SCHEMA_HASH=$(md5sum prisma/schema.prisma | cut -d' ' -f1)
+  if [ "$SCHEMA_HASH" = "$(cat .deploy-schema-hash 2>/dev/null)" ] && [ -d node_modules/.prisma/client ]; then
+    echo "Prisma schema unchanged — skipping client generate"
+  else
+    echo "Generating Prisma client..."
+    npx prisma generate
+    echo "$SCHEMA_HASH" > .deploy-schema-hash
+  fi
 
   echo "Building Next.js..."
   npx next build
