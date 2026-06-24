@@ -1,6 +1,6 @@
 "use client"
 import { useSession } from "next-auth/react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
@@ -9,6 +9,10 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
+import { ticketRevision } from "@/lib/ticketRevision"
+
+/** How often (ms) the open ticket page polls the server for changes. */
+const POLL_INTERVAL_MS = 10_000
 
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "נמוך":   { background: "#dcfce7", color: "#166534" },
@@ -82,39 +86,87 @@ export default function TicketDetailPage() {
     }
   }, [status, session])
 
-  const load = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/tickets/${id}`)
-      if (!res.ok) { router.push("/dashboard"); return }
-      const data: TicketDetail = await res.json()
-      setTicket(data)
-      // history is included in the ticket payload; synthesize "created" entry for pre-v3.08 tickets
-      const rawHistory: TicketHistoryEntry[] = data.history ?? []
-      const synthetic: TicketHistoryEntry[] = rawHistory.some(e => e.field === "created") ? [] : [{
-        id: "synthetic-created",
-        ticketId: data.id,
-        field: "created",
-        oldValue: null,
-        newValue: "פתוח",
-        actorName: data.user?.name ?? data.user?.email ?? "משתמש",
-        actorEmail: data.user?.email ?? "",
-        changedAt: data.createdAt,
-      }]
-      setHistory([...synthetic, ...rawHistory])
+  // Tracks the signature of the currently-displayed ticket so background polls
+  // can skip re-rendering when nothing changed (see lib/ticketRevision.ts).
+  const revisionRef = useRef<string>("")
+
+  // Applies a freshly-fetched ticket payload to component state.
+  // `syncEditForm` is false during background polling while the user is editing,
+  // so an incoming update never clobbers their in-progress edits.
+  const applyTicketData = (data: TicketDetail, syncEditForm: boolean) => {
+    setTicket(data)
+    // history is included in the ticket payload; synthesize "created" entry for pre-v3.08 tickets
+    const rawHistory: TicketHistoryEntry[] = data.history ?? []
+    const synthetic: TicketHistoryEntry[] = rawHistory.some(e => e.field === "created") ? [] : [{
+      id: "synthetic-created",
+      ticketId: data.id,
+      field: "created",
+      oldValue: null,
+      newValue: "פתוח",
+      actorName: data.user?.name ?? data.user?.email ?? "משתמש",
+      actorEmail: data.user?.email ?? "",
+      changedAt: data.createdAt,
+    }]
+    setHistory([...synthetic, ...rawHistory])
+    if (syncEditForm) {
       setEditForm({
         subject: data.subject, description: data.description,
         phone: data.phone, computerName: data.computerName,
         urgency: data.urgency, category: data.category,
         platform: data.platform, status: data.status,
       })
+    }
+    revisionRef.current = ticketRevision(data)
+  }
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/tickets/${id}`)
+      if (!res.ok) { router.push("/dashboard"); return }
+      const data: TicketDetail = await res.json()
+      applyTicketData(data, true)
     } finally {
       setLoading(false)
     }
   }
 
+  // Silent background refresh: no full-screen loader, no redirect on transient
+  // errors. Skips while a local mutation is in flight or while editing, and
+  // only touches state when the server payload actually differs from what's
+  // shown. Kept in a ref so the polling effect doesn't resubscribe each render.
+  const refresh = async () => {
+    if (editing || editSaving || noteSaving || msgSaving || assigning || closing || deletingMsgId) return
+    try {
+      const res = await fetch(`/api/tickets/${id}`)
+      if (!res.ok) return
+      const data: TicketDetail = await res.json()
+      if (ticketRevision(data) === revisionRef.current) return
+      applyTicketData(data, true)
+    } catch {
+      /* transient network error — try again next tick */
+    }
+  }
+  const refreshRef = useRef(refresh)
+  refreshRef.current = refresh
+
   useEffect(() => {
     if (status === "authenticated") load()
+  }, [status, id])
+
+  // ── Live updates: poll while the tab is visible ──────────────────────────────
+  useEffect(() => {
+    if (status !== "authenticated") return
+    let interval: ReturnType<typeof setInterval> | null = null
+    const start = () => { if (!interval) interval = setInterval(() => refreshRef.current(), POLL_INTERVAL_MS) }
+    const stop  = () => { if (interval) { clearInterval(interval); interval = null } }
+    const onVisibility = () => {
+      if (document.hidden) { stop() }
+      else { refreshRef.current(); start() }   // immediate catch-up on refocus
+    }
+    start()
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility) }
   }, [status, id])
 
   const saveEdit = async () => {
