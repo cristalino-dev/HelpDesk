@@ -111,6 +111,38 @@ model License {
   @@index([category])
 }
 
+model Printer {
+  id        String          @id @default(cuid())
+  name      String          // display name of the printer
+  maker     String?         // יצרן — manufacturer (HP, Canon, Brother...)
+  model     String?         // model number / name
+  supplier  String?         // ספק — supplier the printer belongs to
+  ipv4      String?         // network IPv4 address
+  hostname  String?         // network hostname
+  inkToner  String?         // סוג דיו/טונר — required ink/toner type
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  drivers   PrinterDriver[]
+
+  @@index([name])
+}
+
+// Driver files are stored on the server filesystem (uploads/printer-drivers/),
+// NOT in the DB — printer drivers can be large binaries. This table holds only
+// the metadata; `storedName` is the unique on-disk filename.
+model PrinterDriver {
+  id         String   @id @default(cuid())
+  printerId  String
+  printer    Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
+  filename   String   // original filename shown to the user
+  storedName String   @unique // unique name on disk (uuid + sanitized original)
+  size       Int      // file size in bytes
+  mimeType   String?
+  createdAt  DateTime @default(now())
+
+  @@index([printerId])
+}
+
 model FieldOption {
   id    String @id @default(cuid())
   field String // "category" | "platform" | "urgency"
