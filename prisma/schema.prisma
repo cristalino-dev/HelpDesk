@@ -119,8 +119,9 @@ model Printer {
   supplier  String?         // ספק — supplier the printer belongs to
   ipv4      String?         // network IPv4 address
   hostname  String?         // network hostname
-  inkToner  String?         // סוג דיו/טונר — required ink/toner type
-  createdAt DateTime        @default(now())
+  inkToner   String?         // סוג דיו/טונר — required ink/toner type
+  tonerLevel Int?            // 0–100 percentage of toner/ink remaining
+  createdAt  DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   drivers   PrinterDriver[]
 

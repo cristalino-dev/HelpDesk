@@ -24,6 +24,7 @@ export interface Printer {
   ipv4?: string | null
   hostname?: string | null
   inkToner?: string | null
+  tonerLevel?: number | null  // 0–100 percentage of toner/ink remaining
   createdAt: string
   updatedAt: string
   drivers: PrinterDriver[]

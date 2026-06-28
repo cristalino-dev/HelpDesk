@@ -171,7 +171,7 @@ export default function AdminPage() {
   const [licDeleteConfirm, setLicDeleteConfirm] = useState<string | null>(null)
   const [copiedLicId, setCopiedLicId] = useState<string | null>(null)
   // Printers tab
-  const EMPTY_PRINTER_FORM = { name: "", maker: "", model: "", supplier: "", ipv4: "", hostname: "", inkToner: "" }
+  const EMPTY_PRINTER_FORM = { name: "", maker: "", model: "", supplier: "", ipv4: "", hostname: "", inkToner: "", tonerLevel: "" }
   const [printers, setPrinters]               = useState<Printer[]>([])
   const [printersLoading, setPrintersLoading] = useState(false)
   const [printerMode, setPrinterMode]         = useState<"view" | "manage">("view")
@@ -563,10 +563,12 @@ export default function AdminPage() {
     setPrinterSaving(true)
     setPrinterMsg(null)
     try {
+      const { tonerLevel: tl, ...rest } = printerForm
+      const payload = { ...rest, tonerLevel: tl !== "" ? parseInt(tl, 10) : null }
       const res = await fetch("/api/admin/printers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(printerForm),
+        body: JSON.stringify(payload),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setPrinterMsg({ kind: "err", text: data.error ?? "שגיאה" }); return }
@@ -1203,6 +1205,20 @@ export default function AdminPage() {
           const tdStyle: React.CSSProperties = { padding: "9px 8px", color: "#374151", whiteSpace: "nowrap" }
           const fmtBytes = (n: number) => n >= 1048576 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`
 
+          const tonerBar = (level: number | null | undefined) => {
+            if (level == null) return <span style={{ color: "#9ca3af", fontSize: "0.78rem" }}>—</span>
+            const pct = Math.max(0, Math.min(100, level))
+            const color = pct > 50 ? "#16a34a" : pct > 20 ? "#d97706" : "#dc2626"
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 90 }}>
+                <div style={{ flex: 1, height: 8, borderRadius: 4, background: "#e5e7eb", overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 4, transition: "width 0.3s" }} />
+                </div>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color, minWidth: 32, textAlign: "left" }}>{pct}%</span>
+              </div>
+            )
+          }
+
           // Driver chips (download links) + manage controls (upload / delete)
           const driversCell = (p: Printer) => (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
@@ -1275,6 +1291,7 @@ export default function AdminPage() {
                     <input style={inputStyle} value={printerForm.ipv4}     onChange={e => setPrinterForm(f => ({ ...f, ipv4: e.target.value }))}     placeholder="כתובת IPv4" dir="ltr" />
                     <input style={inputStyle} value={printerForm.hostname} onChange={e => setPrinterForm(f => ({ ...f, hostname: e.target.value }))} placeholder="Hostname" dir="ltr" />
                     <input style={inputStyle} value={printerForm.inkToner} onChange={e => setPrinterForm(f => ({ ...f, inkToner: e.target.value }))} placeholder="סוג דיו/טונר" />
+                    <input type="number" min={0} max={100} style={inputStyle} value={printerForm.tonerLevel} onChange={e => setPrinterForm(f => ({ ...f, tonerLevel: e.target.value }))} placeholder="מפלס טונר % (0–100)" />
                   </div>
                   <button
                     onClick={addPrinter}
@@ -1307,6 +1324,7 @@ export default function AdminPage() {
                           <th style={thStyle}>IPv4</th>
                           <th style={thStyle}>Hostname</th>
                           <th style={thStyle}>דיו/טונר</th>
+                          <th style={thStyle}>מפלס טונר</th>
                           <th style={thStyle}>דרייברים</th>
                           {manage && <th style={thStyle}></th>}
                         </tr>
@@ -1321,6 +1339,18 @@ export default function AdminPage() {
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} dir="ltr" value={editingPrinter.ipv4 ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, ipv4: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} dir="ltr" value={editingPrinter.hostname ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, hostname: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} value={editingPrinter.inkToner ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, inkToner: e.target.value } : v)} /></td>
+                            <td style={{ padding: 8 }}>
+                              <input
+                                type="number" min={0} max={100}
+                                style={{ ...inputStyle, minWidth: 70, width: 70 }}
+                                value={editingPrinter.tonerLevel ?? ""}
+                                placeholder="0–100"
+                                onChange={e => {
+                                  const raw = e.target.value
+                                  setEditingPrinter(v => v ? { ...v, tonerLevel: raw === "" ? null : Math.max(0, Math.min(100, parseInt(raw, 10) || 0)) } : v)
+                                }}
+                              />
+                            </td>
                             <td style={{ padding: "9px 8px" }}>{driversCell(p)}</td>
                             <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
                               <button onClick={savePrinterEdit} disabled={printerEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
@@ -1338,6 +1368,7 @@ export default function AdminPage() {
                             <td style={{ ...tdStyle, fontFamily: "monospace", direction: "ltr", textAlign: "right" }}>{p.ipv4 || "—"}</td>
                             <td style={{ ...tdStyle, fontFamily: "monospace", direction: "ltr", textAlign: "right" }}>{p.hostname || "—"}</td>
                             <td style={tdStyle}>{p.inkToner || "—"}</td>
+                            <td style={{ padding: "9px 8px", minWidth: 110 }}>{tonerBar(p.tonerLevel)}</td>
                             <td style={{ padding: "9px 8px" }}>{driversCell(p)}</td>
                             {manage && (
                               <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
