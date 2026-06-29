@@ -105,7 +105,7 @@ export default function ProfilePage() {
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
       {/* Header — white chrome, hairline */}
       <header style={{ background: T.card, padding: "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "66px", borderBottom: `1px solid ${T.border}` }}>
-        <Logo size={32} subtitle="מערכת" />
+        <Logo size={42} subtitle="מערכת" />
         <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 16px", borderRadius: "9px", border: `1px solid ${T.borderStrong}`, fontWeight: 500 }}>← חזרה ללוח הבקרה</a>
       </header>
 

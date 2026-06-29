@@ -1,37 +1,22 @@
 /**
- * components/Logo.tsx — Cristalino brand mark + wordmark
+ * components/Logo.tsx — Cristalino brand mark + optional system wordmark
  *
- * The Cristalino logo: an open "C" ring (a circle with a gap) with a single
- * lime-green dot at its open end. Renders inline as SVG so it inherits color
- * and scales crisply. Used in every page header.
+ * Renders the real Cristalino logo (public/logo.jpeg — the open-ring "C" with
+ * the green dot and the CRISTALINO GROUP wordmark) at header size, optionally
+ * followed by a system label such as "helpdesk · מערכת" or a page title.
  *
  * Props:
- *   size      — ring diameter in px (default 32)
- *   wordmark  — optional text shown next to the mark. Pass false for mark-only.
- *   color     — ring color (default brand dark). The dot is always brand green.
+ *   size      — logo image height in px (default 36). The image is square.
+ *   wordmark  — system label shown next to the logo. Pass false for logo-only.
+ *   subtitle  — secondary label after the wordmark (e.g. "מערכת"). false to hide.
+ *   color     — wordmark text color (default brand dark).
  */
 
+import Image from "next/image"
 import { T } from "@/lib/theme"
 
-export function LogoMark({ size = 32, color = T.dark }: { size?: number; color?: string }) {
-  return (
-    <span style={{ display: "inline-flex", flexShrink: 0, color }}>
-      <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-        {/* Open ring — a stroked circle with a gap, rotated so the gap sits top-right */}
-        <circle
-          cx="16" cy="16" r="12.5"
-          fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
-          strokeDasharray="62 79" transform="rotate(-58 16 16)"
-        />
-        {/* Green dot at the ring's open end */}
-        <circle cx="24" cy="6.4" r="3" fill={T.green} />
-      </svg>
-    </span>
-  )
-}
-
 export default function Logo({
-  size = 32,
+  size = 36,
   wordmark = "helpdesk",
   subtitle = "מערכת",
   color = T.dark,
@@ -42,8 +27,15 @@ export default function Logo({
   color?: string
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-      <LogoMark size={size} color={color} />
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <Image
+        src="/logo.jpeg"
+        alt="Cristalino Group"
+        width={size}
+        height={size}
+        loading="eager"
+        style={{ objectFit: "contain", flexShrink: 0 }}
+      />
       {wordmark !== false && (
         <span style={{ fontWeight: 800, fontSize: "1.19rem", color, letterSpacing: ".04em" }}>
           {wordmark}

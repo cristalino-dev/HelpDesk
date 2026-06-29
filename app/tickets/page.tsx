@@ -335,7 +335,7 @@ export default function TicketsPage() {
         position: "relative",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <Logo size={32} wordmark="כל הפניות" subtitle={false} />
+          <Logo size={42} wordmark="כל הפניות" subtitle={false} />
           {!isMobile && (
             <span style={{ background: T.dark, color: T.green, fontSize: "0.7rem", fontWeight: 700, padding: "5px 12px", borderRadius: 999, letterSpacing: ".04em" }}>
               {session?.user?.isAdmin ? "ADMIN" : "STAFF"}

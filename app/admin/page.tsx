@@ -686,7 +686,7 @@ export default function AdminPage() {
         position: "relative",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-          <Logo size={32} wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false} />
+          <Logo size={42} wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false} />
         </div>
 
         {isMobile ? (

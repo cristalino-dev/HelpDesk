@@ -311,7 +311,7 @@ export default function TicketDetailPage() {
           ← חזרה
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 11, flex: 1, minWidth: 0 }}>
-          <Logo size={28} wordmark={false} subtitle={false} />
+          <Logo size={38} wordmark={false} subtitle={false} />
           <h1 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             HDTC-{ticket.ticketNumber} · {ticket.subject}
           </h1>

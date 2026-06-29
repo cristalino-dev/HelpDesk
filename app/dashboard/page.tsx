@@ -158,7 +158,7 @@ export default function DashboardPage() {
       }}>
         {/* Left: brand mark + wordmark */}
         <div style={{ flexShrink: 0 }}>
-          <Logo size={isMobile ? 28 : 32} subtitle={isMobile ? false : "מערכת"} />
+          <Logo size={isMobile ? 36 : 42} subtitle={isMobile ? false : "מערכת"} />
         </div>
 
         {/* Right: nav */}
