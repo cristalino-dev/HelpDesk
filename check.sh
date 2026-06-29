@@ -1,5 +1,6 @@
 #!/bin/bash
-KEY="$HOME/Downloads/alon.pem"
+LOCAL="$(cd "$(dirname "$0")" && pwd)"
+KEY="$LOCAL/../CrisRouter/alon.pem"
 SERVER="18.195.248.157"
 USER="ubuntu"
 

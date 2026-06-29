@@ -3,9 +3,9 @@ set -e
 
 SERVER="18.195.248.157"
 USER="ubuntu"
-KEY="$HOME/Downloads/alon.pem"
 REMOTE_DIR="/home/ubuntu/helpdesk"
 LOCAL="$(cd "$(dirname "$0")" && pwd)"
+KEY="$LOCAL/../CrisRouter/alon.pem"
 
 chmod 600 "$KEY"
 
@@ -240,7 +240,7 @@ ssh -i "$KEY" -o StrictHostKeyChecking=no "$USER@$SERVER" bash << 'ENDSSH'
   fi
 
   echo "Running database migrations..."
-  npx prisma migrate deploy
+  ./node_modules/.bin/prisma migrate deploy
 
   # ── Prisma client: regenerate only when the schema changed ──────────────────
   # Migrations are always derived from schema.prisma, so an unchanged schema
@@ -251,12 +251,12 @@ ssh -i "$KEY" -o StrictHostKeyChecking=no "$USER@$SERVER" bash << 'ENDSSH'
     echo "Prisma schema unchanged — skipping client generate"
   else
     echo "Generating Prisma client..."
-    npx prisma generate
+    ./node_modules/.bin/prisma generate
     echo "$SCHEMA_HASH" > .deploy-schema-hash
   fi
 
   echo "Building Next.js..."
-  npx next build
+  ./node_modules/.bin/next build
 
   # Stop maintenance server before handing port 3000 back to pm2
   if [ -n "$MAINT_PID" ]; then

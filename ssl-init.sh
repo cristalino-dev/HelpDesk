@@ -2,7 +2,8 @@
 # Run this AFTER opening ports 80 and 443 in the Lightsail firewall.
 # Gets a Let's Encrypt SSL cert and configures nginx for HTTPS.
 
-KEY="$HOME/Downloads/alon.pem"
+LOCAL="$(cd "$(dirname "$0")" && pwd)"
+KEY="$LOCAL/../CrisRouter/alon.pem"
 SERVER="18.195.248.157"
 EMAIL="alon@cristalino.co.il"
 

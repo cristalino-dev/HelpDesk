@@ -3,7 +3,7 @@
 # Run from your local machine:
 #   bash setup-server.sh
 # Or pipe directly:
-#   ssh -i ~/Downloads/alon.pem ubuntu@18.195.248.157 'bash -s' < setup-server.sh
+#   ssh -i ../CrisRouter/alon.pem ubuntu@18.195.248.157 'bash -s' < setup-server.sh
 
 set -e
 
