@@ -1232,11 +1232,9 @@ export default function AdminPage() {
             const pct = Math.max(0, Math.min(100, level))
             const color = pct > 50 ? "#16a34a" : pct > 20 ? "#d97706" : "#dc2626"
             return (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 90 }}>
-                <div style={{ flex: 1, height: 8, borderRadius: 4, background: "#e5e7eb", overflow: "hidden" }}>
-                  <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 4, transition: "width 0.3s" }} />
-                </div>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color, minWidth: 32, textAlign: "left" }}>{pct}%</span>
+              <div style={{ position: "relative", minWidth: 90, height: 18, borderRadius: 4, background: "#e5e7eb", overflow: "hidden" }}>
+                <div style={{ position: "absolute", inset: 0, width: `${pct}%`, background: color, borderRadius: 4, transition: "width 0.3s" }} />
+                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: pct > 30 ? "#fff" : color, lineHeight: 1 }}>{pct}%</span>
               </div>
             )
           }
@@ -1254,7 +1252,7 @@ export default function AdminPage() {
                   )}
                 </span>
               ))}
-              {p.drivers.length === 0 && !manage && <span style={{ color: "#9ca3af", fontSize: "0.78rem" }}>—</span>}
+              {p.drivers.length === 0 && !manage && null}
               {manage && (
                 <label style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: driverUploadingId === p.id ? "#e5e7eb" : "#f0fdf4", border: "1px solid #bbf7d0", color: driverUploadingId === p.id ? "#9ca3af" : "#15803d", fontSize: "0.75rem", fontWeight: 700, cursor: driverUploadingId === p.id ? "default" : "pointer" }}>
                   {driverUploadingId === p.id ? "מעלה..." : "➕ דרייבר"}
