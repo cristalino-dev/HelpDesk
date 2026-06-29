@@ -14,6 +14,8 @@ import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
+import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import Logo from "@/components/Logo"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -36,20 +38,13 @@ function avgMs(nums: number[]) {
 }
 
 const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
-const URGENCY_STYLE: Record<string, React.CSSProperties> = {
-  "נמוך":   { background: "#dcfce7", color: "#166534" },
-  "בינוני": { background: "#fef3c7", color: "#92400e" },
-  "גבוה":   { background: "#ffedd5", color: "#9a3412" },
-  "דחוף":   { background: "#fee2e2", color: "#991b1b" },
-}
-const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  "פתוח":   { background: "#dbeafe", color: "#1e40af" },
-  "בטיפול": { background: "#fef3c7", color: "#92400e" },
-  "סגור":   { background: "#dcfce7", color: "#166534" },
-}
-const URGENCY_BORDER: Record<string, string> = {
-  "נמוך": "#22c55e", "בינוני": "#f59e0b", "גבוה": "#f97316", "דחוף": "#ef4444",
-}
+const URGENCY_STYLE: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(URGENCY).map(([k, v]) => [k, { background: v.bg, color: v.fg }])
+)
+const STATUS_STYLE: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(STATUS).map(([k, v]) => [k, { background: v.bg, color: v.fg }])
+)
+const URGENCY_BORDER = URGENCY_BAR
 
 export default function TicketsPage() {
   const { data: session, status } = useSession()
@@ -329,81 +324,72 @@ export default function TicketsPage() {
   if (status === "loading") return null
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: T.bg, position: "relative" }}>
 
-      {/* ── Header ── */}
+      {/* ── Header — white chrome, hairline ── */}
       <header style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
-        padding: "0 28px", height: 64,
+        background: T.card,
+        padding: isMobile ? "0 16px" : "0 30px", height: 66,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 4px 16px rgba(15,23,42,0.35)",
+        borderBottom: `1px solid ${T.border}`,
         position: "relative",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>כל הפניות</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+          <Logo size={32} wordmark="כל הפניות" subtitle={false} />
           {!isMobile && (
-            <span style={{ background: session?.user?.isAdmin ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.72rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.3)", boxShadow: session?.user?.isAdmin ? "0 0 10px rgba(255,255,255,0.2)" : "none" }}>
-              {session?.user?.isAdmin ? "Admin" : "Staff"}
+            <span style={{ background: T.dark, color: T.green, fontSize: "0.7rem", fontWeight: 700, padding: "5px 12px", borderRadius: 999, letterSpacing: ".04em" }}>
+              {session?.user?.isAdmin ? "ADMIN" : "STAFF"}
             </span>
           )}
         </div>
 
         {isMobile ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Image src="/logo.jpeg" alt="Cristalino" width={36} height={36} style={{ objectFit: "contain", borderRadius: 6 }} />
+            <span style={{ background: T.dark, color: T.green, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, letterSpacing: ".04em" }}>{session?.user?.isAdmin ? "ADMIN" : "STAFF"}</span>
             <button
               onClick={() => setMenuOpen(o => !o)}
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text, fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               {menuOpen ? "✕" : "☰"}
             </button>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Image src="/logo.jpeg" alt="Cristalino" width={44} height={44} style={{ objectFit: "contain", borderRadius: 6 }} />
-            <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>לוח אישי</a>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח אישי</a>
             {session?.user?.isAdmin && (
               <>
-                <a href="/admin" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>ניהול</a>
-                <a href="/admin/logs" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>לוג שגיאות</a>
+                <a href="/admin" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול</a>
+                <a href="/admin/logs" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוג שגיאות</a>
               </>
             )}
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
-              onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
-              onMouseOut={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
-            >
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: T.bg, textDecoration: "none", cursor: "pointer" }}>
+              <span style={{ fontSize: "0.81rem", color: T.text, fontWeight: 500 }}>{session?.user?.name}</span>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
                 {initials(session?.user?.name)}
               </div>
-              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{session?.user?.name}</span>
             </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}>יציאה</button>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: T.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
           </div>
         )}
       </header>
 
       {/* Mobile dropdown menu */}
       {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
-          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח אישי</a>
+        <div style={{ position: "absolute", top: 66, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
+          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>לוח אישי</a>
           {session?.user?.isAdmin && (
             <>
-              <a href="/admin" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>ניהול</a>
-              <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוג שגיאות</a>
+              <a href="/admin" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>ניהול</a>
+              <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>לוג שגיאות</a>
             </>
           )}
-          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
+          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: T.text, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: T.green }}>
               {initials(session?.user?.name)}
             </div>
             {session?.user?.name}
           </Link>
-          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: "rgba(255,255,255,0.7)", background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
+          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: T.muted, background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
         </div>
       )}
 
@@ -416,7 +402,7 @@ export default function TicketsPage() {
               <button key={opt.key}
                 onClick={() => { setStatsView(opt.key); setStatFilter(null) }}
                 style={{ padding: "7px 20px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem",
-                  background: statsView === opt.key ? "#0f172a" : "transparent",
+                  background: statsView === opt.key ? "#16181D" : "transparent",
                   color:      statsView === opt.key ? "#fff"    : "#6b7280",
                   transition: "all 0.15s" }}
               >{opt.label}</button>
@@ -430,15 +416,15 @@ export default function TicketsPage() {
         {/* ── Stats grid ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           {(statsView === "week" ? [
-            { label: "פניות השבוע",  value: stats.weekTotal,       color: "#6366f1", bg: "#eef2ff", filterKey: "weekAll"     as string | null },
-            { label: "פתוחות",       value: stats.weekOpen,         color: "#2563eb", bg: "#eff6ff", filterKey: "weekOpen"    as string | null },
+            { label: "פניות השבוע",  value: stats.weekTotal,       color: "#6366f1", bg: "#EDEFEA", filterKey: "weekAll"     as string | null },
+            { label: "פתוחות",       value: stats.weekOpen,         color: "#16181D", bg: "#eff6ff", filterKey: "weekOpen"    as string | null },
             { label: "בטיפול",       value: stats.weekInProgress,   color: "#d97706", bg: "#fffbeb", filterKey: "weekInprog"  as string | null },
             { label: "נסגרו השבוע",  value: stats.weekClosed,       color: "#16a34a", bg: "#f0fdf4", filterKey: "weekClosed"  as string | null },
             { label: "נפתחו היום",   value: stats.openedToday,      color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
             { label: "נסגרו היום",   value: stats.closedToday,      color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" as string | null },
           ] : [
-            { label: "סה״כ פניות",  value: stats.total,            color: "#6366f1", bg: "#eef2ff", filterKey: null                           },
-            { label: "פתוחות",       value: stats.open,              color: "#2563eb", bg: "#eff6ff", filterKey: "open"        as string | null },
+            { label: "סה״כ פניות",  value: stats.total,            color: "#6366f1", bg: "#EDEFEA", filterKey: null                           },
+            { label: "פתוחות",       value: stats.open,              color: "#16181D", bg: "#eff6ff", filterKey: "open"        as string | null },
             { label: "בטיפול",       value: stats.inProgress,        color: "#d97706", bg: "#fffbeb", filterKey: "inprog"      as string | null },
             { label: "סגורות",       value: stats.closedCount,       color: "#16a34a", bg: "#f0fdf4", filterKey: "closed"      as string | null },
             { label: "נפתחו היום",   value: stats.openedToday,       color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
@@ -464,7 +450,7 @@ export default function TicketsPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
             {[
               { label: "זמן סגירה ממוצע",    value: formatDuration(statsView === "week" ? stats.weekAvgClose     : stats.avgClose),      color: "#059669", bg: "#ecfdf5" },
-              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: "#2563eb", bg: "#eff6ff" },
+              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: "#16181D", bg: "#eff6ff" },
               { label: "סגירה ארוכה ביותר",  value: formatDuration(statsView === "week" ? stats.weekSlowestClose : stats.slowestClose),  color: "#dc2626", bg: "#fef2f2" },
             ].map(s => (
               <div key={s.label} style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: `1px solid ${s.bg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
@@ -494,7 +480,7 @@ export default function TicketsPage() {
                 onClick={() => setShowAll(opt.val)}
                 style={{
                   padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem",
-                  background: showAll === opt.val ? "#0f172a" : "transparent",
+                  background: showAll === opt.val ? "#16181D" : "transparent",
                   color:      showAll === opt.val ? "#fff"    : "#6b7280",
                   transition: "all 0.15s",
                 }}
@@ -502,8 +488,8 @@ export default function TicketsPage() {
             ))}
           </div>
 
-          <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#ede9fe", color: "#4f46e5", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#EDEFEA", color: "#16181D", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             רענן
           </button>
 
@@ -512,14 +498,14 @@ export default function TicketsPage() {
 
         {/* Active stat filter indicator */}
         {statFilter && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: "0.82rem", color: "#1e40af" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: "0.82rem", color: "#3D5A7D" }}>
             <span>מסנן: {({
               open: "פתוחות", inprog: "בטיפול", closed: "סגורות",
               openedToday: "נפתחו היום", closedToday: "נסגרו היום",
               weekAll: "פניות השבוע", weekOpen: "פתוחות השבוע",
               weekInprog: "בטיפול השבוע", weekClosed: "נסגרו השבוע",
             } as Record<string, string>)[statFilter] ?? statFilter}</span>
-            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#2563eb", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
+            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16181D", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
           </div>
         )}
 
@@ -552,10 +538,10 @@ export default function TicketsPage() {
                       onClick={() => handleSort(col.key)}
                       style={{
                         display: "flex", alignItems: "center", gap: 3,
-                        background: sortKey === col.key ? "#eef2ff" : "none",
+                        background: sortKey === col.key ? "#EDEFEA" : "none",
                         border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 6,
                         fontSize: "0.72rem", fontWeight: 700,
-                        color: sortKey === col.key ? "#4f46e5" : "#9ca3af",
+                        color: sortKey === col.key ? "#16181D" : "#9ca3af",
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -578,10 +564,10 @@ export default function TicketsPage() {
                     onClick={() => handleSort(col.key)}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      background: sortKey === col.key ? "#eef2ff" : "none",
+                      background: sortKey === col.key ? "#EDEFEA" : "none",
                       border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6,
                       fontSize: "0.72rem", fontWeight: 700,
-                      color: sortKey === col.key ? "#4f46e5" : "#9ca3af",
+                      color: sortKey === col.key ? "#16181D" : "#9ca3af",
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -630,7 +616,7 @@ export default function TicketsPage() {
                     <div onClick={() => handleExpand(ticket.id)} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", cursor: "pointer" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                           {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
                           <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
@@ -661,7 +647,7 @@ export default function TicketsPage() {
                     {/* Subject + meta */}
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                           HDTC-{ticket.ticketNumber}
                         </span>
                         {isStale && (
@@ -781,7 +767,7 @@ export default function TicketsPage() {
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
                             <button onClick={e => { e.stopPropagation(); saveEdit() }} disabled={editSaving}
-                              style={{ background: "linear-gradient(135deg,#4f46e5,#2563eb)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
+                              style={{ background: "linear-gradient(135deg,#16181D,#16181D)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
                               {editSaving ? "שומר..." : "שמור"}
                             </button>
                             <button onClick={e => { e.stopPropagation(); setEditingId(null) }}
@@ -806,7 +792,7 @@ export default function TicketsPage() {
                               disabled={assigning === ticket.id}
                               onClick={e => e.stopPropagation()}
                               onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
-                              style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                              style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#16181D", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                             >
                               {staffMembers.map(m => (
                                 <option key={m.email} value={m.email}>{m.display}</option>
@@ -816,7 +802,7 @@ export default function TicketsPage() {
                               <button
                                 onClick={e => { e.stopPropagation(); assignTicket(ticket.id, session?.user?.email ?? "") }}
                                 disabled={assigning === ticket.id || !session?.user?.email}
-                                style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                                style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                               >
                                 הקצה לעצמי
                               </button>
@@ -834,7 +820,7 @@ export default function TicketsPage() {
                               </button>
                             ))}
                             <button onClick={e => { e.stopPropagation(); startEdit(ticket) }}
-                              style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
+                              style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#EDEFEA", color: "#16181D" }}>
                               ✏️ עריכה
                             </button>
                             <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
@@ -850,14 +836,14 @@ export default function TicketsPage() {
                               ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הודעות עדיין</div>
                               : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (
                                   <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: msg.authorRole === "staff" ? "row-reverse" : "row", alignItems: "flex-start" }}>
-                                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#16181D" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
                                       {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                                     </div>
                                     <div style={{ maxWidth: "70%" }}>
                                       <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
                                         {msg.authorName} · {new Date(msg.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
                                       </div>
-                                      <div style={{ background: msg.authorRole === "staff" ? "#eef2ff" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                                      <div style={{ background: msg.authorRole === "staff" ? "#EDEFEA" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
                                     </div>
                                   </div>
                                 ))
@@ -874,7 +860,7 @@ export default function TicketsPage() {
                               <button
                                 onClick={e => { e.stopPropagation(); sendReply(ticket.id) }}
                                 disabled={replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim()}
-                                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#2563eb", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#16181D", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                               >
                                 {replySaving === ticket.id ? "..." : "שלח"}
                               </button>
@@ -889,7 +875,7 @@ export default function TicketsPage() {
                               : (expandedNotes[ticket.id] ?? []).map((note: TicketNote) => (
                                   <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 10, marginBottom: 10 }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#4f46e5" }}>{note.authorName}</span>
+                                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D" }}>{note.authorName}</span>
                                       <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
                                     </div>
                                     <div style={{ fontSize: "0.82rem", color: "#374151", whiteSpace: "pre-wrap" }}>{note.content}</div>
@@ -910,7 +896,7 @@ export default function TicketsPage() {
                               {staffMembers.map(m => (
                                 <button key={m.handle} type="button"
                                   onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
-                                  style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
+                                  style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #EDEFEA", background: "#EDEFEA", color: "#16181D", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                                 >@{m.handle}</button>
                               ))}
                             </div>
@@ -923,7 +909,7 @@ export default function TicketsPage() {
                             <button
                               onClick={e => { e.stopPropagation(); addNote(ticket.id) }}
                               disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}
-                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#4f46e5", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#16181D", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                             >
                               {noteSaving === ticket.id ? "..." : "הוסף"}
                             </button>

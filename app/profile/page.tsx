@@ -43,8 +43,9 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import FooterCopyright from "@/components/FooterCopyright"
+import { T } from "@/lib/theme"
+import Logo from "@/components/Logo"
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession()
@@ -101,32 +102,23 @@ export default function ProfilePage() {
   if (status === "loading" || loading) return null
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
-      {/* Header */}
-      <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>חזרה ללוח הבקרה</a>
-        </div>
+    <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
+      {/* Header — white chrome, hairline */}
+      <header style={{ background: T.card, padding: "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "66px", borderBottom: `1px solid ${T.border}` }}>
+        <Logo size={32} subtitle="מערכת" />
+        <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 16px", borderRadius: "9px", border: `1px solid ${T.borderStrong}`, fontWeight: 500 }}>← חזרה ללוח הבקרה</a>
       </header>
 
-      <main style={{ maxWidth: "560px", margin: "0 auto", padding: "40px 24px" }}>
-        <div style={{ marginBottom: "28px" }}>
-          <h1 style={{ margin: "0 0 6px", fontSize: "1.3rem", fontWeight: 800, color: "#1f2937" }}>הגדרות חשבון</h1>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.88rem" }}>פרטים אלו ישמשו למילוי אוטומטי בטפסי פנייה</p>
+      <main style={{ maxWidth: "560px", margin: "0 auto", padding: "44px 24px" }}>
+        <div style={{ marginBottom: "28px", textAlign: "center" }}>
+          <h1 style={{ margin: "0 0 8px", fontSize: "1.5rem", fontWeight: 800, color: T.text }}>הגדרות חשבון</h1>
+          <p style={{ margin: 0, color: T.muted, fontSize: "0.88rem" }}>פרטים אלו ישמשו למילוי אוטומטי בטפסי פנייה</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)", border: "1px solid #f3f4f6", overflow: "hidden" }}>
-          <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f4f6" }}>
-            <p style={{ margin: 0, fontWeight: 700, color: "#374151", fontSize: "0.88rem" }}>פרטים אישיים</p>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 1px 2px rgba(20,22,26,0.04)", border: `1px solid ${T.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ width: 6, height: 18, borderRadius: 3, background: T.green }} />
+            <p style={{ margin: 0, fontWeight: 700, color: T.text, fontSize: "0.95rem" }}>פרטים אישיים</p>
           </div>
 
           <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -161,14 +153,15 @@ export default function ProfilePage() {
             {/* Email (readonly) */}
             <div>
               <label>כתובת אימייל</label>
-              <input value={session?.user?.email ?? ""} disabled style={{ backgroundColor: "#f9fafb", color: "#9ca3af", cursor: "not-allowed" }} />
+              <input value={session?.user?.email ?? ""} disabled style={{ backgroundColor: T.cardMuted, color: T.muted, cursor: "not-allowed" }} />
               <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>נקבע על ידי חשבון Google ולא ניתן לשינוי</p>
             </div>
 
             {error && <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: "#dc2626" }}>{error}</div>}
             {saved && <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: "#16a34a" }}>הפרטים נשמרו בהצלחה</div>}
 
-            <button type="submit" disabled={saving} style={{ background: saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: "0.9rem" }}>
+            <button type="submit" disabled={saving} style={{ background: saving ? "#9AA09C" : T.dark, color: "#fff", fontWeight: 600, padding: "13px 0", borderRadius: "11px", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+              {!saving && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, display: "inline-block" }} />}
               {saving ? "שומר..." : "שמור פרטים"}
             </button>
           </div>

@@ -37,6 +37,7 @@ import type { Ticket } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
+import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
 
@@ -48,30 +49,21 @@ type Props = {
   isFiltered?: boolean
 }
 
-const STATUS_STYLES: Record<string, React.CSSProperties> = {
-  "פתוח":    { backgroundColor: "#dbeafe", color: "#1e40af" },
-  "בטיפול":  { backgroundColor: "#fef3c7", color: "#92400e" },
-  "בהמתנה": { backgroundColor: "#f3f4f6", color: "#4b5563" },
-  "סגור":    { backgroundColor: "#dcfce7", color: "#166534" },
-}
+// Cristalino theme: status/urgency pills and the urgency accent bar come from
+// the central palette in lib/theme.ts. Mapped here to React.CSSProperties.
+const STATUS_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(STATUS).map(([k, v]) => [k, { backgroundColor: v.bg, color: v.fg }])
+)
 
-const URGENCY_STYLES: Record<string, React.CSSProperties> = {
-  "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
-  "בינוני": { backgroundColor: "#fef3c7", color: "#92400e" },
-  "גבוה":   { backgroundColor: "#ffedd5", color: "#9a3412" },
-  "דחוף":   { backgroundColor: "#fee2e2", color: "#991b1b" },
-}
+const URGENCY_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(URGENCY).map(([k, v]) => [k, { backgroundColor: v.bg, color: v.fg }])
+)
 
-const URGENCY_BORDER: Record<string, string> = {
-  "נמוך":   "#22c55e",
-  "בינוני": "#f59e0b",
-  "גבוה":   "#f97316",
-  "דחוף":   "#ef4444",
-}
+const URGENCY_BORDER = URGENCY_BAR
 
 const pill: React.CSSProperties = {
-  padding: "3px 10px",
-  borderRadius: "999px",
+  padding: "4px 11px",
+  borderRadius: "8px",
   fontSize: "0.72rem",
   fontWeight: 600,
   display: "inline-block",
@@ -182,8 +174,8 @@ function TicketCard({
         padding: "3px 10px",
         borderRadius: 8,
         border: "1px solid #bfdbfe",
-        background: isReopening ? "#e5e7eb" : "#dbeafe",
-        color:  isReopening ? "#9ca3af" : "#1d4ed8",
+        background: isReopening ? "#e5e7eb" : "#EDF0F4",
+        color:  isReopening ? "#9ca3af" : "#3D5A7D",
         fontWeight: 700,
         fontSize: "0.72rem",
         cursor: isReopening ? "default" : "pointer",
@@ -218,8 +210,8 @@ function TicketCard({
           <span style={{
             fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.03em",
             flexShrink: 0, borderRadius: 6, padding: "1px 7px",
-            color:      isClosed ? "#9ca3af" : "#2563eb",
-            background: isClosed ? "#f3f4f6"  : "#eff6ff",
+            color:      isClosed ? "#9ca3af" : T.text,
+            background: isClosed ? "#f3f4f6"  : T.codeBg,
           }}>
             HDTC-{ticket.ticketNumber}
           </span>
@@ -284,8 +276,8 @@ function TicketCard({
           <span style={{
             fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.03em",
             flexShrink: 0, borderRadius: 6, padding: "1px 7px",
-            color:      isClosed ? "#9ca3af" : "#2563eb",
-            background: isClosed ? "#f3f4f6"  : "#eff6ff",
+            color:      isClosed ? "#9ca3af" : T.text,
+            background: isClosed ? "#f3f4f6"  : T.codeBg,
           }}>
             HDTC-{ticket.ticketNumber}
           </span>
@@ -347,7 +339,7 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
         border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
       }}>
         <div style={{
-          width: "52px", height: "52px", borderRadius: "14px", backgroundColor: isFiltered ? "#f3f4f6" : "#eff6ff",
+          width: "52px", height: "52px", borderRadius: "14px", backgroundColor: isFiltered ? "#f3f4f6" : T.greenBg,
           display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
         }}>
           {isFiltered ? (
@@ -357,7 +349,7 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
             </svg>
           ) : (
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke={T.greenInk} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </div>

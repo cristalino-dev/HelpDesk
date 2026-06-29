@@ -115,7 +115,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
       {/* Logo / header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
         <Image src="/logo.jpeg" alt="Cristalino" width={44} height={44} style={{ borderRadius: 8, objectFit: "contain" }} />
-        <span style={{ fontWeight: 700, color: "#1e3a8a", fontSize: "1rem" }}>מערכת helpdesk</span>
+        <span style={{ fontWeight: 700, color: "#16181D", fontSize: "1rem" }}>מערכת helpdesk</span>
       </div>
 
       <div style={{
@@ -132,7 +132,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
         {/* ── Loading ── */}
         {state === "loading" && (
           <div style={{ padding: "20px 0", color: "#9ca3af" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#2563eb", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" }} />
+            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#16181D", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0 }}>טוען...</p>
           </div>
         )}
@@ -143,7 +143,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
             <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
             <h2 style={{ margin: "0 0 10px", color: "#1f2937", fontSize: "1.2rem" }}>הפנייה לא נמצאה</h2>
             <p style={{ margin: "0 0 24px", color: "#6b7280", fontSize: "0.9rem" }}>הקישור אינו תקין או שהפנייה נמחקה.</p>
-            <Link href="/dashboard" style={{ color: "#2563eb", fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
+            <Link href="/dashboard" style={{ color: "#16181D", fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
           </>
         )}
 
@@ -154,7 +154,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
             <h2 style={{ margin: "0 0 10px", color: "#1f2937", fontSize: "1.2rem" }}>הפנייה עדיין פתוחה</h2>
             <p style={{ margin: "0 0 6px", color: "#6b7280", fontSize: "0.9rem" }}>HDTC-{ticket.ticketNumber}: {ticket.subject}</p>
             <p style={{ margin: "0 0 24px", color: "#6b7280", fontSize: "0.85rem" }}>ניתן לדרג את השירות רק לאחר סגירת הפנייה.</p>
-            <Link href="/dashboard" style={{ color: "#2563eb", fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
+            <Link href="/dashboard" style={{ color: "#16181D", fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
           </>
         )}
 
@@ -175,7 +175,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
             )}
 
             {/* Ticket pill */}
-            <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#1e40af", borderRadius: 8, padding: "3px 12px", fontSize: "0.75rem", fontWeight: 700, marginBottom: 20 }}>
+            <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#3D5A7D", borderRadius: 8, padding: "3px 12px", fontSize: "0.75rem", fontWeight: 700, marginBottom: 20 }}>
               HDTC-{ticket.ticketNumber}
             </div>
 
@@ -242,7 +242,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
               style={{
                 width: "100%", padding: "13px",
                 background: state === "submitting" ? "#9ca3af" : isUpdate
-                  ? "linear-gradient(135deg, #2563eb, #1d4ed8)"
+                  ? "linear-gradient(135deg, #16181D, #16181D)"
                   : "linear-gradient(135deg, #16a34a, #15803d)",
                 color: "#fff", border: "none", borderRadius: 10,
                 fontWeight: 800, fontSize: "0.95rem",
@@ -272,7 +272,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
                 <span key={n} style={{ fontSize: "1.4rem", filter: n <= rating ? "none" : "grayscale(1) opacity(0.25)" }}>⭐</span>
               ))}
             </div>
-            <Link href="/dashboard" style={{ display: "inline-block", padding: "10px 24px", background: "#2563eb", color: "#fff", textDecoration: "none", borderRadius: 9, fontWeight: 700, fontSize: "0.88rem" }}>
+            <Link href="/dashboard" style={{ display: "inline-block", padding: "10px 24px", background: "#16181D", color: "#fff", textDecoration: "none", borderRadius: 9, fontWeight: 700, fontSize: "0.88rem" }}>
               חזרה ללוח הבקרה
             </Link>
           </>
@@ -282,7 +282,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
         {state === "updated" && (
           <>
             <div style={{ fontSize: 52, marginBottom: 16, animation: "pop 0.3s ease" }}>✅</div>
-            <h2 style={{ margin: "0 0 10px", color: "#1e40af", fontSize: "1.35rem", fontWeight: 800 }}>הביקורת עודכנה!</h2>
+            <h2 style={{ margin: "0 0 10px", color: "#3D5A7D", fontSize: "1.35rem", fontWeight: 800 }}>הביקורת עודכנה!</h2>
             <p style={{ margin: "0 0 6px", color: "#374151", fontSize: "0.95rem" }}>
               הדירוג החדש שלכם נשמר בהצלחה.
             </p>
@@ -291,7 +291,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
                 <span key={n} style={{ fontSize: "1.4rem", filter: n <= rating ? "none" : "grayscale(1) opacity(0.25)" }}>⭐</span>
               ))}
             </div>
-            <Link href="/dashboard" style={{ display: "inline-block", padding: "10px 24px", background: "#2563eb", color: "#fff", textDecoration: "none", borderRadius: 9, fontWeight: 700, fontSize: "0.88rem" }}>
+            <Link href="/dashboard" style={{ display: "inline-block", padding: "10px 24px", background: "#16181D", color: "#fff", textDecoration: "none", borderRadius: 9, fontWeight: 700, fontSize: "0.88rem" }}>
               חזרה ללוח הבקרה
             </Link>
           </>

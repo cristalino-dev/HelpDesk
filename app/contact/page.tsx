@@ -84,7 +84,7 @@ export default function ContactPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
       {/* Header */}
-      <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
+      <header style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -110,7 +110,7 @@ export default function ContactPage() {
 
         {/* Sender info (readonly) */}
         <div style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px", border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "14px" }}>
-          <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+          <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
             {(session?.user?.name ?? session?.user?.email ?? "?").slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -151,7 +151,7 @@ export default function ContactPage() {
             <button
               type="submit"
               disabled={sending || !message.trim()}
-              style={{ background: sending || !message.trim() ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", border: "none", cursor: sending || !message.trim() ? "not-allowed" : "pointer", fontSize: "0.9rem" }}
+              style={{ background: sending || !message.trim() ? "#93c5fd" : "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", border: "none", cursor: sending || !message.trim() ? "not-allowed" : "pointer", fontSize: "0.9rem" }}
             >
               {sending ? "שולח..." : "שלח הודעה"}
             </button>

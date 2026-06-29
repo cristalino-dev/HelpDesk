@@ -33,8 +33,20 @@
  */
 
 import type { Metadata, Viewport } from "next"
+import { Heebo } from "next/font/google"
 import "./globals.css"
 import Providers from "./providers"
+
+/**
+ * Heebo — the Cristalino brand typeface. A Hebrew-first variable font (also
+ * covers Latin), self-hosted and optimized by next/font. The CSS variable
+ * --font-heebo is consumed by the body rule in globals.css.
+ */
+const heebo = Heebo({
+  subsets: ["hebrew", "latin"],
+  variable: "--font-heebo",
+  display: "swap",
+})
 
 /**
  * Page metadata — applies to all pages unless overridden by a nested layout
@@ -59,14 +71,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     // lang="he"  — Hebrew language code (affects font rendering, hyphenation)
     // dir="rtl"  — Right-to-left document direction
-    <html lang="he" dir="rtl">
+    <html lang="he" dir="rtl" className={heebo.variable}>
       {/*
-        bg-gray-50    — Light grey page background (from globals.css / Tailwind reset)
-        text-gray-900 — Default text colour
         antialiased   — Smooth font rendering
         min-h-screen  — Prevents footer from floating in short-content pages
+        Background, text color and font come from the body rule in globals.css.
       */}
-      <body className="bg-gray-50 text-gray-900 antialiased min-h-screen">
+      <body className="antialiased min-h-screen">
         {/* Providers wraps all pages: SessionProvider, ErrorBoundary, ClientErrorHandler */}
         <Providers>{children}</Providers>
       </body>

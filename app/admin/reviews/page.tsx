@@ -90,7 +90,7 @@ export default function ReviewsPage() {
     <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
 
       {/* ── Header ── */}
-      <header style={{ background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(79,70,229,0.3)" }}>
+      <header style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(79,70,229,0.3)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -164,7 +164,7 @@ export default function ReviewsPage() {
         {/* ── Loading ── */}
         {loading && (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#4f46e5", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#16181D", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען ביקורות...</p>
           </div>
         )}
@@ -195,7 +195,7 @@ export default function ReviewsPage() {
                         <span style={{ ...col, padding: "2px 10px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 700 }}>
                           {review.rating}/5
                         </span>
-                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
+                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
                           HDTC-{review.ticket.ticketNumber}
                         </a>
                         <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -212,7 +212,7 @@ export default function ReviewsPage() {
                     {/* Right: submitter + date */}
                     <div style={{ textAlign: "left", flexShrink: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", fontWeight: 800, color: "#fff", flexShrink: 0 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#16181D,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", fontWeight: 800, color: "#fff", flexShrink: 0 }}>
                           {initials(review.submitterName)}
                         </div>
                         <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151" }}>{review.submitterName}</span>

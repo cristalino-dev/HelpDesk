@@ -162,7 +162,7 @@ export default function AdminLogsPage() {
     <div style={{ minHeight: "100vh", background: "#f8fafc", direction: "rtl", fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
       {/* ── Header ── */}
       <header style={{
-        background: "linear-gradient(135deg, #1e293b 0%, #334155 100%)",
+        background: "linear-gradient(135deg, #16181D 0%, #334155 100%)",
         padding: "0 28px", height: 64,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
@@ -296,7 +296,7 @@ export default function AdminLogsPage() {
                     <td style={{ padding: "14px 24px", position: "relative" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.88rem", lineHeight: 1.5, marginBottom: 8 }}>{log.message}</div>
+                          <div style={{ fontWeight: 600, color: "#16181D", fontSize: "0.88rem", lineHeight: 1.5, marginBottom: 8 }}>{log.message}</div>
                           {log.stack && (
                             <div style={{ position: "relative" }}>
                               <pre style={{ margin: 0, fontSize: "0.72rem", color: "#475569", whiteSpace: "pre-wrap", maxHeight: 120, overflow: "auto", background: "#f8fafc", padding: "12px", borderRadius: 8, border: "1px solid #e2e8f0", fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", direction: "ltr", textAlign: "left" }}>

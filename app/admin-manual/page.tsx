@@ -13,7 +13,7 @@ export default function AdminManualPage() {
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)", borderRadius: "16px 16px 0 0", padding: "36px 40px", textAlign: "center", color: "#fff" }}>
+        <div style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", borderRadius: "16px 16px 0 0", padding: "36px 40px", textAlign: "center", color: "#fff" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={72} height={72} style={{ objectFit: "contain", borderRadius: 10, marginBottom: 16 }} />
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מדריך מנהל – Helpdesk</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך לצוות התמיכה הטכנית של קריסטלינו</p>
@@ -33,8 +33,8 @@ export default function AdminManualPage() {
           {/* Quick links */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 32 }}>
             {[
-              { label: "כל הפניות",   href: "/tickets",        color: "#2563eb", bg: "#eff6ff" },
-              { label: "פאנל ניהול",  href: "/admin",          color: "#4f46e5", bg: "#eef2ff" },
+              { label: "כל הפניות",   href: "/tickets",        color: "#16181D", bg: "#eff6ff" },
+              { label: "פאנל ניהול",  href: "/admin",          color: "#16181D", bg: "#EDEFEA" },
               { label: "ביקורות",     href: "/admin/reviews",  color: "#16a34a", bg: "#f0fdf4" },
               { label: "לוח אישי",    href: "/dashboard",      color: "#0891b2", bg: "#ecfeff" },
             ].map(l => (
@@ -104,7 +104,7 @@ export default function AdminManualPage() {
           <Section icon="🔄" title="שינוי סטטוס">
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
               {[
-                { label: "פתוח",   bg: "#dbeafe", color: "#1e40af", desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
+                { label: "פתוח",   bg: "#dbeafe", color: "#3D5A7D", desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
                 { label: "בטיפול", bg: "#fef3c7", color: "#92400e", desc: "הצוות עובד על הפנייה — מגיש מקבל מייל עדכון" },
                 { label: "סגור",   bg: "#dcfce7", color: "#166534", desc: "הפנייה טופלה — מגיש מקבל מייל עם קישור לדירוג השירות" },
               ].map(s => (
@@ -240,7 +240,7 @@ export default function AdminManualPage() {
 
             {/* Dashboard Mockup */}
             <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", marginBottom: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-              <div style={{ padding: "12px 16px", background: "#1e293b", color: "#fff", fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
+              <div style={{ padding: "12px 16px", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
                 <span>Dashboard: Error Monitoring</span>
                 <span style={{ opacity: 0.6 }}>v{VERSION}-ADMIN</span>
               </div>
@@ -261,12 +261,12 @@ export default function AdminManualPage() {
                   <div style={{ padding: "6px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontWeight: 700, color: "#475569" }}>LATEST LOGS</div>
                   <div style={{ padding: "8px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "#ef4444", fontWeight: 800 }}>[ERROR]</span>
-                    <span style={{ flex: 1, marginRight: "8px", color: "#1e293b" }}>Failed to fetch tickets: Network Timeout</span>
+                    <span style={{ flex: 1, marginRight: "8px", color: "#16181D" }}>Failed to fetch tickets: Network Timeout</span>
                     <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
                   </div>
                   <div style={{ padding: "8px 10px", display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "#f59e0b", fontWeight: 800 }}>[WARN]</span>
-                    <span style={{ flex: 1, marginRight: "8px", color: "#1e293b" }}>Email delivery delayed (SMTP_RETRY)</span>
+                    <span style={{ flex: 1, marginRight: "8px", color: "#16181D" }}>Email delivery delayed (SMTP_RETRY)</span>
                     <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function AdminManualPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
                 { role: "עובד רגיל",    color: "#0891b2", bg: "#ecfeff", perms: "פתיחת פניות, מעקב אחר הפניות שלו, סגירת פנייה עצמית, פתיחה מחדש עד 4 שבועות, דירוג שירות, עדכון פרופיל" },
-                { role: "צוות תמיכה",  color: "#4f46e5", bg: "#eef2ff", perms: "כל הפניות, עריכה, שינוי סטטוס, הערות, הדף /tickets, צפייה בביקורות" },
+                { role: "צוות תמיכה",  color: "#16181D", bg: "#EDEFEA", perms: "כל הפניות, עריכה, שינוי סטטוס, הערות, הדף /tickets, צפייה בביקורות" },
                 { role: "מנהל מערכת",  color: "#7c3aed", bg: "#f5f3ff", perms: "כל האמור + פאנל /admin, ניהול משתמשים, יומן שגיאות, לוח ביקורות" },
               ].map(r => (
                 <div key={r.role} style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #f3f4f6" }}>
@@ -305,7 +305,7 @@ export default function AdminManualPage() {
         </div>
 
         {/* Footer */}
-        <div style={{ background: "#312e81", borderRadius: "0 0 16px 16px", padding: "24px 40px", textAlign: "center", color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", lineHeight: 1.8 }}>
+        <div style={{ background: "#16181D", borderRadius: "0 0 16px 16px", padding: "24px 40px", textAlign: "center", color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", lineHeight: 1.8 }}>
           <div style={{ fontWeight: 700, color: "#fff", fontSize: "0.85rem" }}>מדריך מנהל — מערכת Helpdesk קריסטלינו</div>
           <div style={{ marginTop: 6 }}>
             <a href="https://helpdesk.cristalino.co.il" style={{ color: "rgba(255,255,255,0.9)" }}>helpdesk.cristalino.co.il</a>
@@ -322,8 +322,8 @@ export default function AdminManualPage() {
 function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#312e81", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #eef2ff" }}>
-        <span style={{ width: 30, height: 30, background: "#eef2ff", borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#16181D", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #EDEFEA" }}>
+        <span style={{ width: 30, height: 30, background: "#EDEFEA", borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
         {title}
       </div>
       {children}
@@ -336,7 +336,7 @@ function Steps({ items }: { items: React.ReactNode[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#f9fafb", borderRadius: 10, padding: "12px 16px" }}>
-          <span style={{ width: 24, height: 24, background: "#4f46e5", color: "#fff", borderRadius: "50%", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+          <span style={{ width: 24, height: 24, background: "#16181D", color: "#fff", borderRadius: "50%", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
           <span style={{ fontSize: "0.875rem", lineHeight: 1.6, color: "#374151" }}>{item}</span>
         </div>
       ))}
@@ -349,7 +349,7 @@ function FeatureList({ items }: { items: string[] }) {
     <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
       {items.map((item, i) => (
         <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: "0.875rem", color: "#374151", lineHeight: 1.6 }}>
-          <span style={{ color: "#4f46e5", fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</span>
+          <span style={{ color: "#16181D", fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</span>
           {item}
         </li>
       ))}

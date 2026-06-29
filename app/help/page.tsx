@@ -12,7 +12,7 @@ export default function HelpPage() {
     <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif", direction: "rtl" }}>
 
       {/* Header */}
-      <header style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
+      <header style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
           <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>{`מערכת helpdesk v${VERSION}`}</span>
@@ -35,16 +35,16 @@ export default function HelpPage() {
         {/* TOC */}
         <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "24px 28px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
           <p style={{ margin: "0 0 14px", fontWeight: 700, color: "#374151", fontSize: "0.9rem" }}>תוכן עניינים</p>
-          <ol style={{ margin: 0, padding: "0 20px", display: "flex", flexDirection: "column", gap: "8px", color: "#2563eb", fontSize: "0.9rem" }}>
-            <li><a href="#login"           style={{ color: "#2563eb" }}>כניסה למערכת</a></li>
-            <li><a href="#dashboard"       style={{ color: "#2563eb" }}>לוח הבקרה — הפניות שלי</a></li>
-            <li><a href="#new-ticket"      style={{ color: "#2563eb" }}>פתיחת פנייה חדשה</a></li>
-            <li><a href="#notes-attachments" style={{ color: "#2563eb" }}>הערות ותמונות מצורפות</a></li>
-            <li><a href="#messaging"       style={{ color: "#2563eb" }}>שיחה עם צוות התמיכה</a></li>
-            <li><a href="#statuses"        style={{ color: "#2563eb" }}>מצבי פנייה</a></li>
-            <li><a href="#urgency"         style={{ color: "#2563eb" }}>רמות דחיפות</a></li>
-            <li><a href="#review"          style={{ color: "#2563eb" }}>דירוג השירות לאחר סגירה</a></li>
-            <li><a href="#contact"         style={{ color: "#2563eb" }}>צרו קשר עם תמיכת המערכת</a></li>
+          <ol style={{ margin: 0, padding: "0 20px", display: "flex", flexDirection: "column", gap: "8px", color: "#16181D", fontSize: "0.9rem" }}>
+            <li><a href="#login"           style={{ color: "#16181D" }}>כניסה למערכת</a></li>
+            <li><a href="#dashboard"       style={{ color: "#16181D" }}>לוח הבקרה — הפניות שלי</a></li>
+            <li><a href="#new-ticket"      style={{ color: "#16181D" }}>פתיחת פנייה חדשה</a></li>
+            <li><a href="#notes-attachments" style={{ color: "#16181D" }}>הערות ותמונות מצורפות</a></li>
+            <li><a href="#messaging"       style={{ color: "#16181D" }}>שיחה עם צוות התמיכה</a></li>
+            <li><a href="#statuses"        style={{ color: "#16181D" }}>מצבי פנייה</a></li>
+            <li><a href="#urgency"         style={{ color: "#16181D" }}>רמות דחיפות</a></li>
+            <li><a href="#review"          style={{ color: "#16181D" }}>דירוג השירות לאחר סגירה</a></li>
+            <li><a href="#contact"         style={{ color: "#16181D" }}>צרו קשר עם תמיכת המערכת</a></li>
           </ol>
         </div>
 
@@ -53,7 +53,7 @@ export default function HelpPage() {
           <SectionTitle number="1" title="כניסה למערכת" />
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
-            <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #1e40af 100%)", padding: "40px 24px", display: "flex", justifyContent: "center" }}>
+            <div style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 50%, #3D5A7D 100%)", padding: "40px 24px", display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "36px 32px", width: "300px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
                 <Image src="/logo.jpeg" alt="Cristalino Group" width={90} height={90} loading="eager" style={{ objectFit: "contain" }} />
                 <div style={{ textAlign: "center" }}>
@@ -85,7 +85,7 @@ export default function HelpPage() {
           <SectionTitle number="2" title='לוח הבקרה — "הפניות שלי"' />
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
-            <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Image src="/logo.jpeg" alt="" width={32} height={32} style={{ objectFit: "contain", borderRadius: "4px" }} />
                 <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem" }}>מערכת helpdesk</span>
@@ -99,7 +99,7 @@ export default function HelpPage() {
             <div style={{ backgroundColor: "#f0f2f5", padding: "16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
                 {[
-                  { label: "פתוחות", count: 2, color: "#2563eb", bg: "#eff6ff" },
+                  { label: "פתוחות", count: 2, color: "#16181D", bg: "#eff6ff" },
                   { label: "בטיפול", count: 1, color: "#d97706", bg: "#fffbeb" },
                   { label: "סגורות", count: 5, color: "#16a34a", bg: "#f0fdf4" },
                 ].map(s => (
@@ -111,7 +111,7 @@ export default function HelpPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                 <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#1f2937" }}>הפניות שלי</span>
-                <div style={{ backgroundColor: "#2563eb", color: "#fff", fontSize: "0.78rem", fontWeight: 600, padding: "6px 14px", borderRadius: "8px" }}>+ פנייה חדשה</div>
+                <div style={{ backgroundColor: "#16181D", color: "#fff", fontSize: "0.78rem", fontWeight: 600, padding: "6px 14px", borderRadius: "8px" }}>+ פנייה חדשה</div>
               </div>
               {/* Active ticket */}
               <div style={{ backgroundColor: "#fff", borderRadius: "10px", borderRight: "4px solid #f97316", padding: "10px 14px 10px 12px", marginBottom: "6px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px" }}>
@@ -164,7 +164,7 @@ export default function HelpPage() {
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
               </div>
               <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>פתיחת פנייה חדשה</span>
@@ -181,7 +181,7 @@ export default function HelpPage() {
                 <MockSelect label="דחיפות" value="בינוני" colored />
               </div>
               <MockTextarea label="תיאור מפורט *" />
-              <div style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
+              <div style={{ background: "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
             </div>
           </div>
 
@@ -266,7 +266,7 @@ export default function HelpPage() {
           <SectionTitle number="6" title="מצבי פנייה" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <StatusRow badge={badge("#dbeafe", "#1e40af", "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
+              <StatusRow badge={badge("#dbeafe", "#3D5A7D", "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
               <StatusRow badge={badge("#fef3c7", "#92400e", "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. תקבלו מייל עדכון. ייתכן שיצרו איתכם קשר בקרוב." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
@@ -301,7 +301,7 @@ export default function HelpPage() {
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
             <div style={{ background: "linear-gradient(135deg, #f0f9ff, #e0f2fe, #f0fdf4)", padding: "32px 24px", display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px 28px 24px", width: "340px", textAlign: "center", boxShadow: "0 8px 30px rgba(0,0,0,0.10)", border: "1px solid #e5e7eb" }}>
-                <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#1e40af", borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
+                <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#3D5A7D", borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
                 <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "#1f2937", marginBottom: 4 }}>איך היה השירות?</div>
                 <div style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4 }}>מוראל לוי סגירת יוזר קומקס</div>
                 <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginBottom: 20 }}>שניה מזמנכם תעזור לנו להשתפר</div>
@@ -335,14 +335,14 @@ export default function HelpPage() {
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>צרו קשר עם תמיכת HelpDesk</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: "#9ca3af" }}>תארו את הבעיה שנתקלתם בה...</div>
-              <div style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
+              <div style={{ background: "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
             </div>
           </div>
 
@@ -371,7 +371,7 @@ export default function HelpPage() {
 function SectionTitle({ number, title }: { number: string; title: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>{number}</div>
+      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>{number}</div>
       <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#1f2937" }}>{title}</h2>
     </div>
   )
@@ -390,7 +390,7 @@ function Steps({ steps }: { steps: { n: number; text: React.ReactNode }[] }) {
     <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "12px" }}>
       {steps.map(s => (
         <li key={s.n} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, flexShrink: 0, marginTop: "1px" }}>{s.n}</div>
+          <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#eff6ff", color: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, flexShrink: 0, marginTop: "1px" }}>{s.n}</div>
           <span style={{ color: "#374151", fontSize: "0.9rem", lineHeight: 1.6 }}>{s.text}</span>
         </li>
       ))}
@@ -416,7 +416,7 @@ function FieldList({ items }: { items: { label: string; desc: string }[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       {items.map(i => (
         <div key={i.label} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-          <div style={{ backgroundColor: "#eff6ff", color: "#1d4ed8", padding: "2px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0, marginTop: "1px" }}>{i.label}</div>
+          <div style={{ backgroundColor: "#eff6ff", color: "#16181D", padding: "2px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0, marginTop: "1px" }}>{i.label}</div>
           <span style={{ color: "#4b5563", fontSize: "0.88rem", lineHeight: 1.6 }}>{i.desc}</span>
         </div>
       ))}
@@ -427,7 +427,7 @@ function FieldList({ items }: { items: { label: string; desc: string }[] }) {
 function FieldGuideItem({ label, required, desc }: { label: string; required?: boolean; desc: React.ReactNode }) {
   return (
     <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
-      <div style={{ minWidth: "100px", backgroundColor: required ? "#eff6ff" : "#f9fafb", color: required ? "#1d4ed8" : "#374151", padding: "3px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, textAlign: "center", flexShrink: 0, border: `1px solid ${required ? "#bfdbfe" : "#e5e7eb"}` }}>
+      <div style={{ minWidth: "100px", backgroundColor: required ? "#eff6ff" : "#f9fafb", color: required ? "#16181D" : "#374151", padding: "3px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, textAlign: "center", flexShrink: 0, border: `1px solid ${required ? "#bfdbfe" : "#e5e7eb"}` }}>
         {label}{required && <span style={{ color: "#ef4444" }}> *</span>}
       </div>
       <span style={{ color: "#4b5563", fontSize: "0.88rem", lineHeight: 1.65 }}>{desc}</span>
@@ -464,7 +464,7 @@ function MockField({ label, placeholder, hint }: { label: string; placeholder: s
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "5px" }}>
         <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#374151" }}>{label}</label>
-        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
+        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#16181D", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
       </div>
       <div style={{ border: "1px solid #d1d5db", borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: "#9ca3af", backgroundColor: "#fff" }}>{placeholder}</div>
     </div>

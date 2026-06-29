@@ -41,7 +41,6 @@
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
@@ -50,6 +49,8 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { closeTicket as apiCloseTicket, setTicketStatus } from "@/lib/ticketApi"
+import { T } from "@/lib/theme"
+import Logo from "@/components/Logo"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -134,45 +135,34 @@ export default function DashboardPage() {
   const onHold = tickets.filter(t => t.status === "בהמתנה").length
   const closed = tickets.filter(t => t.status === "סגור").length
 
-  // Shared nav-button style helpers
+  // Shared nav-link style helpers — Cristalino white chrome (dark text on light)
   const navBtn = {
-    fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none",
-    padding: "6px 12px", borderRadius: "8px",
-    border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500,
+    fontSize: "0.82rem", color: T.text2, textDecoration: "none",
+    padding: "8px 13px", borderRadius: "9px", fontWeight: 500,
   } as const
   const navBtnStrong = {
-    ...navBtn, color: "#fff", fontWeight: 600,
-    backgroundColor: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
+    ...navBtn, color: T.text, fontWeight: 600,
   } as const
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+    <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
+      {/* ── Header (white chrome, hairline) ───────────────────────────────── */}
       <header style={{
-        background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
-        padding: isMobile ? "0 14px" : "0 28px",
+        background: T.card,
+        padding: isMobile ? "0 14px" : "0 30px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: "56px",
-        boxShadow: "0 4px 16px rgba(37,99,235,0.25)",
+        height: "64px",
+        borderBottom: `1px solid ${T.border}`,
       }}>
-        {/* Left: logo + title */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <div style={{ width: "30px", height: "30px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          {!isMobile && (
-            <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff", letterSpacing: "-0.01em" }}>מערכת helpdesk</span>
-          )}
+        {/* Left: brand mark + wordmark */}
+        <div style={{ flexShrink: 0 }}>
+          <Logo size={isMobile ? 28 : 32} subtitle={isMobile ? false : "מערכת"} />
         </div>
 
         {/* Right: nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "6px" : "8px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={isMobile ? 34 : 44} height={isMobile ? 34 : 44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "2px" : "4px" }}>
           {/* Secondary links — hidden on mobile */}
           {!isMobile && <Link href="/help" style={navBtn}>עזרה</Link>}
           {!isMobile && <Link href="/contact" style={navBtn}>צרו קשר</Link>}
@@ -189,7 +179,7 @@ export default function DashboardPage() {
             </Link>
           )}
           {session?.user?.isAdmin && (
-            <Link href="/admin" style={{ ...navBtnStrong, backgroundColor: "rgba(255,255,255,0.2)" }}>
+            <Link href="/admin" style={navBtnStrong}>
               {isMobile ? "ניהול" : "ניהול פניות"}
             </Link>
           )}
@@ -202,7 +192,7 @@ export default function DashboardPage() {
               setLinkCopied(true)
               setTimeout(() => setLinkCopied(false), 2000)
             }}
-            style={{ background: linkCopied ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", cursor: "pointer", padding: isMobile ? "6px 8px" : "6px 10px", display: "flex", alignItems: "center", gap: "5px", color: "rgba(255,255,255,0.9)", fontSize: "0.8rem", fontWeight: 500, transition: "background 0.15s" }}
+            style={{ background: linkCopied ? T.greenBg : "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 11px", display: "flex", alignItems: "center", gap: "5px", color: linkCopied ? T.greenInk : T.text2, fontSize: "0.82rem", fontWeight: 500, transition: "background 0.15s, color 0.15s" }}
           >
             {linkCopied ? (
               <>
@@ -217,22 +207,22 @@ export default function DashboardPage() {
             )}
           </button>
 
-          {/* Profile avatar (+ name on desktop) */}
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "7px", textDecoration: "none", padding: isMobile ? "4px 6px" : "4px 10px 4px 6px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
-            <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-              {initials(session?.user?.name)}
-            </div>
+          {/* Profile avatar (+ name on desktop) — light pill, dark avatar w/ green initials */}
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", padding: isMobile ? "4px" : "5px 7px 5px 12px", borderRadius: "999px", background: T.bg }}>
             {!isMobile && (
-              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
+              <span style={{ fontSize: "0.81rem", color: T.text, maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
                 {session?.user?.name}
               </span>
             )}
+            <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green, flexShrink: 0 }}>
+              {initials(session?.user?.name)}
+            </div>
           </Link>
 
           {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", cursor: "pointer", padding: isMobile ? "6px 8px" : "6px 12px", fontWeight: 500 }}
+            style={{ fontSize: "0.82rem", color: T.muted, background: "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 12px", fontWeight: 500 }}
           >
             {isMobile ? "↩" : "יציאה"}
           </button>
@@ -246,33 +236,33 @@ export default function DashboardPage() {
         {!loading && tickets.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${onHold > 0 ? 4 : 3}, 1fr)`, gap: isMobile ? "8px" : "12px" }}>
             {[
-              { label: "פתוחות",   status: "פתוח",     count: open,       color: "#2563eb", bg: "#eff6ff", activeBorder: "#2563eb" },
-              { label: "בטיפול",   status: "בטיפול",   count: inProgress, color: "#d97706", bg: "#fffbeb", activeBorder: "#d97706" },
-              ...(onHold > 0 ? [{ label: "בהמתנה", status: "בהמתנה", count: onHold,     color: "#4b5563", bg: "#f3f4f6", activeBorder: "#9ca3af" }] : []),
-              { label: "סגורות",   status: "סגור",     count: closed,     color: "#16a34a", bg: "#f0fdf4", activeBorder: "#16a34a" },
-            ].map(({ label, status, count, color, bg, activeBorder }) => {
+              { label: "פתוחות",   status: "פתוח",     count: open,       color: "#3D5A7D", dark: false },
+              { label: "בטיפול",   status: "בטיפול",   count: inProgress, color: "#A9741A", dark: false },
+              ...(onHold > 0 ? [{ label: "בהמתנה", status: "בהמתנה", count: onHold,     color: "#5B6260", dark: false }] : []),
+              { label: "סגורות",   status: "סגור",     count: closed,     color: T.green,   dark: true  },
+            ].map(({ label, status, count, color, dark }) => {
               const isActive = statusFilter === status
               return (
                 <button
                   key={label}
                   onClick={() => setStatusFilter(f => f === status ? null : status)}
                   style={{
-                    backgroundColor: isActive ? bg : "#fff",
-                    borderRadius: "12px",
-                    padding: isMobile ? "10px 12px" : "16px 20px",
-                    boxShadow: isActive
-                      ? `0 0 0 2px ${activeBorder}, 0 2px 8px rgba(0,0,0,0.08)`
-                      : "0 1px 4px rgba(0,0,0,0.06)",
-                    display: "flex", alignItems: "center", gap: isMobile ? "8px" : "12px",
-                    border: isActive ? `2px solid ${activeBorder}` : "1px solid #f3f4f6",
+                    backgroundColor: dark ? T.dark : "#fff",
+                    borderRadius: "14px",
+                    padding: isMobile ? "13px 15px" : "18px 22px",
+                    boxShadow: isActive ? `0 0 0 2px rgba(116,197,58,0.30)` : "none",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px",
+                    border: isActive ? `1px solid ${T.green}` : `1px solid ${dark ? T.dark : T.border}`,
                     cursor: "pointer",
                     transition: "all 0.15s",
                     width: "100%", textAlign: "right",
                   }}
                 >
-                  <div style={{ width: isMobile ? "30px" : "36px", height: isMobile ? "30px" : "36px", borderRadius: "10px", backgroundColor: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
-                  <span style={{ fontSize: isMobile ? "0.75rem" : "0.82rem", color: isActive ? color : "#6b7280", fontWeight: isActive ? 700 : 500 }}>{label}</span>
-                  {isActive && <span style={{ marginRight: "auto", fontSize: "0.65rem", color, fontWeight: 700, opacity: 0.8 }}>✕</span>}
+                  <span style={{ fontSize: isMobile ? "0.76rem" : "0.82rem", color: dark ? "#A9AEA8" : T.text3, fontWeight: 500 }}>{label}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {isActive && <span style={{ fontSize: "0.68rem", color: dark ? T.green : T.muted, fontWeight: 700 }}>✕</span>}
+                    <span style={{ fontSize: isMobile ? "1.5rem" : "1.9rem", fontWeight: 800, color: dark ? T.green : color, lineHeight: 1 }}>{count}</span>
+                  </span>
                 </button>
               )
             })}
@@ -281,31 +271,32 @@ export default function DashboardPage() {
 
         {/* Title + new-ticket button */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937", letterSpacing: "-0.01em" }}>
+          <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
             הפניות שלי
             {statusFilter && (
-              <span style={{ marginRight: 8, fontSize: "0.75rem", fontWeight: 500, color: "#6b7280" }}>
-                — מסנן: {statusFilter === "פתוח" ? "פתוחות" : statusFilter === "בטיפול" ? "בטיפול" : "סגורות"}
+              <span style={{ marginRight: 8, fontSize: "0.75rem", fontWeight: 500, color: T.muted }}>
+                — מסנן: {statusFilter === "פתוח" ? "פתוחות" : statusFilter === "בטיפול" ? "בטיפול" : statusFilter === "בהמתנה" ? "בהמתנה" : "סגורות"}
               </span>
             )}
           </h2>
           <button
             onClick={() => setShowForm(f => !f)}
             style={{
-              backgroundColor: showForm ? "#f3f4f6" : "#2563eb",
-              color: showForm ? "#374151" : "#fff",
+              backgroundColor: showForm ? T.bg : T.dark,
+              color: showForm ? T.text2 : "#fff",
               fontWeight: 600,
-              padding: isMobile ? "8px 14px" : "9px 18px",
-              borderRadius: "10px",
+              padding: isMobile ? "10px 16px" : "11px 20px",
+              borderRadius: "11px",
               border: "none",
               cursor: "pointer",
-              fontSize: isMobile ? "0.82rem" : "0.85rem",
-              boxShadow: showForm ? "none" : "0 4px 12px rgba(37,99,235,0.3)",
+              fontSize: isMobile ? "0.82rem" : "0.875rem",
               transition: "all 0.15s",
               whiteSpace: "nowrap",
+              display: "inline-flex", alignItems: "center", gap: "9px",
             }}
           >
-            {showForm ? "ביטול" : "+ פנייה חדשה"}
+            {!showForm && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: T.green, display: "inline-block" }} />}
+            {showForm ? "ביטול" : "פנייה חדשה"}
           </button>
         </div>
 
@@ -353,7 +344,7 @@ export default function DashboardPage() {
             {(search || statusFilter) && (
               <button
                 onClick={() => { setSearch(""); setStatusFilter(null) }}
-                style={{ fontSize: "0.75rem", color: "#2563eb", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}
+                style={{ fontSize: "0.75rem", color: T.greenInk, background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}
               >
                 נקה הכל
               </button>
@@ -365,7 +356,7 @@ export default function DashboardPage() {
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: "#2563eb", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+            <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: T.green, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען פניות...</p>
           </div>
         ) : (

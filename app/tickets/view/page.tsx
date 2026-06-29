@@ -23,7 +23,7 @@ const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "דחוף":   { background: "#fee2e2", color: "#991b1b" },
 }
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  "פתוח":   { background: "#dbeafe", color: "#1e40af" },
+  "פתוח":   { background: "#dbeafe", color: "#3D5A7D" },
   "בטיפול": { background: "#fef3c7", color: "#92400e" },
   "סגור":   { background: "#dcfce7", color: "#166534" },
 }
@@ -114,7 +114,7 @@ export default function TicketsViewPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
       <header style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
+        background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)",
         padding: "0 28px", height: 64,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "0 4px 16px rgba(15,23,42,0.35)",
@@ -164,7 +164,7 @@ export default function TicketsViewPage() {
 
       {/* Mobile dropdown menu */}
       {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
           <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח אישי</a>
           {!isViewer && (
             <a href="/tickets" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>ניהול פניות</a>
@@ -183,10 +183,10 @@ export default function TicketsViewPage() {
 
         {/* Info banner for viewers */}
         {isViewer && (
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: "0.83rem", color: "#1e40af" }}>
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: "0.83rem", color: "#3D5A7D" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" stroke="#2563eb" strokeWidth="1.8"/>
-              <path d="M12 8v4M12 16h.01" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="10" stroke="#16181D" strokeWidth="1.8"/>
+              <path d="M12 8v4M12 16h.01" stroke="#16181D" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             <span>אתה במצב צפייה בלבד — לא ניתן לשנות פניות</span>
           </div>
@@ -203,7 +203,7 @@ export default function TicketsViewPage() {
           <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
             {[{ label: "פתוחות", val: false }, { label: "הכל", val: true }].map(opt => (
               <button key={String(opt.val)} onClick={() => setShowAll(opt.val)}
-                style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem", background: showAll === opt.val ? "#0f172a" : "transparent", color: showAll === opt.val ? "#fff" : "#6b7280", transition: "all 0.15s" }}
+                style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem", background: showAll === opt.val ? "#16181D" : "transparent", color: showAll === opt.val ? "#fff" : "#6b7280", transition: "all 0.15s" }}
               >{opt.label}</button>
             ))}
           </div>
@@ -235,7 +235,7 @@ export default function TicketsViewPage() {
                   { key: "updatedAt", label: "עודכן" },
                 ] as const).map(col => (
                   <button key={col.key} onClick={() => handleSort(col.key)}
-                    style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? "#4f46e5" : "#9ca3af", whiteSpace: "nowrap" }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? "#16181D" : "#9ca3af", whiteSpace: "nowrap" }}
                   >
                     {col.label}
                     <span style={{ fontSize: "0.65rem", opacity: sortKey === col.key ? 1 : 0.4 }}>
@@ -266,7 +266,7 @@ export default function TicketsViewPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                           <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -287,7 +287,7 @@ export default function TicketsViewPage() {
 
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                         <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>

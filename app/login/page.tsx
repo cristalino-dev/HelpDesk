@@ -36,6 +36,7 @@
 import { signIn } from "next-auth/react"
 import Image from "next/image"
 import FooterCopyright from "@/components/FooterCopyright"
+import { T } from "@/lib/theme"
 
 export default function LoginPage() {
   return (
@@ -44,12 +45,12 @@ export default function LoginPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "linear-gradient(135deg, #1e3a8a 0%, #312e81 50%, #1e40af 100%)",
+      background: `linear-gradient(150deg, ${T.dark} 0%, #1C1F26 55%, #0E1013 100%)`,
       padding: "24px",
     }}>
-      {/* Decorative circles */}
-      <div style={{ position: "fixed", top: "-80px", right: "-80px", width: "300px", height: "300px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
-      <div style={{ position: "fixed", bottom: "-120px", left: "-60px", width: "400px", height: "400px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
+      {/* Decorative circles — brand green glow */}
+      <div style={{ position: "fixed", top: "-80px", right: "-80px", width: "300px", height: "300px", borderRadius: "50%", backgroundColor: "rgba(116,197,58,0.08)", pointerEvents: "none" }} />
+      <div style={{ position: "fixed", bottom: "-120px", left: "-60px", width: "400px", height: "400px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
 
       <div style={{
         backgroundColor: "#ffffff",
@@ -68,8 +69,10 @@ export default function LoginPage() {
         <Image src="/logo.jpeg" alt="Cristalino Group" width={120} height={120} loading="eager" style={{ objectFit: "contain" }} />
 
         <div style={{ textAlign: "center" }}>
-          <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>מערכת helpdesk</h1>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.9rem", lineHeight: 1.5 }}>
+          <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: T.dark, letterSpacing: "-0.01em" }}>
+            helpdesk<span style={{ color: "#B4BAB6", fontWeight: 500 }}> · </span><span style={{ color: T.text2, fontWeight: 600 }}>מערכת</span>
+          </h1>
+          <p style={{ margin: 0, color: T.text3, fontSize: "0.9rem", lineHeight: 1.5 }}>
             התחברו עם חשבון Google שלכם<br />לפתיחת פנייה או מעקב אחר הפניות
           </p>
         </div>
@@ -84,17 +87,17 @@ export default function LoginPage() {
             width: "100%",
             padding: "13px 24px",
             borderRadius: "12px",
-            border: "1.5px solid #e5e7eb",
+            border: `1px solid ${T.borderStrong}`,
             backgroundColor: "#fff",
-            color: "#374151",
+            color: T.text,
             fontWeight: 600,
             fontSize: "0.95rem",
             cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            transition: "box-shadow 0.15s",
+            boxShadow: "0 2px 8px rgba(20,22,26,0.06)",
+            transition: "box-shadow 0.15s, border-color 0.15s",
           }}
-          onMouseOver={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.12)"; e.currentTarget.style.borderColor = "#d1d5db" }}
-          onMouseOut={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; e.currentTarget.style.borderColor = "#e5e7eb" }}
+          onMouseOver={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(20,22,26,0.12)"; e.currentTarget.style.borderColor = T.green }}
+          onMouseOut={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(20,22,26,0.06)"; e.currentTarget.style.borderColor = T.borderStrong }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

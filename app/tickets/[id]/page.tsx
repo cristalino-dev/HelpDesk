@@ -10,22 +10,18 @@ import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { ticketRevision } from "@/lib/ticketRevision"
+import { T, STATUS, URGENCY } from "@/lib/theme"
+import Logo from "@/components/Logo"
 
 /** How often (ms) the open ticket page polls the server for changes. */
 const POLL_INTERVAL_MS = 10_000
 
-const URGENCY_STYLE: Record<string, React.CSSProperties> = {
-  "נמוך":   { background: "#dcfce7", color: "#166534" },
-  "בינוני": { background: "#fef3c7", color: "#92400e" },
-  "גבוה":   { background: "#ffedd5", color: "#9a3412" },
-  "דחוף":   { background: "#fee2e2", color: "#991b1b" },
-}
-const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  "פתוח":    { background: "#dbeafe", color: "#1e40af" },
-  "בטיפול":  { background: "#fef3c7", color: "#92400e" },
-  "בהמתנה": { background: "#f3f4f6", color: "#4b5563" },
-  "סגור":    { background: "#dcfce7", color: "#166534" },
-}
+const URGENCY_STYLE: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(URGENCY).map(([k, v]) => [k, { background: v.bg, color: v.fg }])
+)
+const STATUS_STYLE: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(STATUS).map(([k, v]) => [k, { background: v.bg, color: v.fg }])
+)
 
 const STATUSES  = ["פתוח", "בטיפול", "בהמתנה", "סגור"]
 
@@ -291,8 +287,8 @@ export default function TicketDetailPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
-        <div style={{ color: "#6b7280", fontSize: "0.95rem" }}>טוען...</div>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg }}>
+        <div style={{ color: T.text2, fontSize: "0.95rem" }}>טוען...</div>
       </div>
     )
   }
@@ -304,19 +300,22 @@ export default function TicketDetailPage() {
   const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", boxSizing: "border-box" }
 
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div dir="rtl" style={{ minHeight: "100vh", background: T.bg }}>
 
-      {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "14px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+      {/* Header — white chrome, hairline */}
+      <div style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: "0 24px", height: 66, display: "flex", alignItems: "center", gap: 14 }}>
         <button
           onClick={() => { if (window.history.length > 1) { router.back() } else { router.push("/tickets") } }}
-          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: "0.85rem", color: "#374151", display: "flex", alignItems: "center", gap: 6 }}
+          style={{ padding: "8px 14px", borderRadius: 9, border: `1px solid ${T.borderStrong}`, background: "#fff", cursor: "pointer", fontSize: "0.85rem", color: T.text2, display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}
         >
           ← חזרה
         </button>
-        <h1 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937", flex: 1 }}>
-          HDTC-{ticket.ticketNumber} · {ticket.subject}
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, flex: 1, minWidth: 0 }}>
+          <Logo size={28} wordmark={false} subtitle={false} />
+          <h1 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            HDTC-{ticket.ticketNumber} · {ticket.subject}
+          </h1>
+        </div>
         {isStaff && !editing && (
           <button
             onClick={() => setEditing(true)}
@@ -352,7 +351,7 @@ export default function TicketDetailPage() {
         {isStaff && editing && (
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setEditing(false)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: "0.85rem", color: "#6b7280" }}>ביטול</button>
-            <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "#2563eb", color: "#fff", cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
+            <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
               {editSaving ? "שומר..." : "שמור"}
             </button>
           </div>
@@ -469,7 +468,7 @@ export default function TicketDetailPage() {
                   value={ticket.assignedTo}
                   disabled={assigning}
                   onChange={e => assignTicket(e.target.value)}
-                  style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
+                  style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#16181D", cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
                 >
                   {staffMembers.map(m => (
                     <option key={m.email} value={m.email}>{m.display}</option>
@@ -479,7 +478,7 @@ export default function TicketDetailPage() {
                   <button
                     onClick={() => assignTicket(session?.user?.email ?? "")}
                     disabled={assigning || !session?.user?.email}
-                    style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
+                    style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
                   >
                     הקצה לעצמי
                   </button>
@@ -487,7 +486,7 @@ export default function TicketDetailPage() {
                 {assigning && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
               </>
             ) : (
-              <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1e3a8a" }}>
+              <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#16181D" }}>
                 {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo}
               </span>
             )}
@@ -538,16 +537,16 @@ export default function TicketDetailPage() {
               const isLastMsg = msg.id === lastMsgId
               return (
                 <div key={msg.id} id={`msg-${msg.id}`} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start", scrollMarginTop: 80 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? "#16181D" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
                     {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                   </div>
                   <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4, flexDirection: isMe ? "row-reverse" : "row" }}>
-                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: byStaff ? "#4f46e5" : "#0891b2" }}>{msg.authorName}</span>
-                      {byStaff && <span style={{ fontSize: "0.65rem", background: "#eef2ff", color: "#4f46e5", borderRadius: 10, padding: "1px 7px", fontWeight: 600 }}>צוות</span>}
+                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: byStaff ? "#16181D" : "#0891b2" }}>{msg.authorName}</span>
+                      {byStaff && <span style={{ fontSize: "0.65rem", background: "#EDEFEA", color: "#16181D", borderRadius: 10, padding: "1px 7px", fontWeight: 600 }}>צוות</span>}
                       <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{formatDate(msg.createdAt)}</span>
                     </div>
-                    <div style={{ background: isReplying ? "#fffbeb" : byStaff ? "#eef2ff" : "#f0f9ff", border: isReplying ? "1px solid #fbbf24" : "none", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div style={{ background: isReplying ? "#fffbeb" : byStaff ? "#EDEFEA" : "#f0f9ff", border: isReplying ? "1px solid #fbbf24" : "none", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                       {msg.content}
                     </div>
                     {!isMe && (
@@ -594,7 +593,7 @@ export default function TicketDetailPage() {
               <button
                 onClick={sendMessage}
                 disabled={msgSaving || !msgText.trim()}
-                style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: msgSaving || !msgText.trim() ? "#e5e7eb" : "#2563eb", color: msgSaving || !msgText.trim() ? "#9ca3af" : "#fff", cursor: msgSaving || !msgText.trim() ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
+                style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: msgSaving || !msgText.trim() ? "#e5e7eb" : "#16181D", color: msgSaving || !msgText.trim() ? "#9ca3af" : "#fff", cursor: msgSaving || !msgText.trim() ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
               >
                 {msgSaving ? "שולח..." : "שלח הודעה"}
               </button>
@@ -607,7 +606,7 @@ export default function TicketDetailPage() {
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📝 הערות טכנאי</h2>
-            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#7c3aed", background: "#ede9fe", borderRadius: 20, padding: "2px 10px", letterSpacing: "0.01em" }}>גלוי לצוות התמיכה בלבד</span>
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#7c3aed", background: "#EDEFEA", borderRadius: 20, padding: "2px 10px", letterSpacing: "0.01em" }}>גלוי לצוות התמיכה בלבד</span>
           </div>
 
             {ticket.notes.length === 0 && (
@@ -617,7 +616,7 @@ export default function TicketDetailPage() {
             {ticket.notes.map((note: TicketNote) => (
               <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 14, marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#4f46e5" }}>{note.authorName}</span>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#16181D" }}>{note.authorName}</span>
                   <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{formatDate(note.createdAt)}</span>
                 </div>
                 <div style={{ fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{note.content}</div>
@@ -640,7 +639,7 @@ export default function TicketDetailPage() {
                 {staffMembers.map(m => (
                   <button key={m.handle} type="button"
                     onClick={() => setNoteText(t => t ? `${t} @${m.handle}` : `@${m.handle}`)}
-                    style={{ padding: "2px 10px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+                    style={{ padding: "2px 10px", borderRadius: 20, border: "1px solid #EDEFEA", background: "#EDEFEA", color: "#16181D", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
                   >@{m.handle}</button>
                 ))}
               </div>
@@ -651,7 +650,7 @@ export default function TicketDetailPage() {
               <button
                 onClick={addNote}
                 disabled={noteSaving || (!noteText.trim() && noteImages.length === 0)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#e5e7eb" : "#4f46e5", color: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#9ca3af" : "#fff", cursor: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#e5e7eb" : "#16181D", color: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#9ca3af" : "#fff", cursor: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
               >
                 {noteSaving ? "שומר..." : "הוסף הערה"}
               </button>
@@ -712,7 +711,7 @@ function historyDotColor(field: string): string {
     case "created":    return "#dcfce7"
     case "status":     return "#dbeafe"
     case "urgency":    return "#fef3c7"
-    case "assignedTo": return "#ede9fe"
+    case "assignedTo": return "#EDEFEA"
     case "edited":     return "#f3f4f6"
     default:           return "#f3f4f6"
   }

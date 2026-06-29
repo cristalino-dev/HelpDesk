@@ -13,7 +13,7 @@ export default function ManualPage() {
       <div style={{ maxWidth: 680, margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)", borderRadius: "16px 16px 0 0", padding: "36px 40px", textAlign: "center", color: "#fff" }}>
+        <div style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", borderRadius: "16px 16px 0 0", padding: "36px 40px", textAlign: "center", color: "#fff" }}>
           <Image src="/logo.jpeg" alt="Cristalino Group" width={72} height={72} style={{ objectFit: "contain", borderRadius: 10, marginBottom: 16 }} />
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, margin: "0 0 6px" }}>מערכת Helpdesk קריסטלינו</h1>
           <p style={{ margin: 0, opacity: 0.85, fontSize: "0.9rem" }}>מדריך שימוש לעובדי החברה</p>
@@ -27,7 +27,7 @@ export default function ManualPage() {
 
           <p style={{ fontSize: "1rem", lineHeight: 1.7, color: "#374151", marginBottom: 28 }}>
             שלום,<br /><br />
-            אנו שמחים להודיע על השקת <strong style={{ color: "#1e3a8a" }}>מערכת ה-Helpdesk</strong> של קריסטלינו —
+            אנו שמחים להודיע על השקת <strong style={{ color: "#16181D" }}>מערכת ה-Helpdesk</strong> של קריסטלינו —
             מערכת לניהול פניות תמיכה טכנית מקצה לקצה.<br /><br />
             מעכשיו, כל תקלה, בקשה או שאלה טכנית מוגשת דרך המערכת, עוקבת אחר סטטוס הטיפול בזמן אמת,
             ומתועדת לאורך כל תהליך הטיפול.
@@ -36,7 +36,7 @@ export default function ManualPage() {
           {/* URL box */}
           <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "18px 24px", marginBottom: 32, textAlign: "center" }}>
             <div style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600, marginBottom: 6 }}>כתובת המערכת</div>
-            <a href="https://helpdesk.cristalino.co.il" style={{ fontSize: "1.15rem", fontWeight: 700, color: "#1d4ed8", textDecoration: "none" }}>
+            <a href="https://helpdesk.cristalino.co.il" style={{ fontSize: "1.15rem", fontWeight: 700, color: "#16181D", textDecoration: "none" }}>
               helpdesk.cristalino.co.il
             </a>
           </div>
@@ -84,7 +84,7 @@ export default function ManualPage() {
             <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 18, marginBottom: 6, fontWeight: 600 }}>סטטוסים:</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[
-                { label: "פתוח — התקבלה, טרם טופלה", bg: "#dbeafe", color: "#1e40af" },
+                { label: "פתוח — התקבלה, טרם טופלה", bg: "#dbeafe", color: "#3D5A7D" },
                 { label: "בטיפול — צוות התמיכה מטפל", bg: "#fef3c7", color: "#92400e" },
                 { label: "סגור — טופלה ונסגרה",        bg: "#dcfce7", color: "#166534" },
               ].map(b => (
@@ -145,7 +145,7 @@ export default function ManualPage() {
         </div>
 
         {/* Footer */}
-        <div style={{ background: "#1e3a8a", borderRadius: "0 0 16px 16px", padding: "24px 40px", textAlign: "center", color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", lineHeight: 1.8 }}>
+        <div style={{ background: "#16181D", borderRadius: "0 0 16px 16px", padding: "24px 40px", textAlign: "center", color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", lineHeight: 1.8 }}>
           <div style={{ fontWeight: 700, color: "#fff", fontSize: "0.85rem" }}>מערכת Helpdesk — קריסטלינו גרופ</div>
           <div style={{ marginTop: 6 }}>
             <a href="https://helpdesk.cristalino.co.il" style={{ color: "rgba(255,255,255,0.9)" }}>helpdesk.cristalino.co.il</a>
@@ -160,7 +160,7 @@ export default function ManualPage() {
 function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#1e3a8a", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #eff6ff" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#16181D", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #eff6ff" }}>
         <span style={{ width: 30, height: 30, background: "#eff6ff", borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
         {title}
       </div>
@@ -174,7 +174,7 @@ function Steps({ items }: { items: React.ReactNode[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#f9fafb", borderRadius: 10, padding: "12px 16px" }}>
-          <span style={{ width: 24, height: 24, background: "#2563eb", color: "#fff", borderRadius: "50%", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+          <span style={{ width: 24, height: 24, background: "#16181D", color: "#fff", borderRadius: "50%", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
           <span style={{ fontSize: "0.875rem", lineHeight: 1.6, color: "#374151" }}>{item}</span>
         </div>
       ))}

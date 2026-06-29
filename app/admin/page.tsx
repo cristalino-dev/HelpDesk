@@ -73,31 +73,23 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
+import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import Logo from "@/components/Logo"
 
-const URGENCY_STYLES: Record<string, React.CSSProperties> = {
-  "נמוך":   { backgroundColor: "#dcfce7", color: "#166534" },
-  "בינוני": { backgroundColor: "#fef3c7", color: "#92400e" },
-  "גבוה":   { backgroundColor: "#ffedd5", color: "#9a3412" },
-  "דחוף":   { backgroundColor: "#fee2e2", color: "#991b1b" },
-}
+// Cristalino theme: status/urgency pill colors come from the central palette.
+const URGENCY_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(URGENCY).map(([k, v]) => [k, { backgroundColor: v.bg, color: v.fg }])
+)
 
-const STATUS_STYLES: Record<string, React.CSSProperties> = {
-  "פתוח":    { backgroundColor: "#dbeafe", color: "#1e40af" },
-  "בטיפול":  { backgroundColor: "#fef3c7", color: "#92400e" },
-  "בהמתנה": { backgroundColor: "#f3f4f6", color: "#4b5563" },
-  "סגור":    { backgroundColor: "#dcfce7", color: "#166534" },
-}
+const STATUS_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
+  Object.entries(STATUS).map(([k, v]) => [k, { backgroundColor: v.bg, color: v.fg }])
+)
 
-const URGENCY_BORDER: Record<string, string> = {
-  "נמוך":   "#22c55e",
-  "בינוני": "#f59e0b",
-  "גבוה":   "#f97316",
-  "דחוף":   "#ef4444",
-}
+const URGENCY_BORDER = URGENCY_BAR
 
 const badge: React.CSSProperties = {
-  padding: "3px 10px",
-  borderRadius: "999px",
+  padding: "4px 11px",
+  borderRadius: "8px",
   fontSize: "0.72rem",
   fontWeight: 600,
   display: "inline-block",
@@ -681,77 +673,65 @@ export default function AdminPage() {
   const highCount   = openTickets.filter(t => t.urgency === "גבוה").length
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5", position: "relative" }}>
-      {/* Header */}
+    <div style={{ minHeight: "100vh", backgroundColor: T.bg, position: "relative" }}>
+      {/* Header — white chrome, hairline */}
       <header style={{
-        background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)",
-        padding: "0 28px",
+        background: T.card,
+        padding: isMobile ? "0 16px" : "0 30px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: "64px",
-        boxShadow: "0 4px 16px rgba(79,70,229,0.3)",
+        height: "66px",
+        borderBottom: `1px solid ${T.border}`,
         position: "relative",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>{isMobile ? "ניהול" : "מערכת helpdesk"}</span>
-          {!isMobile && (
-            <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.25)" }}>ניהול</span>
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
+          <Logo size={32} wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false} />
         </div>
 
         {isMobile ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Image src="/logo.jpeg" alt="Cristalino Group" width={36} height={36} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
+            <span style={{ padding: "4px 11px", borderRadius: "999px", background: T.dark, color: T.green, fontSize: "0.68rem", fontWeight: 700, letterSpacing: ".04em" }}>ADMIN</span>
             <button
               onClick={() => setMenuOpen(o => !o)}
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text, fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               {menuOpen ? "✕" : "☰"}
             </button>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-            <a href="/admin-manual" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>📖 מדריך מנהל</a>
-            <a href="/admin/reviews" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>⭐ ביקורות</a>
-            <a href="/admin/logs" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>⚠️ לוג שגיאות</a>
-            <a href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</a>
-            <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</a>
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", transition: "opacity 0.2s" }}
-              onMouseOver={e => (e.currentTarget.style.opacity = "0.8")}
-              onMouseOut={e => (e.currentTarget.style.opacity = "1")}
-            >
-              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <a href="/admin-manual" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>📖 מדריך מנהל</a>
+            <a href="/admin/reviews" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>⭐ ביקורות</a>
+            <a href="/admin/logs" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>⚠️ לוג שגיאות</a>
+            <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוח משתמש</a>
+            <span style={{ padding: "5px 12px", borderRadius: "999px", background: T.dark, color: T.green, fontSize: "0.7rem", fontWeight: 700, letterSpacing: ".04em", margin: "0 4px" }}>ADMIN</span>
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", padding: "5px 7px 5px 12px", borderRadius: "999px", background: T.bg }}>
+              <span style={{ fontSize: "0.81rem", color: T.text, fontWeight: 500 }}>{session?.user?.name}</span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
                 {initials(session?.user?.name)}
               </div>
-              <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{session?.user?.name}</span>
             </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.65)", background: "none", border: "none", cursor: "pointer" }}>יציאה</button>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: T.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
           </div>
         )}
       </header>
 
       {/* Mobile dropdown menu */}
       {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
-          <a href="/admin-manual" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>📖 מדריך מנהל</a>
-          <a href="/admin/reviews" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>⭐ ביקורות</a>
-          <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>⚠️ לוג שגיאות</a>
-          <a href="/contact" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>צרו קשר</a>
-          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.75)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח משתמש</a>
-          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
+        <div style={{ position: "absolute", top: 66, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
+          <a href="/admin-manual" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>📖 מדריך מנהל</a>
+          <a href="/admin/reviews" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⭐ ביקורות</a>
+          <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⚠️ לוג שגיאות</a>
+          <a href="/contact" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>צרו קשר</a>
+          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>לוח משתמש</a>
+          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: T.text, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: T.green }}>
               {initials(session?.user?.name)}
             </div>
             {session?.user?.name}
           </Link>
-          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: "rgba(255,255,255,0.7)", background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
+          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: T.muted, background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
         </div>
       )}
 
@@ -768,7 +748,7 @@ export default function AdminPage() {
               if (key === "licenses") { loadLicenses(); loadFieldOpts() }
               if (key === "printers") loadPrinters()
             }}
-              style={{ padding: "10px 20px", fontWeight: 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "2px solid #4f46e5" : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
+              style={{ padding: "10px 20px", fontWeight: tab === key ? 700 : 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? T.text : T.muted, borderBottom: tab === key ? `2px solid ${T.green}` : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
               {label}
             </button>
           ))}
@@ -802,8 +782,8 @@ export default function AdminPage() {
                     <span style={{ color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
                     <span>{u.phone ?? "—"}</span>
                     <span>{u.station ?? "—"}</span>
-                    <span style={{ color: u.isAdmin ? "#4f46e5" : "#9ca3af", fontWeight: u.isAdmin ? 700 : 400 }}>{u.isAdmin ? "כן" : "לא"}</span>
-                    <button onClick={() => setEditingUser({ ...u })} style={{ fontSize: "0.75rem", color: "#4f46e5", background: "#ede9fe", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>עריכה</button>
+                    <span style={{ color: u.isAdmin ? "#16181D" : "#9ca3af", fontWeight: u.isAdmin ? 700 : 400 }}>{u.isAdmin ? "כן" : "לא"}</span>
+                    <button onClick={() => setEditingUser({ ...u })} style={{ fontSize: "0.75rem", color: "#16181D", background: "#EDEFEA", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>עריכה</button>
                   </div>
                 ))}
               </div>
@@ -834,7 +814,7 @@ export default function AdminPage() {
                   </div>
 
                   <div style={{ display: "flex", gap: "10px", justifyContent: "flex-start" }}>
-                    <button onClick={saveUser} disabled={userSaving} style={{ background: "linear-gradient(135deg, #4f46e5, #2563eb)", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                    <button onClick={saveUser} disabled={userSaving} style={{ background: "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
                       {userSaving ? "שומר..." : "שמור"}
                     </button>
                     <button onClick={closeEditModal} style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
@@ -893,9 +873,9 @@ export default function AdminPage() {
               />
               <button
                 onClick={() => loadLogs(logDate)}
-                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: "#ede9fe", color: "#4f46e5", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: "#EDEFEA", color: "#16181D", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 רענן
               </button>
               {!logsLoading && (
@@ -907,7 +887,7 @@ export default function AdminPage() {
                 <>
                   <button
                     onClick={copyLogText}
-                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: copyLogStatus ? "#dcfce7" : "#ede9fe", color: copyLogStatus ? "#166534" : "#4f46e5", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: copyLogStatus ? "#dcfce7" : "#EDEFEA", color: copyLogStatus ? "#166534" : "#16181D", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
                   >
                     {copyLogStatus ? "✓ הועתק" : "📋 העתק הכל"}
                   </button>
@@ -934,7 +914,7 @@ export default function AdminPage() {
                   padding: "16px",
                   border: "1px solid #e5e7eb",
                   borderRadius: "12px",
-                  backgroundColor: "#0f172a",
+                  backgroundColor: "#16181D",
                   color: "#e2e8f0",
                   fontFamily: "'Courier New', Consolas, monospace",
                   fontSize: "0.78rem",
@@ -985,7 +965,7 @@ export default function AdminPage() {
                 <button
                   onClick={addFieldOption}
                   disabled={fieldSaving || !newFieldValue.trim()}
-                  style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: fieldSaving || !newFieldValue.trim() ? "#e5e7eb" : "#4f46e5", color: fieldSaving || !newFieldValue.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: fieldSaving || !newFieldValue.trim() ? "not-allowed" : "pointer" }}
+                  style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: fieldSaving || !newFieldValue.trim() ? "#e5e7eb" : "#16181D", color: fieldSaving || !newFieldValue.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: fieldSaving || !newFieldValue.trim() ? "not-allowed" : "pointer" }}
                 >
                   {fieldSaving ? "שומר..." : "הוסף"}
                 </button>
@@ -1062,7 +1042,7 @@ export default function AdminPage() {
                   <button
                     onClick={addLicCategory}
                     disabled={!newLicCat.trim()}
-                    style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: newLicCat.trim() ? "#4f46e5" : "#e5e7eb", color: newLicCat.trim() ? "#fff" : "#9ca3af", fontWeight: 700, fontSize: "0.82rem", cursor: newLicCat.trim() ? "pointer" : "not-allowed" }}
+                    style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: newLicCat.trim() ? "#16181D" : "#e5e7eb", color: newLicCat.trim() ? "#fff" : "#9ca3af", fontWeight: 700, fontSize: "0.82rem", cursor: newLicCat.trim() ? "pointer" : "not-allowed" }}
                   >הוסף</button>
                 </div>
               </div>
@@ -1093,7 +1073,7 @@ export default function AdminPage() {
                   <button
                     onClick={addLicenses}
                     disabled={licSaving || !licForm.keys.trim()}
-                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? "#e5e7eb" : "linear-gradient(135deg, #4f46e5, #2563eb)", color: licSaving || !licForm.keys.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? "#e5e7eb" : "linear-gradient(135deg, #16181D, #16181D)", color: licSaving || !licForm.keys.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
                   >
                     {licSaving ? "שומר..." : "הוסף רישיונות"}
                   </button>
@@ -1159,7 +1139,7 @@ export default function AdminPage() {
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 140 }} value={editingLic.remark ?? ""} onChange={e => setEditingLic(p => p ? { ...p, remark: e.target.value } : p)} /></td>
                             <td style={{ padding: 8 }}></td>
                             <td style={{ padding: 8, whiteSpace: "nowrap" }}>
-                              <button onClick={saveLicEdit} disabled={licEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
+                              <button onClick={saveLicEdit} disabled={licEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
                                 {licEditSaving ? "שומר..." : "שמור"}
                               </button>
                               <button onClick={() => setEditingLic(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
@@ -1178,7 +1158,7 @@ export default function AdminPage() {
                               </button>
                             </td>
                             <td style={{ padding: "9px 8px" }}>
-                              <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: "#eef2ff", color: "#4f46e5" }}>{l.category}</span>
+                              <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: "#EDEFEA", color: "#16181D" }}>{l.category}</span>
                             </td>
                             <td style={{ padding: "9px 8px", color: "#374151" }}>{l.username || "—"}</td>
                             <td style={{ padding: "9px 8px" }}>
@@ -1243,8 +1223,8 @@ export default function AdminPage() {
           const driversCell = (p: Printer) => (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               {p.drivers.map(d => (
-                <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "#eef2ff", border: "1px solid #e0e7ff", fontSize: "0.75rem", fontWeight: 600 }}>
-                  <a href={`/api/admin/printers/drivers/${d.id}`} title={`${d.filename} · ${fmtBytes(d.size)}`} style={{ color: "#4f46e5", textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "#EDEFEA", border: "1px solid #e0e7ff", fontSize: "0.75rem", fontWeight: 600 }}>
+                  <a href={`/api/admin/printers/drivers/${d.id}`} title={`${d.filename} · ${fmtBytes(d.size)}`} style={{ color: "#16181D", textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     ⬇ {d.filename}
                   </a>
                   {manage && (
@@ -1272,7 +1252,7 @@ export default function AdminPage() {
                   {([{ label: "👁 צפייה", val: "view" }, { label: "⚙ ניהול", val: "manage" }] as const).map(opt => (
                     <button key={opt.val} onClick={() => { setPrinterMode(opt.val); setEditingPrinter(null); setPrinterDeleteConfirm(null) }}
                       style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem",
-                        background: printerMode === opt.val ? "#312e81" : "transparent",
+                        background: printerMode === opt.val ? "#16181D" : "transparent",
                         color:      printerMode === opt.val ? "#fff"    : "#6b7280" }}
                     >{opt.label}</button>
                   ))}
@@ -1283,8 +1263,8 @@ export default function AdminPage() {
                   placeholder="חיפוש לפי שם, יצרן, ספק, IP..."
                   style={{ flex: 1, minWidth: 180, padding: "8px 12px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.85rem", background: "#fff" }}
                 />
-                <button onClick={loadPrinters} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#4f46e5", background: "#ede9fe", border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <button onClick={loadPrinters} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#16181D", background: "#EDEFEA", border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   רענן
                 </button>
                 <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{filtered.length} מדפסות</span>
@@ -1321,7 +1301,7 @@ export default function AdminPage() {
                   <button
                     onClick={addPrinter}
                     disabled={printerSaving || !printerForm.name.trim()}
-                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: printerSaving || !printerForm.name.trim() ? "#e5e7eb" : "linear-gradient(135deg, #4f46e5, #2563eb)", color: printerSaving || !printerForm.name.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: printerSaving || !printerForm.name.trim() ? "not-allowed" : "pointer" }}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: printerSaving || !printerForm.name.trim() ? "#e5e7eb" : "linear-gradient(135deg, #16181D, #16181D)", color: printerSaving || !printerForm.name.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: printerSaving || !printerForm.name.trim() ? "not-allowed" : "pointer" }}
                   >
                     {printerSaving ? "שומר..." : "הוסף מדפסת"}
                   </button>
@@ -1380,7 +1360,7 @@ export default function AdminPage() {
                             </td>
                             <td style={{ padding: "9px 8px" }}>{driversCell(p)}</td>
                             <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
-                              <button onClick={savePrinterEdit} disabled={printerEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#2563eb", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
+                              <button onClick={savePrinterEdit} disabled={printerEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
                                 {printerEditSaving ? "שומר..." : "שמור"}
                               </button>
                               <button onClick={() => setEditingPrinter(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
@@ -1429,7 +1409,7 @@ export default function AdminPage() {
         {!loading && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)", gap: "12px" }}>
             {[
-              { label: "בתור (פתוח)", count: openTickets.length,                                         color: "#4f46e5", bg: "#ede9fe", filterKey: "queue" },
+              { label: "בתור (פתוח)", count: openTickets.length,                                         color: "#16181D", bg: "#EDEFEA", filterKey: "queue" },
               { label: "דחוף",        count: urgentCount,                                               color: "#dc2626", bg: "#fee2e2", filterKey: "urgent" },
               { label: "גבוה",        count: highCount,                                                 color: "#ea580c", bg: "#ffedd5", filterKey: "high" },
               { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: "#d97706", bg: "#fef3c7", filterKey: "inprog" },
@@ -1465,7 +1445,7 @@ export default function AdminPage() {
             {[{ label: "פתוחות", val: false }, { label: "הכל", val: true }].map(opt => (
               <button key={String(opt.val)} onClick={() => setShowAll(opt.val)}
                 style={{ padding: "7px 16px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem",
-                  background: showAll === opt.val ? "#312e81" : "transparent",
+                  background: showAll === opt.val ? "#16181D" : "transparent",
                   color:      showAll === opt.val ? "#fff"    : "#6b7280",
                   transition: "all 0.15s" }}
               >{opt.label}</button>
@@ -1482,8 +1462,8 @@ export default function AdminPage() {
             ] as const).map(col => (
               <button key={col.key} onClick={() => handleSort(col.key)}
                 style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-                  background: sortKey === col.key ? "#ede9fe" : "#f3f4f6",
-                  color:      sortKey === col.key ? "#4f46e5" : "#9ca3af" }}
+                  background: sortKey === col.key ? "#EDEFEA" : "#f3f4f6",
+                  color:      sortKey === col.key ? "#16181D" : "#9ca3af" }}
               >
                 {col.label}
                 <span style={{ fontSize: "0.6rem" }}>
@@ -1493,9 +1473,9 @@ export default function AdminPage() {
             ))}
           </div>
           <button onClick={loadTickets}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#4f46e5", background: "#ede9fe", border: "none", cursor: "pointer", padding: "7px 14px", borderRadius: 8, fontWeight: 600 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#16181D", background: "#EDEFEA", border: "none", cursor: "pointer", padding: "7px 14px", borderRadius: 8, fontWeight: 600 }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             רענן
           </button>
           <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{displayTickets.length} פניות</span>
@@ -1503,9 +1483,9 @@ export default function AdminPage() {
 
         {/* Active stat filter indicator */}
         {statFilter && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#ede9fe", border: "1px solid #c4b5fd", borderRadius: 10, fontSize: "0.82rem", color: "#4f46e5" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#EDEFEA", border: "1px solid #c4b5fd", borderRadius: 10, fontSize: "0.82rem", color: "#16181D" }}>
             <span>מסנן: {statFilter === "queue" ? "בתור (פתוח)" : statFilter === "urgent" ? "דחוף" : statFilter === "high" ? "גבוה" : statFilter === "inprog" ? "בטיפול" : "סגורות"}</span>
-            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#4f46e5", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
+            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16181D", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
           </div>
         )}
 
@@ -1524,7 +1504,7 @@ export default function AdminPage() {
         {/* Ticket list */}
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: "#4f46e5", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+            <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: "#16181D", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען...</p>
           </div>
         ) : displayTickets.length === 0 ? (
@@ -1579,7 +1559,7 @@ export default function AdminPage() {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                         <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transition: "transform 0.2s", transform: expanded === ticket.id ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -1629,7 +1609,7 @@ export default function AdminPage() {
                   {/* Subject + user info */}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
-                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#2563eb", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                         HDTC-{ticket.ticketNumber}
                       </span>
                       <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1650,7 +1630,7 @@ export default function AdminPage() {
                   {/* Assignee */}
                   <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
                     title={ticket.assignedTo}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: ticket.assignedTo === session?.user?.email ? "#4f46e5" : "#64748b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.62rem", fontWeight: 700 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: ticket.assignedTo === session?.user?.email ? "#16181D" : "#64748b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.62rem", fontWeight: 700 }}>
                       {staffDisplay(ticket.assignedTo).slice(0, 2).toUpperCase()}
                     </div>
                     <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>{staffDisplay(ticket.assignedTo)}</span>
@@ -1725,7 +1705,7 @@ export default function AdminPage() {
                         )}
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={e => { e.stopPropagation(); saveEdit() }} disabled={editSaving}
-                            style={{ background: "linear-gradient(135deg,#4f46e5,#2563eb)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
+                            style={{ background: "linear-gradient(135deg,#16181D,#16181D)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
                             {editSaving ? "שומר..." : "שמור"}
                           </button>
                           <button onClick={e => { e.stopPropagation(); setEditingTicketId(null) }}
@@ -1745,7 +1725,7 @@ export default function AdminPage() {
                             disabled={assigning === ticket.id}
                             onClick={e => e.stopPropagation()}
                             onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
-                            style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#1e3a8a", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                            style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#16181D", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                           >
                             {staffMembers.map(m => (
                               <option key={m.email} value={m.email}>{m.display}</option>
@@ -1755,7 +1735,7 @@ export default function AdminPage() {
                             <button
                               onClick={e => { e.stopPropagation(); assignTicket(ticket.id, session?.user?.email ?? "") }}
                               disabled={assigning === ticket.id || !session?.user?.email}
-                              style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#4f46e5", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                              style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                             >
                               הקצה לעצמי
                             </button>
@@ -1774,7 +1754,7 @@ export default function AdminPage() {
                             </button>
                           ))}
                           <button
-                            style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}
+                            style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#EDEFEA", color: "#16181D" }}
                             onClick={e => { e.stopPropagation(); setEditingTicketId(ticket.id); setEditForm({ subject: ticket.subject, description: ticket.description, phone: ticket.phone, computerName: ticket.computerName, urgency: ticket.urgency, category: ticket.category, platform: ticket.platform, status: ticket.status, holdReason: ticket.holdReason ?? "" }) }}>
                             ✏️ עריכה
                           </button>
@@ -1829,14 +1809,14 @@ export default function AdminPage() {
                             ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הודעות עדיין</div>
                             : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (
                                 <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: msg.authorRole === "staff" ? "row-reverse" : "row", alignItems: "flex-start" }}>
-                                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#4f46e5" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
+                                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#16181D" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
                                     {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                                   </div>
                                   <div style={{ maxWidth: "70%" }}>
                                     <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
                                       {msg.authorName} · {new Date(msg.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
                                     </div>
-                                    <div style={{ background: msg.authorRole === "staff" ? "#eef2ff" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                                    <div style={{ background: msg.authorRole === "staff" ? "#EDEFEA" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
                                   </div>
                                 </div>
                               ))
@@ -1870,7 +1850,7 @@ export default function AdminPage() {
                                 } finally { setReplySaving(null) }
                               }}
                               disabled={replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim()}
-                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#2563eb", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#16181D", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                             >
                               {replySaving === ticket.id ? "..." : "שלח"}
                             </button>
@@ -1885,7 +1865,7 @@ export default function AdminPage() {
                             : (expandedNotes[ticket.id] ?? []).map((note: TicketNote) => (
                                 <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 10, marginBottom: 10 }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#4f46e5" }}>{note.authorName}</span>
+                                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D" }}>{note.authorName}</span>
                                     <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
                                   </div>
                                   <div style={{ fontSize: "0.82rem", color: "#374151", whiteSpace: "pre-wrap" }}>{note.content}</div>
@@ -1905,7 +1885,7 @@ export default function AdminPage() {
                             {staffMembers.map(m => (
                               <button key={m.handle} type="button"
                                 onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
-                                style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#eef2ff", color: "#4f46e5", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
+                                style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#EDEFEA", color: "#16181D", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                               >@{m.handle}</button>
                             ))}
                           </div>
@@ -1946,7 +1926,7 @@ export default function AdminPage() {
                               } finally { setNoteSaving(null) }
                             }}
                             disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}
-                            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#4f46e5", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#16181D", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                           >
                             {noteSaving === ticket.id ? "..." : "הוסף"}
                           </button>

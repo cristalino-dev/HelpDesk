@@ -47,6 +47,7 @@ import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
+import { T } from "@/lib/theme"
 
 /**
  * Colour palette for the urgency select box.
@@ -177,12 +178,12 @@ export default function TicketForm({
     }}>
       {/* ── Form Header ── */}
       <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "10px" }}>
-        <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "linear-gradient(135deg, #2563eb, #4f46e5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
+            <path d="M12 5v14M5 12h14" stroke={T.green} strokeWidth="2.2" strokeLinecap="round"/>
           </svg>
         </div>
-        <h2 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "#1f2937" }}>פתיחת פנייה חדשה</h2>
+        <h2 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: T.text }}>פתיחת פנייה חדשה</h2>
       </div>
 
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -214,7 +215,7 @@ export default function TicketForm({
                   onMouseLeave={() => setShowTooltip(false)}
                   onFocus={() => setShowTooltip(true)}
                   onBlur={() => setShowTooltip(false)}
-                  style={{ width: "16px", height: "16px", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", border: "none", cursor: "pointer", fontSize: "0.65rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}
+                  style={{ width: "16px", height: "16px", borderRadius: "50%", backgroundColor: T.greenBg, color: T.greenInk, border: "none", cursor: "pointer", fontSize: "0.65rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 }}
                   aria-label="כיצד למצוא שם מחשב"
                 >
                   ?
@@ -322,18 +323,19 @@ export default function TicketForm({
           type="submit"
           disabled={loading}
           style={{
-            background: loading ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #4f46e5)",
+            background: loading ? "#9AA09C" : T.dark,
             color: "#fff",
-            fontWeight: 700,
-            padding: "12px 0",
-            borderRadius: "10px",
+            fontWeight: 600,
+            padding: "13px 0",
+            borderRadius: "11px",
             border: "none",
             cursor: loading ? "not-allowed" : "pointer",
             fontSize: "0.9rem",
-            boxShadow: loading ? "none" : "0 4px 12px rgba(37,99,235,0.35)",
             letterSpacing: "0.01em",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
           }}
         >
+          {!loading && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, display: "inline-block" }} />}
           {loading ? "שולח..." : "שלח פנייה"}
         </button>
       </div>
