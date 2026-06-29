@@ -49,9 +49,10 @@ type Props = {
 }
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
-  "פתוח":   { backgroundColor: "#dbeafe", color: "#1e40af" },
-  "בטיפול": { backgroundColor: "#fef3c7", color: "#92400e" },
-  "סגור":   { backgroundColor: "#dcfce7", color: "#166534" },
+  "פתוח":    { backgroundColor: "#dbeafe", color: "#1e40af" },
+  "בטיפול":  { backgroundColor: "#fef3c7", color: "#92400e" },
+  "בהמתנה": { backgroundColor: "#f3f4f6", color: "#4b5563" },
+  "סגור":    { backgroundColor: "#dcfce7", color: "#166534" },
 }
 
 const URGENCY_STYLES: Record<string, React.CSSProperties> = {
@@ -122,8 +123,9 @@ function TicketCard({
   const canReopen  = isClosed && !!onReopen &&
     (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
-  const isStale = !isClosed && isStaleOpen(ticket)
-  const borderColor = isStale ? "#f97316" : isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
+  const isOnHold = ticket.status === "בהמתנה"
+  const isStale = !isClosed && !isOnHold && isStaleOpen(ticket)
+  const borderColor = isStale ? "#f97316" : isClosed ? "#d1d5db" : isOnHold ? "#9ca3af" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
   const openedDate = new Date(ticket.createdAt).toLocaleDateString("he-IL")
   const wdCount = isClosed
     ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
@@ -200,13 +202,13 @@ function TicketCard({
   if (isMobile) {
     return (
       <div style={{
-        backgroundColor: isStale ? "#fff8f2" : isClosed ? "#f9fafb" : "#fff",
+        backgroundColor: isStale ? "#fff8f2" : isClosed || isOnHold ? "#f9fafb" : "#fff",
         borderRadius: 12,
         border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
         borderRight: `4px solid ${borderColor}`,
         boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         padding: "12px 14px",
-        opacity: isClosed ? 0.52 : 1,
+        opacity: isClosed ? 0.52 : isOnHold ? 0.82 : 1,
         display: "flex",
         flexDirection: "column",
         gap: 8,
@@ -259,7 +261,7 @@ function TicketCard({
       onMouseEnter={() => setHoverId(ticket.id)}
       onMouseLeave={() => setHoverId(null)}
       style={{
-        backgroundColor: isStale ? "#fff8f2" : isClosed ? "#f9fafb" : "#fff",
+        backgroundColor: isStale ? "#fff8f2" : isClosed || isOnHold ? "#f9fafb" : "#fff",
         borderRadius: "12px",
         border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
         borderRight: `4px solid ${borderColor}`,
@@ -272,8 +274,8 @@ function TicketCard({
         gap: "16px",
         padding: "14px 16px 14px 20px",
         transition: "box-shadow 0.15s, transform 0.1s, opacity 0.15s",
-        transform: isHovered && !isClosed ? "translateY(-1px)" : "none",
-        opacity: isClosed ? 0.52 : 1,
+        transform: isHovered && !isClosed && !isOnHold ? "translateY(-1px)" : "none",
+        opacity: isClosed ? 0.52 : isOnHold ? 0.82 : 1,
       }}
     >
       {/* Subject + meta */}

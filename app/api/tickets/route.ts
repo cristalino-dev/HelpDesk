@@ -134,7 +134,7 @@ export async function PATCH(req: NextRequest) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email ?? "")
-    const { id, status, subject, description, phone, computerName, urgency, category, platform, assignedTo } = await req.json()
+    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo } = await req.json()
 
     // Fetch ticket first so we can check ownership for non-staff
     const before = await prisma.ticket.findUnique({
@@ -165,7 +165,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Build update payload from only the fields that were sent
-    const data: Record<string, string> = {}
+    const data: Record<string, string | null> = {}
     if (status       !== undefined) data.status       = status
     if (isStaff) {
       if (subject      !== undefined) data.subject      = subject
@@ -176,6 +176,14 @@ export async function PATCH(req: NextRequest) {
       if (category     !== undefined) data.category     = category
       if (platform     !== undefined) data.platform     = platform
       if (assignedTo   !== undefined) data.assignedTo   = assignedTo
+    }
+    // ON-HOLD — staff may place a ticket on hold with a mandatory reason.
+    if (isStaff && status === "בהמתנה") {
+      data.holdReason = holdReason?.trim() || null
+    }
+    // REINSTATE — leaving "בהמתנה" clears the hold reason automatically.
+    if (status !== undefined && status !== "בהמתנה" && before.status === "בהמתנה") {
+      data.holdReason = null
     }
     // COMPOUND CLOSE — single source of truth for ticket closure.
     // Any PATCH with status → "סגור" (any role) also downgrades urgency to
@@ -201,7 +209,11 @@ export async function PATCH(req: NextRequest) {
 
     // Use data.status (not raw status) so auto-changes (e.g. auto-בטיפול on self-assign) are also recorded
     if (data.status !== undefined && data.status !== before.status) {
-      historyEntries.push({ ticketId: id, field: "status", oldValue: before.status, newValue: data.status, actorName, actorEmail })
+      // For hold, embed the reason in newValue so history is self-explaining
+      const newVal = data.status === "בהמתנה" && data.holdReason
+        ? `בהמתנה: ${data.holdReason}`
+        : data.status
+      historyEntries.push({ ticketId: id, field: "status", oldValue: before.status, newValue: newVal, actorName, actorEmail })
     }
     // Urgency history: covers both auto-downgrade on close and explicit staff edits
     const effectiveUrgency = data.urgency

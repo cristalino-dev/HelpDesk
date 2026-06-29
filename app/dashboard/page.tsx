@@ -65,6 +65,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [linkCopied, setLinkCopied] = useState(false)
 
 
   useEffect(() => {
@@ -130,6 +131,7 @@ export default function DashboardPage() {
 
   const open = tickets.filter(t => t.status === "פתוח").length
   const inProgress = tickets.filter(t => t.status === "בטיפול").length
+  const onHold = tickets.filter(t => t.status === "בהמתנה").length
   const closed = tickets.filter(t => t.status === "סגור").length
 
   // Shared nav-button style helpers
@@ -192,6 +194,29 @@ export default function DashboardPage() {
             </Link>
           )}
 
+          {/* Copy helpdesk link */}
+          <button
+            title="העתק קישור למערכת"
+            onClick={() => {
+              navigator.clipboard.writeText("https://helpdesk.cristalino.co.il/")
+              setLinkCopied(true)
+              setTimeout(() => setLinkCopied(false), 2000)
+            }}
+            style={{ background: linkCopied ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "8px", cursor: "pointer", padding: isMobile ? "6px 8px" : "6px 10px", display: "flex", alignItems: "center", gap: "5px", color: "rgba(255,255,255,0.9)", fontSize: "0.8rem", fontWeight: 500, transition: "background 0.15s" }}
+          >
+            {linkCopied ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {!isMobile && "הועתק!"}
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {!isMobile && "קישור"}
+              </>
+            )}
+          </button>
+
           {/* Profile avatar (+ name on desktop) */}
           <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "7px", textDecoration: "none", padding: isMobile ? "4px 6px" : "4px 10px 4px 6px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)" }}>
             <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
@@ -219,11 +244,12 @@ export default function DashboardPage() {
 
         {/* Stats row — clickable to filter the list */}
         {!loading && tickets.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: isMobile ? "8px" : "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${onHold > 0 ? 4 : 3}, 1fr)`, gap: isMobile ? "8px" : "12px" }}>
             {[
-              { label: "פתוחות", status: "פתוח",   count: open,       color: "#2563eb", bg: "#eff6ff", activeBorder: "#2563eb" },
-              { label: "בטיפול", status: "בטיפול", count: inProgress, color: "#d97706", bg: "#fffbeb", activeBorder: "#d97706" },
-              { label: "סגורות", status: "סגור",   count: closed,     color: "#16a34a", bg: "#f0fdf4", activeBorder: "#16a34a" },
+              { label: "פתוחות",   status: "פתוח",     count: open,       color: "#2563eb", bg: "#eff6ff", activeBorder: "#2563eb" },
+              { label: "בטיפול",   status: "בטיפול",   count: inProgress, color: "#d97706", bg: "#fffbeb", activeBorder: "#d97706" },
+              ...(onHold > 0 ? [{ label: "בהמתנה", status: "בהמתנה", count: onHold,     color: "#4b5563", bg: "#f3f4f6", activeBorder: "#9ca3af" }] : []),
+              { label: "סגורות",   status: "סגור",     count: closed,     color: "#16a34a", bg: "#f0fdf4", activeBorder: "#16a34a" },
             ].map(({ label, status, count, color, bg, activeBorder }) => {
               const isActive = statusFilter === status
               return (

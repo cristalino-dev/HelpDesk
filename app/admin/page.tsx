@@ -82,9 +82,10 @@ const URGENCY_STYLES: Record<string, React.CSSProperties> = {
 }
 
 const STATUS_STYLES: Record<string, React.CSSProperties> = {
-  "פתוח":   { backgroundColor: "#dbeafe", color: "#1e40af" },
-  "בטיפול": { backgroundColor: "#fef3c7", color: "#92400e" },
-  "סגור":   { backgroundColor: "#dcfce7", color: "#166534" },
+  "פתוח":    { backgroundColor: "#dbeafe", color: "#1e40af" },
+  "בטיפול":  { backgroundColor: "#fef3c7", color: "#92400e" },
+  "בהמתנה": { backgroundColor: "#f3f4f6", color: "#4b5563" },
+  "סגור":    { backgroundColor: "#dcfce7", color: "#166534" },
 }
 
 const URGENCY_BORDER: Record<string, string> = {
@@ -124,8 +125,11 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
+  const [editForm, setEditForm] = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string; holdReason: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "", holdReason: "" })
   const [editSaving, setEditSaving] = useState(false)
+  // On-hold inline UI: holdForId = which ticket is pending a hold reason
+  const [holdForId, setHoldForId]   = useState<string | null>(null)
+  const [holdInput,  setHoldInput]  = useState("")
   // Notes per expanded ticket
   const [expandedNotes, setExpandedNotes]       = useState<Record<string, TicketNote[]>>({})
   const [noteText, setNoteText]                 = useState<Record<string, string>>({})
@@ -249,6 +253,7 @@ export default function AdminPage() {
     else if (statFilter === "urgent")  list = list.filter(t => t.urgency === "דחוף" && t.status !== "סגור")
     else if (statFilter === "high")    list = list.filter(t => t.urgency === "גבוה" && t.status !== "סגור")
     else if (statFilter === "inprog")  list = list.filter(t => t.status === "בטיפול")
+    else if (statFilter === "onhold")  list = list.filter(t => t.status === "בהמתנה")
     else if (statFilter === "closed")  list = list.filter(t => t.status === "סגור")
 
     const displayTickets = [...list].sort((a, b) => {
@@ -258,7 +263,7 @@ export default function AdminPage() {
           case "subject":   return dir * a.subject.localeCompare(b.subject, "he")
           case "urgency":   return dir * ((URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2))
           case "status": {
-            const ORDER: Record<string, number> = { "פתוח": 0, "בטיפול": 1, "סגור": 2 }
+            const ORDER: Record<string, number> = { "פתוח": 0, "בטיפול": 1, "בהמתנה": 2, "סגור": 3 }
             return dir * ((ORDER[a.status] ?? 0) - (ORDER[b.status] ?? 0))
           }
           case "createdAt": return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -277,10 +282,27 @@ export default function AdminPage() {
   }, [tickets, showAll, ticketSearch, sortKey, sortDir, statFilter])
 
   const updateStatus = async (id: string, newStatus: string) => {
-    // Closing (status === "סגור") also downgrades urgency to "נמוך" — handled server-side
+    if (newStatus === "בהמתנה") {
+      // Show the reason input first; actual API call is made in confirmHold()
+      setHoldForId(id)
+      setHoldInput("")
+      return
+    }
     setUpdating(id)
     try {
       await setTicketStatus(id, newStatus)
+      await loadTickets()
+    } finally {
+      setUpdating(null)
+      setExpanded(null)
+    }
+  }
+
+  const confirmHold = async (id: string) => {
+    setUpdating(id)
+    setHoldForId(null)
+    try {
+      await updateTicket(id, { status: "בהמתנה", holdReason: holdInput.trim() || null })
       await loadTickets()
     } finally {
       setUpdating(null)
@@ -1401,11 +1423,12 @@ export default function AdminPage() {
         {!loading && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)", gap: "12px" }}>
             {[
-              { label: "בתור (פתוח)", count: openTickets.length,                                    color: "#4f46e5", bg: "#ede9fe", filterKey: "queue" },
-              { label: "דחוף",        count: urgentCount,                                            color: "#dc2626", bg: "#fee2e2", filterKey: "urgent" },
-              { label: "גבוה",        count: highCount,                                              color: "#ea580c", bg: "#ffedd5", filterKey: "high" },
-              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length, color: "#d97706", bg: "#fef3c7", filterKey: "inprog" },
-              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,        color: "#16a34a", bg: "#f0fdf4", filterKey: "closed" },
+              { label: "בתור (פתוח)", count: openTickets.length,                                         color: "#4f46e5", bg: "#ede9fe", filterKey: "queue" },
+              { label: "דחוף",        count: urgentCount,                                               color: "#dc2626", bg: "#fee2e2", filterKey: "urgent" },
+              { label: "גבוה",        count: highCount,                                                 color: "#ea580c", bg: "#ffedd5", filterKey: "high" },
+              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: "#d97706", bg: "#fef3c7", filterKey: "inprog" },
+              { label: "בהמתנה",     count: tickets.filter(t => t.status === "בהמתנה").length,        color: "#4b5563", bg: "#f3f4f6", filterKey: "onhold" },
+              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,           color: "#16a34a", bg: "#f0fdf4", filterKey: "closed" },
             ].map(({ label, count, color, bg, filterKey }) => {
               const isActive = statFilter === filterKey
               return (
@@ -1508,7 +1531,8 @@ export default function AdminPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {displayTickets.map((ticket, i) => {
               const isClosed = ticket.status === "סגור"
-              const isStale = !isClosed && isStaleOpen(ticket)
+              const isOnHold = ticket.status === "בהמתנה"
+              const isStale = !isClosed && !isOnHold && isStaleOpen(ticket)
               const wdOpen = isClosed
                 ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
                 : workdaysBetween(ticket.createdAt)
@@ -1518,14 +1542,14 @@ export default function AdminPage() {
                 onMouseEnter={() => setHoverId(ticket.id)}
                 onMouseLeave={() => setHoverId(null)}
                 style={{
-                  backgroundColor: isStale ? "#fff8f2" : "#fff",
+                  backgroundColor: isOnHold ? "#f9fafb" : isStale ? "#fff8f2" : "#fff",
                   borderRadius: "12px",
-                  border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
-                  borderRight: `4px solid ${isStale ? "#f97316" : isClosed ? "#d1d5db" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
+                  border: isStale ? "1px solid #fed7aa" : isOnHold ? "1px solid #e5e7eb" : "1px solid #f3f4f6",
+                  borderRight: `4px solid ${isStale ? "#f97316" : isClosed ? "#d1d5db" : isOnHold ? "#9ca3af" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
                   boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)",
                   overflow: "hidden",
                   transition: "box-shadow 0.15s",
-                  opacity: isClosed ? 0.72 : 1,
+                  opacity: isClosed ? 0.72 : isOnHold ? 0.82 : 1,
                 }}
               >
                 {/* Main row */}
@@ -1672,7 +1696,7 @@ export default function AdminPage() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                           {([
                             { label: "דחיפות", key: "urgency",  opts: fieldUrgencies },
-                            { label: "סטטוס",  key: "status",   opts: ["פתוח", "בטיפול", "סגור"] },
+                            { label: "סטטוס",  key: "status",   opts: ["פתוח", "בטיפול", "בהמתנה", "סגור"] },
                             { label: "קטגוריה", key: "category", opts: fieldCategories },
                             { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
                           ]).map(({ label, key, opts }) => (
@@ -1685,6 +1709,14 @@ export default function AdminPage() {
                             </div>
                           ))}
                         </div>
+                        {editForm.status === "בהמתנה" && (
+                          <div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>סיבת ההמתנה</div>
+                            <input value={editForm.holdReason} onChange={e => setEditForm(f => ({ ...f, holdReason: e.target.value }))}
+                              placeholder="למשל: ממתין לחלק חלף, ממתין לאישור ספק..."
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                          </div>
+                        )}
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={e => { e.stopPropagation(); saveEdit() }} disabled={editSaving}
                             style={{ background: "linear-gradient(135deg,#4f46e5,#2563eb)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
@@ -1726,9 +1758,9 @@ export default function AdminPage() {
                         </div>
 
                         <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: holdForId === ticket.id ? 6 : 14 }}>
                           <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
-                          {["פתוח", "בטיפול", "סגור"].map(s => (
+                          {["פתוח", "בטיפול", "בהמתנה", "סגור"].map(s => (
                             <button key={s} disabled={updating === ticket.id || ticket.status === s}
                               onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
                               style={{ padding: "5px 14px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLES[s] : { backgroundColor: "#f3f4f6", color: "#374151" }) }}>
@@ -1736,8 +1768,8 @@ export default function AdminPage() {
                             </button>
                           ))}
                           <button
-                            onClick={e => { e.stopPropagation(); setEditingTicketId(ticket.id); setEditForm({ subject: ticket.subject, description: ticket.description, phone: ticket.phone, computerName: ticket.computerName, urgency: ticket.urgency, category: ticket.category, platform: ticket.platform, status: ticket.status }) }}
-                            style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}>
+                            style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#ede9fe", color: "#4f46e5" }}
+                            onClick={e => { e.stopPropagation(); setEditingTicketId(ticket.id); setEditForm({ subject: ticket.subject, description: ticket.description, phone: ticket.phone, computerName: ticket.computerName, urgency: ticket.urgency, category: ticket.category, platform: ticket.platform, status: ticket.status, holdReason: ticket.holdReason ?? "" }) }}>
                             ✏️ עריכה
                           </button>
                           <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
@@ -1745,6 +1777,44 @@ export default function AdminPage() {
                             🔍 פתח פנייה מלאה
                           </a>
                         </div>
+
+                        {/* ── Hold reason input (shown after clicking "בהמתנה") ── */}
+                        {holdForId === ticket.id && (
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14, padding: "10px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#4b5563", marginBottom: 4 }}>סיבת ההמתנה (אופציונלי)</div>
+                              <input
+                                autoFocus
+                                value={holdInput}
+                                onChange={e => setHoldInput(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); confirmHold(ticket.id) } if (e.key === "Escape") setHoldForId(null) }}
+                                placeholder="למשל: ממתין לחלק חלף, ממתין לאישור ספק..."
+                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", boxSizing: "border-box" }}
+                              />
+                            </div>
+                            <div style={{ display: "flex", gap: 6, alignItems: "center", paddingTop: 22 }}>
+                              <button onClick={e => { e.stopPropagation(); confirmHold(ticket.id) }}
+                                style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#4b5563", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
+                                אשר
+                              </button>
+                              <button onClick={e => { e.stopPropagation(); setHoldForId(null) }}
+                                style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>
+                                ביטול
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Current hold reason (shown when ticket is on hold) ── */}
+                        {ticket.status === "בהמתנה" && ticket.holdReason && (
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14, padding: "10px 14px", background: "#f3f4f6", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                            <span style={{ fontSize: "0.9rem" }}>⏸</span>
+                            <div>
+                              <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", marginBottom: 2 }}>סיבת ההמתנה</div>
+                              <div style={{ fontSize: "0.83rem", color: "#374151" }}>{ticket.holdReason}</div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* ── Conversation with user ── */}
                         <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginBottom: 14 }}>

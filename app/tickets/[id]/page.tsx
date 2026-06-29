@@ -21,12 +21,13 @@ const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "דחוף":   { background: "#fee2e2", color: "#991b1b" },
 }
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  "פתוח":   { background: "#dbeafe", color: "#1e40af" },
-  "בטיפול": { background: "#fef3c7", color: "#92400e" },
-  "סגור":   { background: "#dcfce7", color: "#166534" },
+  "פתוח":    { background: "#dbeafe", color: "#1e40af" },
+  "בטיפול":  { background: "#fef3c7", color: "#92400e" },
+  "בהמתנה": { background: "#f3f4f6", color: "#4b5563" },
+  "סגור":    { background: "#dcfce7", color: "#166534" },
 }
 
-const STATUSES  = ["פתוח", "בטיפול", "סגור"]
+const STATUSES  = ["פתוח", "בטיפול", "בהמתנה", "סגור"]
 
 function formatDate(s: string) {
   return new Date(s).toLocaleString("he-IL", { dateStyle: "medium", timeStyle: "short" })
@@ -411,6 +412,17 @@ export default function TicketDetailPage() {
               }
             </div>
           </div>
+
+          {/* Hold reason banner */}
+          {ticket.status === "בהמתנה" && ticket.holdReason && (
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 14px", marginBottom: 16, background: "#f3f4f6", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+              <span style={{ fontSize: "1rem" }}>⏸</span>
+              <div>
+                <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", marginBottom: 2 }}>סיבת ההמתנה</div>
+                <div style={{ fontSize: "0.85rem", color: "#374151" }}>{ticket.holdReason}</div>
+              </div>
+            </div>
+          )}
 
           {/* Grid: submitter / phone / computer / dates */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>

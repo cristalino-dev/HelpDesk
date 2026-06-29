@@ -49,6 +49,7 @@ export interface Ticket {
   category: string
   platform: string
   status: string
+  holdReason?: string | null   // set when status = "בהמתנה", null otherwise
   createdAt: string
   updatedAt: string
   userId: string

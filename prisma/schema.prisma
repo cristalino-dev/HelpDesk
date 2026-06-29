@@ -37,6 +37,9 @@ model Ticket {
   // For email-ingested tickets: the source email's Message-ID. Unique so the
   // same email can never create two tickets (idempotency). Null for UI tickets.
   sourceMessageId String?         @unique
+  // Free-text reason required when staff places a ticket on hold ("בהמתנה").
+  // Cleared automatically when the ticket is reinstated.
+  holdReason      String?
   notes        TicketNote[]
   attachments  TicketAttachment[]
   messages     TicketMessage[]
