@@ -175,7 +175,7 @@ export default function AdminPage() {
   const [licDeleteConfirm, setLicDeleteConfirm] = useState<string | null>(null)
   const [copiedLicId, setCopiedLicId] = useState<string | null>(null)
   // Printers tab
-  const EMPTY_PRINTER_FORM = { name: "", maker: "", model: "", supplier: "", ipv4: "", hostname: "", inkToner: "", tonerLevel: "" }
+  const EMPTY_PRINTER_FORM = { name: "", maker: "", model: "", supplier: "", ipv4: "", hostname: "", inkToner: "", tonerLevel: "", supplierSerial: "" }
   const [printers, setPrinters]               = useState<Printer[]>([])
   const [printersLoading, setPrintersLoading] = useState(false)
   const [printerMode, setPrinterMode]         = useState<"view" | "manage">("view")
@@ -1220,7 +1220,7 @@ export default function AdminPage() {
         {tab === "printers" && (() => {
           const manage = printerMode === "manage"
           const q = printerSearch.trim().toLowerCase()
-          const filtered = printers.filter(p => !q || [p.name, p.maker, p.model, p.supplier, p.ipv4, p.hostname, p.inkToner]
+          const filtered = printers.filter(p => !q || [p.name, p.maker, p.model, p.supplier, p.ipv4, p.hostname, p.inkToner, p.supplierSerial]
             .some(v => (v ?? "").toLowerCase().includes(q)))
           const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.85rem", boxSizing: "border-box", width: "100%" }
           const thStyle: React.CSSProperties = { padding: "8px", textAlign: "right", fontSize: "0.72rem", color: "#6b7280", fontWeight: 700, whiteSpace: "nowrap" }
@@ -1304,16 +1304,21 @@ export default function AdminPage() {
               {/* Add printer — manage mode only */}
               {manage && (
                 <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+                  {/* Datalists for autocomplete */}
+                  <datalist id="dl-maker">{[...new Set(printers.map(p => p.maker).filter(Boolean))].map(v => <option key={v!} value={v!} />)}</datalist>
+                  <datalist id="dl-model">{[...new Set(printers.map(p => p.model).filter(Boolean))].map(v => <option key={v!} value={v!} />)}</datalist>
+
                   <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>➕ הוספת מדפסת</h3>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
-                    <input style={inputStyle} value={printerForm.name}     onChange={e => setPrinterForm(f => ({ ...f, name: e.target.value }))}     placeholder="שם מדפסת *" />
-                    <input style={inputStyle} value={printerForm.maker}    onChange={e => setPrinterForm(f => ({ ...f, maker: e.target.value }))}    placeholder="יצרן" />
-                    <input style={inputStyle} value={printerForm.model}    onChange={e => setPrinterForm(f => ({ ...f, model: e.target.value }))}    placeholder="דגם" />
-                    <input style={inputStyle} value={printerForm.supplier} onChange={e => setPrinterForm(f => ({ ...f, supplier: e.target.value }))} placeholder="ספק" />
-                    <input style={inputStyle} value={printerForm.ipv4}     onChange={e => setPrinterForm(f => ({ ...f, ipv4: e.target.value }))}     placeholder="כתובת IPv4" dir="ltr" />
-                    <input style={inputStyle} value={printerForm.hostname} onChange={e => setPrinterForm(f => ({ ...f, hostname: e.target.value }))} placeholder="Hostname" dir="ltr" />
-                    <input style={inputStyle} value={printerForm.inkToner} onChange={e => setPrinterForm(f => ({ ...f, inkToner: e.target.value }))} placeholder="סוג דיו/טונר" />
-                    <input type="number" min={0} max={100} style={inputStyle} value={printerForm.tonerLevel} onChange={e => setPrinterForm(f => ({ ...f, tonerLevel: e.target.value }))} placeholder="מפלס טונר % (0–100)" />
+                    <input style={inputStyle} value={printerForm.name}           onChange={e => setPrinterForm(f => ({ ...f, name: e.target.value }))}           placeholder="שם מדפסת *" />
+                    <input style={inputStyle} value={printerForm.maker}          onChange={e => setPrinterForm(f => ({ ...f, maker: e.target.value }))}          placeholder="יצרן" list="dl-maker" />
+                    <input style={inputStyle} value={printerForm.model}          onChange={e => setPrinterForm(f => ({ ...f, model: e.target.value }))}          placeholder="דגם" list="dl-model" />
+                    <input style={inputStyle} value={printerForm.supplier}       onChange={e => setPrinterForm(f => ({ ...f, supplier: e.target.value }))}       placeholder="ספק" />
+                    <input style={inputStyle} value={printerForm.supplierSerial} onChange={e => setPrinterForm(f => ({ ...f, supplierSerial: e.target.value }))} placeholder="מספר ספק" dir="ltr" />
+                    <input style={inputStyle} value={printerForm.ipv4}           onChange={e => setPrinterForm(f => ({ ...f, ipv4: e.target.value }))}           placeholder="כתובת IPv4" dir="ltr" />
+                    <input style={inputStyle} value={printerForm.hostname}       onChange={e => setPrinterForm(f => ({ ...f, hostname: e.target.value }))}       placeholder="Hostname" dir="ltr" />
+                    <input style={inputStyle} value={printerForm.inkToner}       onChange={e => setPrinterForm(f => ({ ...f, inkToner: e.target.value }))}       placeholder="סוג דיו/טונר" />
+                    <input type="number" min={0} max={100} style={inputStyle}    value={printerForm.tonerLevel} onChange={e => setPrinterForm(f => ({ ...f, tonerLevel: e.target.value }))} placeholder="מפלס טונר % (0–100)" />
                   </div>
                   <button
                     onClick={addPrinter}
@@ -1343,6 +1348,7 @@ export default function AdminPage() {
                           <th style={thStyle}>יצרן</th>
                           <th style={thStyle}>דגם</th>
                           <th style={thStyle}>ספק</th>
+                          <th style={thStyle}>מספר ספק</th>
                           <th style={thStyle}>IPv4</th>
                           <th style={thStyle}>Hostname</th>
                           <th style={thStyle}>דיו/טונר</th>
@@ -1355,9 +1361,10 @@ export default function AdminPage() {
                         {filtered.map(p => editingPrinter?.id === p.id ? (
                           <tr key={p.id} style={{ borderBottom: "1px solid #f3f4f6", background: "#fffbeb" }}>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 120 }} value={editingPrinter.name} onChange={e => setEditingPrinter(v => v ? { ...v, name: e.target.value } : v)} /></td>
-                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.maker ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, maker: e.target.value } : v)} /></td>
-                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.model ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, model: e.target.value } : v)} /></td>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.maker ?? ""} list="dl-maker" onChange={e => setEditingPrinter(v => v ? { ...v, maker: e.target.value } : v)} /></td>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.model ?? ""} list="dl-model" onChange={e => setEditingPrinter(v => v ? { ...v, model: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.supplier ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, supplier: e.target.value } : v)} /></td>
+                            <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} dir="ltr" value={editingPrinter.supplierSerial ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, supplierSerial: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} dir="ltr" value={editingPrinter.ipv4 ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, ipv4: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} dir="ltr" value={editingPrinter.hostname ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, hostname: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 100 }} value={editingPrinter.inkToner ?? ""} onChange={e => setEditingPrinter(v => v ? { ...v, inkToner: e.target.value } : v)} /></td>
@@ -1387,6 +1394,7 @@ export default function AdminPage() {
                             <td style={tdStyle}>{p.maker || "—"}</td>
                             <td style={tdStyle}>{p.model || "—"}</td>
                             <td style={tdStyle}>{p.supplier || "—"}</td>
+                            <td style={{ ...tdStyle, fontFamily: "monospace", direction: "ltr", textAlign: "right" }}>{p.supplierSerial || "—"}</td>
                             <td style={{ ...tdStyle, fontFamily: "monospace", direction: "ltr", textAlign: "right" }}>{p.ipv4 || "—"}</td>
                             <td style={{ ...tdStyle, fontFamily: "monospace", direction: "ltr", textAlign: "right" }}>{p.hostname || "—"}</td>
                             <td style={tdStyle}>{p.inkToner || "—"}</td>

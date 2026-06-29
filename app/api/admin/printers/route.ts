@@ -56,23 +56,24 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const { name, maker, model, supplier, ipv4, hostname, inkToner, tonerLevel } = await req.json() as {
+    const { name, maker, model, supplier, ipv4, hostname, inkToner, tonerLevel, supplierSerial } = await req.json() as {
       name: string; maker?: string; model?: string; supplier?: string
-      ipv4?: string; hostname?: string; inkToner?: string; tonerLevel?: number | null
+      ipv4?: string; hostname?: string; inkToner?: string; tonerLevel?: number | null; supplierSerial?: string
     }
 
     if (!name?.trim()) return NextResponse.json({ error: "נדרש שם מדפסת" }, { status: 400 })
 
     const printer = await prisma.printer.create({
       data: {
-        name:      name.trim(),
-        maker:     maker?.trim()    || null,
-        model:     model?.trim()    || null,
-        supplier:  supplier?.trim() || null,
-        ipv4:      ipv4?.trim()     || null,
-        hostname:  hostname?.trim() || null,
-        inkToner:  inkToner?.trim() || null,
-        tonerLevel: clampToner(tonerLevel),
+        name:           name.trim(),
+        maker:          maker?.trim()          || null,
+        model:          model?.trim()          || null,
+        supplier:       supplier?.trim()       || null,
+        ipv4:           ipv4?.trim()           || null,
+        hostname:       hostname?.trim()       || null,
+        inkToner:       inkToner?.trim()       || null,
+        tonerLevel:     clampToner(tonerLevel),
+        supplierSerial: supplierSerial?.trim() || null,
       },
       include: { drivers: true },
     })
@@ -89,10 +90,10 @@ export async function PATCH(req: NextRequest) {
     const session = await auth()
     if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const { id, name, maker, model, supplier, ipv4, hostname, inkToner, tonerLevel } = await req.json() as {
+    const { id, name, maker, model, supplier, ipv4, hostname, inkToner, tonerLevel, supplierSerial } = await req.json() as {
       id: string; name?: string | null; maker?: string | null; model?: string | null
       supplier?: string | null; ipv4?: string | null; hostname?: string | null
-      inkToner?: string | null; tonerLevel?: number | null
+      inkToner?: string | null; tonerLevel?: number | null; supplierSerial?: string | null
     }
     if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 })
 
@@ -106,8 +107,9 @@ export async function PATCH(req: NextRequest) {
         ...(supplier   !== undefined ? { supplier:   optional(supplier) } : {}),
         ...(ipv4       !== undefined ? { ipv4:       optional(ipv4) } : {}),
         ...(hostname   !== undefined ? { hostname:   optional(hostname) } : {}),
-        ...(inkToner   !== undefined ? { inkToner:   optional(inkToner) } : {}),
-        ...(tonerLevel !== undefined ? { tonerLevel: clampToner(tonerLevel) } : {}),
+        ...(inkToner       !== undefined ? { inkToner:       optional(inkToner) } : {}),
+        ...(tonerLevel     !== undefined ? { tonerLevel:     clampToner(tonerLevel) } : {}),
+        ...(supplierSerial !== undefined ? { supplierSerial: optional(supplierSerial) } : {}),
       },
       include: { drivers: { orderBy: { createdAt: "asc" } } },
     })
