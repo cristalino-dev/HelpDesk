@@ -1407,25 +1407,24 @@ export default function AdminPage() {
 
         {/* Stats row */}
         {!loading && (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(5, 1fr)", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: isMobile ? "8px" : "10px" }}>
             {[
-              { label: "בתור (פתוח)", count: openTickets.length,                                         color: "#16181D", bg: "#EDEFEA", filterKey: "queue" },
-              { label: "דחוף",        count: urgentCount,                                               color: "#dc2626", bg: "#fee2e2", filterKey: "urgent" },
-              { label: "גבוה",        count: highCount,                                                 color: "#ea580c", bg: "#ffedd5", filterKey: "high" },
-              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: "#d97706", bg: "#fef3c7", filterKey: "inprog" },
-              { label: "בהמתנה",     count: tickets.filter(t => t.status === "בהמתנה").length,        color: "#4b5563", bg: "#f3f4f6", filterKey: "onhold" },
-              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,           color: "#16a34a", bg: "#f0fdf4", filterKey: "closed" },
+              { label: "בתור (פתוח)", count: openTickets.length,                                         color: T.dark,    bg: T.codeBg,    filterKey: "queue" },
+              { label: "דחוף",        count: urgentCount,                                               color: URGENCY["דחוף"].fg, bg: URGENCY["דחוף"].bg, filterKey: "urgent" },
+              { label: "גבוה",        count: highCount,                                                 color: URGENCY["גבוה"].fg, bg: URGENCY["גבוה"].bg, filterKey: "high" },
+              { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: STATUS["בטיפול"].fg, bg: STATUS["בטיפול"].bg, filterKey: "inprog" },
+              { label: "בהמתנה",     count: tickets.filter(t => t.status === "בהמתנה").length,        color: STATUS["בהמתנה"].fg, bg: STATUS["בהמתנה"].bg, filterKey: "onhold" },
+              { label: "סגורות",      count: tickets.filter(t => t.status === "סגור").length,           color: T.greenInk, bg: T.greenBg,  filterKey: "closed" },
             ].map(({ label, count, color, bg, filterKey }) => {
               const isActive = statFilter === filterKey
               return (
                 <button
                   key={label}
                   onClick={() => setStatFilter(f => f === filterKey ? null : filterKey)}
-                  style={{ backgroundColor: isActive ? bg : "#fff", borderRadius: "14px", padding: "14px 16px", boxShadow: isActive ? `0 0 0 1px ${color}44` : "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "10px", border: isActive ? `2px solid ${color}` : "1px solid #f3f4f6", cursor: "pointer", textAlign: "right", width: "100%" }}
+                  style={{ backgroundColor: isActive ? bg : "#fff", borderRadius: "12px", padding: "10px 11px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", border: isActive ? `2px solid ${color}` : `1px solid ${T.border}`, cursor: "pointer", textAlign: "right", width: "100%" }}
                 >
-                  <div style={{ width: "34px", height: "34px", borderRadius: "10px", backgroundColor: isActive ? "#fff" : bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</div>
-                  <span style={{ fontSize: "0.78rem", color: isActive ? color : "#6b7280", fontWeight: isActive ? 700 : 500, flex: 1 }}>{label}</span>
-                  {isActive && <span style={{ fontSize: "0.7rem", color, fontWeight: 700 }}>✕</span>}
+                  <span style={{ fontSize: "0.72rem", color: isActive ? color : T.text3, fontWeight: isActive ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+                  <span style={{ fontSize: "1.05rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</span>
                 </button>
               )
             })}
