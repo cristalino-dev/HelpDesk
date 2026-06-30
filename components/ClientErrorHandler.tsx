@@ -62,6 +62,35 @@ function postLog(message: string, source: string, stack?: string) {
 }
 
 /**
+ * Detects "stale chunk" errors — when a browser tab left open across a deploy
+ * requests a JS chunk whose hashed filename no longer exists on the server.
+ * These are not bugs: the client is simply running an outdated page.
+ */
+function isChunkLoadError(message: string): boolean {
+  return /Loading chunk|Failed to load chunk|ChunkLoadError|Importing a module script failed|error loading dynamically imported module/i.test(message)
+}
+
+/**
+ * Recovers from a stale-chunk error by reloading once to pull the fresh build.
+ * A sessionStorage guard prevents a reload loop if the reload itself fails
+ * (e.g. the server is genuinely unreachable). Returns true if it handled the
+ * error (so the caller skips logging it as a bug).
+ */
+function handleChunkError(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem("chunkReloadAt") || 0)
+    // Only auto-reload if we haven't already done so in the last 20 seconds.
+    if (Date.now() - last > 20_000) {
+      sessionStorage.setItem("chunkReloadAt", String(Date.now()))
+      window.location.reload()
+    }
+  } catch {
+    /* sessionStorage unavailable (private mode) — best effort, swallow */
+  }
+  return true
+}
+
+/**
  * ClientErrorHandler — mounts global error listeners, renders nothing.
  *
  * Placed inside Providers (app/providers.tsx) so it is present on every
@@ -77,6 +106,8 @@ export default function ClientErrorHandler() {
      * @param event.error    - The actual Error object (may have a .stack property)
      */
     const handleError = (event: ErrorEvent) => {
+      // Stale chunk after a deploy → auto-reload to the fresh build, don't log as a bug
+      if (isChunkLoadError(event.message)) { handleChunkError(); return }
       postLog(
         event.message,
         event.filename || window.location.pathname, // filename for script errors, pathname for generic
@@ -94,6 +125,8 @@ export default function ClientErrorHandler() {
       const msg = event.reason instanceof Error
         ? event.reason.message
         : String(event.reason)
+      // Stale chunk after a deploy → auto-reload to the fresh build, don't log as a bug
+      if (isChunkLoadError(msg)) { handleChunkError(); return }
       const stack = event.reason instanceof Error
         ? event.reason.stack
         : undefined
