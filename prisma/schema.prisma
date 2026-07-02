@@ -91,13 +91,20 @@ model TicketNote {
   @@index([ticketId])
 }
 
+// Attachment bytes live on the server filesystem (uploads/ticket-attachments/)
+// since v3.48 — like printer drivers, the DB holds only metadata. `dataUrl`
+// remains for legacy rows uploaded before the change (served via fallback,
+// migrated to disk by scripts/migrate-attachments-to-disk.js).
 model TicketAttachment {
-  id        String   @id @default(cuid())
-  ticketId  String
-  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  dataUrl   String
-  filename  String?
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  dataUrl    String?  // legacy inline base64 (pre-v3.48); null once stored on disk
+  storedName String?  @unique // unique on-disk filename (uuid.ext)
+  mimeType   String?
+  size       Int?     // decoded size in bytes
+  filename   String?
+  createdAt  DateTime @default(now())
 
   @@index([ticketId])
 }

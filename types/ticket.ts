@@ -79,8 +79,11 @@ export interface TicketNote {
 export interface TicketAttachment {
   id: string
   ticketId: string
-  dataUrl: string
+  /** Bytes are served by GET /api/attachments/[id] since v3.48 — list payloads
+   *  carry metadata only. (Legacy pre-v3.48 rows stored base64 inline.) */
   filename?: string | null
+  mimeType?: string | null
+  size?: number | null
   createdAt: string
 }
 

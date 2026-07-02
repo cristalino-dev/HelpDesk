@@ -2,6 +2,8 @@
 import { useRef, useState } from "react"
 
 export interface PendingImage {
+  /** Image src — a data: URL for pending (not yet uploaded) images, or an
+   *  /api/attachments/<id> URL when displaying stored attachments. */
   dataUrl: string
   filename?: string
 }

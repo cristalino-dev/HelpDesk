@@ -517,7 +517,7 @@ export default function TicketDetailPage() {
           <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
             <h2 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📎 תמונות מצורפות</h2>
             <ImageAttachments
-              images={ticket.attachments.map(a => ({ dataUrl: a.dataUrl, filename: a.filename ?? undefined }))}
+              images={ticket.attachments.map(a => ({ dataUrl: `/api/attachments/${a.id}`, filename: a.filename ?? undefined }))}
               onChange={() => {}}
               readonly
             />

@@ -54,7 +54,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where,
       include: {
         user:        { select: { name: true, email: true } },
-        attachments: { orderBy: { createdAt: "asc" } },
+        // Metadata only — bytes are served by GET /api/attachments/[id].
+        // Legacy dataUrl blobs must never ride along in the detail payload.
+        attachments: {
+          select: { id: true, ticketId: true, filename: true, mimeType: true, size: true, createdAt: true },
+          orderBy: { createdAt: "asc" },
+        },
         notes:       isStaff ? { orderBy: { createdAt: "asc" } } : false,
         messages:    { orderBy: { createdAt: "asc" } },
         history:     { orderBy: { changedAt: "asc" } },

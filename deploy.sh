@@ -171,7 +171,7 @@ echo "Archiving source files..."
 TMPTAR=$(mktemp /tmp/helpdesk-src.XXXXXX.tar.gz)
 tar -czf "$TMPTAR" \
   -C "$LOCAL" \
-  app components lib prisma public types auth.ts \
+  app components lib prisma public scripts types auth.ts \
   package.json package-lock.json tsconfig.json \
   .env .env.local ecosystem.config.js next.config.ts \
   maintenance-server.js
