@@ -31,7 +31,8 @@ jest.mock("next/server", () => ({
   NextResponse: class {
     status: number; data: unknown
     constructor(data: unknown, init?: { status?: number }) { this.data = data; this.status = init?.status || 200 }
-    static json(data: unknown, init?: { status?: number }) { return new (this as never)(data, init) }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    static json(data: unknown, init?: { status?: number }) { return new (this as any)(data, init) }
     async json() { return this.data }
   },
 }))
