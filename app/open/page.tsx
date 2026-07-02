@@ -2,8 +2,9 @@
 import { useSession, signIn } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
+import AppHeader from "@/components/AppHeader"
+import { HDR } from "@/lib/theme"
 
 // ── Urgency colours ──────────────────────────────────────────────────────────
 const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string; label: string; hint: string }> = {
@@ -164,29 +165,21 @@ export default function OpenTicketPage() {
   if (status === "loading") return null
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #f0f4ff 0%, #f8fafc 60%)" }}>
+    <div style={{ minHeight: "100vh", background: "#F2F3F1" }}>
 
-      {/* ── Header ── */}
-      <header style={{
-        background: "linear-gradient(135deg, #16181D 0%, #16181D 60%, #16181D 100%)",
-        padding: "0 28px", height: 60,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 4px 20px rgba(15,23,42,0.4)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Image src="/logo.jpeg" alt="Cristalino" width={36} height={36} style={{ objectFit: "contain", borderRadius: 6 }} />
-          <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#fff" }}>מערכת הפניות — קריסטלינו</span>
-        </div>
+      <AppHeader wordmark="helpdesk" subtitle="פנייה חדשה">
         {session?.user && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
-              {(session.user.name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg }}>
+              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session.user.name}</span>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#23262D", border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: "#74C53A" }}>
+                {(session.user.name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
             </div>
-            <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.85)" }}>{session.user.name}</span>
-            <a href="/dashboard" style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.7)", textDecoration: "none", padding: "4px 10px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", marginRight: 4 }}>לוח אישי</a>
+            <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח אישי</a>
           </div>
         )}
-      </header>
+      </AppHeader>
 
       <main style={{ maxWidth: 780, margin: "0 auto", padding: "36px 20px 60px" }}>
 

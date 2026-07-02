@@ -39,8 +39,9 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import FooterCopyright from "@/components/FooterCopyright"
+import AppHeader from "@/components/AppHeader"
+import { HDR } from "@/lib/theme"
 
 export default function ContactPage() {
   const { data: session, status } = useSession()
@@ -82,23 +83,10 @@ export default function ContactPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
-      {/* Header */}
-      <header style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>צרו קשר</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={44} height={44} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>חזרה ללוח הבקרה</a>
-        </div>
-      </header>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F2F3F1" }}>
+      <AppHeader wordmark="helpdesk" subtitle="צרו קשר" logoHref="/dashboard">
+        <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 16px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.16)", fontWeight: 500 }}>חזרה ללוח הבקרה</a>
+      </AppHeader>
 
       <main style={{ maxWidth: "560px", margin: "0 auto", padding: "40px 24px" }}>
         <div style={{ marginBottom: "28px" }}>

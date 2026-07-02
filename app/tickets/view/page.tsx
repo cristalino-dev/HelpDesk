@@ -2,8 +2,9 @@
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
+import AppHeader from "@/components/AppHeader"
+import { T, HDR } from "@/lib/theme"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import type { TicketWithUser } from "@/types/ticket"
@@ -112,59 +113,41 @@ export default function TicketsViewPage() {
   const isViewer = VIEWER_EMAILS.includes(session?.user?.email ?? "")
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5", position: "relative" }}>
-      <header style={{
-        background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)",
-        padding: "0 28px", height: 64,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 4px 16px rgba(15,23,42,0.35)",
-        position: "relative",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>כל הפניות</span>
-          {!isMobile && (
-            <span style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)", fontSize: "0.72rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
-              צפייה בלבד
-            </span>
-          )}
-        </div>
-
+    <div style={{ minHeight: "100vh", background: T.bg, position: "relative" }}>
+      <AppHeader wordmark="כל הפניות" subtitle={false}>
         {isMobile ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Image src="/logo.jpeg" alt="Cristalino" width={36} height={36} style={{ objectFit: "contain", borderRadius: 6 }} />
+            <span style={{ background: HDR.pillBg, color: HDR.link, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.16)" }}>צפייה</span>
             <button
               onClick={() => setMenuOpen(o => !o)}
-              style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: HDR.pillBg, border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               {menuOpen ? "✕" : "☰"}
             </button>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Image src="/logo.jpeg" alt="Cristalino" width={44} height={44} style={{ objectFit: "contain", borderRadius: 6 }} />
-            <a href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>לוח אישי</a>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ background: HDR.pillBg, color: HDR.link, fontSize: "0.72rem", fontWeight: 700, padding: "4px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.16)" }}>
+              צפייה בלבד
+            </span>
+            <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח אישי</a>
             {!isViewer && (
-              <a href="/tickets" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.8)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", fontWeight: 500 }}>ניהול פניות</a>
+              <a href="/tickets" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול פניות</a>
             )}
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px 4px 6px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.08)", textDecoration: "none" }}>
-              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg, textDecoration: "none" }}>
+              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
                 {initials(session?.user?.name)}
               </div>
-              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{session?.user?.name}</span>
             </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, cursor: "pointer", padding: "6px 12px", fontWeight: 500 }}>יציאה</button>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
           </div>
         )}
-      </header>
+      </AppHeader>
 
       {/* Mobile dropdown menu */}
       {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 64, right: 0, left: 0, zIndex: 100, background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", top: 58, right: 0, left: 0, zIndex: 100, background: HDR.bg, boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
           <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח אישי</a>
           {!isViewer && (
             <a href="/tickets" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>ניהול פניות</a>

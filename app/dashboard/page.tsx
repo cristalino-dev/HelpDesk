@@ -49,8 +49,8 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { closeTicket as apiCloseTicket, setTicketStatus } from "@/lib/ticketApi"
-import { T } from "@/lib/theme"
-import Logo from "@/components/Logo"
+import { T, HDR } from "@/lib/theme"
+import AppHeader from "@/components/AppHeader"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -135,34 +135,19 @@ export default function DashboardPage() {
   const onHold = tickets.filter(t => t.status === "בהמתנה").length
   const closed = tickets.filter(t => t.status === "סגור").length
 
-  // Shared nav-link style helpers — Cristalino white chrome (dark text on light)
+  // Shared nav-link style helpers — dark chrome (light text on near-black)
   const navBtn = {
-    fontSize: "0.82rem", color: T.text2, textDecoration: "none",
+    fontSize: "0.82rem", color: HDR.link, textDecoration: "none",
     padding: "8px 13px", borderRadius: "9px", fontWeight: 500,
   } as const
   const navBtnStrong = {
-    ...navBtn, color: T.text, fontWeight: 600,
+    ...navBtn, color: HDR.linkStrong, fontWeight: 600,
   } as const
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
-      {/* ── Header (white chrome, hairline) ───────────────────────────────── */}
-      <header style={{
-        background: T.card,
-        padding: isMobile ? "0 14px" : "0 30px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        height: "64px",
-        borderBottom: `1px solid ${T.border}`,
-      }}>
-        {/* Left: brand mark + wordmark */}
-        <div style={{ flexShrink: 0 }}>
-          <Logo size={isMobile ? 36 : 42} subtitle={isMobile ? false : "מערכת"} />
-        </div>
-
-        {/* Right: nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "2px" : "4px" }}>
+      <AppHeader>
+        <>
           {/* Secondary links — hidden on mobile */}
           {!isMobile && <Link href="/help" style={navBtn}>עזרה</Link>}
           {!isMobile && <Link href="/contact" style={navBtn}>צרו קשר</Link>}
@@ -192,7 +177,7 @@ export default function DashboardPage() {
               setLinkCopied(true)
               setTimeout(() => setLinkCopied(false), 2000)
             }}
-            style={{ background: linkCopied ? T.greenBg : "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 11px", display: "flex", alignItems: "center", gap: "5px", color: linkCopied ? T.greenInk : T.text2, fontSize: "0.82rem", fontWeight: 500, transition: "background 0.15s, color 0.15s" }}
+            style={{ background: linkCopied ? HDR.greenPillBg : "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 11px", display: "flex", alignItems: "center", gap: "5px", color: linkCopied ? HDR.greenPillFg : HDR.link, fontSize: "0.82rem", fontWeight: 500, transition: "background 0.15s, color 0.15s" }}
           >
             {linkCopied ? (
               <>
@@ -207,14 +192,14 @@ export default function DashboardPage() {
             )}
           </button>
 
-          {/* Profile avatar (+ name on desktop) — light pill, dark avatar w/ green initials */}
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", padding: isMobile ? "4px" : "5px 7px 5px 12px", borderRadius: "999px", background: T.bg }}>
+          {/* Profile avatar (+ name on desktop) — translucent pill, green initials */}
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", padding: isMobile ? "4px" : "5px 7px 5px 12px", borderRadius: "999px", background: HDR.pillBg }}>
             {!isMobile && (
-              <span style={{ fontSize: "0.81rem", color: T.text, maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
+              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
                 {session?.user?.name}
               </span>
             )}
-            <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green, flexShrink: 0 }}>
+            <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green, flexShrink: 0 }}>
               {initials(session?.user?.name)}
             </div>
           </Link>
@@ -222,19 +207,20 @@ export default function DashboardPage() {
           {/* Logout */}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            style={{ fontSize: "0.82rem", color: T.muted, background: "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 12px", fontWeight: 500 }}
+            style={{ fontSize: "0.82rem", color: HDR.muted, background: "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 12px", fontWeight: 500 }}
           >
             {isMobile ? "↩" : "יציאה"}
           </button>
-        </div>
-      </header>
+        </>
+      </AppHeader>
 
       {/* ── Main ───────────────────────────────────────────────────────────── */}
       <main style={{ maxWidth: "920px", margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
 
-        {/* Stats row — clickable to filter the list */}
+        {/* Stats row — clickable to filter the list.
+            MOBILE: 2×2 grid — 4 cards in one row overflow narrow screens. */}
         {!loading && tickets.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${onHold > 0 ? 4 : 3}, 1fr)`, gap: isMobile ? "8px" : "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : `repeat(${onHold > 0 ? 4 : 3}, 1fr)`, gap: isMobile ? "8px" : "12px" }}>
             {[
               { label: "פתוחות",   status: "פתוח",     count: open,       color: "#3D5A7D", dark: false },
               { label: "בטיפול",   status: "בטיפול",   count: inProgress, color: "#A9741A", dark: false },

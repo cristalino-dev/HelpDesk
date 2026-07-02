@@ -21,10 +21,12 @@
 import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
+import AppHeader from "@/components/AppHeader"
+import { T, HDR } from "@/lib/theme"
+import { useIsMobile } from "@/lib/useIsMobile"
 
 interface LogEntry {
   id: string
@@ -39,6 +41,7 @@ interface LogEntry {
 export default function AdminLogsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -142,10 +145,10 @@ export default function AdminLogsPage() {
 
   const getLevelStyle = (level: string) => {
     switch (level.toLowerCase()) {
-      case "error": return { bg: "#fee2e2", color: "#b91c1c", label: "ERROR" }
+      case "error": return { bg: "#FBEAEA", color: "#B4453F", label: "ERROR" }
       case "warn":
-      case "warning": return { bg: "#fef3c7", color: "#b45309", label: "WARN" }
-      default: return { bg: "#dcfce7", color: "#15803d", label: "INFO" }
+      case "warning": return { bg: "#FBF1DE", color: "#A9741A", label: "WARN" }
+      default: return { bg: "#E9F4E2", color: "#3E7A24", label: "INFO" }
     }
   }
 
@@ -159,164 +162,143 @@ export default function AdminLogsPage() {
   if (status === "loading" || !session) return null
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", direction: "rtl", fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
-      {/* ── Header ── */}
-      <header style={{
-        background: "linear-gradient(135deg, #16181D 0%, #334155 100%)",
-        padding: "0 28px", height: 64,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        position: "sticky", top: 0, zIndex: 100
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#38bdf8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
-          <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#fff", letterSpacing: "-0.01em" }}>לוח מעקב שגיאות</span>
-          <span style={{ background: "rgba(56,189,248,0.2)", color: "#7dd3fc", fontSize: "0.7rem", fontWeight: 700, padding: "2px 12px", borderRadius: 20, border: "1px solid rgba(56,189,248,0.3)", boxShadow: "0 0 10px rgba(56,189,248,0.15)" }}>
-            {isAdmin ? "Admin" : "v2.8-ADMIN"}
+    <div style={{ minHeight: "100vh", background: T.bg, direction: "rtl" }}>
+      <AppHeader wordmark="לוג שגיאות" subtitle={false}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 4 }}>
+          {!isMobile && <a href="/admin" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול</a>}
+          {!isMobile && <a href="/tickets" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>פניות</a>}
+          <span style={{ background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, letterSpacing: ".04em", margin: "0 4px" }}>
+            {isAdmin ? "ADMIN" : "STAFF"}
           </span>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <Image src="/logo.jpeg" alt="Cristalino" width={40} height={40} style={{ objectFit: "contain", borderRadius: 8 }} />
-          <nav style={{ display: "flex", gap: 8 }}>
-            {[["ניהול", "/admin"], ["פניות", "/tickets"]].map(([label, href]) => (
-              <a key={href} href={href} style={{ fontSize: "0.82rem", color: "#f8fafc", textDecoration: "none", padding: "6px 14px", borderRadius: 8, background: "rgba(255,255,255,0.08)", fontWeight: 600, transition: "background 0.2s" }}>{label}</a>
-            ))}
-          </nav>
-          
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", borderRadius: 10, background: "rgba(255,255,255,0.1)", textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
-            onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.18)")}
-            onMouseOut={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
-          >
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#38bdf8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, color: "#fff" }}>
+          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: isMobile ? "4px" : "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg, textDecoration: "none", cursor: "pointer" }}>
+            {!isMobile && <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>}
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
               {initials(session?.user?.name)}
             </div>
-            <span style={{ fontSize: "0.82rem", color: "#f8fafc", fontWeight: 500 }}>{session?.user?.name}</span>
           </Link>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: "#cbd5e1", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}>יציאה</button>
+          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 12px", fontWeight: 500 }}>{isMobile ? "↩" : "יציאה"}</button>
         </div>
-      </header>
+      </AppHeader>
 
-      <main style={{ maxWidth: 1400, margin: "0 auto", padding: "32px 24px" }}>
-        
-        {/* ── Stats Dashboard ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20, marginBottom: 32 }}>
+      <main style={{ maxWidth: 1400, margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px" }}>
+
+        {/* ── Stats Dashboard — 2×2 on mobile so cards never overflow ── */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, 1fr)", gap: isMobile ? 8 : 12, marginBottom: isMobile ? 16 : 28 }}>
           {[
-            { label: "סה״כ אירועים", value: logs.length, color: "#334155", icon: "📊" },
-            { label: "שגיאות קריטיות", value: totalErrors, color: "#ef4444", icon: "⚠️" },
-            { label: "אזהרות", value: totalWarnings, color: "#f59e0b", icon: "🔔" },
-            { label: "מקור שגיאה ראשי", value: mostFrequentSource, color: "#38bdf8", icon: "🏗️", isFull: true },
+            { label: "סה״כ אירועים",     value: logs.length,        color: T.text },
+            { label: "שגיאות",           value: totalErrors,        color: "#B4453F" },
+            { label: "אזהרות",           value: totalWarnings,      color: "#A9741A" },
+            { label: "מקור שגיאה ראשי", value: mostFrequentSource, color: T.text2, isFull: true },
           ].map((stat, i) => (
-            <div key={i} style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: "1.2rem" }}>{stat.icon}</span>
-                <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#64748b" }}>{stat.label}</span>
-              </div>
-              <div style={{ fontSize: stat.isFull ? "0.95rem" : "1.75rem", fontWeight: 800, color: stat.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div key={i} style={{ background: T.card, borderRadius: 14, padding: isMobile ? "12px 14px" : "16px 20px", border: `1px solid ${T.border}`, minWidth: 0 }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 600, color: T.text3, marginBottom: 6 }}>{stat.label}</div>
+              <div style={{ fontSize: stat.isFull ? "0.9rem" : isMobile ? "1.4rem" : "1.7rem", fontWeight: 800, color: stat.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", direction: stat.isFull ? "ltr" : "rtl", textAlign: "right" }}>
                 {stat.value}
               </div>
             </div>
           ))}
         </div>
 
-        {/* ── Search & Actions ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 16 }}>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flex: 1 }}>
-            <div style={{ position: "relative", flex: 1, maxWidth: 500 }}>
-              <input 
-                type="text" 
-                placeholder="חפש בהודעת השגיאה, במקור או ברמה..." 
+        {/* ── Search & Actions — wraps on mobile so buttons never overflow ── */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, flexWrap: "wrap", minWidth: 0 }}>
+            <div style={{ position: "relative", flex: 1, maxWidth: 500, minWidth: isMobile ? "100%" : 220 }}>
+              <input
+                type="text"
+                placeholder="חיפוש בהודעה, במקור או ברמה..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ padding: "12px 16px 12px 40px", borderRadius: 12, border: "1px solid #e2e8f0", width: "100%", fontSize: "0.9rem", outline: "none", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)" }}
+                style={{ padding: "10px 14px 10px 36px", borderRadius: 10, border: `1px solid ${T.borderStrong}`, width: "100%", fontSize: "0.88rem", outline: "none", boxSizing: "border-box", background: T.card }}
               />
-              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}>🔍</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", opacity: 0.4 }}>
+                <circle cx="11" cy="11" r="8" stroke={T.text2} strokeWidth="2"/><path d="M21 21l-4.35-4.35" stroke={T.text2} strokeWidth="2" strokeLinecap="round"/>
+              </svg>
             </div>
-            <button onClick={fetchLogs} style={{ padding: "10px 18px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
-              🔄 רענן נתונים
+            <button onClick={fetchLogs} style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.borderStrong}`, background: T.card, cursor: "pointer", fontSize: "0.83rem", fontWeight: 600, color: T.text2 }}>
+              רענן
             </button>
             {filteredLogs.length > 0 && (
               <>
-                <button onClick={copyAllLogs} style={{ padding: "10px 18px", borderRadius: 12, border: "1px solid #e2e8f0", background: copyAllStatus ? "#dcfce7" : "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: copyAllStatus ? "#166534" : "#475569", display: "flex", alignItems: "center", gap: 8 }}>
-                  {copyAllStatus ? "✓ הועתק" : "📋 העתק הכל"}
+                <button onClick={copyAllLogs} style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${copyAllStatus ? T.green : T.borderStrong}`, background: copyAllStatus ? T.greenBg : T.card, cursor: "pointer", fontSize: "0.83rem", fontWeight: 600, color: copyAllStatus ? T.greenInk : T.text2 }}>
+                  {copyAllStatus ? "✓ הועתק" : "העתק הכל"}
                 </button>
-                <button onClick={downloadAllLogs} style={{ padding: "10px 18px", borderRadius: 12, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}>
-                  ⬇️ הורד
+                <button onClick={downloadAllLogs} style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.borderStrong}`, background: T.card, cursor: "pointer", fontSize: "0.83rem", fontWeight: 600, color: T.text2 }}>
+                  הורדה
                 </button>
               </>
             )}
           </div>
           {isAdmin && (
-            <button 
+            <button
               onClick={clearLogs}
-              style={{ padding: "11px 22px", borderRadius: 12, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: "0.85rem", boxShadow: "0 4px 12px rgba(239,68,68,0.2)" }}
+              style={{ padding: "9px 18px", borderRadius: 10, border: "1px solid #EBC5C3", background: "#FBEAEA", color: "#B4453F", fontWeight: 700, cursor: "pointer", fontSize: "0.83rem" }}
             >
-              🗑️ נקה יומן אירועים
+              נקה יומן אירועים
             </button>
           )}
         </div>
 
-        {/* ── Entries Table ── */}
-        <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e2e8f0", overflow: "hidden", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "right" }}>
-            <thead style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+        {/* ── Entries Table — horizontal scroll wrapper prevents mobile overflow ── */}
+        <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.border}`, overflowX: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <table style={{ width: "100%", minWidth: isMobile ? 640 : undefined, borderCollapse: "collapse", textAlign: "right" }}>
+            <thead style={{ background: T.cardMuted, borderBottom: `1px solid ${T.border}` }}>
               <tr>
-                <th style={{ padding: "16px 24px", fontSize: "0.78rem", color: "#64748b", fontWeight: 800 }}>זמן אירוע</th>
-                <th style={{ padding: "16px 24px", fontSize: "0.78rem", color: "#64748b", fontWeight: 800 }}>רמה</th>
-                <th style={{ padding: "16px 24px", fontSize: "0.78rem", color: "#64748b", fontWeight: 800 }}>מקור / נתיב</th>
-                <th style={{ padding: "16px 24px", fontSize: "0.78rem", color: "#64748b", fontWeight: 800 }}>תיאור השגיאה ופרטים טכניים</th>
+                <th style={{ padding: "14px 20px", fontSize: "0.75rem", color: T.text3, fontWeight: 700 }}>זמן אירוע</th>
+                <th style={{ padding: "14px 20px", fontSize: "0.75rem", color: T.text3, fontWeight: 700 }}>רמה</th>
+                <th style={{ padding: "14px 20px", fontSize: "0.75rem", color: T.text3, fontWeight: 700 }}>מקור / נתיב</th>
+                <th style={{ padding: "14px 20px", fontSize: "0.75rem", color: T.text3, fontWeight: 700 }}>תיאור השגיאה ופרטים טכניים</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>
-                  <div style={{ width: 30, height: 30, border: "3px solid #f1f5f9", borderTopColor: "#38bdf8", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }}></div>
+                <tr><td colSpan={4} style={{ padding: 60, textAlign: "center", color: T.muted }}>
+                  <div style={{ width: 30, height: 30, border: `3px solid ${T.border}`, borderTopColor: T.green, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 12px" }}></div>
                   טוען נתונים מהשרת...
                 </td></tr>
               ) : filteredLogs.length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: 60, textAlign: "center", color: "#94a3b8" }}>לא נמצאו לוגים התואמים את החיפוש</td></tr>
+                <tr><td colSpan={4} style={{ padding: 60, textAlign: "center", color: T.muted }}>
+                  {logs.length === 0 ? "היומן ריק — אין שגיאות פעילות 🎉" : "לא נמצאו לוגים התואמים את החיפוש"}
+                </td></tr>
               ) : filteredLogs.map(log => {
                 const style = getLevelStyle(log.level)
                 return (
-                  <tr key={log.id} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.1s" }} onMouseEnter={e => e.currentTarget.style.backgroundColor = "#fafafa"} onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
-                    <td style={{ padding: "14px 24px", fontSize: "0.82rem", color: "#475569", whiteSpace: "nowrap" }}>
+                  <tr key={log.id} style={{ borderBottom: `1px solid ${T.border}`, transition: "background 0.1s" }} onMouseEnter={e => e.currentTarget.style.backgroundColor = T.cardMuted} onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
+                    <td style={{ padding: "14px 20px", fontSize: "0.82rem", color: T.text2, whiteSpace: "nowrap", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 600 }}>{new Date(log.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
-                      <div style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: 2 }}>{new Date(log.timestamp).toLocaleDateString("he-IL")}</div>
+                      <div style={{ fontSize: "0.72rem", color: T.muted, marginTop: 2 }}>{new Date(log.timestamp).toLocaleDateString("he-IL")}</div>
                     </td>
-                    <td style={{ padding: "14px 24px" }}>
-                      <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: "0.68rem", fontWeight: 800, backgroundColor: style.bg, color: style.color, letterSpacing: "0.02em" }}>
+                    <td style={{ padding: "14px 20px", verticalAlign: "top" }}>
+                      <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: "0.68rem", fontWeight: 700, backgroundColor: style.bg, color: style.color, letterSpacing: "0.02em", whiteSpace: "nowrap" }}>
                         {style.label}
                       </span>
                     </td>
-                    <td style={{ padding: "14px 24px", fontSize: "0.82rem", color: "#64748b", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", direction: "ltr", textAlign: "left" }}>
-                      <code>{log.source || "global"}</code>
+                    <td style={{ padding: "14px 20px", fontSize: "0.8rem", color: T.text2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", direction: "ltr", textAlign: "left", verticalAlign: "top" }}>
+                      <code style={{ background: T.codeBg, padding: "2px 7px", borderRadius: 6, fontSize: "0.74rem", color: T.text }}>{log.source || "global"}</code>
                     </td>
-                    <td style={{ padding: "14px 24px", position: "relative" }}>
+                    <td style={{ padding: "14px 20px", position: "relative" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, color: "#16181D", fontSize: "0.88rem", lineHeight: 1.5, marginBottom: 8 }}>{log.message}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", lineHeight: 1.5, marginBottom: log.stack ? 8 : 0 }}>{log.message}</div>
                           {log.stack && (
                             <div style={{ position: "relative" }}>
-                              <pre style={{ margin: 0, fontSize: "0.72rem", color: "#475569", whiteSpace: "pre-wrap", maxHeight: 120, overflow: "auto", background: "#f8fafc", padding: "12px", borderRadius: 8, border: "1px solid #e2e8f0", fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", direction: "ltr", textAlign: "left" }}>
+                              <pre style={{ margin: 0, fontSize: "0.72rem", color: T.text2, whiteSpace: "pre-wrap", maxHeight: 120, overflow: "auto", background: T.cardMuted, padding: "12px", borderRadius: 8, border: `1px solid ${T.border}`, fontFamily: "Menlo, Monaco, Consolas, 'Courier New', monospace", direction: "ltr", textAlign: "left" }}>
                                 {log.stack}
                               </pre>
-                              <button 
+                              <button
                                 onClick={() => copyToClipboard(log.stack || "", log.id + "-stack")}
-                                style={{ position: "absolute", top: 8, right: 8, background: "#fff", border: "1px solid #e2e8f0", padding: "4px 8px", borderRadius: 6, fontSize: "0.65rem", fontWeight: 700, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}
+                                style={{ position: "absolute", top: 8, right: 8, background: T.card, border: `1px solid ${T.borderStrong}`, padding: "4px 8px", borderRadius: 6, fontSize: "0.65rem", fontWeight: 700, cursor: "pointer", color: copyStatus === log.id + "-stack" ? T.greenInk : T.text2 }}
                               >
-                                {copyStatus === log.id + "-stack" ? "✅ הועתק" : "📋 העתק Stack"}
+                                {copyStatus === log.id + "-stack" ? "✓ הועתק" : "העתק Stack"}
                               </button>
                             </div>
                           )}
                         </div>
-                        <button 
+                        <button
                           onClick={() => copyToClipboard(log.message, log.id)}
                           title="העתק הודעת שגיאה"
-                          style={{ flexShrink: 0, background: "#f1f5f9", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", color: copyStatus === log.id ? "#10b981" : "#64748b" }}
+                          style={{ flexShrink: 0, background: T.cardMuted, border: `1px solid ${T.border}`, padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.72rem", fontWeight: 700, color: copyStatus === log.id ? T.greenInk : T.text2 }}
                         >
-                          {copyStatus === log.id ? "✓" : "📋"}
+                          {copyStatus === log.id ? "✓" : "העתק"}
                         </button>
                       </div>
                     </td>
@@ -329,10 +311,7 @@ export default function AdminLogsPage() {
       </main>
 
       <FooterCopyright />
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        code { background: #f1f5f9; padding: 2px 6px; borderRadius: 4px; fontSize: 0.75rem; color: #334155; }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

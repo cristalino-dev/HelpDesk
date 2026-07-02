@@ -73,8 +73,8 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
-import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
-import Logo from "@/components/Logo"
+import { T, HDR, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import AppHeader from "@/components/AppHeader"
 
 // Cristalino theme: status/urgency pill colors come from the central palette.
 const URGENCY_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
@@ -681,52 +681,38 @@ export default function AdminPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg, position: "relative" }}>
-      {/* Header — white chrome, hairline */}
-      <header style={{
-        background: T.card,
-        padding: isMobile ? "0 16px" : "0 30px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        height: "66px",
-        borderBottom: `1px solid ${T.border}`,
-        position: "relative",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-          <Logo size={42} wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false} />
-        </div>
-
+      <AppHeader wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false}>
         {isMobile ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ padding: "4px 11px", borderRadius: "999px", background: T.dark, color: T.green, fontSize: "0.68rem", fontWeight: 700, letterSpacing: ".04em" }}>ADMIN</span>
+            <span style={{ padding: "4px 11px", borderRadius: "999px", background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.68rem", fontWeight: 700, letterSpacing: ".04em" }}>ADMIN</span>
             <button
               onClick={() => setMenuOpen(o => !o)}
-              style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text, fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: HDR.pillBg, border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               {menuOpen ? "✕" : "☰"}
             </button>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <a href="/admin-manual" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>📖 מדריך מנהל</a>
-            <a href="/admin/reviews" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>⭐ ביקורות</a>
-            <a href="/admin/logs" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>⚠️ לוג שגיאות</a>
-            <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוח משתמש</a>
-            <span style={{ padding: "5px 12px", borderRadius: "999px", background: T.dark, color: T.green, fontSize: "0.7rem", fontWeight: 700, letterSpacing: ".04em", margin: "0 4px" }}>ADMIN</span>
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", padding: "5px 7px 5px 12px", borderRadius: "999px", background: T.bg }}>
-              <span style={{ fontSize: "0.81rem", color: T.text, fontWeight: 500 }}>{session?.user?.name}</span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
+            <a href="/admin-manual" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>מדריך מנהל</a>
+            <a href="/admin/reviews" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>ביקורות</a>
+            <a href="/admin/logs" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוג שגיאות</a>
+            <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוח משתמש</a>
+            <span style={{ padding: "5px 12px", borderRadius: "999px", background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.7rem", fontWeight: 700, letterSpacing: ".04em", margin: "0 4px" }}>ADMIN</span>
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", padding: "5px 7px 5px 12px", borderRadius: "999px", background: HDR.pillBg }}>
+              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
+              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
                 {initials(session?.user?.name)}
               </div>
             </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: T.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
           </div>
         )}
-      </header>
+      </AppHeader>
 
       {/* Mobile dropdown menu */}
       {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 66, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", top: 58, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
           <a href="/admin-manual" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>📖 מדריך מנהל</a>
           <a href="/admin/reviews" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⭐ ביקורות</a>
           <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⚠️ לוג שגיאות</a>

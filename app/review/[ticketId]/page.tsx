@@ -102,14 +102,13 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdf4 100%)",
+      background: "#F2F3F1",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       padding: "32px 20px",
       direction: "rtl",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif",
     }}>
 
       {/* Logo / header */}

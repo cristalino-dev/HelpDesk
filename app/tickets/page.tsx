@@ -14,8 +14,8 @@ import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
-import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
-import Logo from "@/components/Logo"
+import { T, HDR, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import AppHeader from "@/components/AppHeader"
 
 function initials(name?: string | null) {
   if (!name) return "?"
@@ -326,56 +326,43 @@ export default function TicketsPage() {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, position: "relative" }}>
 
-      {/* ── Header — white chrome, hairline ── */}
-      <header style={{
-        background: T.card,
-        padding: isMobile ? "0 16px" : "0 30px", height: 66,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: `1px solid ${T.border}`,
-        position: "relative",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <Logo size={42} wordmark="כל הפניות" subtitle={false} />
-          {!isMobile && (
-            <span style={{ background: T.dark, color: T.green, fontSize: "0.7rem", fontWeight: 700, padding: "5px 12px", borderRadius: 999, letterSpacing: ".04em" }}>
-              {session?.user?.isAdmin ? "ADMIN" : "STAFF"}
-            </span>
-          )}
-        </div>
-
+      <AppHeader wordmark="כל הפניות" subtitle={false}>
         {isMobile ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ background: T.dark, color: T.green, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, letterSpacing: ".04em" }}>{session?.user?.isAdmin ? "ADMIN" : "STAFF"}</span>
+            <span style={{ background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, letterSpacing: ".04em" }}>{session?.user?.isAdmin ? "ADMIN" : "STAFF"}</span>
             <button
               onClick={() => setMenuOpen(o => !o)}
-              style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text, fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              style={{ background: HDR.pillBg, border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               {menuOpen ? "✕" : "☰"}
             </button>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח אישי</a>
+            <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח אישי</a>
             {session?.user?.isAdmin && (
               <>
-                <a href="/admin" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול</a>
-                <a href="/admin/logs" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוג שגיאות</a>
+                <a href="/admin" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול</a>
+                <a href="/admin/logs" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוג שגיאות</a>
               </>
             )}
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: T.bg, textDecoration: "none", cursor: "pointer" }}>
-              <span style={{ fontSize: "0.81rem", color: T.text, fontWeight: 500 }}>{session?.user?.name}</span>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
+            <span style={{ background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.7rem", fontWeight: 700, padding: "5px 12px", borderRadius: 999, letterSpacing: ".04em", margin: "0 4px" }}>
+              {session?.user?.isAdmin ? "ADMIN" : "STAFF"}
+            </span>
+            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg, textDecoration: "none", cursor: "pointer" }}>
+              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
                 {initials(session?.user?.name)}
               </div>
             </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: T.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
+            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
           </div>
         )}
-      </header>
+      </AppHeader>
 
       {/* Mobile dropdown menu */}
       {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 66, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", top: 58, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
           <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>לוח אישי</a>
           {session?.user?.isAdmin && (
             <>

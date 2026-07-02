@@ -2,6 +2,8 @@ import Image from "next/image"
 import Link from "next/link"
 import FooterCopyright from "@/components/FooterCopyright"
 import VERSION from "@/lib/version"
+import AppHeader from "@/components/AppHeader"
+import { HDR } from "@/lib/theme"
 
 const badge = (bg: string, color: string, text: string) => (
   <span style={{ backgroundColor: bg, color, padding: "3px 12px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 700, display: "inline-block" }}>{text}</span>
@@ -9,20 +11,14 @@ const badge = (bg: string, color: string, text: string) => (
 
 export default function HelpPage() {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, Helvetica, sans-serif", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F2F3F1", direction: "rtl" }}>
 
-      {/* Header */}
-      <header style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(37,99,235,0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Image src="/logo.jpeg" alt="Cristalino Group" width={40} height={40} loading="eager" style={{ objectFit: "contain", borderRadius: "6px" }} />
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>{`מערכת helpdesk v${VERSION}`}</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: "20px" }}>מדריך למשתמש</span>
+      <AppHeader wordmark="helpdesk" subtitle="מדריך למשתמש" logoHref="/dashboard">
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <Link href="/contact" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>צרו קשר</Link>
+          <Link href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.linkStrong, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 600 }}>חזרה ללוח הבקרה</Link>
         </div>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <Link href="/contact" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>צרו קשר</Link>
-          <Link href="/dashboard" style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.8)", textDecoration: "none" }}>חזרה ללוח הבקרה</Link>
-        </div>
-      </header>
+      </AppHeader>
 
       <main style={{ maxWidth: "860px", margin: "0 auto", padding: "40px 24px", display: "flex", flexDirection: "column", gap: "40px" }}>
 

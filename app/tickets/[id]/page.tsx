@@ -10,7 +10,8 @@ import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { ticketRevision } from "@/lib/ticketRevision"
-import { T, STATUS, URGENCY } from "@/lib/theme"
+import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
+import { useIsMobile } from "@/lib/useIsMobile"
 import Logo from "@/components/Logo"
 
 /** How often (ms) the open ticket page polls the server for changes. */
@@ -33,6 +34,7 @@ export default function TicketDetailPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
+  const isMobile = useIsMobile()
 
   const [ticket, setTicket]       = useState<TicketDetail | null>(null)
   const [history, setHistory]     = useState<TicketHistoryEntry[]>([])
@@ -307,56 +309,57 @@ export default function TicketDetailPage() {
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: T.bg }}>
 
-      {/* Header — white chrome, hairline */}
-      <div style={{ background: T.card, borderBottom: `1px solid ${T.border}`, padding: "0 24px", height: 66, display: "flex", alignItems: "center", gap: 14 }}>
+      {/* Header — dark chrome (matches AppHeader) with page-specific actions.
+          MOBILE: wraps to multiple rows instead of overflowing the viewport. */}
+      <div style={{ background: HDR.bg, borderBottom: `1px solid ${HDR.border}`, padding: isMobile ? "10px 12px" : "0 24px", minHeight: isMobile ? 0 : 64, display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, flexWrap: isMobile ? "wrap" : "nowrap" }}>
         <button
           onClick={() => { if (window.history.length > 1) { router.back() } else { router.push("/tickets") } }}
-          style={{ padding: "8px 14px", borderRadius: 9, border: `1px solid ${T.borderStrong}`, background: "#fff", cursor: "pointer", fontSize: "0.85rem", color: T.text2, display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}
+          style={{ padding: isMobile ? "6px 10px" : "8px 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link, display: "flex", alignItems: "center", gap: 6, fontWeight: 500, flexShrink: 0 }}
         >
           ← חזרה
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 11, flex: 1, minWidth: 0 }}>
-          <Logo size={38} wordmark={false} subtitle={false} />
-          <h1 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {!isMobile && <Logo onDark size={28} wordmark={false} subtitle={false} />}
+          <h1 style={{ margin: 0, fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 700, color: HDR.linkStrong, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             HDTC-{ticket.ticketNumber} · {ticket.subject}
           </h1>
         </div>
         {isStaff && !editing && (
           <button
             onClick={() => setEditing(true)}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "#f3f4f6", cursor: "pointer", fontSize: "0.85rem", color: "#374151", fontWeight: 600 }}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: HDR.pillBg, cursor: "pointer", fontSize: "0.85rem", color: HDR.linkStrong, fontWeight: 600 }}
           >
-            ✏️ עריכה
+            עריכה
           </button>
         )}
         {session?.user?.isAdmin && ticket.status !== "סגור" && !editing && (
           <button
             onClick={adminCloseTicket}
             disabled={closing}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "#e5e7eb" : "#166534", color: closing ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "rgba(255,255,255,0.10)" : T.green, color: closing ? HDR.muted : T.dark, fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
           >
             {closing ? "סוגר..." : "✓ סגור פנייה"}
           </button>
         )}
         <button
           onClick={copyLink}
-          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: copied ? "#f0fdf4" : "#fff", color: copied ? "#166534" : "#6b7280", fontSize: "0.82rem", cursor: "pointer", fontWeight: 600, transition: "all 0.15s" }}
+          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: copied ? HDR.greenPillBg : "transparent", color: copied ? HDR.greenPillFg : HDR.link, fontSize: "0.82rem", cursor: "pointer", fontWeight: 600, transition: "all 0.15s" }}
         >
-          {copied ? "✓ הועתק" : "🔗 העתק קישור"}
+          {copied ? "✓ הועתק" : "העתק קישור"}
         </button>
         {!isStaff && ticket.status !== "סגור" && ticket.user?.email === session?.user?.email && (
           <button
             onClick={closeTicket}
             disabled={closing}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "#e5e7eb" : "#fee2e2", color: closing ? "#9ca3af" : "#dc2626", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(217,83,79,0.5)", background: closing ? "rgba(255,255,255,0.10)" : "rgba(217,83,79,0.16)", color: closing ? HDR.muted : "#E88B87", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
           >
             {closing ? "סוגר..." : "סגור פנייה"}
           </button>
         )}
         {isStaff && editing && (
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setEditing(false)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: "0.85rem", color: "#6b7280" }}>ביטול</button>
-            <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
+            <button onClick={() => setEditing(false)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
+            <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: T.green, color: T.dark, cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
               {editSaving ? "שומר..." : "שמור"}
             </button>
           </div>

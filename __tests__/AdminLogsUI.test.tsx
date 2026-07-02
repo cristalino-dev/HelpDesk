@@ -77,7 +77,7 @@ describe("AdminLogsPage Component", () => {
 
     await waitFor(() => screen.getByText("Test Error Message"))
 
-    const searchInput = screen.getByPlaceholderText(/חפש בהודעת השגיאה/i)
+    const searchInput = screen.getByPlaceholderText(/חיפוש בהודעה/i)
     fireEvent.change(searchInput, { target: { value: "Warning" } })
 
     expect(screen.getByText("Test Warning Message")).toBeInTheDocument()

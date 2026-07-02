@@ -44,8 +44,8 @@ import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import FooterCopyright from "@/components/FooterCopyright"
-import { T } from "@/lib/theme"
-import Logo from "@/components/Logo"
+import { T, HDR } from "@/lib/theme"
+import AppHeader from "@/components/AppHeader"
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession()
@@ -103,11 +103,9 @@ export default function ProfilePage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
-      {/* Header — white chrome, hairline */}
-      <header style={{ background: T.card, padding: "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "66px", borderBottom: `1px solid ${T.border}` }}>
-        <Logo size={42} subtitle="מערכת" />
-        <a href="/dashboard" style={{ fontSize: "0.82rem", color: T.text2, textDecoration: "none", padding: "8px 16px", borderRadius: "9px", border: `1px solid ${T.borderStrong}`, fontWeight: 500 }}>← חזרה ללוח הבקרה</a>
-      </header>
+      <AppHeader logoHref="/dashboard">
+        <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 16px", borderRadius: "9px", border: "1px solid rgba(255,255,255,0.16)", fontWeight: 500 }}>← חזרה ללוח הבקרה</a>
+      </AppHeader>
 
       <main style={{ maxWidth: "560px", margin: "0 auto", padding: "44px 24px" }}>
         <div style={{ marginBottom: "28px", textAlign: "center" }}>

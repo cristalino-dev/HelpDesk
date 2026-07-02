@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function AdminManualPage() {
   return (
-    <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "32px 16px", fontFamily: "'Segoe UI', Arial, sans-serif", direction: "rtl" }}>
+    <div style={{ background: "#F2F3F1", minHeight: "100vh", padding: "32px 16px", direction: "rtl" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
         {/* Header */}

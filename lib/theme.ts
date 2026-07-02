@@ -38,6 +38,23 @@ export const T = {
   muted2: "#A2A8A2", // placeholder / faint
 } as const
 
+/**
+ * Dark top-bar (AppHeader) tokens — text/control colors that read well on
+ * T.dark. Every page's header actions should use these so the chrome looks
+ * identical everywhere.
+ */
+export const HDR = {
+  bg:       "#16181D",            // header bar background
+  border:   "#23262D",            // hairline under the bar
+  link:     "#A9AEA8",            // nav links / secondary actions
+  linkStrong: "#FFFFFF",          // emphasized nav links
+  muted:    "#787E78",            // logout / de-emphasized
+  pillBg:   "rgba(255,255,255,0.07)",  // avatar/profile pill background
+  hoverBg:  "rgba(255,255,255,0.06)",  // subtle hover surface
+  greenPillBg: "rgba(116,197,58,0.16)", // role pill (ADMIN/STAFF) background
+  greenPillFg: "#8FD65B",              // role pill text
+} as const
+
 /** Status pill colors (background + text), keyed by Hebrew status label. */
 export const STATUS: Record<string, { bg: string; fg: string }> = {
   "פתוח":    { bg: "#EDF0F4", fg: "#3D5A7D" }, // muted blue

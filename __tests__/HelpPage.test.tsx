@@ -58,8 +58,10 @@ describe("HelpPage", () => {
     expect(screen.getByRole("link", { name: "חזרה ללוח הבקרה" })).toHaveAttribute("href", "/dashboard")
   })
 
-  it("renders version footer", () => {
+  it("renders the version in the page title", () => {
+    // The version badge moved from the old page header into the hero title
+    // when the shared dark AppHeader landed (v3.52).
     render(<HelpPage />)
-    expect(screen.getByText(/vtest/)).toBeInTheDocument()
+    expect(screen.getByText(/helpdesk test/)).toBeInTheDocument()
   })
 })

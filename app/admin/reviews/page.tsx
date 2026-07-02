@@ -18,9 +18,10 @@
 import { useEffect, useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
 import FooterCopyright from "@/components/FooterCopyright"
+import AppHeader from "@/components/AppHeader"
+import { T, HDR } from "@/lib/theme"
 
 interface Review {
   id: string
@@ -87,32 +88,21 @@ export default function ReviewsPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
 
-      {/* ── Header ── */}
-      <header style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: "64px", boxShadow: "0 4px 16px rgba(79,70,229,0.3)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#fff" }}>מערכת helpdesk</span>
-          <span style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.72rem", fontWeight: 600, padding: "2px 10px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.25)" }}>ביקורות שירות</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Image src="/logo.jpeg" alt="Cristalino" width={44} height={44} style={{ objectFit: "contain", borderRadius: 6 }} />
-          <Link href="/admin" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.85)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>← ניהול פניות</Link>
-          <Link href="/dashboard" style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.75)", textDecoration: "none" }}>לוח משתמש</Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
+      <AppHeader wordmark="helpdesk" subtitle="ביקורות שירות">
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Link href="/admin" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>← ניהול פניות</Link>
+          <Link href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח משתמש</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg }}>
+            <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
+            <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
               {initials(session?.user?.name)}
             </div>
-            <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{session?.user?.name}</span>
           </div>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.65)", background: "none", border: "none", cursor: "pointer" }}>יציאה</button>
+          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
         </div>
-      </header>
+      </AppHeader>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
