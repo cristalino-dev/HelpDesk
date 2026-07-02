@@ -21,12 +21,18 @@
  * This is a pure function so it can be unit-tested without a running app.
  */
 
-import type { TicketDetail } from "@/types/ticket"
-
 /** Shape we need for a signature — every field is optional except updatedAt,
- *  because regular (non-staff) users receive the ticket without `notes`. */
-type RevisionInput = Pick<TicketDetail, "updatedAt"> &
-  Partial<Pick<TicketDetail, "messages" | "notes" | "attachments" | "history">>
+ *  because regular (non-staff) users receive the ticket without `notes`.
+ *  Collections only need `id`: this lets the server compute the same signature
+ *  from a cheap ids-only Prisma select (see app/api/tickets/[id]/route.ts)
+ *  as the client computes from the full TicketDetail payload. */
+type RevisionInput = {
+  updatedAt: string
+  messages?:    ReadonlyArray<{ id: string }> | null
+  notes?:       ReadonlyArray<{ id: string }> | null
+  attachments?: ReadonlyArray<{ id: string }> | null
+  history?:     ReadonlyArray<{ id: string }> | null
+}
 
 function lastId(arr: ReadonlyArray<{ id: string }> | undefined | null): string {
   if (!arr || arr.length === 0) return "-"

@@ -90,4 +90,18 @@ describe("ticketRevision", () => {
     }
     expect(ticketRevision(reordered)).toBe(ticketRevision(base))
   })
+
+  it("ids-only server probe produces the same signature as the full client payload", () => {
+    // The GET /api/tickets/[id]?rev= probe recomputes the signature from a
+    // cheap { id }-only Prisma select. It must match the signature the client
+    // computed from the full JSON payload, or polling would never short-circuit.
+    const probe = {
+      updatedAt: base.updatedAt, // server serializes Date via toISOString()
+      messages:    base.messages.map(m => ({ id: m.id })),
+      notes:       base.notes.map(n => ({ id: n.id })),
+      attachments: base.attachments.map(a => ({ id: a.id })),
+      history:     base.history.map(h => ({ id: h.id })),
+    }
+    expect(ticketRevision(probe)).toBe(ticketRevision(base))
+  })
 })

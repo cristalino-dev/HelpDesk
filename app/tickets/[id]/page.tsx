@@ -135,9 +135,14 @@ export default function TicketDetailPage() {
   const refresh = async () => {
     if (editing || editSaving || noteSaving || msgSaving || assigning || closing || deletingMsgId) return
     try {
-      const res = await fetch(`/api/tickets/${id}`)
+      // Send the current revision so the server can answer with a tiny
+      // { unchanged: true } instead of the full payload (which includes all
+      // base64 attachments) when nothing changed — the common case.
+      const rev = revisionRef.current ? `?rev=${encodeURIComponent(revisionRef.current)}` : ""
+      const res = await fetch(`/api/tickets/${id}${rev}`)
       if (!res.ok) return
-      const data: TicketDetail = await res.json()
+      const data: TicketDetail & { unchanged?: boolean } = await res.json()
+      if (data.unchanged) return
       if (ticketRevision(data) === revisionRef.current) return
       applyTicketData(data, true)
     } catch {

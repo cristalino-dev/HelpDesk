@@ -45,6 +45,11 @@ model Ticket {
   messages     TicketMessage[]
   review       TicketReview?
   history      TicketHistory[]
+
+  // userId — user dashboard filters by owner; status — digest/sweep crons
+  // filter by it every few minutes. Postgres does not auto-index FKs.
+  @@index([userId])
+  @@index([status])
 }
 
 model TicketHistory {
@@ -57,6 +62,8 @@ model TicketHistory {
   actorName   String
   actorEmail  String
   changedAt   DateTime @default(now())
+
+  @@index([ticketId])
 }
 
 model TicketMessage {
@@ -68,6 +75,8 @@ model TicketMessage {
   authorEmail String
   authorRole  String   // "staff" | "user"
   createdAt   DateTime @default(now())
+
+  @@index([ticketId])
 }
 
 model TicketNote {
@@ -78,6 +87,8 @@ model TicketNote {
   authorName  String
   authorEmail String
   createdAt   DateTime @default(now())
+
+  @@index([ticketId])
 }
 
 model TicketAttachment {
@@ -87,6 +98,8 @@ model TicketAttachment {
   dataUrl   String
   filename  String?
   createdAt DateTime @default(now())
+
+  @@index([ticketId])
 }
 
 model TicketReview {
@@ -166,4 +179,8 @@ model Log {
   source    String?
   stack     String?
   date      String
+
+  // Admin logs tab filters by date and always orders by timestamp desc.
+  @@index([date])
+  @@index([timestamp])
 }
