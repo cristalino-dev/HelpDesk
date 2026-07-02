@@ -33,7 +33,7 @@
 
 "use client"
 import { useState } from "react"
-import type { Ticket } from "@/types/ticket"
+import type { TicketWithUser } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
@@ -42,7 +42,8 @@ import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
 
 type Props = {
-  tickets: Ticket[]
+  /** Plain Ticket[] (user dashboard) or TicketWithUser[] (admin — includes opener). */
+  tickets: TicketWithUser[]
   onClose?:  (id: string) => Promise<void> | void
   onReopen?: (id: string) => Promise<void> | void
   /** When true the caller is filtering — empty state shows "no results" instead of "no tickets" */
@@ -95,7 +96,7 @@ function TicketCard({
   setHoverId,
   isMobile,
 }: {
-  ticket: Ticket
+  ticket: TicketWithUser
   onClose?:  (id: string) => Promise<void> | void
   onReopen?: (id: string) => Promise<void> | void
   closingId:    string | null
@@ -125,7 +126,12 @@ function TicketCard({
   const wdLabel = isClosed
     ? `נסגר לאחר ${formatWorkdays(wdCount)}`
     : `${formatWorkdays(wdCount)} פתוח`
-  const meta = `${ticket.computerName} · ${ticket.category} · ${ticket.platform} · ${openedDate} · ${wdLabel}`
+  // Lead the meta line with the ticket issuer (opener) when we have it — this is the
+  // case in the admin view, where GET /api/tickets includes the `user` relation.
+  // Regular users viewing their own tickets get no `user` field, so we fall back to
+  // the computer name (which is what they'd want to identify their own machine anyway).
+  const leadLabel = ticket.user?.name || ticket.user?.email || ticket.computerName
+  const meta = `${leadLabel} · ${ticket.category} · ${ticket.platform} · ${openedDate} · ${wdLabel}`
 
   const urgencyStyle = isClosed
     ? { backgroundColor: "#f3f4f6", color: "#9ca3af" }
