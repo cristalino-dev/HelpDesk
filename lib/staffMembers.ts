@@ -52,6 +52,16 @@ export async function getAllStaffMembers(): Promise<StaffMember[]> {
   return roster.length > 0 ? roster : STAFF_MEMBERS
 }
 
+/**
+ * Broadcast recipient list for staff email notifications (new ticket, user
+ * reply, daily digest, …). DB-DRIVEN like the roster: exactly the users
+ * currently flagged isAdmin = true in the admin users table — revoke admin
+ * and the emails stop, no code change needed.
+ */
+export async function getStaffEmails(): Promise<string[]> {
+  return (await getAllStaffMembers()).map(m => m.email)
+}
+
 /** Extract mentioned staff emails from note content against a given roster. */
 export function parseMentionsFromList(content: string, members: StaffMember[]): string[] {
   const lower = content.toLowerCase()

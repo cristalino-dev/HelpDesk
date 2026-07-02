@@ -1,8 +1,10 @@
+// NOTE: this list is used for AUTHORIZATION (who may act as staff) and as a
+// last-resort fallback. Email NOTIFICATION recipients are DB-driven — every
+// user flagged isAdmin in the admin users table (lib/staffMembers.ts).
 export const STAFF_EMAILS = [
   "alon@cristalino.co.il",
   "dev@cristalino.co.il",
   "helpdesk@cristalino.co.il",
-  "daniel.l@cristalino.co.il",
 ]
 
 /** Read-only observers — can view all tickets but cannot modify anything */
@@ -16,7 +18,6 @@ export const STAFF_MEMBERS = [
   { email: "alon@cristalino.co.il",     handle: "alon",     display: "אלון" },
   { email: "dev@cristalino.co.il",      handle: "dev",      display: "Dev" },
   { email: "helpdesk@cristalino.co.il", handle: "helpdesk", display: "Helpdesk" },
-  { email: "daniel.l@cristalino.co.il", handle: "daniel",   display: "דניאל" },
 ]
 
 /** Extract mentioned staff emails from note content (e.g. "@alon" → email) */

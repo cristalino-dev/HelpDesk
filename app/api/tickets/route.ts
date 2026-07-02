@@ -24,6 +24,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -93,8 +94,9 @@ export async function POST(req: NextRequest) {
       submitterName: session.user.name ?? session.user.email!,
       submitterEmail: session.user.email!,
     }
+    const staffEmails = await getStaffEmails()
     void Promise.all([
-      sendMail({ to: STAFF_EMAILS, subject: `פנייה חדשה: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
+      sendMail({ to: staffEmails, subject: `פנייה חדשה: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
       sendMail({ to: session.user.email!, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
     ])
 
@@ -258,7 +260,7 @@ export async function PATCH(req: NextRequest) {
     // dedicated email below — closure/review, בטיפול, or re-open). Other
     // updates (field edits, reassignment) still notify all staff.
     const statusChanged = data.status !== undefined && data.status !== before.status
-    const staffRecipients = (statusChanged ? [ticket.assignedTo].filter(Boolean) : STAFF_EMAILS)
+    const staffRecipients = (statusChanged ? [ticket.assignedTo].filter(Boolean) : await getStaffEmails())
       // Exclude the person who made the change — no need to email yourself about your own action
       .filter(e => e !== session.user.email)
     const mails: Promise<void>[] = []

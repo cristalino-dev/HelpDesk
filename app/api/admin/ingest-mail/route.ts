@@ -37,7 +37,7 @@ import { ImapFlow } from "imapflow"
 import { simpleParser } from "mailparser"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
-import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser } from "@/lib/mail"
 import { hasTicketKeyword, buildIngestedTicket, fixCharsetLabels, DEFAULT_TICKET_KEYWORD } from "@/lib/mailIngest"
 import { NextRequest, NextResponse } from "next/server"
@@ -159,8 +159,9 @@ export async function POST(req: NextRequest) {
           phone: t.phone, computerName: t.computerName, status: ticket.status,
           submitterName: t.reporterName, submitterEmail: t.reporterEmail,
         }
+        const staffEmails = await getStaffEmails()
         void Promise.all([
-          sendMail({ to: STAFF_EMAILS, subject: `פנייה חדשה (מייל): ${t.subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
+          sendMail({ to: staffEmails, subject: `פנייה חדשה (מייל): ${t.subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
           sendMail({ to: t.reporterEmail, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
         ])
 

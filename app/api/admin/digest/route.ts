@@ -2,8 +2,8 @@
  * app/api/admin/digest/route.ts — Daily Digest Email Endpoint
  *
  * Called every morning by a server cron job (09:00 Israel time).
- * Sends all non-closed tickets, sorted by priority, to every address
- * in STAFF_EMAILS.
+ * Sends all non-closed tickets, sorted by priority, to every DB user
+ * flagged isAdmin (the admin users table — see lib/staffMembers.ts).
  *
  * AUTHENTICATION
  * ─────────────
@@ -22,7 +22,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma }         from "@/lib/db"
 import { sendMail, mailDailyDigest } from "@/lib/mail"
-import { STAFF_EMAILS }   from "@/lib/staffEmails"
+import { getStaffEmails } from "@/lib/staffMembers"
 import { logError }       from "@/lib/logError"
 
 const URGENCY_RANK: Record<string, number> = {
@@ -59,9 +59,10 @@ export async function POST(req: NextRequest) {
 
     // ── Send email ────────────────────────────────────────────────────────────
     const subject = `📋 סיכום יומי — ${tickets.length} פניות פתוחות`
-    await sendMail({ to: STAFF_EMAILS, subject, html: mailDailyDigest(tickets) })
+    const staffEmails = await getStaffEmails()
+    await sendMail({ to: staffEmails, subject, html: mailDailyDigest(tickets) })
 
-    console.log(`[digest] sent ${tickets.length} tickets to ${STAFF_EMAILS.join(", ")}`)
+    console.log(`[digest] sent ${tickets.length} tickets to ${staffEmails.join(", ")}`)
     return NextResponse.json({ sent: true, count: tickets.length })
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))

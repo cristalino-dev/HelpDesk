@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailNewMessageToUser, mailNewMessageToStaff, mailReplyNotification } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       } else {
         // User → notify all staff (excluding those already notified via reply)
-        const staffRecipients = STAFF_EMAILS.filter(e => e !== replyToEmail)
+        const staffRecipients = (await getStaffEmails()).filter(e => e !== replyToEmail)
         if (staffRecipients.length > 0) {
           void sendMail({
             to: staffRecipients,

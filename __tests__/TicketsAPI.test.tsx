@@ -39,6 +39,11 @@ jest.mock("@/lib/staffEmails", () => ({
   STAFF_EMAILS: ["staff@cristalino.co.il"],
 }))
 
+// Staff notification recipients are DB-driven (isAdmin users) — mock the resolver
+jest.mock("@/lib/staffMembers", () => ({
+  getStaffEmails: jest.fn().mockResolvedValue(["staff@cristalino.co.il"]),
+}))
+
 // Mock NextResponse
 jest.mock("next/server", () => ({
   NextResponse: class {
