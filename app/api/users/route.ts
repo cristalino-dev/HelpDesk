@@ -24,9 +24,10 @@
  *
  * SECURITY NOTE:
  * ───────────────
- * An admin can theoretically revoke their own admin flag. This is intentional
- * (no special-casing for the self-update case) — it's an internal tool.
- * Restoring access is done via direct SQL if needed.
+ * An admin can revoke their own admin flag (no special-casing for self-update),
+ * BUT the system never allows the last admin to be demoted or deleted — staff
+ * email notifications and the whole admin panel depend on at least one admin
+ * existing. The guard lives in PATCH and DELETE below.
  */
 
 import { auth } from "@/auth"
@@ -108,6 +109,18 @@ export async function PATCH(req: NextRequest) {
 
     const { id, name, phone, station, isAdmin } = await req.json()
 
+    // LAST-ADMIN GUARD — never let the system reach 0 admins: staff email
+    // notifications and admin-panel access are driven by the isAdmin flag.
+    if (isAdmin === false) {
+      const target = await prisma.user.findUnique({ where: { id }, select: { isAdmin: true } })
+      if (target?.isAdmin) {
+        const otherAdmins = await prisma.user.count({ where: { isAdmin: true, id: { not: id } } })
+        if (otherAdmins === 0) {
+          return NextResponse.json({ error: "לא ניתן להסיר את המנהל האחרון במערכת" }, { status: 400 })
+        }
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: { name, phone, station, isAdmin },
@@ -151,6 +164,15 @@ export async function DELETE(req: NextRequest) {
     if (session.user.email) {
       const self = await prisma.user.findUnique({ where: { email: session.user.email } })
       if (self?.id === id) return NextResponse.json({ error: "לא ניתן למחוק את המשתמש שלך" }, { status: 400 })
+    }
+
+    // LAST-ADMIN GUARD — deleting the last admin would leave 0 admins
+    const target = await prisma.user.findUnique({ where: { id }, select: { isAdmin: true } })
+    if (target?.isAdmin) {
+      const otherAdmins = await prisma.user.count({ where: { isAdmin: true, id: { not: id } } })
+      if (otherAdmins === 0) {
+        return NextResponse.json({ error: "לא ניתן למחוק את המנהל האחרון במערכת" }, { status: 400 })
+      }
     }
 
     // Find or create the helpdesk fallback account that will inherit the tickets

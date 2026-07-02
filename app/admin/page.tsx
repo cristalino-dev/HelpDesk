@@ -380,12 +380,19 @@ export default function AdminPage() {
   const saveUser = async () => {
     if (!editingUser) return
     setUserSaving(true)
+    setDeleteError(null)
     try {
-      await fetch("/api/users", {
+      const res = await fetch("/api/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingUser),
       })
+      if (!res.ok) {
+        // e.g. last-admin guard — keep the modal open and show why
+        const data = await res.json().catch(() => ({}))
+        setDeleteError(data.error ?? "שגיאה בשמירה")
+        return
+      }
       await loadUsers()
       closeEditModal()
     } finally {
