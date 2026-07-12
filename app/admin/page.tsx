@@ -807,7 +807,7 @@ export default function AdminPage() {
                   </div>
 
                   <div style={{ display: "flex", gap: "10px", justifyContent: "flex-start" }}>
-                    <button onClick={saveUser} disabled={userSaving} style={{ background: "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                    <button onClick={saveUser} disabled={userSaving} style={{ background: "#16181D", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
                       {userSaving ? "שומר..." : "שמור"}
                     </button>
                     <button onClick={closeEditModal} style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
@@ -1066,7 +1066,7 @@ export default function AdminPage() {
                   <button
                     onClick={addLicenses}
                     disabled={licSaving || !licForm.keys.trim()}
-                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? "#e5e7eb" : "linear-gradient(135deg, #16181D, #16181D)", color: licSaving || !licForm.keys.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? "#e5e7eb" : "#16181D", color: licSaving || !licForm.keys.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
                   >
                     {licSaving ? "שומר..." : "הוסף רישיונות"}
                   </button>
@@ -1216,7 +1216,7 @@ export default function AdminPage() {
           const driversCell = (p: Printer) => (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               {p.drivers.map(d => (
-                <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "#EDEFEA", border: "1px solid #e0e7ff", fontSize: "0.75rem", fontWeight: 600 }}>
+                <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "#EDEFEA", border: "1px solid #E7E9E6", fontSize: "0.75rem", fontWeight: 600 }}>
                   <a href={`/api/admin/printers/drivers/${d.id}`} title={`${d.filename} · ${fmtBytes(d.size)}`} style={{ color: "#16181D", textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     ⬇ {d.filename}
                   </a>
@@ -1294,7 +1294,7 @@ export default function AdminPage() {
                   <button
                     onClick={addPrinter}
                     disabled={printerSaving || !printerForm.name.trim()}
-                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: printerSaving || !printerForm.name.trim() ? "#e5e7eb" : "linear-gradient(135deg, #16181D, #16181D)", color: printerSaving || !printerForm.name.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: printerSaving || !printerForm.name.trim() ? "not-allowed" : "pointer" }}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: printerSaving || !printerForm.name.trim() ? "#e5e7eb" : "#16181D", color: printerSaving || !printerForm.name.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: printerSaving || !printerForm.name.trim() ? "not-allowed" : "pointer" }}
                   >
                     {printerSaving ? "שומר..." : "הוסף מדפסת"}
                   </button>
@@ -1551,7 +1551,7 @@ export default function AdminPage() {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                         <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transition: "transform 0.2s", transform: expanded === ticket.id ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -1601,7 +1601,7 @@ export default function AdminPage() {
                   {/* Subject + user info */}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
-                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                         HDTC-{ticket.ticketNumber}
                       </span>
                       <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1877,7 +1877,7 @@ export default function AdminPage() {
                             {staffMembers.map(m => (
                               <button key={m.handle} type="button"
                                 onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
-                                style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #e0e7ff", background: "#EDEFEA", color: "#16181D", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
+                                style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #E7E9E6", background: "#EDEFEA", color: "#16181D", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                               >@{m.handle}</button>
                             ))}
                           </div>

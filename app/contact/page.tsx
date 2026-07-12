@@ -98,7 +98,7 @@ export default function ContactPage() {
 
         {/* Sender info (readonly) */}
         <div style={{ backgroundColor: "#fff", borderRadius: "14px", padding: "16px 20px", marginBottom: "16px", border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "14px" }}>
-          <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+          <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
             {(session?.user?.name ?? session?.user?.email ?? "?").slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -139,7 +139,7 @@ export default function ContactPage() {
             <button
               type="submit"
               disabled={sending || !message.trim()}
-              style={{ background: sending || !message.trim() ? "#93c5fd" : "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", border: "none", cursor: sending || !message.trim() ? "not-allowed" : "pointer", fontSize: "0.9rem" }}
+              style={{ background: sending || !message.trim() ? "#A2A8A2" : "#16181D", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", border: "none", cursor: sending || !message.trim() ? "not-allowed" : "pointer", fontSize: "0.9rem" }}
             >
               {sending ? "שולח..." : "שלח הודעה"}
             </button>

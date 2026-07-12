@@ -174,7 +174,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
             )}
 
             {/* Ticket pill */}
-            <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#3D5A7D", borderRadius: 8, padding: "3px 12px", fontSize: "0.75rem", fontWeight: 700, marginBottom: 20 }}>
+            <div style={{ display: "inline-block", backgroundColor: "#E9F4E2", color: "#3D5A7D", borderRadius: 8, padding: "3px 12px", fontSize: "0.75rem", fontWeight: 700, marginBottom: 20 }}>
               HDTC-{ticket.ticketNumber}
             </div>
 
@@ -241,14 +241,14 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
               style={{
                 width: "100%", padding: "13px",
                 background: state === "submitting" ? "#9ca3af" : isUpdate
-                  ? "linear-gradient(135deg, #16181D, #16181D)"
+                  ? "#16181D"
                   : "linear-gradient(135deg, #16a34a, #15803d)",
                 color: "#fff", border: "none", borderRadius: 10,
                 fontWeight: 800, fontSize: "0.95rem",
                 cursor: state === "submitting" ? "default" : "pointer",
                 marginTop: 8,
                 boxShadow: state === "submitting" ? "none"
-                  : isUpdate ? "0 4px 14px rgba(37,99,235,0.35)"
+                  : isUpdate ? "0 4px 14px rgba(22,24,29,0.35)"
                   : "0 4px 14px rgba(22,163,74,0.35)",
                 transition: "all 0.15s",
               }}

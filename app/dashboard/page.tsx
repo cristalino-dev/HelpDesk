@@ -173,7 +173,9 @@ export default function DashboardPage() {
           <button
             title="העתק קישור למערכת"
             onClick={() => {
-              navigator.clipboard.writeText("https://helpdesk.cristalino.co.il/")
+              // Share the public quick-open page — recipients land on the
+              // new-ticket form, not on the sharer's personal dashboard.
+              navigator.clipboard.writeText("https://helpdesk.cristalino.co.il/open")
               setLinkCopied(true)
               setTimeout(() => setLinkCopied(false), 2000)
             }}

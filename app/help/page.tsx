@@ -95,7 +95,7 @@ export default function HelpPage() {
             <div style={{ backgroundColor: "#f0f2f5", padding: "16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
                 {[
-                  { label: "פתוחות", count: 2, color: "#16181D", bg: "#eff6ff" },
+                  { label: "פתוחות", count: 2, color: "#16181D", bg: "#E9F4E2" },
                   { label: "בטיפול", count: 1, color: "#d97706", bg: "#fffbeb" },
                   { label: "סגורות", count: 5, color: "#16a34a", bg: "#f0fdf4" },
                 ].map(s => (
@@ -160,7 +160,7 @@ export default function HelpPage() {
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
               </div>
               <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>פתיחת פנייה חדשה</span>
@@ -177,7 +177,7 @@ export default function HelpPage() {
                 <MockSelect label="דחיפות" value="בינוני" colored />
               </div>
               <MockTextarea label="תיאור מפורט *" />
-              <div style={{ background: "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
+              <div style={{ background: "#16181D", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
             </div>
           </div>
 
@@ -262,7 +262,7 @@ export default function HelpPage() {
           <SectionTitle number="6" title="מצבי פנייה" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <StatusRow badge={badge("#dbeafe", "#3D5A7D", "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
+              <StatusRow badge={badge("#EDF0F4", "#3D5A7D", "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
               <StatusRow badge={badge("#fef3c7", "#92400e", "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. תקבלו מייל עדכון. ייתכן שיצרו איתכם קשר בקרוב." />
               <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
@@ -297,7 +297,7 @@ export default function HelpPage() {
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
             <div style={{ background: "linear-gradient(135deg, #f0f9ff, #e0f2fe, #f0fdf4)", padding: "32px 24px", display: "flex", justifyContent: "center" }}>
               <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px 28px 24px", width: "340px", textAlign: "center", boxShadow: "0 8px 30px rgba(0,0,0,0.10)", border: "1px solid #e5e7eb" }}>
-                <div style={{ display: "inline-block", backgroundColor: "#eff6ff", color: "#3D5A7D", borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
+                <div style={{ display: "inline-block", backgroundColor: "#E9F4E2", color: "#3D5A7D", borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
                 <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "#1f2937", marginBottom: 4 }}>איך היה השירות?</div>
                 <div style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4 }}>מוראל לוי סגירת יוזר קומקס</div>
                 <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginBottom: 20 }}>שניה מזמנכם תעזור לנו להשתפר</div>
@@ -331,14 +331,14 @@ export default function HelpPage() {
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>צרו קשר עם תמיכת HelpDesk</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: "#9ca3af" }}>תארו את הבעיה שנתקלתם בה...</div>
-              <div style={{ background: "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
+              <div style={{ background: "#16181D", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
             </div>
           </div>
 
@@ -367,7 +367,7 @@ export default function HelpPage() {
 function SectionTitle({ number, title }: { number: string; title: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>{number}</div>
+      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>{number}</div>
       <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#1f2937" }}>{title}</h2>
     </div>
   )
@@ -386,7 +386,7 @@ function Steps({ steps }: { steps: { n: number; text: React.ReactNode }[] }) {
     <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "12px" }}>
       {steps.map(s => (
         <li key={s.n} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#eff6ff", color: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, flexShrink: 0, marginTop: "1px" }}>{s.n}</div>
+          <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#E9F4E2", color: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, flexShrink: 0, marginTop: "1px" }}>{s.n}</div>
           <span style={{ color: "#374151", fontSize: "0.9rem", lineHeight: 1.6 }}>{s.text}</span>
         </li>
       ))}
@@ -412,7 +412,7 @@ function FieldList({ items }: { items: { label: string; desc: string }[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       {items.map(i => (
         <div key={i.label} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-          <div style={{ backgroundColor: "#eff6ff", color: "#16181D", padding: "2px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0, marginTop: "1px" }}>{i.label}</div>
+          <div style={{ backgroundColor: "#E9F4E2", color: "#16181D", padding: "2px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0, marginTop: "1px" }}>{i.label}</div>
           <span style={{ color: "#4b5563", fontSize: "0.88rem", lineHeight: 1.6 }}>{i.desc}</span>
         </div>
       ))}
@@ -423,7 +423,7 @@ function FieldList({ items }: { items: { label: string; desc: string }[] }) {
 function FieldGuideItem({ label, required, desc }: { label: string; required?: boolean; desc: React.ReactNode }) {
   return (
     <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
-      <div style={{ minWidth: "100px", backgroundColor: required ? "#eff6ff" : "#f9fafb", color: required ? "#16181D" : "#374151", padding: "3px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, textAlign: "center", flexShrink: 0, border: `1px solid ${required ? "#bfdbfe" : "#e5e7eb"}` }}>
+      <div style={{ minWidth: "100px", backgroundColor: required ? "#E9F4E2" : "#f9fafb", color: required ? "#16181D" : "#374151", padding: "3px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, textAlign: "center", flexShrink: 0, border: `1px solid ${required ? "#bfdbfe" : "#e5e7eb"}` }}>
         {label}{required && <span style={{ color: "#ef4444" }}> *</span>}
       </div>
       <span style={{ color: "#4b5563", fontSize: "0.88rem", lineHeight: 1.65 }}>{desc}</span>
@@ -460,7 +460,7 @@ function MockField({ label, placeholder, hint }: { label: string; placeholder: s
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "5px" }}>
         <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#374151" }}>{label}</label>
-        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#16181D", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
+        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#EDF0F4", color: "#16181D", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
       </div>
       <div style={{ border: "1px solid #d1d5db", borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: "#9ca3af", backgroundColor: "#fff" }}>{placeholder}</div>
     </div>

@@ -24,7 +24,7 @@ const URGENCY_STYLE: Record<string, React.CSSProperties> = {
   "דחוף":   { background: "#fee2e2", color: "#991b1b" },
 }
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  "פתוח":   { background: "#dbeafe", color: "#3D5A7D" },
+  "פתוח":   { background: "#EDF0F4", color: "#3D5A7D" },
   "בטיפול": { background: "#fef3c7", color: "#92400e" },
   "סגור":   { background: "#dcfce7", color: "#166534" },
 }
@@ -166,7 +166,7 @@ export default function TicketsViewPage() {
 
         {/* Info banner for viewers */}
         {isViewer && (
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: "0.83rem", color: "#3D5A7D" }}>
+          <div style={{ background: "#E9F4E2", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: "0.83rem", color: "#3D5A7D" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10" stroke="#16181D" strokeWidth="1.8"/>
               <path d="M12 8v4M12 16h.01" stroke="#16181D" strokeWidth="2" strokeLinecap="round"/>
@@ -249,7 +249,7 @@ export default function TicketsViewPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#E9F4E2", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                           <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -270,7 +270,7 @@ export default function TicketsViewPage() {
 
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#E9F4E2", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                         <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>

@@ -33,7 +33,7 @@ export default function AdminManualPage() {
           {/* Quick links */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 32 }}>
             {[
-              { label: "כל הפניות",   href: "/tickets",        color: "#16181D", bg: "#eff6ff" },
+              { label: "כל הפניות",   href: "/tickets",        color: "#16181D", bg: "#E9F4E2" },
               { label: "פאנל ניהול",  href: "/admin",          color: "#16181D", bg: "#EDEFEA" },
               { label: "ביקורות",     href: "/admin/reviews",  color: "#16a34a", bg: "#f0fdf4" },
               { label: "לוח אישי",    href: "/dashboard",      color: "#0891b2", bg: "#ecfeff" },
@@ -104,7 +104,7 @@ export default function AdminManualPage() {
           <Section icon="🔄" title="שינוי סטטוס">
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
               {[
-                { label: "פתוח",   bg: "#dbeafe", color: "#3D5A7D", desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
+                { label: "פתוח",   bg: "#EDF0F4", color: "#3D5A7D", desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
                 { label: "בטיפול", bg: "#fef3c7", color: "#92400e", desc: "הצוות עובד על הפנייה — מגיש מקבל מייל עדכון" },
                 { label: "סגור",   bg: "#dcfce7", color: "#166534", desc: "הפנייה טופלה — מגיש מקבל מייל עם קישור לדירוג השירות" },
               ].map(s => (

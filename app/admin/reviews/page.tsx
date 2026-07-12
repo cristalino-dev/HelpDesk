@@ -185,7 +185,7 @@ export default function ReviewsPage() {
                         <span style={{ ...col, padding: "2px 10px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 700 }}>
                           {review.rating}/5
                         </span>
-                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
+                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
                           HDTC-{review.ticket.ticketNumber}
                         </a>
                         <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

@@ -185,7 +185,7 @@ export default function OpenTicketPage() {
 
         {/* ── Hero ── */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 18, background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 24px rgba(37,99,235,0.3)" }}>
+          <div style={{ width: 64, height: 64, borderRadius: 18, background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 24px rgba(22,24,29,0.30)" }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
               <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M12 11v4M10 13h4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -203,7 +203,7 @@ export default function OpenTicketPage() {
           {GUIDE_STEPS.map(step => (
             <div key={step.num} style={{ background: "#fff", borderRadius: 14, padding: "16px", border: "1px solid #e5e7eb", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 8, background: "#eff6ff", color: "#16181D", fontSize: "0.7rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: "#E9F4E2", color: "#16181D", fontSize: "0.7rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {step.num}
                 </div>
                 <span style={{ fontSize: "1.1rem" }}>{step.icon}</span>
@@ -269,8 +269,8 @@ export default function OpenTicketPage() {
           <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e5e7eb", boxShadow: "0 4px 24px rgba(0,0,0,0.07)", overflow: "hidden" }}>
 
             {/* Form header */}
-            <div style={{ padding: "20px 28px", borderBottom: "1px solid #f3f4f6", background: "linear-gradient(135deg, #eff6ff, #f5f3ff)", display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #16181D, #16181D)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ padding: "20px 28px", borderBottom: "1px solid #f3f4f6", background: "linear-gradient(135deg, #E9F4E2, #f5f3ff)", display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
                 </svg>
@@ -329,7 +329,7 @@ export default function OpenTicketPage() {
                         <button type="button"
                           onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)}
                           onFocus={() => setShowTooltip(true)} onBlur={() => setShowTooltip(false)}
-                          style={{ width: 17, height: 17, borderRadius: "50%", background: "#dbeafe", color: "#16181D", border: "none", cursor: "pointer", fontSize: "0.65rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                          style={{ width: 17, height: 17, borderRadius: "50%", background: "#EDF0F4", color: "#16181D", border: "none", cursor: "pointer", fontSize: "0.65rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
                         >?</button>
                         {showTooltip && (
                           <div style={{ position: "absolute", bottom: "calc(100% + 8px)", right: 0, background: "#1f2937", color: "#f9fafb", borderRadius: 10, padding: "12px 14px", fontSize: "0.76rem", lineHeight: 1.65, width: 230, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", zIndex: 20 }}>
@@ -428,7 +428,7 @@ export default function OpenTicketPage() {
 
               {/* Submit */}
               <button type="submit" disabled={submitting}
-                style={{ padding: "14px", borderRadius: 12, border: "none", background: submitting ? "#93c5fd" : "linear-gradient(135deg, #16181D, #16181D)", color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: submitting ? "not-allowed" : "pointer", boxShadow: submitting ? "none" : "0 6px 16px rgba(37,99,235,0.35)", letterSpacing: "0.01em", transition: "all 0.15s" }}
+                style={{ padding: "14px", borderRadius: 12, border: "none", background: submitting ? "#A2A8A2" : "#16181D", color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: submitting ? "not-allowed" : "pointer", boxShadow: submitting ? "none" : "0 6px 16px rgba(22,24,29,0.35)", letterSpacing: "0.01em", transition: "all 0.15s" }}
               >
                 {submitting ? "שולח..." : "שלח פנייה ←"}
               </button>

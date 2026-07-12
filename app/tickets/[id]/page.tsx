@@ -717,7 +717,7 @@ function historyIcon(field: string): string {
 function historyDotColor(field: string): string {
   switch (field) {
     case "created":    return "#dcfce7"
-    case "status":     return "#dbeafe"
+    case "status":     return "#EDF0F4"
     case "urgency":    return "#fef3c7"
     case "assignedTo": return "#EDEFEA"
     case "edited":     return "#f3f4f6"

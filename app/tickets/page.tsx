@@ -404,14 +404,14 @@ export default function TicketsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           {(statsView === "week" ? [
             { label: "פניות השבוע",  value: stats.weekTotal,       color: "#6366f1", bg: "#EDEFEA", filterKey: "weekAll"     as string | null },
-            { label: "פתוחות",       value: stats.weekOpen,         color: "#16181D", bg: "#eff6ff", filterKey: "weekOpen"    as string | null },
+            { label: "פתוחות",       value: stats.weekOpen,         color: "#16181D", bg: "#EDEFEA", filterKey: "weekOpen"    as string | null },
             { label: "בטיפול",       value: stats.weekInProgress,   color: "#d97706", bg: "#fffbeb", filterKey: "weekInprog"  as string | null },
             { label: "נסגרו השבוע",  value: stats.weekClosed,       color: "#16a34a", bg: "#f0fdf4", filterKey: "weekClosed"  as string | null },
             { label: "נפתחו היום",   value: stats.openedToday,      color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
             { label: "נסגרו היום",   value: stats.closedToday,      color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" as string | null },
           ] : [
             { label: "סה״כ פניות",  value: stats.total,            color: "#6366f1", bg: "#EDEFEA", filterKey: null                           },
-            { label: "פתוחות",       value: stats.open,              color: "#16181D", bg: "#eff6ff", filterKey: "open"        as string | null },
+            { label: "פתוחות",       value: stats.open,              color: "#16181D", bg: "#EDEFEA", filterKey: "open"        as string | null },
             { label: "בטיפול",       value: stats.inProgress,        color: "#d97706", bg: "#fffbeb", filterKey: "inprog"      as string | null },
             { label: "סגורות",       value: stats.closedCount,       color: "#16a34a", bg: "#f0fdf4", filterKey: "closed"      as string | null },
             { label: "נפתחו היום",   value: stats.openedToday,       color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
@@ -437,7 +437,7 @@ export default function TicketsPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
             {[
               { label: "זמן סגירה ממוצע",    value: formatDuration(statsView === "week" ? stats.weekAvgClose     : stats.avgClose),      color: "#059669", bg: "#ecfdf5" },
-              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: "#16181D", bg: "#eff6ff" },
+              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: "#16181D", bg: "#EDEFEA" },
               { label: "סגירה ארוכה ביותר",  value: formatDuration(statsView === "week" ? stats.weekSlowestClose : stats.slowestClose),  color: "#dc2626", bg: "#fef2f2" },
             ].map(s => (
               <div key={s.label} style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: `1px solid ${s.bg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
@@ -485,7 +485,7 @@ export default function TicketsPage() {
 
         {/* Active stat filter indicator */}
         {statFilter && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: "0.82rem", color: "#3D5A7D" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#EDEFEA", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: "0.82rem", color: "#3D5A7D" }}>
             <span>מסנן: {({
               open: "פתוחות", inprog: "בטיפול", closed: "סגורות",
               openedToday: "נפתחו היום", closedToday: "נסגרו היום",
@@ -603,7 +603,7 @@ export default function TicketsPage() {
                     <div onClick={() => handleExpand(ticket.id)} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", cursor: "pointer" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                           {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
                           <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
@@ -634,7 +634,7 @@ export default function TicketsPage() {
                     {/* Subject + meta */}
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#eff6ff", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                           HDTC-{ticket.ticketNumber}
                         </span>
                         {isStale && (

@@ -34,7 +34,7 @@ export default function ManualPage() {
           </p>
 
           {/* URL box */}
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: "18px 24px", marginBottom: 32, textAlign: "center" }}>
+          <div style={{ background: "#E9F4E2", border: "1px solid #bfdbfe", borderRadius: 12, padding: "18px 24px", marginBottom: 32, textAlign: "center" }}>
             <div style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600, marginBottom: 6 }}>כתובת המערכת</div>
             <a href="https://helpdesk.cristalino.co.il" style={{ fontSize: "1.15rem", fontWeight: 700, color: "#16181D", textDecoration: "none" }}>
               helpdesk.cristalino.co.il
@@ -84,7 +84,7 @@ export default function ManualPage() {
             <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 18, marginBottom: 6, fontWeight: 600 }}>סטטוסים:</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[
-                { label: "פתוח — התקבלה, טרם טופלה", bg: "#dbeafe", color: "#3D5A7D" },
+                { label: "פתוח — התקבלה, טרם טופלה", bg: "#EDF0F4", color: "#3D5A7D" },
                 { label: "בטיפול — צוות התמיכה מטפל", bg: "#fef3c7", color: "#92400e" },
                 { label: "סגור — טופלה ונסגרה",        bg: "#dcfce7", color: "#166534" },
               ].map(b => (
@@ -160,8 +160,8 @@ export default function ManualPage() {
 function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#16181D", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #eff6ff" }}>
-        <span style={{ width: 30, height: 30, background: "#eff6ff", borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#16181D", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #E9F4E2" }}>
+        <span style={{ width: 30, height: 30, background: "#E9F4E2", borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
         {title}
       </div>
       {children}
