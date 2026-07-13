@@ -1,7 +1,6 @@
 "use client"
 import { useSession, signIn } from "next-auth/react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import AppHeader from "@/components/AppHeader"
 import { HDR } from "@/lib/theme"
@@ -58,7 +57,6 @@ function FieldLabel({ label, hint, required }: { label: string; hint?: string; r
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function OpenTicketPage() {
   const { data: session, status, update } = useSession()
-  const router = useRouter()
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -80,23 +78,17 @@ export default function OpenTicketPage() {
 
   const urgColor = URGENCY_COLORS[form.urgency]
 
-  // On mount: if the user already has name + phone saved in their profile,
-  // they have been onboarded — send them straight to the dashboard where
-  // they can open tickets via the normal TicketForm. The /open page is only
-  // shown to first-time users who still need to set their personal details.
-  // (Computer name is optional and is NOT part of the redirect check.)
+  // On mount: pre-fill the form from the user's saved profile. This page is
+  // open to EVERYONE (it's the shared quick-open link since v3.53) — it no
+  // longer redirects onboarded users to the dashboard. Any edits the user
+  // makes to the personal fields here are saved back to their profile in
+  // the DB on submit (see handleSubmit below).
   useEffect(() => {
     if (status !== "authenticated") return
     fetch("/api/profile")
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (!d) return
-        // Profile complete → already onboarded; redirect to dashboard
-        if (d.name && d.phone) {
-          router.push("/dashboard")
-          return
-        }
-        // Partial profile — pre-fill whatever we already have
         const nameParts = (d.name ?? session?.user?.name ?? "").split(" ")
         setForm(f => ({
           ...f,
@@ -253,13 +245,20 @@ export default function OpenTicketPage() {
               ניתן לעקוב אחר הסטטוס בלוח הבקרה האישי.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              {/* Primary: go to dashboard (profile is saved — next /open visit redirects here anyway) */}
               <a href="/dashboard" style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#16181D", color: "#fff", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", textDecoration: "none" }}>
                 לוח הבקרה שלי
               </a>
-              <a href="/dashboard" style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", textDecoration: "none" }}>
+              {/* Stay on /open with a fresh form — personal fields stay pre-filled */}
+              <button
+                onClick={() => {
+                  setSubmitted(null)
+                  setPendingImages([])
+                  setForm(f => ({ ...f, subject: "", description: "", urgency: "בינוני", category: "אחר", platform: "מחשב אישי" }))
+                }}
+                style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer" }}
+              >
                 + פתח פנייה נוספת
-              </a>
+              </button>
             </div>
           </div>
         )}
