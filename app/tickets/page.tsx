@@ -6,7 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import FooterCopyright from "@/components/FooterCopyright"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
-import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, ASSIGNABLE_FALLBACK } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import { isStaleOpen, openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
@@ -59,7 +59,7 @@ export default function TicketsPage() {
   const [fieldUrgencies,  setFieldUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [fieldCategories, setFieldCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [fieldPlatforms,  setFieldPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
-  const [staffMembers,    setStaffMembers]    = useState<{ email: string; handle: string; display: string }[]>(STAFF_MEMBERS)
+  const [staffMembers,    setStaffMembers]    = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
   const [showAll, setShowAll]   = useState(false)
   const [search, setSearch]     = useState("")
   const [hoverId, setHoverId]     = useState<string | null>(null)

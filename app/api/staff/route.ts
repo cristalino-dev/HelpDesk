@@ -14,7 +14,7 @@
 
 import { auth } from "@/auth"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
-import { getAllStaffMembers } from "@/lib/staffMembers"
+import { getAssignableMembers } from "@/lib/staffMembers"
 import { logError } from "@/lib/logError"
 import { NextResponse } from "next/server"
 
@@ -26,7 +26,8 @@ export async function GET() {
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
     if (!isStaff) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const members = await getAllStaffMembers()
+    // Assignment dropdowns get the bot; @mention parsing / notifications do not.
+    const members = await getAssignableMembers()
     return NextResponse.json(members)
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))

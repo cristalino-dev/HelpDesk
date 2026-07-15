@@ -19,9 +19,11 @@ jest.mock("@/lib/staffEmails", () => ({
     { email: "alon@cristalino.co.il",   handle: "alon",   display: "אלון" },
     { email: "daniel.l@cristalino.co.il", handle: "daniel", display: "דניאל" },
   ],
+  BOT_EMAIL: "bot@cristalino.co.il",
+  BOT_MEMBER: { email: "bot@cristalino.co.il", handle: "bot", display: "🤖 בוט" },
 }))
 
-import { getAllStaffMembers, parseMentionsFromList } from "@/lib/staffMembers"
+import { getAllStaffMembers, getAssignableMembers, getStaffEmails, parseMentionsFromList } from "@/lib/staffMembers"
 import { prisma } from "@/lib/db"
 
 const findMany = (prisma.user as unknown as { findMany: jest.Mock }).findMany
@@ -65,6 +67,28 @@ describe("getAllStaffMembers", () => {
       "alon@cristalino.co.il",
       "daniel.l@cristalino.co.il",
     ])
+  })
+})
+
+describe("getAssignableMembers — the automation bot", () => {
+  it("appends the bot to the roster so it is offered in assign dropdowns", async () => {
+    findMany.mockResolvedValue([{ email: "alon@cristalino.co.il", name: "Alon Kerem" }])
+    const roster = await getAssignableMembers()
+    expect(roster.map(m => m.email)).toEqual(["alon@cristalino.co.il", "bot@cristalino.co.il"])
+    expect(roster.find(m => m.email === "bot@cristalino.co.il")?.display).toBe("🤖 בוט")
+  })
+
+  it("keeps the bot OUT of the notification recipient list (getStaffEmails)", async () => {
+    findMany.mockResolvedValue([{ email: "alon@cristalino.co.il", name: "Alon Kerem" }])
+    const emails = await getStaffEmails()
+    expect(emails).not.toContain("bot@cristalino.co.il")
+    expect(emails).toEqual(["alon@cristalino.co.il"])
+  })
+
+  it("does not duplicate the bot if it is already an admin in the DB", async () => {
+    findMany.mockResolvedValue([{ email: "bot@cristalino.co.il", name: "Bot" }])
+    const roster = await getAssignableMembers()
+    expect(roster.filter(m => m.email === "bot@cristalino.co.il")).toHaveLength(1)
   })
 })
 

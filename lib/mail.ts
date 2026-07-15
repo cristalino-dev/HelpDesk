@@ -11,6 +11,7 @@
 
 import nodemailer from "nodemailer"
 import { logError } from "@/lib/logError"
+import { BOT_EMAIL } from "@/lib/staffEmails"
 
 const FROM    = '"מערכת הפניות" <helpdesk@cristalino.co.il>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://helpdesk.cristalino.co.il"
@@ -41,7 +42,10 @@ export async function sendMail({ to, subject, html }: MailOptions) {
     return
   }
 
-  const recipients = Array.isArray(to) ? to : [to]
+  // The automation bot is a virtual assignee, not a real mailbox — never mail
+  // it (e.g. status-change emails go to the ticket's assignee, which may be the
+  // bot). Filtering here covers every send path centrally.
+  const recipients = (Array.isArray(to) ? to : [to]).filter(addr => addr !== BOT_EMAIL)
   if (recipients.length === 0) return
 
   try {

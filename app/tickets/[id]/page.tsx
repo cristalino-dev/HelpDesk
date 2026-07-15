@@ -2,7 +2,7 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { STAFF_EMAILS, STAFF_MEMBERS } from "@/lib/staffEmails"
+import { STAFF_EMAILS, ASSIGNABLE_FALLBACK } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import type { TicketDetail, TicketNote, TicketMessage, TicketHistoryEntry } from "@/types/ticket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
@@ -57,7 +57,7 @@ export default function TicketDetailPage() {
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
-  const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(STAFF_MEMBERS)
+  const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {

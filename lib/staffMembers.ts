@@ -16,7 +16,7 @@
  */
 
 import { prisma } from "@/lib/db"
-import { STAFF_MEMBERS } from "@/lib/staffEmails"
+import { STAFF_MEMBERS, BOT_MEMBER } from "@/lib/staffEmails"
 
 export type StaffMember = { email: string; handle: string; display: string }
 
@@ -56,10 +56,24 @@ export async function getAllStaffMembers(): Promise<StaffMember[]> {
  * Broadcast recipient list for staff email notifications (new ticket, user
  * reply, daily digest, …). DB-DRIVEN like the roster: exactly the users
  * currently flagged isAdmin = true in the admin users table — revoke admin
- * and the emails stop, no code change needed.
+ * and the emails stop, no code change needed. The automation bot is NEVER
+ * here (it's not a real mailbox) — see getAssignableMembers.
  */
 export async function getStaffEmails(): Promise<string[]> {
   return (await getAllStaffMembers()).map(m => m.email)
+}
+
+/**
+ * Roster offered in the "assign to" dropdowns: every real staff member PLUS
+ * the automation bot (BOT_MEMBER). The bot is a valid assignee — an external
+ * script handles its tickets — but is deliberately absent from getStaffEmails
+ * so it receives no notification email. Kept separate from getAllStaffMembers
+ * so notifications and @mention parsing never target the bot.
+ */
+export async function getAssignableMembers(): Promise<StaffMember[]> {
+  const roster = await getAllStaffMembers()
+  // Append the bot unless it somehow already exists as an admin.
+  return roster.some(m => m.email === BOT_MEMBER.email) ? roster : [...roster, BOT_MEMBER]
 }
 
 /** Extract mentioned staff emails from note content against a given roster. */

@@ -64,7 +64,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
-import { STAFF_MEMBERS } from "@/lib/staffEmails"
+import { ASSIGNABLE_FALLBACK } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import type { Printer } from "@/types/printer"
 import FooterCopyright from "@/components/FooterCopyright"
@@ -112,7 +112,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
-  const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(STAFF_MEMBERS)
+  const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
