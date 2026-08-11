@@ -340,7 +340,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {showForm && <TicketForm onSuccess={() => { setShowForm(false); loadTickets() }} defaultPhone={profile.phone} defaultStation={profile.station} />}
+        {showForm && <TicketForm onSuccess={() => { setShowForm(false); loadTickets() }} defaultPhone={profile.phone} defaultStation={profile.station} isAdmin={session?.user?.isAdmin} />}
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>

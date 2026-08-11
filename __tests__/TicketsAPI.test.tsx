@@ -7,7 +7,7 @@ jest.mock("@/auth", () => ({
 
 jest.mock("@/lib/db", () => ({
   prisma: {
-    user: { findUnique: jest.fn() },
+    user: { findUnique: jest.fn(), upsert: jest.fn() },
     ticket: {
       create: jest.fn(),
       update: jest.fn(),
@@ -17,6 +17,9 @@ jest.mock("@/lib/db", () => ({
     ticketHistory: {
       create: jest.fn().mockResolvedValue({}),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    ticketNote: {
+      create: jest.fn().mockResolvedValue({}),
     },
   },
 }))
@@ -106,6 +109,102 @@ describe("Tickets API", () => {
       expect(data.id).toBe("ticket-1")
       expect(prisma.ticket.create).toHaveBeenCalled()
       expect(sendMail).toHaveBeenCalledTimes(2)
+    })
+
+    // ── ON-BEHALF-OF (admin opens a ticket in someone else's name) ──────────
+    describe("onBehalfOfEmail", () => {
+      const admin = { id: "admin-1", email: "admin@cristalino.co.il", name: "Admin", isAdmin: true }
+
+      const behalfReq = (body: any) => ({
+        json: async () => ({
+          subject: "מסך שחור",
+          description: "המסך נכבה",
+          phone: "050-1111111",
+          computerName: "PC-9",
+          urgency: "בינוני",
+          category: "חומרה",
+          platform: "מחשב אישי",
+          ...body,
+        }),
+      } as any)
+
+      beforeEach(() => {
+        mockSession(admin)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(admin)
+        ;(prisma.ticket.create as jest.Mock).mockResolvedValue({
+          id: "ticket-9", ticketNumber: 1009, subject: "מסך שחור", status: "פתוח",
+        })
+      })
+
+      it("assigns the ticket to the named user, not the admin who filed it", async () => {
+        const owner = { id: "user-7", email: "dana@cristalino.co.il", name: "דנה" }
+        ;(prisma.user.upsert as jest.Mock).mockResolvedValue(owner)
+
+        const res = await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" })) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticket.create).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ userId: "user-7" }) })
+        )
+        // The confirmation email goes to the owner, not the admin
+        const userMail = (sendMail as jest.Mock).mock.calls.find(c => c[0].subject === "פנייתך התקבלה")
+        expect(userMail[0].to).toBe("dana@cristalino.co.il")
+      })
+
+      it("creates the user row for an address that has never signed in", async () => {
+        ;(prisma.user.upsert as jest.Mock).mockResolvedValue({
+          id: "user-new", email: "newhire@cristalino.co.il", name: "עובד חדש",
+        })
+
+        await POST(behalfReq({ onBehalfOfEmail: "newhire@cristalino.co.il", onBehalfOfName: "עובד חדש" }))
+
+        expect(prisma.user.upsert).toHaveBeenCalledWith({
+          where:  { email: "newhire@cristalino.co.il" },
+          create: { email: "newhire@cristalino.co.il", name: "עובד חדש" },
+          update: {},
+        })
+      })
+
+      it("normalises the address so casing and stray spaces still match", async () => {
+        ;(prisma.user.upsert as jest.Mock).mockResolvedValue({ id: "u", email: "dana@cristalino.co.il", name: "דנה" })
+
+        await POST(behalfReq({ onBehalfOfEmail: "  Dana@Cristalino.co.il  " }))
+
+        expect(prisma.user.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { email: "dana@cristalino.co.il" } })
+        )
+      })
+
+      it("records a staff-only note naming both the owner and the admin", async () => {
+        ;(prisma.user.upsert as jest.Mock).mockResolvedValue({ id: "user-7", email: "dana@cristalino.co.il", name: "דנה" })
+
+        await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" }))
+
+        const note = (prisma.ticketNote.create as jest.Mock).mock.calls[0][0].data
+        expect(note.content).toContain("דנה")
+        expect(note.content).toContain("Admin")
+        expect(note.authorEmail).toBe("admin@cristalino.co.il")
+      })
+
+      it("rejects a non-admin trying to file under someone else's name", async () => {
+        const plain = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
+        mockSession(plain)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(plain)
+
+        const res = await POST(behalfReq({ onBehalfOfEmail: "boss@cristalino.co.il" })) as any
+
+        expect(res.status).toBe(403)
+        expect(prisma.ticket.create).not.toHaveBeenCalled()
+        expect(prisma.user.upsert).not.toHaveBeenCalled()
+      })
+
+      it("treats picking yourself as an ordinary self-opened ticket", async () => {
+        const res = await POST(behalfReq({ onBehalfOfEmail: "admin@cristalino.co.il" })) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.user.upsert).not.toHaveBeenCalled()
+        expect(prisma.ticketNote.create).not.toHaveBeenCalled()
+      })
     })
   })
 

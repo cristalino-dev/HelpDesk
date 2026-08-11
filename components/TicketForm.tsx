@@ -28,12 +28,26 @@
  *                  Select box background color changes to match urgency level
  *   description  — Full problem details (required, 4-row textarea)
  *
+ * OPEN ON SOMEONE ELSE'S BEHALF (admins only):
+ * ─────────────────────────────────────────────
+ * When `isAdmin` is true, an extra picker appears above the subject field so an
+ * admin taking a phone call or a walk-up can file the ticket in the caller's
+ * name. It lists every registered user (GET /api/users, admin-only) plus a
+ * "משתמש חדש" option that reveals email + name inputs for someone who has never
+ * signed in. Picking an existing user pre-fills phone and computer name from
+ * THEIR saved profile rather than the admin's.
+ *
+ * The choice is sent as `onBehalfOfEmail` / `onBehalfOfName`; the server
+ * re-checks the admin flag and owns the actual assignment (see api/tickets).
+ *
  * PROPS:
  * ───────
  *   onSuccess       {() => void}  Called after a successful POST. The parent
  *                                 uses this to hide the form and reload tickets.
  *   defaultPhone    {string}      Pre-fills the phone field. Default: "".
  *   defaultStation  {string}      Pre-fills the computerName field. Default: "".
+ *   isAdmin         {boolean}     Shows the "open in someone else's name"
+ *                                 picker. Default: false.
  *
  * SUBMISSION:
  * ────────────
@@ -61,10 +75,17 @@ const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string 
   "דחוף":   { bg: "#fef2f2", text: "#dc2626", border: "#fca5a5" }, // red
 }
 
+/** Sentinel value for the "add a brand-new user" option in the behalf picker. */
+const NEW_USER = "__new__"
+
+/** Shape of a row returned by GET /api/users (admin-only endpoint). */
+type PickableUser = { id: string; name: string | null; email: string; phone: string | null; station: string | null }
+
 export default function TicketForm({
   onSuccess,
   defaultPhone = "",
   defaultStation = "",
+  isAdmin = false,
 }: {
   /** Callback invoked after the ticket is successfully created. */
   onSuccess: () => void
@@ -72,6 +93,8 @@ export default function TicketForm({
   defaultPhone?: string
   /** Workstation name pre-filled from user profile. Empty if not saved. */
   defaultStation?: string
+  /** Admins get the "open in someone else's name" picker. */
+  isAdmin?: boolean
 }) {
   /** Controlled form state for all input fields. */
   const [form, setForm] = useState({
@@ -96,6 +119,43 @@ export default function TicketForm({
       setUrgencies(opts.urgency)
     })
   }, [])
+
+  /**
+   * Whose name the ticket is opened in (admins only).
+   *   ""         — the signed-in admin themselves (default)
+   *   NEW_USER   — a person not yet in the system; reveals the email/name inputs
+   *   <email>    — an existing user picked from the list
+   */
+  const [behalf, setBehalf] = useState("")
+
+  /** All registered users, for the behalf picker. Only fetched for admins. */
+  const [users, setUsers] = useState<PickableUser[]>([])
+
+  /** Email + name typed in when NEW_USER is selected. */
+  const [newUser, setNewUser] = useState({ email: "", name: "" })
+
+  useEffect(() => {
+    if (!isAdmin) return
+    fetch("/api/users")
+      .then(r => (r.ok ? r.json() : []))
+      .then(d => setUsers(Array.isArray(d) ? d : []))
+      .catch(() => setUsers([]))
+  }, [isAdmin])
+
+  /**
+   * Switching the ticket owner re-points the contact fields at that person's
+   * saved profile — an admin filing for someone else wants THEIR phone and
+   * machine, not the admin's own pre-filled values.
+   */
+  const pickBehalf = (value: string) => {
+    setBehalf(value)
+    const picked = users.find(u => u.email === value)
+    setForm(f => ({
+      ...f,
+      phone:        picked ? (picked.phone   ?? "") : value === NEW_USER ? "" : defaultPhone,
+      computerName: picked ? (picked.station ?? "") : value === NEW_USER ? "" : defaultStation,
+    }))
+  }
 
   /** Whether the form is currently submitting (disables button, shows spinner). */
   const [loading, setLoading] = useState(false)
@@ -128,10 +188,18 @@ export default function TicketForm({
     setLoading(true)
     setError("")
     try {
+      // Admins only: name the ticket owner. The server re-checks the admin flag,
+      // so a forged field from a regular user is rejected there (403).
+      const behalfFields = isAdmin && behalf
+        ? behalf === NEW_USER
+          ? { onBehalfOfEmail: newUser.email.trim(), onBehalfOfName: newUser.name.trim() }
+          : { onBehalfOfEmail: behalf }
+        : {}
+
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...behalfFields }),
       })
       if (!res.ok) throw new Error()
       const created = await res.json()
@@ -158,6 +226,10 @@ export default function TicketForm({
         platform: "מחשב אישי",
       })
       setPendingImages([])
+      // Back to "in my own name" so the next ticket doesn't silently inherit
+      // the previous caller's identity.
+      setBehalf("")
+      setNewUser({ email: "", name: "" })
     } catch {
       setError("אירעה שגיאה. נסו שנית.")
     } finally {
@@ -187,6 +259,60 @@ export default function TicketForm({
       </div>
 
       <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "18px" }}>
+
+        {/* ── Open in someone else's name (admins only) ── */}
+        {isAdmin && (
+          <div style={{ backgroundColor: T.cardMuted, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+              <span style={{ fontSize: "0.65rem", fontWeight: 800, letterSpacing: "0.04em", color: T.greenInk, backgroundColor: T.greenBg, borderRadius: "999px", padding: "3px 9px" }}>
+                מנהל
+              </span>
+              <label htmlFor="behalf-select" style={{ margin: 0 }}>פתיחת פנייה בשם</label>
+            </div>
+
+            <select id="behalf-select" value={behalf} onChange={e => pickBehalf(e.target.value)}>
+              <option value="">— בשמי —</option>
+              {users.map(u => (
+                <option key={u.id} value={u.email}>
+                  {u.name ? `${u.name} — ${u.email}` : u.email}
+                </option>
+              ))}
+              <option value={NEW_USER}>➕ משתמש חדש…</option>
+            </select>
+
+            {/* New user — email is required, name is optional */}
+            {behalf === NEW_USER && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div>
+                  <label htmlFor="behalf-email">אימייל *</label>
+                  <input
+                    id="behalf-email"
+                    required
+                    type="email"
+                    value={newUser.email}
+                    onChange={e => setNewUser(n => ({ ...n, email: e.target.value }))}
+                    placeholder="name@cristalino.co.il"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="behalf-name">שם מלא</label>
+                  <input
+                    id="behalf-name"
+                    value={newUser.name}
+                    onChange={e => setNewUser(n => ({ ...n, name: e.target.value }))}
+                    placeholder="ישראל ישראלי"
+                  />
+                </div>
+              </div>
+            )}
+
+            {behalf !== "" && (
+              <p style={{ margin: 0, fontSize: "0.78rem", color: T.text2, lineHeight: 1.6 }}>
+                הפנייה תירשם על שם משתמש זה, והוא יקבל את עדכוני המייל. הפעולה תתועד בהיסטוריית הפנייה על שמך.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── Subject Field ── */}
         <div>

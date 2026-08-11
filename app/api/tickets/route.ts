@@ -42,10 +42,23 @@ import { NextRequest, NextResponse } from "next/server"
  *   computerName {string}  Affected machine hostname
  *   urgency      {string}  "נמוך" | "בינוני" | "גבוה" | "דחוף"
  *   category     {string}  "חומרה" | "תוכנה" | "רשת" | "מדפסת" | "אחר"
+ *   onBehalfOfEmail {string}  ADMIN ONLY — open the ticket in this person's name
+ *   onBehalfOfName  {string}  Display name, used only when onBehalfOfEmail is
+ *                             an address that has no User row yet
+ *
+ * ON-BEHALF-OF (admin only):
+ * ───────────────────────────
+ * Admins may file a ticket for an employee who phoned or walked in. The target
+ * address is upserted, so someone who has never signed in can still own a
+ * ticket — the row is waiting for them when they first log in with Google.
+ * The ticket OWNER becomes the target; the history actor stays the admin who
+ * actually clicked, and an internal note records the hand-off. Non-admins
+ * sending onBehalfOfEmail are rejected with 403.
  *
  * RESPONSE:
  *   201 — The created Ticket object (JSON)
  *   401 — Not authenticated
+ *   403 — Non-admin tried to open a ticket in someone else's name
  *   404 — Authenticated but user row not found in DB (edge case)
  *   500 — Database or unexpected error (logged to Log table)
  */
@@ -54,12 +67,31 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { subject, description, phone, computerName, urgency, category, platform } = await req.json()
+    const { subject, description, phone, computerName, urgency, category, platform,
+            onBehalfOfEmail, onBehalfOfName } = await req.json()
 
-    // Resolve the user's DB row — needed for the userId foreign key.
+    // Resolve the signed-in user's DB row — needed for the userId foreign key.
     // We use email (from Google OAuth) as the lookup key.
-    const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+    const actor = await prisma.user.findUnique({ where: { email: session.user.email! } })
+    if (!actor) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+    // ON-BEHALF-OF — resolve who the ticket actually belongs to. Selecting
+    // yourself in the picker is the same as not using it at all.
+    const behalfEmail = typeof onBehalfOfEmail === "string" ? onBehalfOfEmail.trim().toLowerCase() : ""
+    const onBehalf = behalfEmail !== "" && behalfEmail !== actor.email.toLowerCase()
+    if (onBehalf && !session.user.isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    // upsert (not findUnique) so an admin can open a ticket for a new hire who
+    // has not signed in yet — the User row is created on the spot.
+    const owner = onBehalf
+      ? await prisma.user.upsert({
+          where:  { email: behalfEmail },
+          create: { email: behalfEmail, name: (typeof onBehalfOfName === "string" && onBehalfOfName.trim()) || null },
+          update: {},
+        })
+      : actor
 
     const ticket = await prisma.ticket.create({
       data: {
@@ -70,12 +102,14 @@ export async function POST(req: NextRequest) {
         urgency,
         category,
         platform,
-        userId: user.id,
+        userId: owner.id,
         // status defaults to "פתוח" (see schema), createdAt/updatedAt are automatic
       },
     })
 
-    // Write creation history entry
+    // Write creation history entry. The actor is always the person who clicked —
+    // for an on-behalf ticket that is the admin, not the owner, so the audit
+    // trail shows who really filed it.
     void prisma.ticketHistory.create({
       data: {
         ticketId:   ticket.id,
@@ -86,18 +120,32 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Send emails (non-blocking — don't await sequentially in the request)
+    // Staff-only note making the hand-off explicit on the ticket itself
+    if (onBehalf) {
+      void prisma.ticketNote.create({
+        data: {
+          ticketId:    ticket.id,
+          content:     `הפנייה נפתחה בשם ${owner.name ?? owner.email} על ידי ${session.user.name ?? session.user.email!}`,
+          authorName:  session.user.name ?? session.user.email!,
+          authorEmail: session.user.email!,
+        },
+      })
+    }
+
+    // Send emails (non-blocking — don't await sequentially in the request).
+    // The submitter shown to staff, and the confirmation recipient, are the
+    // ticket OWNER — not the admin who filed it on their behalf.
     const ticketInfo = {
       id: ticket.id, ticketNumber: ticket.ticketNumber,
       subject, description, urgency, category,
       platform, phone, computerName, status: ticket.status,
-      submitterName: session.user.name ?? session.user.email!,
-      submitterEmail: session.user.email!,
+      submitterName: owner.name ?? owner.email,
+      submitterEmail: owner.email,
     }
     const staffEmails = await getStaffEmails()
     void Promise.all([
       sendMail({ to: staffEmails, subject: `פנייה חדשה: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
-      sendMail({ to: session.user.email!, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
+      sendMail({ to: owner.email, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
     ])
 
     return NextResponse.json(ticket)

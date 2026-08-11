@@ -232,4 +232,131 @@ describe("TicketForm", () => {
     const body = JSON.parse(postCall[1].body)
     expect(body).toHaveProperty("platform", "מחשב אישי")
   })
+
+  /**
+   * ON-BEHALF-OF picker — admins can file a ticket in another employee's name.
+   * The picker must be invisible to non-admins, and the chosen identity must
+   * travel to the API as onBehalfOfEmail.
+   */
+  describe("open in someone else's name (admin)", () => {
+    const USERS = [
+      { id: "u1", name: "דנה כהן", email: "dana@cristalino.co.il", phone: "050-2222222", station: "PC-DANA" },
+      { id: "u2", name: null,      email: "guy@cristalino.co.il",  phone: null,           station: null },
+    ]
+
+    /** Mocks field-options, the admin user list, and a successful ticket POST. */
+    const mockAdminFetch = () => {
+      mockFetch.mockImplementation((url) => {
+        if (url === "/api/users")   return Promise.resolve({ ok: true, json: () => Promise.resolve(USERS) })
+        if (url === "/api/tickets") return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "t1" }) })
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(DEFAULT_FIELD_OPTIONS) })
+      })
+    }
+
+    /** Fills the four required ticket fields and submits. */
+    const fillAndSubmit = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.type(screen.getByPlaceholderText("תאר בקצרה את הבעיה"), "אין רשת")
+      await user.type(screen.getByPlaceholderText("050-0000000"), "050-3333333")
+      await user.type(screen.getByPlaceholderText(/פרט את הבעיה בצורה מלאה/), "הכבל מנותק")
+      await user.click(screen.getByRole("button", { name: "שלח פנייה" }))
+    }
+
+    /** Returns the parsed JSON body of the POST /api/tickets call. */
+    const postBody = () =>
+      JSON.parse(mockFetch.mock.calls.find(c => c[0] === "/api/tickets")[1].body)
+
+    it("is hidden for non-admins", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} />)
+
+      expect(screen.queryByText("פתיחת פנייה בשם")).not.toBeInTheDocument()
+      // Non-admins must not even hit the admin-only users endpoint
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+      expect(mockFetch.mock.calls.some(c => c[0] === "/api/users")).toBe(false)
+    })
+
+    it("lists every registered user plus a new-user option for admins", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+
+      expect(screen.getByText("פתיחת פנייה בשם")).toBeInTheDocument()
+      await waitFor(() =>
+        expect(screen.getByRole("option", { name: "דנה כהן — dana@cristalino.co.il" })).toBeInTheDocument()
+      )
+      // A user with no display name falls back to their email
+      expect(screen.getByRole("option", { name: "guy@cristalino.co.il" })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: "➕ משתמש חדש…" })).toBeInTheDocument()
+      expect(screen.getByRole("option", { name: "— בשמי —" })).toBeInTheDocument()
+    })
+
+    it("sends onBehalfOfEmail when an existing user is picked", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: /דנה כהן/ })).toBeInTheDocument())
+      await user.selectOptions(screen.getByRole("combobox", { name: "פתיחת פנייה בשם" }), "dana@cristalino.co.il")
+      await fillAndSubmit(user)
+
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(true))
+      expect(postBody().onBehalfOfEmail).toBe("dana@cristalino.co.il")
+    })
+
+    it("pre-fills phone and computer name from the picked user's profile", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin defaultPhone="050-9999999" defaultStation="PC-ADMIN" />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: /דנה כהן/ })).toBeInTheDocument())
+      await user.selectOptions(screen.getByRole("combobox", { name: "פתיחת פנייה בשם" }), "dana@cristalino.co.il")
+
+      expect(screen.getByPlaceholderText("050-0000000")).toHaveValue("050-2222222")
+      expect(screen.getByPlaceholderText("לדוגמה: PC-ALON-01")).toHaveValue("PC-DANA")
+    })
+
+    it("reveals email and name inputs for a brand-new user and sends both", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: "➕ משתמש חדש…" })).toBeInTheDocument())
+      expect(screen.queryByPlaceholderText("name@cristalino.co.il")).not.toBeInTheDocument()
+
+      await user.selectOptions(screen.getByRole("combobox", { name: "פתיחת פנייה בשם" }), "__new__")
+      await user.type(screen.getByPlaceholderText("name@cristalino.co.il"), "newhire@cristalino.co.il")
+      await user.type(screen.getByPlaceholderText("ישראל ישראלי"), "עובד חדש")
+      await fillAndSubmit(user)
+
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(true))
+      expect(postBody()).toMatchObject({
+        onBehalfOfEmail: "newhire@cristalino.co.il",
+        onBehalfOfName:  "עובד חדש",
+      })
+    })
+
+    it("omits the field entirely when the admin files under their own name", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/users")).toBe(true))
+      await fillAndSubmit(user)
+
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(true))
+      expect(postBody()).not.toHaveProperty("onBehalfOfEmail")
+    })
+
+    it("resets to 'my own name' after a successful submit", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: /דנה כהן/ })).toBeInTheDocument())
+      const picker = screen.getByRole("combobox", { name: "פתיחת פנייה בשם" })
+      await user.selectOptions(picker, "dana@cristalino.co.il")
+      await fillAndSubmit(user)
+
+      await waitFor(() => expect(picker).toHaveValue(""))
+    })
+  })
 })
