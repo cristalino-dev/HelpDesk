@@ -12,6 +12,8 @@
 // Make this file a module so its declarations don't collide with other test files.
 export {}
 
+import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface MinTicket {
@@ -39,6 +41,7 @@ function applyDashboardFilter(
   const q = search.trim().toLowerCase()
   if (q) {
     list = list.filter(t =>
+      matchesTicketNumber(t.ticketNumber, q) ||
       t.subject.toLowerCase().includes(q) ||
       t.description.toLowerCase().includes(q) ||
       t.status.toLowerCase().includes(q) ||
@@ -47,11 +50,11 @@ function applyDashboardFilter(
       t.platform.toLowerCase().includes(q) ||
       t.computerName.toLowerCase().includes(q) ||
       t.phone.toLowerCase().includes(q) ||
-      String(t.ticketNumber).includes(q) ||
       new Date(t.createdAt).toLocaleDateString("he-IL").includes(q)
     )
   }
-  return list
+  // An exact HDTC-N query pins its ticket even when the status card excluded it.
+  return withNumberSuggestion(list, tickets, search).list
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -256,5 +259,30 @@ describe("applyDashboardFilter — statusFilter + search combined", () => {
     expect(result).toHaveLength(1)
     expect(result[0].ticketNumber).toBe(3)
     expect(result[0].status).toBe("סגור")
+  })
+})
+
+// ── Ticket-number search overrides the status card ────────────────────────────
+
+describe("applyDashboardFilter — ticket-number search", () => {
+  it("finds a closed ticket by its number while the open filter is active", () => {
+    // Ticket 3 is סגור; the card filters to פתוח, but the number must still win.
+    const result = applyDashboardFilter(tickets, "פתוח", "3")
+    expect(result[0].ticketNumber).toBe(3)
+    expect(result[0].status).toBe("סגור")
+  })
+
+  it("finds a ticket by its HDTC- label", () => {
+    const result = applyDashboardFilter(tickets, null, "HDTC-2")
+    expect(result.some(t => t.ticketNumber === 2)).toBe(true)
+  })
+
+  it("does not duplicate a ticket that already passed the filter", () => {
+    const result = applyDashboardFilter(tickets, null, "4")
+    expect(result.filter(t => t.ticketNumber === 4)).toHaveLength(1)
+  })
+
+  it("an unknown ticket number still returns nothing", () => {
+    expect(applyDashboardFilter(tickets, null, "HDTC-9999")).toHaveLength(0)
   })
 })

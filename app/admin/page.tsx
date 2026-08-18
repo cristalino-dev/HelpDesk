@@ -72,6 +72,7 @@ import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
+import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { T, HDR, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
@@ -221,7 +222,7 @@ export default function AdminPage() {
     staffMembers.find(m => m.email === email)?.display ?? email.split("@")[0]
 
   // ── Derived ticket lists ─────────────────────────────────────────────────
-  const { displayTickets, openTickets } = useMemo(() => {
+  const { displayTickets, openTickets, numberSuggestion } = useMemo(() => {
     const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
     const openTickets = tickets.filter(t => t.status !== "סגור")
 
@@ -229,6 +230,7 @@ export default function AdminPage() {
     if (ticketSearch.trim()) {
       const q = ticketSearch.trim().toLowerCase()
       list = list.filter(t =>
+        matchesTicketNumber(t.ticketNumber, q) ||
         t.subject.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         (t.user?.name ?? "").toLowerCase().includes(q) ||
@@ -270,7 +272,10 @@ export default function AdminPage() {
       }
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
-    return { displayTickets, openTickets }
+    // An exact HDTC-N query always surfaces its ticket — open or closed, and
+    // regardless of the open/all toggle or the active stat card.
+    const pinned = withNumberSuggestion(displayTickets, tickets, ticketSearch)
+    return { displayTickets: pinned.list, openTickets, numberSuggestion: pinned.suggestion }
   }, [tickets, showAll, ticketSearch, sortKey, sortDir, statFilter])
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -1429,7 +1434,7 @@ export default function AdminPage() {
           <input
             value={ticketSearch}
             onChange={e => setTicketSearch(e.target.value)}
-            placeholder="חיפוש לפי נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 200, padding: "8px 13px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.85rem", background: "#fff" }}
           />
           {/* Open / All toggle */}
@@ -1479,6 +1484,23 @@ export default function AdminPage() {
             <span>מסנן: {statFilter === "queue" ? "בתור (פתוח)" : statFilter === "urgent" ? "דחוף" : statFilter === "high" ? "גבוה" : statFilter === "inprog" ? "בטיפול" : "סגורות"}</span>
             <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16181D", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
           </div>
+        )}
+
+        {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
+        {numberSuggestion && (
+          <a
+            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+          >
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+              HDTC-{numberSuggestion.ticketNumber}
+            </span>
+            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+              {numberSuggestion.subject}
+            </span>
+            <span style={{ ...badge, ...(STATUS_STYLES[numberSuggestion.status] ?? {}) }}>{numberSuggestion.status}</span>
+            <span style={{ fontSize: "0.72rem", color: T.text3, flexShrink: 0 }}>פנייה מספר {numberSuggestion.ticketNumber} — פתחו ←</span>
+          </a>
         )}
 
         {/* Title */}

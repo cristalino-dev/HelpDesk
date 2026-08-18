@@ -5,6 +5,56 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.57 — חיפוש לפי מספר פנייה (HDTC-N)
+
+**Typing a ticket number now always finds the ticket — open or closed.**
+
+Staff quote `HDTC-494` on the phone and in mail, but typing `494` into any
+search box returned "לא נמצאו פניות": the ticket number was not a searchable
+field on the staff pages, and a closed ticket stayed hidden behind the
+"פתוחות" toggle and the stat-card filters even when it was named outright.
+
+### What changed for users
+
+- **Every ticket search box matches the ticket number.** Admin queue, staff
+  "כל הפניות", the read-only viewer page and the personal dashboard.
+- **Accepted forms:** `494`, `HDTC-494`, `hdtc-494`, `hdtc 494`, `hdtc494`,
+  `#494`, `HDTC-0494`. Partial numbers still filter as substrings, so `49`
+  keeps showing HDTC-49, HDTC-494 and HDTC-495.
+- **An exact number wins over the filters.** Searching a number surfaces that
+  ticket even when it is closed and the view is scoped to "פתוחות", or when a
+  stat card (דחוף / בטיפול / סגורות …) would have excluded it.
+- **A suggestion card** appears above the list for an exact hit — ticket
+  number, subject and current status — linking straight to the ticket. The row
+  is also pinned to the top of the list so it is never missed.
+- Search placeholders now say so: "חיפוש לפי מספר פנייה (HDTC-123), …".
+
+### What changed for developers
+
+- New `lib/ticketSearch.ts` — pure, shared by all four pages:
+  - `parseTicketNumberQuery(q)` — the query as a ticket number, or `null`
+  - `matchesTicketNumber(n, q)` — substring match on the number or `HDTC-N`
+  - `findByTicketNumber(tickets, q)` — exact hit across the **unfiltered** set
+  - `withNumberSuggestion(list, tickets, q)` — `{ list, suggestion }`, pinning
+    the exact hit onto the filtered list without duplicating it
+- The exact-match lookup deliberately runs against the full ticket set, never
+  the filtered one — that is what makes status scoping unable to hide a hit.
+- `app/dashboard/page.tsx` dropped its inline `String(t.ticketNumber)` check in
+  favour of the shared helper, so all four pages agree on what a number means.
+
+### Testing
+
+- 356 tests passing across 27 suites (35 new tests; 1 new suite).
+- New `__tests__/ticketSearch.test.ts` — 31 cases covering query parsing
+  (prefixes, separators, `#`, leading zeros, rejection of free text / `0` /
+  decimals), substring matching, exact lookup, and the pinning contract
+  (closed ticket behind an open-only filter, stat-card exclusion, no
+  duplication, list untouched for free text).
+- `__tests__/dashboardSearch.test.ts` mirrors the new predicate and adds 4
+  cases for number search overriding the status card.
+
+---
+
 ## v3.56 — פתיחת פנייה בשם משתמש אחר
 
 **Admins can now open a ticket in another employee's name.**

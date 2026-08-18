@@ -49,6 +49,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { closeTicket as apiCloseTicket, setTicketStatus } from "@/lib/ticketApi"
+import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { T, HDR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
 
@@ -108,11 +109,12 @@ export default function DashboardPage() {
 
   // Combined filter: status card + free-text search across all fields
   // Must be declared before any early return to satisfy Rules of Hooks.
-  const displayTickets = useMemo(() => {
+  const { displayTickets, numberSuggestion } = useMemo(() => {
     let list = statusFilter ? tickets.filter(t => t.status === statusFilter) : tickets
     const q = search.trim().toLowerCase()
     if (q) {
       list = list.filter(t =>
+        matchesTicketNumber(t.ticketNumber, q) ||
         t.subject.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         t.status.toLowerCase().includes(q) ||
@@ -121,11 +123,13 @@ export default function DashboardPage() {
         t.platform.toLowerCase().includes(q) ||
         t.computerName.toLowerCase().includes(q) ||
         t.phone.toLowerCase().includes(q) ||
-        String(t.ticketNumber).includes(q) ||
         new Date(t.createdAt).toLocaleDateString("he-IL").includes(q)
       )
     }
-    return list
+    // An exact HDTC-N query always surfaces its ticket — open or closed, and
+    // regardless of the active status card.
+    const pinned = withNumberSuggestion(list, tickets, search)
+    return { displayTickets: pinned.list, numberSuggestion: pinned.suggestion }
   }, [tickets, statusFilter, search])
 
   if (status === "loading") return null
@@ -301,7 +305,7 @@ export default function DashboardPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="חיפוש לפי נושא, סטטוס, קטגוריה, תאריך..."
+              placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, סטטוס, קטגוריה..."
               style={{
                 width: "100%",
                 padding: "9px 36px 9px 36px",
@@ -338,6 +342,22 @@ export default function DashboardPage() {
               </button>
             )}
           </div>
+        )}
+
+        {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
+        {!loading && numberSuggestion && (
+          <a
+            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+          >
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+              HDTC-{numberSuggestion.ticketNumber}
+            </span>
+            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+              {numberSuggestion.subject}
+            </span>
+            <span style={{ fontSize: "0.72rem", color: T.text3, flexShrink: 0 }}>{numberSuggestion.status} — פתחו ←</span>
+          </a>
         )}
 
         {showForm && <TicketForm onSuccess={() => { setShowForm(false); loadTickets() }} defaultPhone={profile.phone} defaultStation={profile.station} isAdmin={session?.user?.isAdmin} />}

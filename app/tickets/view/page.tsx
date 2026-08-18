@@ -9,6 +9,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import type { TicketWithUser } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
+import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 
 function initials(name?: string | null) {
@@ -73,11 +74,12 @@ export default function TicketsViewPage() {
     else { setSortKey(key); setSortDir("asc") }
   }
 
-  const filtered = useMemo(() => {
+  const { filtered, numberSuggestion } = useMemo(() => {
     let list = showAll ? tickets : tickets.filter(t => t.status !== "סגור")
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(t =>
+        matchesTicketNumber(t.ticketNumber, q) ||
         t.subject.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         (t.user?.name ?? "").toLowerCase().includes(q) ||
@@ -88,7 +90,7 @@ export default function TicketsViewPage() {
         new Date(t.createdAt).toLocaleDateString("he-IL").includes(q)
       )
     }
-    return [...list].sort((a, b) => {
+    const sorted = [...list].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1
       switch (sortKey) {
         case "subject":   return dir * a.subject.localeCompare(b.subject, "he")
@@ -106,6 +108,10 @@ export default function TicketsViewPage() {
         }
       }
     })
+    // An exact HDTC-N query always surfaces its ticket — open or closed, and
+    // regardless of the open/all toggle.
+    const pinned = withNumberSuggestion(sorted, tickets, search)
+    return { filtered: pinned.list, numberSuggestion: pinned.suggestion }
   }, [tickets, showAll, search, sortKey, sortDir])
 
   if (status === "loading") return null
@@ -180,7 +186,7 @@ export default function TicketsViewPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש לפי נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.88rem", background: "#fff" }}
           />
           <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
@@ -192,6 +198,23 @@ export default function TicketsViewPage() {
           </div>
           <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{filtered.length} פניות</span>
         </div>
+
+        {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
+        {numberSuggestion && (
+          <a
+            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+          >
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#E9F4E2", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+              HDTC-{numberSuggestion.ticketNumber}
+            </span>
+            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+              {numberSuggestion.subject}
+            </span>
+            <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(STATUS_STYLE[numberSuggestion.status] ?? {}) }}>{numberSuggestion.status}</span>
+            <span style={{ fontSize: "0.72rem", color: T.text3, flexShrink: 0 }}>פנייה מספר {numberSuggestion.ticketNumber} — פתחו ←</span>
+          </a>
+        )}
 
         {/* Ticket list */}
         {loading ? (
