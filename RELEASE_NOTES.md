@@ -5,6 +5,67 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.59 — פרטי העובד החדש נדרשים בפנייה
+
+**A ticket for a new employee now collects the hire's first name, last name,
+phone and job description — and writes them into the description.**
+
+An onboarding ticket is really an account-creation request, but nothing forced
+it to say *who* the account is for. "צריך לפתוח משתמשים לעובד חדש" arrived with
+no name, no phone and no role, and the technician's first move was always to
+reply asking for the three facts they needed before they could start.
+
+### What changed for users
+
+- **Picking the "עובד חדש" category reveals four required fields** — שם פרטי,
+  שם משפחה, טלפון העובד, תיאור תפקיד. The ticket cannot be sent until all four
+  are filled. Change the category back and they disappear.
+- **The details are added to the description**, as a labelled block under the
+  free text. That means they travel with every notification email, the reply
+  chain and anything else that already carries the description — nowhere new to
+  look.
+- **The ticket page shows them as their own card** ("🧑‍💼 פרטי העובד החדש")
+  rather than as raw text in the middle of the description.
+- **The shared /open page catches up.** It had a hardcoded category list, so
+  every category added since it was written — "עובד חדש" among them — was
+  invisible there. It now reads the live admin-managed list, and it gained the
+  equipment checklist that the dashboard form got in v3.58.
+
+### What changed for developers
+
+- **New `lib/newEmployee.ts`** (pure): `normalizeNewEmployee()` (trims, collapses
+  a pasted multi-line value to one line, caps at 200 chars),
+  `missingNewEmployeeFields()` / `missingFieldLabels()`,
+  `formatNewEmployeeBlock()`, `withNewEmployeeDetails()` (idempotent — rewriting
+  replaces the block rather than stacking a second one),
+  `stripNewEmployeeBlock()`, `parseNewEmployeeBlock()`.
+- **No migration.** The details live in `Ticket.description` behind the header
+  line `── פרטי העובד החדש ──`, one `label: value` line per field. The text is
+  authoritative; parsing is best-effort for display, so a technician editing the
+  block by hand is showing everyone exactly what they typed.
+- `POST /api/tickets` accepts `newEmployee: { firstName, lastName, phone,
+  jobTitle }` and **rejects an onboarding ticket with 400** when a field is
+  blank, listing the missing Hebrew labels in `missing`. The browser's
+  `required` is not the enforcement — a lone space satisfies it.
+- **New `components/NewEmployeeFields.tsx`**, shared by the dashboard form and
+  /open; input and label styles come in as props because the two hosts style
+  their controls differently.
+- `PATCH /api/tickets` is deliberately unchanged: staff editing a ticket into
+  the onboarding category are not blocked, and the block they edit by hand is
+  kept verbatim.
+
+### Testing
+
+- 485 tests passing across 31 suites (48 new tests; 1 new suite).
+- New `__tests__/newEmployee.test.ts` (34) — normalisation, whitespace-only
+  detection, round-tripping the block, idempotent rewrite, and stripping.
+- `TicketsAPI` gains 8 tests (folding into the description, the 400 and its
+  `missing` list, ordinary tickets left alone, details reaching the emails);
+  `TicketForm` gains 6 (fields appear and disappear with the category, payload,
+  whitespace-only guard).
+
+---
+
 ## v3.58 — בקשות ציוד ורשימת חוסרים לספק
 
 **Equipment can now be requested on a ticket, ticked off as it arrives, and

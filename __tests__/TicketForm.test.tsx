@@ -359,4 +359,114 @@ describe("TicketForm", () => {
       await waitFor(() => expect(picker).toHaveValue(""))
     })
   })
+
+  /**
+   * NEW-EMPLOYEE DETAILS (v3.59) — picking the "עובד חדש" category turns the
+   * ticket into an account-creation request, which needs the hire's name,
+   * phone and role before it is worth anything to a technician.
+   */
+  describe("new-employee details", () => {
+    const mockTicketPost = () => {
+      mockFetch.mockImplementation((url) => {
+        if (url === "/api/tickets") {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "test-id" }) })
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(DEFAULT_FIELD_OPTIONS) })
+      })
+    }
+
+    const pickOnboarding = async (user: ReturnType<typeof userEvent.setup>) => {
+      await waitFor(() => expect(screen.getByRole("option", { name: "עובד חדש" })).toBeInTheDocument())
+      await user.selectOptions(screen.getByRole("combobox", { name: "קטגוריה" }), "עובד חדש")
+    }
+
+    const fillBaseFields = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.type(screen.getByPlaceholderText("תאר בקצרה את הבעיה"), "עובד חדש מתחיל")
+      await user.type(screen.getAllByPlaceholderText("050-0000000")[0], "050-9999999")
+      await user.type(screen.getByPlaceholderText(/פרט את הבעיה בצורה מלאה/), "מתחיל ביום ראשון")
+    }
+
+    const postBody = () =>
+      JSON.parse(mockFetch.mock.calls.find(c => c[0] === "/api/tickets")[1].body)
+
+    it("is hidden on an ordinary ticket", () => {
+      render(<TicketForm onSuccess={jest.fn()} />)
+      expect(screen.queryByLabelText("שם פרטי *")).not.toBeInTheDocument()
+    })
+
+    it("appears as soon as the onboarding category is picked", async () => {
+      mockTicketPost()
+      render(<TicketForm onSuccess={jest.fn()} />)
+      const user = userEvent.setup()
+
+      await pickOnboarding(user)
+
+      expect(screen.getByLabelText("שם פרטי *")).toBeInTheDocument()
+      expect(screen.getByLabelText("שם משפחה *")).toBeInTheDocument()
+      expect(screen.getByLabelText("טלפון העובד *")).toBeInTheDocument()
+      expect(screen.getByLabelText("תיאור תפקיד *")).toBeInTheDocument()
+    })
+
+    it("disappears again when the category is changed back", async () => {
+      mockTicketPost()
+      render(<TicketForm onSuccess={jest.fn()} />)
+      const user = userEvent.setup()
+
+      await pickOnboarding(user)
+      await user.selectOptions(screen.getByRole("combobox", { name: "קטגוריה" }), "אחר")
+
+      expect(screen.queryByLabelText("שם פרטי *")).not.toBeInTheDocument()
+    })
+
+    it("sends the details with the ticket", async () => {
+      mockTicketPost()
+      render(<TicketForm onSuccess={jest.fn()} />)
+      const user = userEvent.setup()
+
+      await pickOnboarding(user)
+      await fillBaseFields(user)
+      await user.type(screen.getByLabelText("שם פרטי *"), "דני")
+      await user.type(screen.getByLabelText("שם משפחה *"), "כהן")
+      await user.type(screen.getByLabelText("תיאור תפקיד *"), "נציג מכירות")
+      await user.type(screen.getByLabelText("טלפון העובד *"), "050-1234567")
+
+      await user.click(screen.getByRole("button", { name: "שלח פנייה" }))
+
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(true))
+      expect(postBody().newEmployee).toEqual({
+        firstName: "דני", lastName: "כהן", phone: "050-1234567", jobTitle: "נציג מכירות",
+      })
+    })
+
+    it("blocks a submit where a detail is only whitespace", async () => {
+      // The browser's own `required` accepts a lone space — this does not.
+      mockTicketPost()
+      render(<TicketForm onSuccess={jest.fn()} />)
+      const user = userEvent.setup()
+
+      await pickOnboarding(user)
+      await fillBaseFields(user)
+      await user.type(screen.getByLabelText("שם פרטי *"), " ")
+      await user.type(screen.getByLabelText("שם משפחה *"), " ")
+      await user.type(screen.getByLabelText("טלפון העובד *"), " ")
+      await user.type(screen.getByLabelText("תיאור תפקיד *"), " ")
+
+      await user.click(screen.getByRole("button", { name: "שלח פנייה" }))
+
+      expect(await screen.findByText(/יש למלא את פרטי העובד החדש/)).toBeInTheDocument()
+      expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(false)
+    })
+
+    it("omits the details entirely on an ordinary ticket", async () => {
+      mockTicketPost()
+      render(<TicketForm onSuccess={jest.fn()} />)
+      const user = userEvent.setup()
+
+      await fillBaseFields(user)
+      await user.click(screen.getByRole("button", { name: "שלח פנייה" }))
+
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(true))
+      expect(postBody()).not.toHaveProperty("newEmployee")
+    })
+  })
 })

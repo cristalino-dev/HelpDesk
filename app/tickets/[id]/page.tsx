@@ -11,6 +11,7 @@ import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOpt
 import { handleImagePaste } from "@/lib/pasteImage"
 import EquipmentPicker from "@/components/EquipmentPicker"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY, equipmentProgress, outstandingOf } from "@/lib/equipment"
+import { NEW_EMPLOYEE_FIELDS, parseNewEmployeeBlock, stripNewEmployeeBlock } from "@/lib/newEmployee"
 import type { TicketEquipment } from "@/types/ticket"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
@@ -351,6 +352,9 @@ export default function TicketDetailPage() {
 
   if (!ticket) return null
 
+  /** Hire details recovered from the description; null on an ordinary ticket. */
+  const newHire = parseNewEmployeeBlock(ticket.description)
+
   const labelStyle: React.CSSProperties = { fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4, display: "block" }
   const valueStyle: React.CSSProperties = { fontSize: "0.9rem", color: "#1f2937" }
   const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", boxSizing: "border-box" }
@@ -549,6 +553,27 @@ export default function TicketDetailPage() {
             )}
           </div>
 
+          {/* New-employee details — pulled back out of the description, which
+              stays the single source of truth (see lib/newEmployee.ts). When a
+              block is present the description below is shown without it, so the
+              same four facts are not printed twice. Editing shows the raw text,
+              block included, so staff can correct a typo in place. */}
+          {!editing && newHire && (
+            <div style={{ border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "8px 14px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontSize: "0.78rem", fontWeight: 800, color: "#374151" }}>
+                🧑‍💼 פרטי העובד החדש
+              </div>
+              <div style={{ padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px" }}>
+                {NEW_EMPLOYEE_FIELDS.map(f => (
+                  <div key={f.key}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af" }}>{f.label}</span>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#16181D" }}>{newHire[f.key] || "—"}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           <div>
             <span style={labelStyle}>תיאור</span>
@@ -559,7 +584,7 @@ export default function TicketDetailPage() {
                   value={editForm.description}
                   onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                 />
-              : <div style={{ ...valueStyle, whiteSpace: "pre-wrap", background: "#f9fafb", borderRadius: 8, padding: "10px 14px", lineHeight: 1.6 }}>{ticket.description}</div>
+              : <div style={{ ...valueStyle, whiteSpace: "pre-wrap", background: "#f9fafb", borderRadius: 8, padding: "10px 14px", lineHeight: 1.6 }}>{stripNewEmployeeBlock(ticket.description)}</div>
             }
           </div>
         </div>

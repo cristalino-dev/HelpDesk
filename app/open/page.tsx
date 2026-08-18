@@ -3,7 +3,12 @@ import { useSession, signIn } from "next-auth/react"
 import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import AppHeader from "@/components/AppHeader"
-import { HDR } from "@/lib/theme"
+import EquipmentPicker from "@/components/EquipmentPicker"
+import NewEmployeeFields from "@/components/NewEmployeeFields"
+import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
+import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, fetchFieldOptions } from "@/lib/fieldOptions"
+import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewEmployeeDetails } from "@/lib/newEmployee"
+import { HDR, T } from "@/lib/theme"
 
 // ── Urgency colours ──────────────────────────────────────────────────────────
 const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string; label: string; hint: string }> = {
@@ -71,12 +76,38 @@ export default function OpenTicketPage() {
     platform: "מחשב אישי",
   })
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
+
+  // Dropdown options are admin-managed (שדות מערכת). This page used to hardcode
+  // them, which quietly hid every category added after it was written — the
+  // "עובד חדש" category among them.
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
+  const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
+  const [equipmentOptions, setEquipmentOptions] = useState<string[]>(DEFAULT_EQUIPMENT)
+
+  /** Requested equipment: label → quantity. Allowed on any category. */
+  const [equipment, setEquipment] = useState<Record<string, number>>({})
+  const [equipmentOpen, setEquipmentOpen] = useState(false)
+
+  /** The new hire's details — required when opening an onboarding ticket. */
+  const [newEmployee, setNewEmployee] = useState<NewEmployeeDetails>(EMPTY_NEW_EMPLOYEE)
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [submitted, setSubmitted] = useState<{ ticketNumber: number; subject: string } | null>(null)
   const [showTooltip, setShowTooltip] = useState(false)
 
   const urgColor = URGENCY_COLORS[form.urgency]
+
+  const isNewEmployee = form.category === NEW_EMPLOYEE_CATEGORY
+  const showEquipment = isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0
+
+  useEffect(() => {
+    fetchFieldOptions().then(opts => {
+      setCategories(opts.category)
+      setPlatforms(opts.platform)
+      setEquipmentOptions(opts.equipment)
+    })
+  }, [])
 
   // On mount: pre-fill the form from the user's saved profile. This page is
   // open to EVERYONE (it's the shared quick-open link since v3.53) — it no
@@ -107,10 +138,24 @@ export default function OpenTicketPage() {
     setSubmitting(true)
     setError("")
     try {
+      // The browser's `required` lets a lone space through, so re-check the
+      // normalised hire details before the server rejects them with a 400.
+      if (isNewEmployee) {
+        const missing = missingFieldLabels(normalizeNewEmployee(newEmployee))
+        if (missing.length > 0) {
+          setError(`יש למלא את פרטי העובד החדש: ${missing.join(", ")}`)
+          return
+        }
+      }
+
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          equipment: Object.entries(equipment).map(([label, quantity]) => ({ label, quantity })),
+          ...(isNewEmployee ? { newEmployee: normalizeNewEmployee(newEmployee) } : {}),
+        }),
       })
       if (!res.ok) throw new Error()
       const created = await res.json()
@@ -151,6 +196,12 @@ export default function OpenTicketPage() {
     background: "#fafafa", boxSizing: "border-box",
     outline: "none", transition: "border-color 0.15s",
     fontFamily: "inherit",
+  }
+
+  /** Label style handed to NewEmployeeFields so it matches FieldLabel above. */
+  const neLabelStyle: React.CSSProperties = {
+    display: "block", marginBottom: 5,
+    fontSize: "0.82rem", fontWeight: 700, color: "#374151",
   }
 
   // ── Loading ──────────────────────────────────────────────────────────────────
@@ -254,6 +305,9 @@ export default function OpenTicketPage() {
                   setSubmitted(null)
                   setPendingImages([])
                   setForm(f => ({ ...f, subject: "", description: "", urgency: "בינוני", category: "אחר", platform: "מחשב אישי" }))
+                  setEquipment({})
+                  setEquipmentOpen(false)
+                  setNewEmployee(EMPTY_NEW_EMPLOYEE)
                 }}
                 style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer" }}
               >
@@ -368,14 +422,14 @@ export default function OpenTicketPage() {
                   <FieldLabel label="פלטפורמה" hint="באיזה מערכת / מכשיר?" />
                   <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
                     style={{ ...inputStyle, background: "#fafafa", cursor: "pointer" }}>
-                    {["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"].map(p => <option key={p}>{p}</option>)}
+                    {platforms.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
                   <FieldLabel label="קטגוריה" hint="סוג התקלה" />
                   <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                     style={{ ...inputStyle, background: "#fafafa", cursor: "pointer" }}>
-                    {["חומרה", "תוכנה", "רשת", "מדפסת", "אחר"].map(c => <option key={c}>{c}</option>)}
+                    {categories.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
@@ -399,6 +453,41 @@ export default function OpenTicketPage() {
                   ))}
                 </div>
               </div>
+
+              {/* New-employee details — mandatory once "עובד חדש" is picked */}
+              {isNewEmployee && (
+                <NewEmployeeFields
+                  value={newEmployee}
+                  onChange={setNewEmployee}
+                  disabled={submitting}
+                  inputStyle={inputStyle}
+                  labelStyle={neLabelStyle}
+                />
+              )}
+
+              {/* Equipment — open by itself for onboarding, on request otherwise */}
+              {showEquipment ? (
+                <div style={{ background: T.cardMuted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px" }}>
+                  <FieldLabel
+                    label={isNewEmployee ? "ציוד לעובד החדש" : "ציוד מבוקש"}
+                    hint="הטכנאי שיטפל בפנייה יסמן כל פריט שהתקבל או הותקן"
+                  />
+                  <EquipmentPicker
+                    options={equipmentOptions}
+                    value={equipment}
+                    onChange={setEquipment}
+                    disabled={submitting}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEquipmentOpen(true)}
+                  style={{ alignSelf: "flex-start", padding: "8px 15px", borderRadius: 10, border: `1px dashed ${T.border}`, background: "#fff", color: T.text2, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                >
+                  + אני צריך גם ציוד
+                </button>
+              )}
 
               {/* Description */}
               <div>

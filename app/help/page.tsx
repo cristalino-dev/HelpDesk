@@ -187,7 +187,9 @@ export default function HelpPage() {
               <FieldGuideItem label="נושא הפנייה" required desc="תיאור קצר ותמציתי של הבעיה. לדוגמה: המדפסת לא מדפיסה, אין חיבור לאינטרנט, שגיאה בפתיחת Outlook." />
               <FieldGuideItem label="שם מחשב" required desc={<>שם הזיהוי של המחשב שלכם ברשת. לחצו על סמל <Strong>?</Strong> שליד השדה לקבלת הסבר כיצד למצוא אותו (Start → cmd → hostname).</>} />
               <FieldGuideItem label="טלפון" required desc="מספר הטלפון שבו ניתן לחזור אליכם." />
-              <FieldGuideItem label="קטגוריה" desc={<>בחרו את הקטגוריה המתאימה לבעיה: <Strong>חומרה</Strong>, <Strong>תוכנה</Strong>, <Strong>רשת</Strong>, <Strong>מדפסת</Strong>, <Strong>אחר</Strong>.</>} />
+              <FieldGuideItem label="קטגוריה" desc={<>בחרו את הקטגוריה המתאימה לבעיה: <Strong>חומרה</Strong>, <Strong>תוכנה</Strong>, <Strong>רשת</Strong>, <Strong>מדפסת</Strong>, <Strong>עובד חדש</Strong>, <Strong>אחר</Strong>. רשימת הקטגוריות מנוהלת על ידי צוות התמיכה ועשויה להתעדכן.</>} />
+              <FieldGuideItem label="פרטי העובד החדש" required desc={<>מופיע רק כשבוחרים בקטגוריה <Strong>עובד חדש</Strong>: שם פרטי, שם משפחה, טלפון העובד ותיאור התפקיד. ארבעת השדות נדרשים לפתיחת המשתמשים, ונוספים אוטומטית לתיאור הפנייה.</>} />
+              <FieldGuideItem label="ציוד מבוקש" desc={<>ניתן לבקש ציוד בכל פנייה — לחצו <Strong>+ אני צריך גם ציוד</Strong> ובחרו פריטים וכמות. בפנייה מסוג <Strong>עובד חדש</Strong> הרשימה נפתחת מעצמה. הטכנאי מסמן כל פריט שהתקבל או הותקן.</>} />
               <FieldGuideItem label="פלטפורמה" desc={<>בחרו את הפלטפורמה הרלוונטית: <Strong>comax</Strong>, <Strong>comax sales tracker</Strong>, <Strong>אנדרואיד</Strong>, <Strong>אייפד</Strong>, או <Strong>מחשב אישי</Strong>.</>} />
               <FieldGuideItem label="דחיפות" desc={<>בחרו את רמת הדחיפות בהתאם להשפעה על עבודתכם. ראו סעיף 7 למטה להסבר מלא.</>} />
               <FieldGuideItem label="תיאור מפורט" required desc="פרטו את הבעיה בצורה מלאה: מתי התחילה, מה קרה לפני שהתחילה, האם הופיעה הודעת שגיאה." />

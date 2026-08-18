@@ -153,7 +153,17 @@ describe("Tickets API", () => {
       })
 
       it("stores equipment on a new-employee ticket too", async () => {
-        const res = await POST(equipReq([{ label: "מחשב", quantity: 1 }], "עובד חדש")) as any
+        // An onboarding ticket also has to carry the hire details (v3.59),
+        // otherwise the request is rejected before it reaches the equipment.
+        const res = await POST({
+          json: async () => ({
+            subject: "עובד חדש", description: "מתחיל ביום ראשון",
+            phone: "050-1111111", computerName: "PC-9",
+            urgency: "בינוני", category: "עובד חדש", platform: "מחשב אישי",
+            equipment: [{ label: "מחשב", quantity: 1 }],
+            newEmployee: { firstName: "דני", lastName: "כהן", phone: "050-2222222", jobTitle: "נציג מכירות" },
+          }),
+        } as any) as any
 
         expect(res.status).toBe(200)
         expect(prisma.ticketEquipment.createMany).toHaveBeenCalled()
@@ -189,6 +199,98 @@ describe("Tickets API", () => {
 
         expect(res.status).toBe(200)
         expect(prisma.ticket.create).toHaveBeenCalled()
+      })
+    })
+
+    // ── NEW-EMPLOYEE DETAILS (v3.59) ────────────────────────────────────────
+    // An onboarding ticket is an account-creation request: without the hire's
+    // name, phone and role there is nothing the technician can act on. The
+    // browser marks the fields required; the server is what enforces it.
+    describe("new-employee details", () => {
+      const hire = { firstName: "דני", lastName: "כהן", phone: "050-1234567", jobTitle: "נציג מכירות" }
+
+      const hireReq = (newEmployee: any, category = "עובד חדש", description = "מתחיל ביום ראשון") => ({
+        json: async () => ({
+          subject: "פתיחת משתמשים לעובד חדש",
+          description,
+          phone: "050-1111111",
+          computerName: "PC-9",
+          urgency: "בינוני",
+          category,
+          platform: "מחשב אישי",
+          newEmployee,
+        }),
+      }) as any
+
+      beforeEach(() => {
+        const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
+        mockSession(user)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(user)
+        ;(prisma.ticket.create as jest.Mock).mockResolvedValue({ id: "ticket-1", ticketNumber: 507, status: "פתוח" })
+      })
+
+      it("folds the details into the stored description", async () => {
+        const res = await POST(hireReq(hire)) as any
+
+        expect(res.status).toBe(200)
+        const description = (prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description
+        expect(description).toContain("מתחיל ביום ראשון")
+        expect(description).toContain("שם פרטי: דני")
+        expect(description).toContain("שם משפחה: כהן")
+        expect(description).toContain("טלפון: 050-1234567")
+        expect(description).toContain("תיאור תפקיד: נציג מכירות")
+      })
+
+      it("rejects an onboarding ticket with no details at all", async () => {
+        const res = await POST(hireReq(undefined)) as any
+
+        expect(res.status).toBe(400)
+        expect(prisma.ticket.create).not.toHaveBeenCalled()
+      })
+
+      it("names the missing fields in the error", async () => {
+        const res = await POST(hireReq({ firstName: "דני", lastName: "כהן" })) as any
+
+        expect(res.status).toBe(400)
+        expect((await res.json()).missing).toEqual(["טלפון", "תיאור תפקיד"])
+      })
+
+      it("rejects a field that is only whitespace", async () => {
+        const res = await POST(hireReq({ ...hire, jobTitle: "   " })) as any
+
+        expect(res.status).toBe(400)
+      })
+
+      it("leaves an ordinary ticket's description alone", async () => {
+        const res = await POST(hireReq(undefined, "אחר", "המדפסת לא מדפיסה")) as any
+
+        expect(res.status).toBe(200)
+        expect((prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description)
+          .toBe("המדפסת לא מדפיסה")
+      })
+
+      it("ignores stray details sent on a non-onboarding ticket", async () => {
+        const res = await POST(hireReq(hire, "אחר", "המדפסת לא מדפיסה")) as any
+
+        expect(res.status).toBe(200)
+        expect((prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description)
+          .toBe("המדפסת לא מדפיסה")
+      })
+
+      it("sends the folded description to the notification emails", async () => {
+        // The details have to reach the technician's inbox, not just the DB.
+        await POST(hireReq(hire)) as any
+
+        const { mailTicketOpenedStaff } = require("@/lib/mail")
+        expect(mailTicketOpenedStaff.mock.calls[0][0].description).toContain("שם פרטי: דני")
+      })
+
+      it("opens an onboarding ticket with no free-text description at all", async () => {
+        const res = await POST(hireReq(hire, "עובד חדש", "")) as any
+
+        expect(res.status).toBe(200)
+        expect((prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description)
+          .toContain("שם פרטי: דני")
       })
     })
 

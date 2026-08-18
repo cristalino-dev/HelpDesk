@@ -27,8 +27,12 @@
  *   urgency      — One of: נמוך | בינוני | גבוה | דחוף (optional, default "בינוני")
  *                  Select box background color changes to match urgency level
  *   description  — Full problem details (required, 4-row textarea)
- *   equipment    — New-employee equipment checklist. Only rendered (and only
- *                  submitted) when category is "עובד חדש"; see lib/equipment.ts
+ *   equipment    — Equipment checklist, available on any category; opens by
+ *                  itself for "עובד חדש". See lib/equipment.ts
+ *   newEmployee  — First name, last name, phone and job description of the new
+ *                  hire. Shown and required only when the category is
+ *                  "עובד חדש"; the server folds them into the description.
+ *                  See lib/newEmployee.ts
  *
  * OPEN ON SOMEONE ELSE'S BEHALF (admins only):
  * ─────────────────────────────────────────────
@@ -62,7 +66,9 @@
 import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
 import EquipmentPicker from "./EquipmentPicker"
+import NewEmployeeFields from "./NewEmployeeFields"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
+import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewEmployeeDetails } from "@/lib/newEmployee"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T } from "@/lib/theme"
@@ -122,6 +128,9 @@ export default function TicketForm({
 
   /** Whether the user opened the checklist on a non-onboarding ticket. */
   const [equipmentOpen, setEquipmentOpen] = useState(false)
+
+  /** The new hire's details — required, and only collected, for onboarding. */
+  const [newEmployee, setNewEmployee] = useState<NewEmployeeDetails>(EMPTY_NEW_EMPLOYEE)
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {
@@ -209,6 +218,16 @@ export default function TicketForm({
     setLoading(true)
     setError("")
     try {
+      // An onboarding ticket needs all four hire details. The browser's own
+      // `required` lets a space through, so re-check the normalised values.
+      if (isNewEmployee) {
+        const missing = missingFieldLabels(normalizeNewEmployee(newEmployee))
+        if (missing.length > 0) {
+          setError(`יש למלא את פרטי העובד החדש: ${missing.join(", ")}`)
+          return
+        }
+      }
+
       // Admins only: name the ticket owner. The server re-checks the admin flag,
       // so a forged field from a regular user is rejected there (403).
       const behalfFields = isAdmin && behalf
@@ -226,6 +245,9 @@ export default function TicketForm({
           // Sent whenever anything was picked — equipment is not limited to
           // onboarding tickets.
           equipment: Object.entries(equipment).map(([label, quantity]) => ({ label, quantity })),
+          // Only meaningful for an onboarding ticket; the server ignores it
+          // otherwise and rejects the request if a field is blank.
+          ...(isNewEmployee ? { newEmployee: normalizeNewEmployee(newEmployee) } : {}),
         }),
       })
       if (!res.ok) throw new Error()
@@ -255,6 +277,7 @@ export default function TicketForm({
       setPendingImages([])
       setEquipment({})
       setEquipmentOpen(false)
+      setNewEmployee(EMPTY_NEW_EMPLOYEE)
       // Back to "in my own name" so the next ticket doesn't silently inherit
       // the previous caller's identity.
       setBehalf("")
@@ -444,6 +467,11 @@ export default function TicketForm({
             </select>
           </div>
         </div>
+
+        {/* ── New-employee details (mandatory for onboarding tickets) ── */}
+        {isNewEmployee && (
+          <NewEmployeeFields value={newEmployee} onChange={setNewEmployee} disabled={loading} />
+        )}
 
         {/* ── Equipment request ── */}
         {showEquipment ? (

@@ -27,7 +27,8 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
-import { normalizeSelection } from "@/lib/equipment"
+import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
+import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
 
 /**
  * POST /api/tickets
@@ -46,6 +47,11 @@ import { normalizeSelection } from "@/lib/equipment"
  *   onBehalfOfEmail {string}  ADMIN ONLY — open the ticket in this person's name
  *   onBehalfOfName  {string}  Display name, used only when onBehalfOfEmail is
  *                             an address that has no User row yet
+ *   equipment    {array}   Requested items — [{ label, quantity }], any category
+ *   newEmployee  {object}  { firstName, lastName, phone, jobTitle } — REQUIRED
+ *                          when category is "עובד חדש", rejected with 400 if a
+ *                          field is blank. Appended to the description as a
+ *                          labelled block; see lib/newEmployee.ts
  *
  * ON-BEHALF-OF (admin only):
  * ───────────────────────────
@@ -58,6 +64,7 @@ import { normalizeSelection } from "@/lib/equipment"
  *
  * RESPONSE:
  *   201 — The created Ticket object (JSON)
+ *   400 — Onboarding ticket missing a mandatory new-employee field
  *   401 — Not authenticated
  *   403 — Non-admin tried to open a ticket in someone else's name
  *   404 — Authenticated but user row not found in DB (edge case)
@@ -69,7 +76,21 @@ export async function POST(req: NextRequest) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { subject, description, phone, computerName, urgency, category, platform,
-            onBehalfOfEmail, onBehalfOfName, equipment } = await req.json()
+            onBehalfOfEmail, onBehalfOfName, equipment, newEmployee } = await req.json()
+
+    // NEW-EMPLOYEE DETAILS — an onboarding ticket is an account-creation request
+    // and is unworkable without the hire's name, phone and role, so the four
+    // fields are mandatory here and not only in the browser. They are folded
+    // into the description, which is what every notification email carries.
+    let ticketDescription = description
+    if (category === NEW_EMPLOYEE_CATEGORY) {
+      const details = normalizeNewEmployee(newEmployee)
+      const missing = missingFieldLabels(details)
+      if (missing.length > 0) {
+        return NextResponse.json({ error: "Missing new employee details", missing }, { status: 400 })
+      }
+      ticketDescription = withNewEmployeeDetails(description ?? "", details)
+    }
 
     // Resolve the signed-in user's DB row — needed for the userId foreign key.
     // We use email (from Google OAuth) as the lookup key.
@@ -97,7 +118,7 @@ export async function POST(req: NextRequest) {
     const ticket = await prisma.ticket.create({
       data: {
         subject,
-        description,
+        description: ticketDescription,
         phone,
         computerName,
         urgency,
@@ -155,7 +176,7 @@ export async function POST(req: NextRequest) {
     // ticket OWNER — not the admin who filed it on their behalf.
     const ticketInfo = {
       id: ticket.id, ticketNumber: ticket.ticketNumber,
-      subject, description, urgency, category,
+      subject, description: ticketDescription, urgency, category,
       platform, phone, computerName, status: ticket.status,
       submitterName: owner.name ?? owner.email,
       submitterEmail: owner.email,
