@@ -75,11 +75,16 @@ it arrived.
 
 ### Testing
 
-- 428 tests passing across 29 suites (72 new tests; 2 new suites).
+- 437 tests passing across 30 suites (81 new tests; 3 new suites).
 - New `__tests__/equipment.test.ts` (39) — payload normalisation, clamping,
   per-line and per-ticket progress, shortage aggregation and supplier text.
 - New `__tests__/EquipmentAPI.test.ts` (27) — the full authorization matrix
   above, partial deliveries, closed-ticket freezing, and the shortage endpoint.
+- New `__tests__/FieldOptionsSeed.test.ts` (9) — seeding an empty field,
+  back-filling "עובד חדש" into an already-populated one, and the DELETE guard.
+  The back-fill uses `createMany`+`skipDuplicates`, never a bare `create`:
+  every signed-in page load hits this endpoint, so two first-loads racing would
+  collide on the `(field, label)` unique index and 500 every dropdown.
 - `TicketsAPI.test.tsx` gains 6 creation-path cases, including equipment on an
   ordinary (non-onboarding) ticket.
 

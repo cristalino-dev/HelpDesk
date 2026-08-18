@@ -50,14 +50,18 @@ async function seedDefaults() {
   }
 
   // Back-fill individual values added to fields that are already populated.
+  // createMany + skipDuplicates (not create) because every signed-in page load
+  // calls this endpoint: two first-loads racing would otherwise collide on the
+  // (field, label) unique index and 500 the whole request, taking out every
+  // dropdown in the app.
   for (const { field, label } of REQUIRED_LABELS) {
     const exists = await prisma.fieldOption.findFirst({ where: { field, label } })
-    if (!exists) {
-      const maxOrder = await prisma.fieldOption.aggregate({ where: { field }, _max: { order: true } })
-      await prisma.fieldOption.create({
-        data: { field, label, order: (maxOrder._max.order ?? -1) + 1 },
-      })
-    }
+    if (exists) continue
+    const maxOrder = await prisma.fieldOption.aggregate({ where: { field }, _max: { order: true } })
+    await prisma.fieldOption.createMany({
+      data: [{ field, label, order: (maxOrder._max.order ?? -1) + 1 }],
+      skipDuplicates: true,
+    })
   }
 }
 
