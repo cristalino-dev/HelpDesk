@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
-import { logError } from "@/lib/logError"
+import { logError, logInfo } from "@/lib/logError"
+import { deleteAttachmentFile } from "@/lib/attachmentStorage"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { NextRequest, NextResponse } from "next/server"
@@ -82,6 +83,74 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets/[id] GET", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE /api/tickets/[id]
+ *
+ * Permanently removes a ticket and everything hanging off it: history, notes,
+ * messages, attachments, equipment lines and the satisfaction review. There is
+ * no undo and no soft-delete flag — this is the "opened by mistake" / "test
+ * ticket" escape hatch, not a substitute for closing a ticket.
+ *
+ * ADMINS ONLY. Non-admin staff may close and edit; only an admin may erase.
+ *
+ * The database cascade covers the child ROWS (every relation is
+ * onDelete: Cascade), but attachment BYTES live on the server filesystem since
+ * v3.48 — those are removed first, and a file that has already gone missing
+ * does not block the delete.
+ *
+ * The ticket's own audit trail disappears with it, so the deletion itself is
+ * written to the Log table: who deleted what, and when.
+ *
+ * RESPONSE:
+ *   200 — { ok: true, ticketNumber }
+ *   401 — Not authenticated
+ *   403 — Authenticated but not an admin
+ *   404 — No such ticket
+ *   500 — Database or unexpected error (logged to Log table)
+ */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session.user.isAdmin)  return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    const { id } = await params
+    const where = id.startsWith("HDTC-")
+      ? { ticketNumber: parseInt(id.slice(5), 10) }
+      : { id }
+
+    const ticket = await prisma.ticket.findUnique({
+      where,
+      select: {
+        id: true, ticketNumber: true, subject: true,
+        attachments: { select: { storedName: true } },
+      },
+    })
+    if (!ticket) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    // Files on disk are outside the DB cascade. A file that is already gone is
+    // not a reason to keep the ticket.
+    await Promise.all(
+      ticket.attachments
+        .filter(a => a.storedName)
+        .map(a => deleteAttachmentFile(a.storedName!).catch(() => {})),
+    )
+
+    await prisma.ticket.delete({ where: { id: ticket.id } })
+
+    await logInfo(
+      `פנייה HDTC-${ticket.ticketNumber} ("${ticket.subject}") נמחקה על ידי ${session.user.name ?? session.user.email}`,
+      "/api/tickets/[id] DELETE",
+    )
+
+    return NextResponse.json({ ok: true, ticketNumber: ticket.ticketNumber })
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/tickets/[id] DELETE", e.stack)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

@@ -58,6 +58,9 @@ export default function TicketDetailPage() {
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null)
   const [closing, setClosing]       = useState(false)
   const [copied, setCopied]         = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting]     = useState(false)
+  const [deleteError, setDeleteError] = useState("")
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
@@ -271,6 +274,25 @@ export default function TicketDetailPage() {
     }
   }
 
+  /**
+   * Admin-only, irreversible: removes the ticket and everything attached to it.
+   * Guarded by the confirmation dialog, never wired straight to a button —
+   * there is no undo, and the ticket's own history goes with it.
+   */
+  const deleteTicket = async () => {
+    if (!ticket) return
+    setDeleting(true)
+    setDeleteError("")
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      router.push("/tickets")
+    } catch {
+      setDeleteError("מחיקת הפנייה נכשלה. נסו שנית.")
+      setDeleting(false)
+    }
+  }
+
   const closeTicket = async () => {
     if (!ticket) return
     setClosing(true)
@@ -409,6 +431,15 @@ export default function TicketDetailPage() {
             {closing ? "סוגר..." : "סגור פנייה"}
           </button>
         )}
+        {session?.user?.isAdmin && !editing && (
+          <button
+            onClick={() => { setDeleteError(""); setConfirmDelete(true) }}
+            title="מחיקת הפנייה לצמיתות"
+            style={{ padding: "5px 11px", borderRadius: 8, border: "1px solid rgba(217,83,79,0.45)", background: "transparent", color: "#E88B87", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+          >
+            🗑 מחק
+          </button>
+        )}
         {isStaff && editing && (
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setEditing(false)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
@@ -418,6 +449,58 @@ export default function TicketDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation — deliberately a stop, not a toast-with-undo.
+          The ticket and its whole audit trail go at once, so the dialog spells
+          out what disappears and makes the destructive button the one you have
+          to aim at. */}
+      {confirmDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="אישור מחיקת פנייה"
+          onClick={() => { if (!deleting) setConfirmDelete(false) }}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.28)" }}
+          >
+            <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: "#991b1b" }}>
+              מחיקת פנייה HDTC-{ticket.ticketNumber}
+            </h2>
+            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: "#374151", lineHeight: 1.7 }}>
+              הפנייה <strong>{ticket.subject}</strong> תימחק לצמיתות, יחד עם ההיסטוריה, ההערות, ההודעות, הקבצים המצורפים ובקשות הציוד שלה.
+            </p>
+            <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: "#9ca3af" }}>
+              לא ניתן לשחזר פנייה שנמחקה. לסגירת פנייה שטופלה השתמשו ב&quot;סגור פנייה&quot;.
+            </p>
+
+            {deleteError && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "9px 12px", fontSize: "0.82rem", color: "#dc2626", marginBottom: 14 }}>
+                {deleteError}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-start" }}>
+              <button
+                onClick={deleteTicket}
+                disabled={deleting}
+                style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: deleting ? "#e5e7eb" : "#dc2626", color: deleting ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
+              >
+                {deleting ? "מוחק..." : "מחק לצמיתות"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 

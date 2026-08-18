@@ -5,6 +5,45 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.60 — מחיקת פנייה (מנהלים)
+
+**An admin can now delete a ticket outright, after confirming what disappears
+with it.**
+
+Test tickets, duplicates and ones opened by mistake had no way out — closing
+them left them in the archive and in every count. Deleting straight from the
+database meant leaving orphaned attachment files on disk.
+
+### What changed for users
+
+- **A small red "🗑 מחק" button** in the ticket header, next to "העתק קישור".
+  **Admins only** — non-admin staff still close and edit, they do not erase.
+- **It always asks first.** The dialog names the ticket and spells out what goes
+  with it — history, notes, messages, attachments and equipment requests — and
+  points at "סגור פנייה" for a ticket that was merely handled. There is no undo,
+  so the confirmation is a stop, not a toast.
+
+### What changed for developers
+
+- **New `DELETE /api/tickets/[id]`** — admin-only (401 / 403 / 404 / 200).
+  Accepts both `HDTC-N` and a raw id, like the GET beside it.
+- **Attachment bytes are removed first.** Child rows are covered by
+  `onDelete: Cascade`, but attachment files have lived on disk since v3.48. A
+  file that is already missing is swallowed rather than stranding the ticket.
+- **New `logInfo()` in `lib/logError.ts`** (level `info`, same table). The
+  ticket's own `TicketHistory` cascades away with it, so the deletion itself is
+  recorded in the log: who deleted which ticket, and when.
+
+### Testing
+
+- 497 tests passing across 32 suites (12 new tests; 1 new suite).
+- New `__tests__/TicketDeleteAPI.test.ts` — the authorization matrix (anonymous,
+  owner, non-admin staff, admin), HDTC-N and raw-id lookup, on-disk file removal
+  including the already-missing case, and the audit entry (plus the absence of
+  one when the delete itself fails).
+
+---
+
 ## v3.59 — פרטי העובד החדש נדרשים בפנייה
 
 **A ticket for a new employee now collects the hire's first name, last name,

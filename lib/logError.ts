@@ -58,6 +58,23 @@ import { prisma } from "@/lib/db"
  * @param stack   - Optional stack trace string. Truncated to 5000 characters.
  */
 export async function logError(message: string, source?: string, stack?: string) {
+  return writeLog("error", message, source, stack)
+}
+
+/**
+ * Writes a non-error record to the same Log table — used for actions that are
+ * worth a permanent trace even though nothing went wrong. Ticket deletion is
+ * the case that introduced it: the ticket's own history cascades away with it,
+ * so without this there would be no record that it ever existed.
+ *
+ * @param message - What happened. Truncated to 2000 characters.
+ * @param source  - Where it happened, e.g. "/api/tickets/[id] DELETE".
+ */
+export async function logInfo(message: string, source?: string) {
+  return writeLog("info", message, source)
+}
+
+async function writeLog(level: string, message: string, source?: string, stack?: string) {
   try {
     // Build the date string used for day-bucket queries (admin date picker)
     // and the 30-day rolling cleanup performed by /api/logs POST.
@@ -65,7 +82,7 @@ export async function logError(message: string, source?: string, stack?: string)
 
     await prisma.log.create({
       data: {
-        level: "error",
+        level,
         message: String(message).slice(0, 2000),
         source,
         // Only store stack if provided; avoids storing null vs. undefined confusion
