@@ -37,6 +37,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           notes:       isStaff ? { select: { id: true }, orderBy: { createdAt: "asc" } } : false,
           messages:    { select: { id: true }, orderBy: { createdAt: "asc" } },
           history:     { select: { id: true }, orderBy: { changedAt: "asc" } },
+          // receivedQty rides along: ticking an item off changes the line in
+          // place, so an ids-only select would not move the signature.
+          equipment:   { select: { id: true, receivedQty: true }, orderBy: { createdAt: "asc" } },
         },
       })
       if (!light) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -63,6 +66,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         notes:       isStaff ? { orderBy: { createdAt: "asc" } } : false,
         messages:    { orderBy: { createdAt: "asc" } },
         history:     { orderBy: { changedAt: "asc" } },
+        equipment:   { orderBy: { createdAt: "asc" } },
       },
     })
 

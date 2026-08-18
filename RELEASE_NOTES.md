@@ -5,6 +5,86 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.58 — בקשות ציוד ורשימת חוסרים לספק
+
+**Equipment can now be requested on a ticket, ticked off as it arrives, and
+totalled into one order for the supplier.**
+
+Onboarding a new employee meant typing the kit into the description as free
+text — "מחשב + מסך + מייל" — and then chasing what had actually turned up by
+re-reading the thread. Nothing added up across tickets, so ordering from the
+supplier meant opening twenty tickets and counting by hand.
+
+### What changed for users
+
+- **A new "עובד חדש" category.** Choosing it opens the equipment checklist
+  automatically, because onboarding always needs a kit.
+- **Any ticket can ask for equipment**, not just onboarding ones. On every other
+  category a "+ אני צריך גם ציוד" button reveals the same checklist — an
+  existing employee asking for a second screen is the same request as far as the
+  supplier is concerned.
+- **Items carry a quantity.** Each item is a chip you click to request, with a
+  −/+ stepper, so "מסך × 2" is one line rather than a duplicate.
+- **The item list is admin-managed**, exactly like category and platform:
+  "שדות מערכת" → "ציוד". Seeded with מחשב, מחשב נייד, מסך, מסך שני, עכבר,
+  מקלדת, תחנת עגינה, אוזניות, טלפון נייד, חשבון Gmail, חשבון Zoho, משתמש קומקס.
+- **The technician ticks items off** on the ticket page — a ✓ per line, or a
+  count for a partial delivery ("2 מתוך 3 הגיעו"). The header shows the
+  progress; the ticket owner sees the same list fill in.
+- **The person who opened the ticket can add to their own list** while it is
+  open, and withdraw an item nothing has arrived against yet.
+- **New admin tab "ציוד חסר"** — everything still owed, grouped by item and
+  ordered most-missing first. Expand an item to see which tickets are waiting.
+  A "📋 העתק רשימה לספק" button puts a plain-text order on the clipboard.
+
+### Who may do what
+
+| Action | Owner | Staff |
+|---|---|---|
+| Request items (open ticket) | ✓ | ✓ |
+| Request items (closed ticket) | — | ✓ |
+| Mark an item received | — | ✓ |
+| Withdraw an item nothing arrived against | ✓ | ✓ |
+| Remove a partly-delivered item | — | ✓ |
+
+Receiving is staff-only on purpose: the shortage list is the purchase order, so
+anyone may ask for a screen but only the technician who handed it over may say
+it arrived.
+
+### What changed for developers
+
+- **New model `TicketEquipment`** — `label`, `quantity`, `receivedQty`,
+  `receivedAt`, `receivedBy`, unique on `(ticketId, label)`, cascade-deleted
+  with the ticket. `label` is a **snapshot** of the option label at request
+  time, so renaming or deleting an option never rewrites filed tickets.
+  Migration `20260818000000_ticket_equipment`.
+- **New `lib/equipment.ts`** (pure): `normalizeSelection()` (trims, clamps
+  1..99, merges duplicates, validates against the live option list),
+  `clampReceived()`, `outstandingOf()`, `equipmentProgress()`,
+  `aggregateShortage()`, `formatSupplierText()`.
+- **New routes:** `POST/PATCH/DELETE /api/tickets/[id]/equipment` and
+  `GET /api/admin/equipment?includeClosed=1`.
+- `POST /api/tickets` accepts `equipment: [{label, quantity}]` on any ticket.
+  The option lookup is skipped entirely when the payload asks for nothing.
+- `FieldOption` gains the `equipment` field. Seeding now also back-fills
+  individual labels into already-populated fields (`REQUIRED_LABELS`), which is
+  how "עובד חדש" reaches a live database. DELETE refuses that category — the UI
+  keys off the exact label.
+- `ticketRevision()` folds in each line's `receivedQty`, so a technician ticking
+  an item off moves the polling signature; an ids-only signature would not.
+
+### Testing
+
+- 428 tests passing across 29 suites (72 new tests; 2 new suites).
+- New `__tests__/equipment.test.ts` (39) — payload normalisation, clamping,
+  per-line and per-ticket progress, shortage aggregation and supplier text.
+- New `__tests__/EquipmentAPI.test.ts` (27) — the full authorization matrix
+  above, partial deliveries, closed-ticket freezing, and the shortage endpoint.
+- `TicketsAPI.test.tsx` gains 6 creation-path cases, including equipment on an
+  ordinary (non-onboarding) ticket.
+
+---
+
 ## v3.57 — חיפוש לפי מספר פנייה (HDTC-N)
 
 **Typing a ticket number now always finds the ticket — open or closed.**

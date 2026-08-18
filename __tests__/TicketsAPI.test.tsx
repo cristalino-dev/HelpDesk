@@ -21,6 +21,14 @@ jest.mock("@/lib/db", () => ({
     ticketNote: {
       create: jest.fn().mockResolvedValue({}),
     },
+    // Equipment request lines (v3.58) — only touched when the payload asks
+    // for equipment, but the mock must exist for the paths that do.
+    ticketEquipment: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    fieldOption: {
+      findMany: jest.fn().mockResolvedValue([{ label: "מסך" }, { label: "מחשב" }]),
+    },
   },
 }))
 
@@ -109,6 +117,79 @@ describe("Tickets API", () => {
       expect(data.id).toBe("ticket-1")
       expect(prisma.ticket.create).toHaveBeenCalled()
       expect(sendMail).toHaveBeenCalledTimes(2)
+    })
+
+    // ── EQUIPMENT REQUEST LINES (v3.58) ────────────────────────────────────
+    describe("equipment", () => {
+      const equipReq = (equipment: any, category = "אחר") => ({
+        json: async () => ({
+          subject: "צריך מסך",
+          description: "אני רוצה מסך בשביל המוניטור",
+          phone: "050-1111111",
+          computerName: "PC-9",
+          urgency: "בינוני",
+          category,
+          platform: "מחשב אישי",
+          equipment,
+        }),
+      }) as any
+
+      beforeEach(() => {
+        const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
+        mockSession(user)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(user)
+        ;(prisma.ticket.create as jest.Mock).mockResolvedValue({ id: "ticket-1", ticketNumber: 506, status: "פתוח" })
+      })
+
+      it("stores requested equipment on an ORDINARY ticket, not just onboarding", async () => {
+        // HDTC-506 in production: category אחר, employee wants a screen.
+        const res = await POST(equipReq([{ label: "מסך", quantity: 2 }], "אחר")) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticketEquipment.createMany).toHaveBeenCalledWith({
+          data: [{ ticketId: "ticket-1", label: "מסך", quantity: 2 }],
+          skipDuplicates: true,
+        })
+      })
+
+      it("stores equipment on a new-employee ticket too", async () => {
+        const res = await POST(equipReq([{ label: "מחשב", quantity: 1 }], "עובד חדש")) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticketEquipment.createMany).toHaveBeenCalled()
+      })
+
+      it("skips the option lookup entirely when no equipment is requested", async () => {
+        const res = await POST(equipReq(undefined)) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.fieldOption.findMany).not.toHaveBeenCalled()
+        expect(prisma.ticketEquipment.createMany).not.toHaveBeenCalled()
+      })
+
+      it("silently drops items that are not on the admin-managed list", async () => {
+        const res = await POST(equipReq([{ label: "מסך", quantity: 1 }, { label: "מכונית", quantity: 1 }])) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticketEquipment.createMany).toHaveBeenCalledWith({
+          data: [{ ticketId: "ticket-1", label: "מסך", quantity: 1 }],
+          skipDuplicates: true,
+        })
+      })
+
+      it("creates no lines when every requested item is invalid", async () => {
+        const res = await POST(equipReq([{ label: "מכונית", quantity: 1 }])) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticketEquipment.createMany).not.toHaveBeenCalled()
+      })
+
+      it("still opens the ticket normally when equipment is malformed", async () => {
+        const res = await POST(equipReq("not-an-array")) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticket.create).toHaveBeenCalled()
+      })
     })
 
     // ── ON-BEHALF-OF (admin opens a ticket in someone else's name) ──────────

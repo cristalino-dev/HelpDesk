@@ -32,6 +32,9 @@ type RevisionInput = {
   notes?:       ReadonlyArray<{ id: string }> | null
   attachments?: ReadonlyArray<{ id: string }> | null
   history?:     ReadonlyArray<{ id: string }> | null
+  /** Equipment lines carry `receivedQty`, which changes in place — id alone
+   *  would not move the signature when a technician ticks an item off. */
+  equipment?:   ReadonlyArray<{ id: string; receivedQty?: number }> | null
 }
 
 function lastId(arr: ReadonlyArray<{ id: string }> | undefined | null): string {
@@ -47,8 +50,9 @@ function part(prefix: string, arr: ReadonlyArray<{ id: string }> | undefined | n
 /**
  * Returns a compact, stable signature for a ticket. Two payloads representing
  * the same server state produce identical strings; any meaningful change
- * (edit, status/urgency/assignment change, or an added/removed message, note,
- * attachment or history entry) produces a different string.
+ * (edit, status/urgency/assignment change, an added/removed message, note,
+ * attachment or history entry, or an equipment line being marked received)
+ * produces a different string.
  */
 export function ticketRevision(t: RevisionInput): string {
   return [
@@ -57,5 +61,6 @@ export function ticketRevision(t: RevisionInput): string {
     part("n", t.notes),
     part("a", t.attachments),
     part("h", t.history),
+    `e:${(t.equipment ?? []).length}:${(t.equipment ?? []).map(l => `${l.id}=${l.receivedQty ?? 0}`).join(",") || "-"}`,
   ].join("|")
 }

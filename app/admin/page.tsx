@@ -73,6 +73,7 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
 import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
+import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { T, HDR, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
@@ -110,7 +111,7 @@ export default function AdminPage() {
   const isMobile = useIsMobile()
   const [menuOpen, setMenuOpen] = useState(false)
   const [statFilter, setStatFilter] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers">("tickets")
+  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
@@ -143,12 +144,12 @@ export default function AdminPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   // Fields tab
   type FieldRecord = { id: string; label: string }
-  const [fieldRecords, setFieldRecords] = useState<Record<string, FieldRecord[]>>({ category: [], platform: [], urgency: [] })
+  const [fieldRecords, setFieldRecords] = useState<Record<string, FieldRecord[]>>({ category: [], platform: [], urgency: [], equipment: [] })
   const [fieldUrgencies,  setFieldUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [fieldCategories, setFieldCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [fieldPlatforms,  setFieldPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
   const [newFieldValue, setNewFieldValue] = useState("")
-  const [newFieldType, setNewFieldType]   = useState<"category" | "platform" | "urgency">("category")
+  const [newFieldType, setNewFieldType]   = useState<"category" | "platform" | "urgency" | "equipment">("category")
   const [fieldSaving, setFieldSaving]     = useState(false)
   const [fieldError,  setFieldError]      = useState<string | null>(null)
   // Licenses tab
@@ -186,6 +187,13 @@ export default function AdminPage() {
   const [logCount, setLogCount] = useState(0)
   const [logsLoading, setLogsLoading] = useState(false)
   const [copyLogStatus, setCopyLogStatus] = useState(false)
+  // Equipment shortage tab
+  const [shortage, setShortage] = useState<ShortageItem[]>([])
+  const [shortageLoading, setShortageLoading] = useState(false)
+  const [shortageText, setShortageText] = useState("")
+  const [shortageClosed, setShortageClosed] = useState(false)
+  const [shortageCopied, setShortageCopied] = useState(false)
+  const [shortageExpanded, setShortageExpanded] = useState<string | null>(null)
   // Assignment
   const [assigning, setAssigning] = useState<string | null>(null)
   // Ticket-tab filters / sort
@@ -216,6 +224,31 @@ export default function AdminPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  /** Everything still owed across live tickets — the order for the supplier. */
+  const loadShortage = async (includeClosed = shortageClosed) => {
+    setShortageLoading(true)
+    try {
+      const res = await fetch(`/api/admin/equipment${includeClosed ? "?includeClosed=1" : ""}`)
+      if (!res.ok) { setShortage([]); setShortageText(""); return }
+      const data = await res.json()
+      setShortage(Array.isArray(data.items) ? data.items : [])
+      setShortageText(typeof data.supplierText === "string" ? data.supplierText : "")
+    } catch {
+      setShortage([])
+      setShortageText("")
+    } finally {
+      setShortageLoading(false)
+    }
+  }
+
+  const copyShortage = async () => {
+    try {
+      await navigator.clipboard.writeText(shortageText)
+      setShortageCopied(true)
+      setTimeout(() => setShortageCopied(false), 2000)
+    } catch { /* clipboard unavailable */ }
   }
 
   const staffDisplay = (email: string) =>
@@ -737,7 +770,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"]] as const).map(([key, label]) => (
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
               if (key === "users" && users.length === 0) loadUsers()
@@ -745,6 +778,7 @@ export default function AdminPage() {
               if (key === "fields") loadFieldOpts()
               if (key === "licenses") { loadLicenses(); loadFieldOpts() }
               if (key === "printers") loadPrinters()
+              if (key === "equipment") loadShortage()
             }}
               style={{ padding: "10px 20px", fontWeight: tab === key ? 700 : 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? T.text : T.muted, borderBottom: tab === key ? `2px solid ${T.green}` : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
               {label}
@@ -946,12 +980,13 @@ export default function AdminPage() {
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <select
                   value={newFieldType}
-                  onChange={e => setNewFieldType(e.target.value as "category" | "platform" | "urgency")}
+                  onChange={e => setNewFieldType(e.target.value as "category" | "platform" | "urgency" | "equipment")}
                   style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", background: "#f9fafb" }}
                 >
                   <option value="category">קטגוריה</option>
                   <option value="platform">פלטפורמה</option>
                   <option value="urgency">דחיפות</option>
+                  <option value="equipment">ציוד</option>
                 </select>
                 <input
                   value={newFieldValue}
@@ -975,12 +1010,15 @@ export default function AdminPage() {
               { key: "category", label: "קטגוריה" },
               { key: "platform", label: "פלטפורמה" },
               { key: "urgency",  label: "דחיפות" },
+              { key: "equipment", label: "ציוד (רשימת פריטים לבחירה בפנייה)" },
             ] as const).map(({ key, label }) => (
               <div key={key} style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
                 <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>{label}</h3>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(fieldRecords[key] ?? []).map(({ id, label: lbl }) => {
-                    const isProtected = key === "urgency"
+                    // Core urgencies and the new-employee category are system
+                    // values — DELETE rejects them server-side too.
+                    const isProtected = key === "urgency" || (key === "category" && lbl === NEW_EMPLOYEE_CATEGORY)
                     return (
                       <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "#f3f4f6", fontSize: "0.85rem", fontWeight: 600, color: "#374151", border: "1px solid #e5e7eb" }}>
                         {lbl}
@@ -1401,6 +1439,116 @@ export default function AdminPage() {
         })()}
 
         {/* ── TICKETS TAB ── */}
+        {/* ── EQUIPMENT SHORTAGE TAB ── */}
+        {tab === "equipment" && (() => {
+          const totalUnits = shortage.reduce((sum, i) => sum + i.outstanding, 0)
+          const ticketNums = new Set(shortage.flatMap(i => i.tickets.map(t => t.ticketNumber)))
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {/* Summary + actions */}
+              <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${T.border}`, padding: 20, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <h3 style={{ margin: "0 0 4px", fontSize: "0.95rem", fontWeight: 700, color: "#374151" }}>📦 ציוד שטרם התקבל</h3>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: T.text3 }}>
+                    {shortageLoading
+                      ? "טוען..."
+                      : totalUnits === 0
+                        ? "אין ציוד חסר — כל מה שהתבקש התקבל."
+                        : `${totalUnits} יחידות חסרות, ב-${ticketNums.size} פניות`}
+                  </p>
+                </div>
+
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", color: T.text2, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={shortageClosed}
+                    onChange={e => { setShortageClosed(e.target.checked); loadShortage(e.target.checked) }}
+                  />
+                  כלול פניות סגורות
+                </label>
+
+                <button
+                  onClick={() => loadShortage()}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#16181D", background: "#EDEFEA", border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}
+                >רענן</button>
+
+                <button
+                  onClick={copyShortage}
+                  disabled={totalUnits === 0}
+                  title="העתקת הרשימה לשליחה לספק"
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: "0.82rem",
+                    background: totalUnits === 0 ? "#e5e7eb" : T.dark,
+                    color:      totalUnits === 0 ? "#9ca3af" : "#fff",
+                    cursor:     totalUnits === 0 ? "not-allowed" : "pointer" }}
+                >{shortageCopied ? "✓ הועתק" : "📋 העתק רשימה לספק"}</button>
+              </div>
+
+              {/* Empty state */}
+              {!shortageLoading && shortage.length === 0 && (
+                <div style={{ textAlign: "center", padding: "60px 24px", background: "#fff", borderRadius: 16, border: "1px solid #f3f4f6" }}>
+                  <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>✓</div>
+                  <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>אין ציוד חסר</p>
+                  <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>כל הפריטים שהתבקשו סומנו כהתקבלו</p>
+                </div>
+              )}
+
+              {/* One row per item, expandable to the tickets waiting for it */}
+              {shortage.map(item => {
+                const open = shortageExpanded === item.label
+                return (
+                  <div key={item.label} style={{ background: "#fff", borderRadius: 12, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+                    <button
+                      onClick={() => setShortageExpanded(open ? null : item.label)}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "right" }}
+                    >
+                      <span style={{ fontSize: "1.15rem", fontWeight: 800, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 9, padding: "3px 12px", flexShrink: 0 }}>
+                        {item.outstanding}
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: "0.92rem", color: "#111827", flex: 1, minWidth: 0 }}>{item.label}</span>
+                      <span style={{ fontSize: "0.75rem", color: T.text3, whiteSpace: "nowrap" }}>
+                        התקבלו {item.received} מתוך {item.requested} · {item.tickets.length} פניות
+                      </span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transform: open ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.2s" }}>
+                        <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+
+                    {open && (
+                      <div style={{ borderTop: "1px solid #f3f4f6", padding: "10px 18px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                        {item.tickets.map(t => (
+                          <a
+                            key={t.ticketNumber}
+                            href={`/tickets/HDTC-${t.ticketNumber}`}
+                            style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", fontSize: "0.82rem", color: "#374151", padding: "5px 0" }}
+                          >
+                            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+                              HDTC-{t.ticketNumber}
+                            </span>
+                            <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
+                            <span style={{ ...badge, ...(STATUS_STYLES[t.status] ?? {}) }}>{t.status}</span>
+                            <span style={{ fontWeight: 700, color: "#c2410c", flexShrink: 0 }}>חסר {t.outstanding}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* The exact text the copy button puts on the clipboard */}
+              {shortage.length > 0 && (
+                <div style={{ background: "#fff", borderRadius: 12, border: `1px solid ${T.border}`, padding: 18 }}>
+                  <h4 style={{ margin: "0 0 10px", fontSize: "0.82rem", fontWeight: 700, color: "#374151" }}>הרשימה לשליחה לספק</h4>
+                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: "0.84rem", color: "#374151", background: "#f9fafb", borderRadius: 8, padding: "12px 14px", lineHeight: 1.7 }}>
+                    {shortageText}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
         {tab === "tickets" && <>
 
         {/* Stats row */}

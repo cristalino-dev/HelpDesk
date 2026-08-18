@@ -19,32 +19,33 @@ model User {
 }
 
 model Ticket {
-  id           String             @id @default(cuid())
-  ticketNumber Int                @default(autoincrement()) @unique
-  assignedTo   String             @default("helpdesk@cristalino.co.il")
-  subject      String
-  description  String
-  phone        String
-  computerName String
-  urgency      String             @default("בינוני")
-  category     String             @default("אחר")
-  platform     String             @default("מחשב אישי")
-  status       String             @default("פתוח")
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  userId       String
-  user         User               @relation(fields: [userId], references: [id])
+  id              String             @id @default(cuid())
+  ticketNumber    Int                @unique @default(autoincrement())
+  assignedTo      String             @default("helpdesk@cristalino.co.il")
+  subject         String
+  description     String
+  phone           String
+  computerName    String
+  urgency         String             @default("בינוני")
+  category        String             @default("אחר")
+  platform        String             @default("מחשב אישי")
+  status          String             @default("פתוח")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
   // For email-ingested tickets: the source email's Message-ID. Unique so the
   // same email can never create two tickets (idempotency). Null for UI tickets.
-  sourceMessageId String?         @unique
+  sourceMessageId String?            @unique
   // Free-text reason required when staff places a ticket on hold ("בהמתנה").
   // Cleared automatically when the ticket is reinstated.
   holdReason      String?
-  notes        TicketNote[]
-  attachments  TicketAttachment[]
-  messages     TicketMessage[]
-  review       TicketReview?
-  history      TicketHistory[]
+  notes           TicketNote[]
+  attachments     TicketAttachment[]
+  messages        TicketMessage[]
+  review          TicketReview?
+  history         TicketHistory[]
+  equipment       TicketEquipment[]
 
   // userId — user dashboard filters by owner; status — digest/sweep crons
   // filter by it every few minutes. Postgres does not auto-index FKs.
@@ -53,15 +54,15 @@ model Ticket {
 }
 
 model TicketHistory {
-  id          String   @id @default(cuid())
-  ticketId    String
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  field       String   // "created" | "status" | "urgency" | "assignedTo" | "edited"
-  oldValue    String?
-  newValue    String?
-  actorName   String
-  actorEmail  String
-  changedAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  field      String // "created" | "status" | "urgency" | "assignedTo" | "edited"
+  oldValue   String?
+  newValue   String?
+  actorName  String
+  actorEmail String
+  changedAt  DateTime @default(now())
 
   @@index([ticketId])
 }
@@ -73,7 +74,7 @@ model TicketMessage {
   content     String
   authorName  String
   authorEmail String
-  authorRole  String   // "staff" | "user"
+  authorRole  String // "staff" | "user"
   createdAt   DateTime @default(now())
 
   @@index([ticketId])
@@ -99,13 +100,34 @@ model TicketAttachment {
   id         String   @id @default(cuid())
   ticketId   String
   ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  dataUrl    String?  // legacy inline base64 (pre-v3.48); null once stored on disk
+  dataUrl    String? // legacy inline base64 (pre-v3.48); null once stored on disk
   storedName String?  @unique // unique on-disk filename (uuid.ext)
   mimeType   String?
-  size       Int?     // decoded size in bytes
+  size       Int? // decoded size in bytes
   filename   String?
   createdAt  DateTime @default(now())
 
+  @@index([ticketId])
+}
+
+/// Equipment requested for a new employee (category "עובד חדש").
+/// The opener picks items + quantities; the technician handling the ticket
+/// marks how many actually arrived/were installed. `label` is a SNAPSHOT of
+/// the FieldOption label at request time — renaming or deleting the option
+/// later must not rewrite history on tickets already filed.
+model TicketEquipment {
+  id          String    @id @default(cuid())
+  ticketId    String
+  ticket      Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  label       String // e.g. "מסך", "חשבון Gmail"
+  quantity    Int       @default(1) // how many were requested
+  receivedQty Int       @default(0) // how many have arrived / been installed (0..quantity)
+  receivedAt  DateTime? // when the line was last marked as fully received
+  receivedBy  String? // email of the staff member who marked it
+  createdAt   DateTime  @default(now())
+
+  @@unique([ticketId, label])
+  // The shortage report scans for lines that are not yet fully supplied.
   @@index([ticketId])
 }
 
@@ -113,7 +135,7 @@ model TicketReview {
   id             String   @id @default(cuid())
   ticketId       String   @unique
   ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  rating         Int      // 1–5
+  rating         Int // 1–5
   comment        String?
   submitterName  String
   submitterEmail String
@@ -122,11 +144,11 @@ model TicketReview {
 
 model License {
   id        String   @id @default(cuid())
-  key       String   // the license number / product key
+  key       String // the license number / product key
   category  String   @default("Office") // managed via FieldOption (field = "licenseCategory")
-  username  String?  // optional: account the license was activated with / given to
+  username  String? // optional: account the license was activated with / given to
   password  String?
-  remark    String?  // free-text note (e.g. who received it, which machine)
+  remark    String? // free-text note (e.g. who received it, which machine)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -135,19 +157,19 @@ model License {
 }
 
 model Printer {
-  id        String          @id @default(cuid())
-  name      String          // display name of the printer
-  maker     String?         // יצרן — manufacturer (HP, Canon, Brother...)
-  model     String?         // model number / name
-  supplier  String?         // ספק — supplier the printer belongs to
-  ipv4      String?         // network IPv4 address
-  hostname  String?         // network hostname
-  inkToner       String?     // סוג דיו/טונר — required ink/toner type
-  tonerLevel     Int?        // 0–100 percentage of toner/ink remaining
-  supplierSerial String?     // מספר ספק — serial number assigned by the supplier
-  createdAt  DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  drivers   PrinterDriver[]
+  id             String          @id @default(cuid())
+  name           String // display name of the printer
+  maker          String? // יצרן — manufacturer (HP, Canon, Brother...)
+  model          String? // model number / name
+  supplier       String? // ספק — supplier the printer belongs to
+  ipv4           String? // network IPv4 address
+  hostname       String? // network hostname
+  inkToner       String? // סוג דיו/טונר — required ink/toner type
+  tonerLevel     Int? // 0–100 percentage of toner/ink remaining
+  supplierSerial String? // מספר ספק — serial number assigned by the supplier
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  drivers        PrinterDriver[]
 
   @@index([name])
 }
@@ -159,9 +181,9 @@ model PrinterDriver {
   id         String   @id @default(cuid())
   printerId  String
   printer    Printer  @relation(fields: [printerId], references: [id], onDelete: Cascade)
-  filename   String   // original filename shown to the user
+  filename   String // original filename shown to the user
   storedName String   @unique // unique name on disk (uuid + sanitized original)
-  size       Int      // file size in bytes
+  size       Int // file size in bytes
   mimeType   String?
   createdAt  DateTime @default(now())
 

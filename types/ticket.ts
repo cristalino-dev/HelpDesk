@@ -108,9 +108,25 @@ export interface TicketHistoryEntry {
   changedAt: string
 }
 
+/** One line of the new-employee equipment checklist (category "עובד חדש"). */
+export interface TicketEquipment {
+  id: string
+  ticketId: string
+  /** Snapshot of the FieldOption label at request time. */
+  label: string
+  /** How many units were requested. */
+  quantity: number
+  /** How many have arrived / been installed (0..quantity). */
+  receivedQty: number
+  receivedAt?: string | null
+  receivedBy?: string | null
+  createdAt: string
+}
+
 export interface TicketDetail extends TicketWithUser {
   notes: TicketNote[]
   attachments: TicketAttachment[]
   messages: TicketMessage[]
   history: TicketHistoryEntry[]
+  equipment: TicketEquipment[]
 }

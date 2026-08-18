@@ -27,6 +27,8 @@
  *   urgency      — One of: נמוך | בינוני | גבוה | דחוף (optional, default "בינוני")
  *                  Select box background color changes to match urgency level
  *   description  — Full problem details (required, 4-row textarea)
+ *   equipment    — New-employee equipment checklist. Only rendered (and only
+ *                  submitted) when category is "עובד חדש"; see lib/equipment.ts
  *
  * OPEN ON SOMEONE ELSE'S BEHALF (admins only):
  * ─────────────────────────────────────────────
@@ -59,6 +61,8 @@
 "use client"
 import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
+import EquipmentPicker from "./EquipmentPicker"
+import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T } from "@/lib/theme"
@@ -111,14 +115,31 @@ export default function TicketForm({
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
+  const [equipmentOptions, setEquipmentOptions] = useState<string[]>(DEFAULT_EQUIPMENT)
+
+  /** Equipment requested on this ticket: label → quantity. */
+  const [equipment, setEquipment] = useState<Record<string, number>>({})
+
+  /** Whether the user opened the checklist on a non-onboarding ticket. */
+  const [equipmentOpen, setEquipmentOpen] = useState(false)
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {
       setCategories(opts.category)
       setPlatforms(opts.platform)
       setUrgencies(opts.urgency)
+      setEquipmentOptions(opts.equipment)
     })
   }, [])
+
+  /**
+   * Onboarding tickets always need a kit, so the checklist opens by itself.
+   * Any other ticket can still request equipment (an existing employee asking
+   * for a second screen) — it just starts collapsed behind a toggle so a
+   * "printer is jammed" ticket is not cluttered by it.
+   */
+  const isNewEmployee = form.category === NEW_EMPLOYEE_CATEGORY
+  const showEquipment = isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0
 
   /**
    * Whose name the ticket is opened in (admins only).
@@ -199,7 +220,13 @@ export default function TicketForm({
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, ...behalfFields }),
+        body: JSON.stringify({
+          ...form,
+          ...behalfFields,
+          // Sent whenever anything was picked — equipment is not limited to
+          // onboarding tickets.
+          equipment: Object.entries(equipment).map(([label, quantity]) => ({ label, quantity })),
+        }),
       })
       if (!res.ok) throw new Error()
       const created = await res.json()
@@ -226,6 +253,8 @@ export default function TicketForm({
         platform: "מחשב אישי",
       })
       setPendingImages([])
+      setEquipment({})
+      setEquipmentOpen(false)
       // Back to "in my own name" so the next ticket doesn't silently inherit
       // the previous caller's identity.
       setBehalf("")
@@ -415,6 +444,32 @@ export default function TicketForm({
             </select>
           </div>
         </div>
+
+        {/* ── Equipment request ── */}
+        {showEquipment ? (
+          <div style={{ backgroundColor: T.cardMuted, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div>
+              <label style={{ margin: 0 }}>{isNewEmployee ? "ציוד לעובד החדש" : "ציוד מבוקש"}</label>
+              <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: T.text3 }}>
+                בחרו מה נדרש. הטכנאי שיטפל בפנייה יסמן כל פריט שהתקבל או הותקן.
+              </p>
+            </div>
+            <EquipmentPicker
+              options={equipmentOptions}
+              value={equipment}
+              onChange={setEquipment}
+              disabled={loading}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEquipmentOpen(true)}
+            style={{ alignSelf: "flex-start", padding: "7px 14px", borderRadius: 9, border: `1px dashed ${T.border}`, background: "#fff", color: T.text2, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+          >
+            + אני צריך גם ציוד
+          </button>
+        )}
 
         {/* ── Description ── */}
         <div>

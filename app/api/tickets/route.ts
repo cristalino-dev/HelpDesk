@@ -27,6 +27,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
+import { normalizeSelection } from "@/lib/equipment"
 
 /**
  * POST /api/tickets
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { subject, description, phone, computerName, urgency, category, platform,
-            onBehalfOfEmail, onBehalfOfName } = await req.json()
+            onBehalfOfEmail, onBehalfOfName, equipment } = await req.json()
 
     // Resolve the signed-in user's DB row — needed for the userId foreign key.
     // We use email (from Google OAuth) as the lookup key.
@@ -106,6 +107,23 @@ export async function POST(req: NextRequest) {
         // status defaults to "פתוח" (see schema), createdAt/updatedAt are automatic
       },
     })
+
+    // EQUIPMENT REQUEST — allowed on ANY ticket. A new hire needs a whole kit
+    // and an existing employee may just want a second screen; both end up on
+    // the same supplier order. Items are validated against the live option list
+    // so a hand-crafted request cannot invent equipment.
+    // The option lookup is skipped entirely for the common case of a ticket
+    // that asks for no equipment at all.
+    if (Array.isArray(equipment) && equipment.length > 0) {
+      const equipmentAllowed = await prisma.fieldOption.findMany({ where: { field: "equipment" }, select: { label: true } })
+      const equipmentLines = normalizeSelection(equipment, equipmentAllowed.map(o => o.label))
+      if (equipmentLines.length > 0) {
+        await prisma.ticketEquipment.createMany({
+          data: equipmentLines.map(l => ({ ticketId: ticket.id, label: l.label, quantity: l.quantity })),
+          skipDuplicates: true,
+        })
+      }
+    }
 
     // Write creation history entry. The actor is always the person who clicked —
     // for an on-behalf ticket that is the admin, not the owner, so the audit

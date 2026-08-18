@@ -9,6 +9,9 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
+import EquipmentPicker from "@/components/EquipmentPicker"
+import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY, equipmentProgress, outstandingOf } from "@/lib/equipment"
+import type { TicketEquipment } from "@/types/ticket"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
 import { useIsMobile } from "@/lib/useIsMobile"
@@ -58,12 +61,19 @@ export default function TicketDetailPage() {
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
+  const [equipmentOptions, setEquipmentOptions] = useState<string[]>(DEFAULT_EQUIPMENT)
+  /** Line id currently being written to — disables its controls mid-request. */
+  const [equipSaving, setEquipSaving] = useState<string | null>(null)
+  /** Staff "add missing item" panel: open state + pending selection. */
+  const [equipAdding, setEquipAdding] = useState(false)
+  const [equipDraft, setEquipDraft]   = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {
       setUrgencies(opts.urgency)
       setCategories(opts.category)
       setPlatforms(opts.platform)
+      setEquipmentOptions(opts.equipment)
     })
   }, [])
 
@@ -292,6 +302,45 @@ export default function TicketDetailPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // ── Equipment checklist (new-employee tickets) ─────────────────────────────
+  // Every verb returns the ticket's full line list, so state is replaced from
+  // the server response rather than patched locally — no drift when two
+  // technicians tick items at the same time.
+  const equipmentRequest = async (method: "POST" | "PATCH" | "DELETE", body: object, busyKey: string) => {
+    if (!ticket) return
+    setEquipSaving(busyKey)
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/equipment`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) return
+      const lines: TicketEquipment[] = await res.json()
+      setTicket(t => (t ? { ...t, equipment: lines } : t))
+    } catch { /* transient — the 10s poll will resync */ }
+    finally { setEquipSaving(null) }
+  }
+
+  /** Tick a whole line off (or un-tick it). */
+  const markReceived = (line: TicketEquipment, received: boolean) =>
+    equipmentRequest("PATCH", { id: line.id, received }, line.id)
+
+  /** Record a partial delivery. */
+  const setReceivedQty = (line: TicketEquipment, receivedQty: number) =>
+    equipmentRequest("PATCH", { id: line.id, receivedQty }, line.id)
+
+  const removeEquipment = (line: TicketEquipment) =>
+    equipmentRequest("DELETE", { id: line.id }, line.id)
+
+  const addEquipment = async () => {
+    const equipment = Object.entries(equipDraft).map(([label, quantity]) => ({ label, quantity }))
+    if (equipment.length === 0) { setEquipAdding(false); return }
+    await equipmentRequest("POST", { equipment }, "add")
+    setEquipDraft({})
+    setEquipAdding(false)
+  }
+
   if (status === "loading" || loading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: T.bg }}>
@@ -514,6 +563,162 @@ export default function TicketDetailPage() {
             }
           </div>
         </div>
+
+        {/* Equipment request — on ANY ticket, not just onboarding: an existing
+            employee asking for a second screen lands on the same supplier
+            order. Everyone can see the list and watch it arrive; the owner may
+            add to (and withdraw from) their own open ticket; only staff tick
+            items off as received. */}
+        {(() => {
+          const lines    = ticket.equipment ?? []
+          const isOwner  = ticket.user?.email === session?.user?.email
+          const isOpen   = ticket.status !== "סגור"
+          // Who may add lines: staff any time, the owner while it is open.
+          const canAdd   = isStaff || (isOwner && isOpen)
+          if (lines.length === 0 && !canAdd && ticket.category !== NEW_EMPLOYEE_CATEGORY) return null
+          const progress = equipmentProgress(lines)
+          return (
+            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+                <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>
+                  📦 {ticket.category === NEW_EMPLOYEE_CATEGORY ? "ציוד לעובד חדש" : "ציוד מבוקש"}
+                </h2>
+                {lines.length > 0 && (
+                  <span style={{
+                    fontSize: "0.72rem", fontWeight: 700, borderRadius: 999, padding: "3px 10px",
+                    background: progress.complete ? T.greenBg : "#fff7ed",
+                    color:      progress.complete ? T.greenInk : "#c2410c",
+                  }}>
+                    {progress.complete
+                      ? "✓ כל הציוד התקבל"
+                      : `${progress.received} מתוך ${progress.requested} יחידות התקבלו · חסרות ${progress.outstanding}`}
+                  </span>
+                )}
+              </div>
+
+              {lines.length === 0 && (
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>
+                  {canAdd ? "לא נבחר ציוד בפנייה זו. ניתן להוסיף פריטים למטה." : "לא נבחר ציוד בפנייה זו."}
+                </p>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {lines.map(line => {
+                  const missing = outstandingOf(line)
+                  const done    = missing === 0
+                  const busy    = equipSaving === line.id
+                  return (
+                    <div key={line.id} style={{
+                      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                      padding: "9px 12px", borderRadius: 10,
+                      background: done ? T.greenBg : "#f9fafb",
+                      border: `1px solid ${done ? T.green : "#e5e7eb"}`,
+                      opacity: busy ? 0.55 : 1, transition: "opacity 0.12s",
+                    }}>
+                      {/* The V — staff only */}
+                      {isStaff ? (
+                        <button
+                          onClick={() => markReceived(line, !done)}
+                          disabled={busy}
+                          aria-label={done ? `בטל סימון ${line.label}` : `סמן ${line.label} כהתקבל`}
+                          title={done ? "בטל סימון" : "סמן כהתקבל"}
+                          style={{
+                            width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                            border: done ? "none" : "1.5px solid #cbd5e1",
+                            background: done ? T.green : "#fff",
+                            color: "#fff", cursor: busy ? "default" : "pointer",
+                            fontSize: "0.8rem", fontWeight: 800, lineHeight: 1,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >{done ? "✓" : ""}</button>
+                      ) : (
+                        <span aria-hidden style={{
+                          width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                          background: done ? T.green : "#fff", border: done ? "none" : "1.5px solid #e5e7eb",
+                          color: "#fff", fontSize: "0.8rem", fontWeight: 800,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>{done ? "✓" : ""}</span>
+                      )}
+
+                      <span style={{
+                        fontSize: "0.86rem", fontWeight: 600, minWidth: 0, flex: 1,
+                        color: done ? T.greenInk : "#111827",
+                        textDecoration: done ? "line-through" : "none",
+                      }}>
+                        {line.label}
+                        {line.quantity > 1 && <span style={{ color: T.text3, fontWeight: 500 }}> × {line.quantity}</span>}
+                      </span>
+
+                      {/* Partial delivery — staff can record "2 of 3 arrived" */}
+                      {isStaff && line.quantity > 1 && !done && (
+                        <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: "0.74rem", color: T.text3 }}>
+                          התקבלו
+                          <input
+                            type="number"
+                            min={0}
+                            max={line.quantity}
+                            value={line.receivedQty}
+                            disabled={busy}
+                            onChange={e => setReceivedQty(line, Number(e.target.value))}
+                            style={{ width: 52, padding: "3px 6px", borderRadius: 7, border: "1px solid #e5e7eb", fontSize: "0.78rem", textAlign: "center" }}
+                          />
+                        </label>
+                      )}
+
+                      {!done && (
+                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px" }}>
+                          חסר {missing}
+                        </span>
+                      )}
+
+                      {(isStaff || (isOwner && isOpen && line.receivedQty === 0)) && (
+                        <button
+                          onClick={() => removeEquipment(line)}
+                          disabled={busy}
+                          title="הסר פריט"
+                          aria-label={`הסר ${line.label}`}
+                          style={{ background: "none", border: "none", cursor: busy ? "default" : "pointer", fontSize: "0.85rem", opacity: 0.45, padding: 0 }}
+                        >🗑</button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Add an item that was forgotten when the ticket was filed */}
+              {canAdd && (
+                <div style={{ marginTop: lines.length ? 14 : 0, borderTop: lines.length ? "1px solid #f3f4f6" : "none", paddingTop: lines.length ? 14 : 0 }}>
+                  {equipAdding ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <EquipmentPicker
+                        options={equipmentOptions}
+                        value={equipDraft}
+                        onChange={setEquipDraft}
+                        disabled={equipSaving === "add"}
+                      />
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          onClick={addEquipment}
+                          disabled={equipSaving === "add"}
+                          style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: T.dark, color: "#fff", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                        >{equipSaving === "add" ? "שומר..." : "הוסף לרשימה"}</button>
+                        <button
+                          onClick={() => { setEquipAdding(false); setEquipDraft({}) }}
+                          style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                        >ביטול</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEquipAdding(true)}
+                      style={{ padding: "7px 14px", borderRadius: 9, border: `1px dashed ${T.border}`, background: "#fff", color: T.text2, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                    >+ הוספת פריט</button>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Attachments */}
         {ticket.attachments.length > 0 && (
