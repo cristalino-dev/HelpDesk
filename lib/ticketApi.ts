@@ -52,6 +52,28 @@ export async function setTicketStatus(id: string, status: string): Promise<boole
 }
 
 /**
+ * Set a ticket's status and surface the server's refusal if it will not.
+ *
+ * Same request as setTicketStatus(), different failure handling: the boolean
+ * helpers above swallow the reason, which is fine while every refusal is a
+ * permission error the UI already prevents. Closing is no longer like that —
+ * a "עובד עוזב" ticket refuses to close while its return checklist has an
+ * unticked line, and the caller has something worth showing the user.
+ *
+ * @returns null on success, or the server's Hebrew message on refusal.
+ */
+export async function setTicketStatusOrError(id: string, status: string): Promise<string | null> {
+  const res = await patchTicket({ id, status })
+  if (res.ok) return null
+  try {
+    const body = await res.json()
+    return typeof body?.error === "string" ? body.error : "הפעולה נכשלה. נסו שנית."
+  } catch {
+    return "הפעולה נכשלה. נסו שנית."
+  }
+}
+
+/**
  * Apply arbitrary field updates to a ticket (staff-only fields accepted by
  * the server: subject, description, phone, computerName, urgency, category,
  * platform, assignedTo).

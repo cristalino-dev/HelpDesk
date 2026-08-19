@@ -29,6 +29,7 @@ import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdate
 import { NextRequest, NextResponse } from "next/server"
 import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
+import { isOffboarding, offboardingChecklist, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 
 /**
  * POST /api/tickets
@@ -133,11 +134,21 @@ export async function POST(req: NextRequest) {
     // and an existing employee may just want a second screen; both end up on
     // the same supplier order. Items are validated against the live option list
     // so a hand-crafted request cannot invent equipment.
-    // The option lookup is skipped entirely for the common case of a ticket
-    // that asks for no equipment at all.
-    if (Array.isArray(equipment) && equipment.length > 0) {
+    //
+    // OFFBOARDING is the exception: the checklist is not a selection at all.
+    // A "עובד עוזב" ticket is born with EVERY item on the gear list, accounts
+    // included, and the server builds that list itself rather than trusting the
+    // form — a checklist that can arrive short is not a checklist.
+    //
+    // The option lookup is skipped entirely for the common case of an ordinary
+    // ticket that asks for no equipment at all.
+    const offboarding = isOffboarding(category)
+    if (offboarding || (Array.isArray(equipment) && equipment.length > 0)) {
       const equipmentAllowed = await prisma.fieldOption.findMany({ where: { field: "equipment" }, select: { label: true } })
-      const equipmentLines = normalizeSelection(equipment, equipmentAllowed.map(o => o.label))
+      const allowedLabels = equipmentAllowed.map(o => o.label)
+      const equipmentLines = offboarding
+        ? offboardingChecklist(allowedLabels)
+        : normalizeSelection(equipment, allowedLabels)
       if (equipmentLines.length > 0) {
         await prisma.ticketEquipment.createMany({
           data: equipmentLines.map(l => ({ ticketId: ticket.id, label: l.label, quantity: l.quantity })),
@@ -214,6 +225,7 @@ export async function POST(req: NextRequest) {
  *
  * RESPONSE:
  *   200 — The updated Ticket object (JSON)
+ *   400 — Offboarding ticket closed with items still unticked (`blockers`)
  *   403 — Forbidden (wrong owner, invalid transition, or reopen window expired)
  *   500 — Database or unexpected error (logged to Log table)
  */
@@ -250,6 +262,25 @@ export async function PATCH(req: NextRequest) {
       } else {
         // Any other transition (e.g. setting to "בטיפול") is staff-only.
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+    }
+
+    // OFFBOARDING CLOSE GUARD — a leaving-employee ticket is the record that
+    // the gear came back and the accounts were dealt with, so closure is the
+    // one moment where the checklist has any leverage. Applies to everyone,
+    // staff included: the disabled button in the UI is a courtesy, this is the
+    // rule. Only this one category is ever blocked.
+    if (status === "סגור" && isOffboarding(before.category)) {
+      const lines = await prisma.ticketEquipment.findMany({
+        where:  { ticketId: before.id },
+        select: { label: true, quantity: true, receivedQty: true },
+      })
+      const blockers = offboardingBlockers(lines)
+      if (blockers.length > 0) {
+        return NextResponse.json(
+          { error: blockerMessage(blockers), blockers },
+          { status: 400 },
+        )
       }
     }
 

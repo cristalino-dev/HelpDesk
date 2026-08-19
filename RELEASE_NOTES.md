@@ -5,6 +5,72 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.61 — נוהל עזיבת עובד
+
+**A leaving employee now gets a full return checklist, and the ticket refuses to
+close until every line on it has been dealt with.**
+
+Offboarding was done from memory. The laptop came back because someone
+remembered to ask for it; the second screen at home and the Zoho seat we kept
+paying for did not, because nobody remembered they existed. The ticket could be
+closed at any point, so "closed" meant "we stopped thinking about it".
+
+### What changed for users
+
+- **A new "עובד עוזב" category.** Choosing it opens the ticket with a checklist
+  of **every item on the gear list** — laptop, screen, docking station, and the
+  account items too (חשבון Gmail, חשבון Zoho, משתמש קומקס).
+- **It is not a selection.** Nobody is asked what the leaver has, and nothing is
+  queried from Google or Zoho to find out. The whole list is put in front of the
+  technician, because the item that gets forgotten is the one nobody thought to
+  ask about. An item this person never had is **removed** from the list by
+  staff — a decision someone made, rather than one nobody made.
+- **The ticket cannot be closed while a line is open.** The close button is
+  disabled and says why, and the checklist card shows what is left. Emptying the
+  list entirely is allowed: that is an explicit "there is nothing to return".
+- **The card reads for returns, not requests** — "📤 החזרת ציוד וסגירת חשבונות",
+  "3 מתוך 12 פריטים טופלו", "טרם טופל" — and ticking a line means the gear came
+  back or the account was closed.
+- **Refused closes now explain themselves** everywhere, not just on the ticket
+  page: closing from the admin queue, the staff list or the dashboard shows the
+  server's reason instead of a dropdown that silently snaps back.
+
+### What changed for developers
+
+- **New `lib/offboarding.ts`** (pure): `LEAVING_EMPLOYEE_CATEGORY`,
+  `isOffboarding()`, `offboardingChecklist()` (whole option list, deduped,
+  one each), `offboardingBlockers()`, `canCloseTicket()`, `blockerMessage()`.
+- **No new model.** The checklist is ordinary `TicketEquipment` rows, so the
+  tick-off UI, the partial quantities and the polling signature all come for
+  free. No migration.
+- `POST /api/tickets` builds the checklist **server-side** from the live option
+  list and ignores whatever the form sent — a checklist that can arrive short is
+  not a checklist.
+- **The close guard is server-side in both close paths:** `PATCH /api/tickets`
+  returns 400 and `POST /api/automation/close` returns 409, each with the
+  blocking labels in `blockers`. A machine caller is not a way around a
+  procedure a human is held to. The disabled button is a courtesy.
+- **The shortage report excludes offboarding tickets entirely** — gear coming
+  back is not gear to buy, and a fresh return checklist would swamp the supplier
+  order.
+- New `setTicketStatusOrError()` in `lib/ticketApi.ts` (returns the server's
+  message instead of a boolean) and `components/ErrorToast.tsx`.
+- `FieldOption` seeding back-fills the new category and the DELETE endpoint
+  refuses it, same as "עובד חדש".
+
+### Testing
+
+- 530 tests passing across 33 suites (33 new tests; 1 new suite).
+- New `__tests__/offboarding.test.ts` (21) — checklist construction and
+  deduplication, blocker detection, and the close rule including the
+  emptied-list and ordinary-ticket cases.
+- `TicketsAPI` gains 9 (the checklist is built from the option list and ignores
+  the payload, the 400 with its `blockers`, closing once ticked, non-closure
+  status changes untouched, ordinary tickets never even read the checklist);
+  `EquipmentAPI` and `FieldOptionsSeed` gain the exclusion and protection cases.
+
+---
+
 ## v3.60 — מחיקת פנייה (מנהלים)
 
 **An admin can now delete a ticket outright, after confirming what disappears

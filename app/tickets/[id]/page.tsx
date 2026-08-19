@@ -12,6 +12,7 @@ import { handleImagePaste } from "@/lib/pasteImage"
 import EquipmentPicker from "@/components/EquipmentPicker"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY, equipmentProgress, outstandingOf } from "@/lib/equipment"
 import { NEW_EMPLOYEE_FIELDS, parseNewEmployeeBlock, stripNewEmployeeBlock } from "@/lib/newEmployee"
+import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import type { TicketEquipment } from "@/types/ticket"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
@@ -377,6 +378,14 @@ export default function TicketDetailPage() {
   /** Hire details recovered from the description; null on an ordinary ticket. */
   const newHire = parseNewEmployeeBlock(ticket.description)
 
+  // OFFBOARDING — a leaving-employee ticket does not close while anything on
+  // the return checklist is still unticked. The server enforces this (PATCH
+  // /api/tickets and the automation endpoint both refuse); disabling the
+  // buttons here is so nobody has to discover the rule by hitting it.
+  const leaving       = isOffboarding(ticket.category)
+  const closeBlockers = leaving ? offboardingBlockers(ticket.equipment ?? []) : []
+  const closeBlocked  = closeBlockers.length > 0
+
   const labelStyle: React.CSSProperties = { fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4, display: "block" }
   const valueStyle: React.CSSProperties = { fontSize: "0.9rem", color: "#1f2937" }
   const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", boxSizing: "border-box" }
@@ -410,10 +419,11 @@ export default function TicketDetailPage() {
         {session?.user?.isAdmin && ticket.status !== "סגור" && !editing && (
           <button
             onClick={adminCloseTicket}
-            disabled={closing}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: closing ? "rgba(255,255,255,0.10)" : T.green, color: closing ? HDR.muted : T.dark, fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
+            disabled={closing || closeBlocked}
+            title={closeBlocked ? blockerMessage(closeBlockers) : undefined}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: (closing || closeBlocked) ? "rgba(255,255,255,0.10)" : T.green, color: (closing || closeBlocked) ? HDR.muted : T.dark, fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
           >
-            {closing ? "סוגר..." : "✓ סגור פנייה"}
+            {closing ? "סוגר..." : closeBlocked ? "🔒 סגור פנייה" : "✓ סגור פנייה"}
           </button>
         )}
         <button
@@ -425,10 +435,11 @@ export default function TicketDetailPage() {
         {!isStaff && ticket.status !== "סגור" && ticket.user?.email === session?.user?.email && (
           <button
             onClick={closeTicket}
-            disabled={closing}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(217,83,79,0.5)", background: closing ? "rgba(255,255,255,0.10)" : "rgba(217,83,79,0.16)", color: closing ? HDR.muted : "#E88B87", fontWeight: 700, fontSize: "0.85rem", cursor: closing ? "not-allowed" : "pointer" }}
+            disabled={closing || closeBlocked}
+            title={closeBlocked ? blockerMessage(closeBlockers) : undefined}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(217,83,79,0.5)", background: (closing || closeBlocked) ? "rgba(255,255,255,0.10)" : "rgba(217,83,79,0.16)", color: (closing || closeBlocked) ? HDR.muted : "#E88B87", fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
           >
-            {closing ? "סוגר..." : "סגור פנייה"}
+            {closing ? "סוגר..." : closeBlocked ? "🔒 סגור פנייה" : "סגור פנייה"}
           </button>
         )}
         {session?.user?.isAdmin && !editing && (
@@ -683,13 +694,15 @@ export default function TicketDetailPage() {
           const isOpen   = ticket.status !== "סגור"
           // Who may add lines: staff any time, the owner while it is open.
           const canAdd   = isStaff || (isOwner && isOpen)
-          if (lines.length === 0 && !canAdd && ticket.category !== NEW_EMPLOYEE_CATEGORY) return null
+          if (lines.length === 0 && !canAdd && ticket.category !== NEW_EMPLOYEE_CATEGORY && !leaving) return null
           const progress = equipmentProgress(lines)
           return (
             <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
                 <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>
-                  📦 {ticket.category === NEW_EMPLOYEE_CATEGORY ? "ציוד לעובד חדש" : "ציוד מבוקש"}
+                  {leaving
+                    ? "📤 החזרת ציוד וסגירת חשבונות"
+                    : `📦 ${ticket.category === NEW_EMPLOYEE_CATEGORY ? "ציוד לעובד חדש" : "ציוד מבוקש"}`}
                 </h2>
                 {lines.length > 0 && (
                   <span style={{
@@ -697,16 +710,38 @@ export default function TicketDetailPage() {
                     background: progress.complete ? T.greenBg : "#fff7ed",
                     color:      progress.complete ? T.greenInk : "#c2410c",
                   }}>
-                    {progress.complete
-                      ? "✓ כל הציוד התקבל"
-                      : `${progress.received} מתוך ${progress.requested} יחידות התקבלו · חסרות ${progress.outstanding}`}
+                    {leaving
+                      ? (progress.complete
+                          ? "✓ כל הפריטים טופלו"
+                          : `${progress.linesDone} מתוך ${progress.linesTotal} פריטים טופלו · נותרו ${progress.linesTotal - progress.linesDone}`)
+                      : (progress.complete
+                          ? "✓ כל הציוד התקבל"
+                          : `${progress.received} מתוך ${progress.requested} יחידות התקבלו · חסרות ${progress.outstanding}`)}
                   </span>
                 )}
               </div>
 
+              {/* The whole point of the offboarding checklist: the ticket is
+                  the record that this was actually done, so it cannot be
+                  declared finished while a line is still open. */}
+              {leaving && (
+                <div style={{
+                  marginBottom: 14, padding: "10px 14px", borderRadius: 10, fontSize: "0.82rem", lineHeight: 1.6,
+                  background: closeBlocked ? "#fff7ed" : T.greenBg,
+                  border: `1px solid ${closeBlocked ? "#fdba74" : T.green}`,
+                  color: closeBlocked ? "#9a3412" : T.greenInk,
+                }}>
+                  {closeBlocked
+                    ? <>🔒 <strong>לא ניתן לסגור את הפנייה</strong> עד שכל הפריטים יסומנו. סמנו כל פריט שהוחזר או שהחשבון נסגר, והסירו פריטים שאינם רלוונטיים לעובד זה.</>
+                    : <>✓ כל הפריטים טופלו — ניתן לסגור את הפנייה.</>}
+                </div>
+              )}
+
               {lines.length === 0 && (
                 <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>
-                  {canAdd ? "לא נבחר ציוד בפנייה זו. ניתן להוסיף פריטים למטה." : "לא נבחר ציוד בפנייה זו."}
+                  {leaving
+                    ? "רשימת ההחזרה ריקה — לא נותר דבר להחזיר או לסגור."
+                    : canAdd ? "לא נבחר ציוד בפנייה זו. ניתן להוסיף פריטים למטה." : "לא נבחר ציוד בפנייה זו."}
                 </p>
               )}
 
@@ -728,8 +763,8 @@ export default function TicketDetailPage() {
                         <button
                           onClick={() => markReceived(line, !done)}
                           disabled={busy}
-                          aria-label={done ? `בטל סימון ${line.label}` : `סמן ${line.label} כהתקבל`}
-                          title={done ? "בטל סימון" : "סמן כהתקבל"}
+                          aria-label={done ? `בטל סימון ${line.label}` : `סמן ${line.label} כ${leaving ? "טופל" : "התקבל"}`}
+                          title={done ? "בטל סימון" : leaving ? "סמן כהוחזר / נסגר" : "סמן כהתקבל"}
                           style={{
                             width: 24, height: 24, borderRadius: 7, flexShrink: 0,
                             border: done ? "none" : "1.5px solid #cbd5e1",
@@ -775,7 +810,7 @@ export default function TicketDetailPage() {
 
                       {!done && (
                         <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px" }}>
-                          חסר {missing}
+                          {leaving ? "טרם טופל" : `חסר ${missing}`}
                         </span>
                       )}
 

@@ -5,9 +5,11 @@ import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import AppHeader from "@/components/AppHeader"
 import EquipmentPicker from "@/components/EquipmentPicker"
 import NewEmployeeFields from "@/components/NewEmployeeFields"
+import OffboardingNotice from "@/components/OffboardingNotice"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, fetchFieldOptions } from "@/lib/fieldOptions"
 import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewEmployeeDetails } from "@/lib/newEmployee"
+import { isOffboarding } from "@/lib/offboarding"
 import { HDR, T } from "@/lib/theme"
 
 // ── Urgency colours ──────────────────────────────────────────────────────────
@@ -99,7 +101,9 @@ export default function OpenTicketPage() {
   const urgColor = URGENCY_COLORS[form.urgency]
 
   const isNewEmployee = form.category === NEW_EMPLOYEE_CATEGORY
-  const showEquipment = isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0
+  // Offboarding tickets get the whole gear list from the server — nothing to pick.
+  const isLeaving     = isOffboarding(form.category)
+  const showEquipment = !isLeaving && (isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0)
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {
@@ -465,6 +469,9 @@ export default function OpenTicketPage() {
                 />
               )}
 
+              {/* Offboarding — the return checklist is built server-side */}
+              {isLeaving && <OffboardingNotice items={equipmentOptions} labelStyle={neLabelStyle} />}
+
               {/* Equipment — open by itself for onboarding, on request otherwise */}
               {showEquipment ? (
                 <div style={{ background: T.cardMuted, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px" }}>
@@ -479,7 +486,7 @@ export default function OpenTicketPage() {
                     disabled={submitting}
                   />
                 </div>
-              ) : (
+              ) : isLeaving ? null : (
                 <button
                   type="button"
                   onClick={() => setEquipmentOpen(true)}

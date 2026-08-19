@@ -48,6 +48,7 @@ jest.mock("next/server", () => ({
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { NEW_EMPLOYEE_CATEGORY, DEFAULT_EQUIPMENT } from "@/lib/equipment"
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 
 const mockAuth = auth as jest.Mock
 const opt = prisma.fieldOption as unknown as {
@@ -112,6 +113,17 @@ describe("field-options seeding", () => {
     expect(backfill![0].skipDuplicates).toBe(true)
   })
 
+  it("back-fills the leaving-employee category too", async () => {
+    opt.findFirst.mockResolvedValue(null)
+    await GET()
+
+    const call = opt.createMany.mock.calls.find(
+      c => c[0].data[0]?.label === LEAVING_EMPLOYEE_CATEGORY,
+    )
+    expect(call).toBeDefined()
+    expect(call![0]).toMatchObject({ skipDuplicates: true })
+  })
+
   it("does not re-create the category when it already exists", async () => {
     opt.findFirst.mockResolvedValue({ id: "cat-1", field: "category", label: NEW_EMPLOYEE_CATEGORY })
     await GET()
@@ -149,6 +161,14 @@ describe("field-options DELETE protection", () => {
     const res = await DELETE({ json: async () => ({ id: "c2" }) } as never) as Res
     expect(res.status).toBe(200)
     expect(opt.delete).toHaveBeenCalledWith({ where: { id: "c2" } })
+  })
+
+  it("refuses to delete the leaving-employee category", async () => {
+    // It is what builds the return checklist and what blocks closure.
+    opt.findUnique.mockResolvedValue({ id: "c3", field: "category", label: LEAVING_EMPLOYEE_CATEGORY })
+    const res = await DELETE({ json: async () => ({ id: "c3" }) } as never) as Res
+    expect(res.status).toBe(400)
+    expect(opt.delete).not.toHaveBeenCalled()
   })
 
   it("allows deleting an equipment item", async () => {

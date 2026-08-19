@@ -290,14 +290,29 @@ describe("GET /api/admin/equipment", () => {
     asStaff()
     equipDb.findMany.mockResolvedValue([])
     await SHORTAGE_GET(shortageReq())
-    expect(equipDb.findMany.mock.calls[0][0].where).toEqual({ ticket: { status: { not: "סגור" } } })
+    expect(equipDb.findMany.mock.calls[0][0].where).toEqual({
+      ticket: { category: { not: "עובד עוזב" }, status: { not: "סגור" } },
+    })
   })
 
   it("includes closed tickets when asked", async () => {
     asStaff()
     equipDb.findMany.mockResolvedValue([])
     await SHORTAGE_GET(shortageReq(true))
-    expect(equipDb.findMany.mock.calls[0][0].where).toEqual({})
+    expect(equipDb.findMany.mock.calls[0][0].where).toEqual({
+      ticket: { category: { not: "עובד עוזב" } },
+    })
+  })
+
+  it("never counts a leaving employee's return checklist as an order", async () => {
+    // Gear coming BACK from someone who is leaving is not gear to buy, and a
+    // fresh offboarding ticket starts with every item unticked — it would
+    // swamp the supplier list.
+    asStaff()
+    equipDb.findMany.mockResolvedValue([])
+    await SHORTAGE_GET(shortageReq(true))
+    expect(equipDb.findMany.mock.calls[0][0].where.ticket.category)
+      .toEqual({ not: "עובד עוזב" })
   })
 
   it("returns ready-to-send supplier text", async () => {

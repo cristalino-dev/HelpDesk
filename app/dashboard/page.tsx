@@ -48,7 +48,8 @@ import type { Ticket } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { useIsMobile } from "@/lib/useIsMobile"
-import { closeTicket as apiCloseTicket, setTicketStatus } from "@/lib/ticketApi"
+import { setTicketStatus, setTicketStatusOrError } from "@/lib/ticketApi"
+import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { T, HDR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
@@ -68,6 +69,8 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [linkCopied, setLinkCopied] = useState(false)
+  /** Server refusal of a close (e.g. an unfinished offboarding checklist). */
+  const [statusError, setStatusError] = useState<string | null>(null)
 
 
   useEffect(() => {
@@ -88,8 +91,10 @@ export default function DashboardPage() {
   }
 
   const closeTicket = async (id: string) => {
-    // Urgency is automatically downgraded to "נמוך" by the server on closure
-    await apiCloseTicket(id)
+    // Urgency is automatically downgraded to "נמוך" by the server on closure.
+    // An offboarding ticket refuses to close until its return checklist is
+    // finished, and the reason is worth showing rather than swallowing.
+    setStatusError(await setTicketStatusOrError(id, "סגור"))
     await loadTickets()
   }
 
@@ -150,6 +155,7 @@ export default function DashboardPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
+      <ErrorToast message={statusError} onClose={() => setStatusError(null)} />
       <AppHeader>
         <>
           {/* Secondary links — hidden on mobile */}

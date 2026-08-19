@@ -28,7 +28,9 @@
  *                  Select box background color changes to match urgency level
  *   description  — Full problem details (required, 4-row textarea)
  *   equipment    — Equipment checklist, available on any category; opens by
- *                  itself for "עובד חדש". See lib/equipment.ts
+ *                  itself for "עובד חדש", and replaced by a read-only notice
+ *                  for "עובד עוזב" (the server builds that list). See
+ *                  lib/equipment.ts and lib/offboarding.ts
  *   newEmployee  — First name, last name, phone and job description of the new
  *                  hire. Shown and required only when the category is
  *                  "עובד חדש"; the server folds them into the description.
@@ -67,8 +69,10 @@ import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
 import EquipmentPicker from "./EquipmentPicker"
 import NewEmployeeFields from "./NewEmployeeFields"
+import OffboardingNotice from "./OffboardingNotice"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewEmployeeDetails } from "@/lib/newEmployee"
+import { isOffboarding } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T } from "@/lib/theme"
@@ -148,7 +152,10 @@ export default function TicketForm({
    * "printer is jammed" ticket is not cluttered by it.
    */
   const isNewEmployee = form.category === NEW_EMPLOYEE_CATEGORY
-  const showEquipment = isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0
+  // An offboarding ticket gets the FULL gear list, built server-side — there is
+  // nothing to pick, so the picker is replaced by a notice of what is coming.
+  const isLeaving     = isOffboarding(form.category)
+  const showEquipment = !isLeaving && (isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0)
 
   /**
    * Whose name the ticket is opened in (admins only).
@@ -473,6 +480,9 @@ export default function TicketForm({
           <NewEmployeeFields value={newEmployee} onChange={setNewEmployee} disabled={loading} />
         )}
 
+        {/* ── Offboarding — the checklist is built by the server ── */}
+        {isLeaving && <OffboardingNotice items={equipmentOptions} />}
+
         {/* ── Equipment request ── */}
         {showEquipment ? (
           <div style={{ backgroundColor: T.cardMuted, border: `1px solid ${T.border}`, borderRadius: "12px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -489,7 +499,7 @@ export default function TicketForm({
               disabled={loading}
             />
           </div>
-        ) : (
+        ) : isLeaving ? null : (
           <button
             type="button"
             onClick={() => setEquipmentOpen(true)}

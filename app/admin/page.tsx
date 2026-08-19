@@ -71,9 +71,11 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
-import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
+import { setTicketStatus, setTicketStatusOrError, updateTicket } from "@/lib/ticketApi"
+import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { T, HDR, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
@@ -117,6 +119,8 @@ export default function AdminPage() {
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  /** Server refusal of a status change (e.g. an unfinished offboarding list). */
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string; holdReason: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "", holdReason: "" })
@@ -320,7 +324,11 @@ export default function AdminPage() {
     }
     setUpdating(id)
     try {
-      await setTicketStatus(id, newStatus)
+      // A refused close has a reason worth reading — an offboarding ticket
+      // whose return checklist is not finished — and the dropdown would
+      // otherwise just snap back in silence.
+      const error = await setTicketStatusOrError(id, newStatus)
+      setStatusError(error)
       await loadTickets()
     } finally {
       setUpdating(null)
@@ -719,6 +727,7 @@ export default function AdminPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg, position: "relative" }}>
+      <ErrorToast message={statusError} onClose={() => setStatusError(null)} />
       <AppHeader wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false}>
         {isMobile ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1018,7 +1027,8 @@ export default function AdminPage() {
                   {(fieldRecords[key] ?? []).map(({ id, label: lbl }) => {
                     // Core urgencies and the new-employee category are system
                     // values — DELETE rejects them server-side too.
-                    const isProtected = key === "urgency" || (key === "category" && lbl === NEW_EMPLOYEE_CATEGORY)
+                    const isProtected = key === "urgency"
+                      || (key === "category" && (lbl === NEW_EMPLOYEE_CATEGORY || lbl === LEAVING_EMPLOYEE_CATEGORY))
                     return (
                       <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "#f3f4f6", fontSize: "0.85rem", fontWeight: 600, color: "#374151", border: "1px solid #e5e7eb" }}>
                         {lbl}

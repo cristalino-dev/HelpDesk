@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, PROTECTED_URGENCIES } from "@/lib/fieldOptions"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { NextRequest, NextResponse } from "next/server"
 
 const FIELDS = ["category", "platform", "urgency", "licenseCategory", "equipment"] as const
@@ -35,6 +36,7 @@ const DEFAULTS: Record<Field, string[]> = {
  */
 const REQUIRED_LABELS: { field: Field; label: string }[] = [
   { field: "category", label: NEW_EMPLOYEE_CATEGORY },
+  { field: "category", label: LEAVING_EMPLOYEE_CATEGORY },
 ]
 
 /** Ensure each field has at least the default values seeded. */
@@ -150,6 +152,12 @@ export async function DELETE(req: NextRequest) {
     // feature rather than just shortening a dropdown.
     if (row.field === "category" && row.label === NEW_EMPLOYEE_CATEGORY) {
       return NextResponse.json({ error: `הקטגוריה "${row.label}" היא ערך מערכת (רשימת הציוד) ולא ניתנת למחיקה` }, { status: 400 })
+    }
+
+    // Same for the leaving-employee category: it is what builds the return
+    // checklist and what blocks closure until the checklist is done.
+    if (row.field === "category" && row.label === LEAVING_EMPLOYEE_CATEGORY) {
+      return NextResponse.json({ error: `הקטגוריה "${row.label}" היא ערך מערכת (רשימת החזרת ציוד) ולא ניתנת למחיקה` }, { status: 400 })
     }
 
     await prisma.fieldOption.delete({ where: { id } })

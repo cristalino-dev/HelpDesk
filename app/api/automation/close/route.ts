@@ -81,6 +81,7 @@ import {
   mailNewMessageToUser,
 } from "@/lib/mail"
 import { NextRequest, NextResponse } from "next/server"
+import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 
 const DEFAULT_ACTOR_EMAIL = "helpdesk@cristalino.co.il"
 const DEFAULT_ACTOR_NAME  = "Automation"
@@ -159,6 +160,21 @@ export async function POST(req: NextRequest) {
         status:       before.status,
         urgency:      before.urgency,
       })
+    }
+
+    // ── Offboarding close guard ────────────────────────────────────────────
+    // Same rule as PATCH /api/tickets: a leaving-employee ticket does not close
+    // while gear or an account is still unaccounted for. A machine caller must
+    // not be a way around a procedure a human is held to.
+    if (isOffboarding(before.category)) {
+      const lines = await prisma.ticketEquipment.findMany({
+        where:  { ticketId: before.id },
+        select: { label: true, quantity: true, receivedQty: true },
+      })
+      const blockers = offboardingBlockers(lines)
+      if (blockers.length > 0) {
+        return NextResponse.json({ error: blockerMessage(blockers), blockers }, { status: 409 })
+      }
     }
 
     // ── Build ticket update payload ────────────────────────────────────────

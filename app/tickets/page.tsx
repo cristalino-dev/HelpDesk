@@ -11,7 +11,8 @@ import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import { isStaleOpen, openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
-import { setTicketStatus, updateTicket } from "@/lib/ticketApi"
+import { setTicketStatusOrError, updateTicket } from "@/lib/ticketApi"
+import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
@@ -66,6 +67,8 @@ export default function TicketsPage() {
   const [hoverId, setHoverId]     = useState<string | null>(null)
   const [expanded, setExpanded]   = useState<string | null>(null)
   const [updating, setUpdating]   = useState<string | null>(null)
+  /** Server refusal of a status change (e.g. an unfinished offboarding list). */
+  const [statusError, setStatusError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm]   = useState<{ subject: string; description: string; phone: string; computerName: string; urgency: string; category: string; platform: string; status: string }>({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
   const [editSaving, setEditSaving] = useState(false)
@@ -216,10 +219,13 @@ export default function TicketsPage() {
   }, [status, session])
 
   const updateStatus = async (id: string, newStatus: string) => {
-    // Closing (status === "סגור") also downgrades urgency to "נמוך" — handled server-side
+    // Closing (status === "סגור") also downgrades urgency to "נמוך" — handled server-side.
+    // It can also be refused outright: an offboarding ticket does not close
+    // while its return checklist has an unticked line.
     setUpdating(id)
     try {
-      await setTicketStatus(id, newStatus)
+      const error = await setTicketStatusOrError(id, newStatus)
+      setStatusError(error)
       await load()
     } finally {
       setUpdating(null)
@@ -331,6 +337,7 @@ export default function TicketsPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, position: "relative" }}>
+      <ErrorToast message={statusError} onClose={() => setStatusError(null)} />
 
       <AppHeader wordmark="כל הפניות" subtitle={false}>
         {isMobile ? (

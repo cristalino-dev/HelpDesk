@@ -25,6 +25,8 @@ jest.mock("@/lib/db", () => ({
     // for equipment, but the mock must exist for the paths that do.
     ticketEquipment: {
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      // The offboarding close guard reads the checklist back (v3.61).
+      findMany:   jest.fn().mockResolvedValue([]),
     },
     fieldOption: {
       findMany: jest.fn().mockResolvedValue([{ label: "מסך" }, { label: "מחשב" }]),
@@ -74,6 +76,9 @@ jest.mock("next/server", () => ({
 }))
 
 describe("Tickets API", () => {
+  /** PATCH a close and hand back the response — used by the offboarding tests. */
+  const POST_PATCH_CLOSE = async (req: any) => await PATCH(req) as any
+
   const { auth } = require("@/auth")
   const { prisma } = require("@/lib/db")
   const { sendMail } = require("@/lib/mail")
@@ -387,6 +392,140 @@ describe("Tickets API", () => {
         expect(res.status).toBe(200)
         expect(prisma.user.upsert).not.toHaveBeenCalled()
         expect(prisma.ticketNote.create).not.toHaveBeenCalled()
+      })
+    })
+  })
+
+  // ── OFFBOARDING (v3.61) ───────────────────────────────────────────────────
+  // A "עובד עוזב" ticket is a procedure, not a request: it is born with the
+  // whole gear list and refuses to close until every line is dealt with.
+  describe("offboarding", () => {
+    const OPTIONS = [{ label: "מחשב נייד" }, { label: "מסך" }, { label: "חשבון Gmail" }]
+
+    beforeEach(() => {
+      const user = { id: "user-1", email: "hr@cristalino.co.il", name: "HR" }
+      mockSession(user)
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(user)
+      ;(prisma.ticket.create as jest.Mock).mockResolvedValue({ id: "ticket-9", ticketNumber: 600, status: "פתוח" })
+      ;(prisma.fieldOption.findMany as jest.Mock).mockResolvedValue(OPTIONS)
+    })
+
+    const leavingReq = (extra: Record<string, unknown> = {}) => ({
+      json: async () => ({
+        subject: "עזיבת עובד", description: "יום אחרון ביום חמישי",
+        phone: "050-1111111", computerName: "PC-9",
+        urgency: "בינוני", category: "עובד עוזב", platform: "מחשב אישי",
+        ...extra,
+      }),
+    }) as any
+
+    describe("POST", () => {
+      it("creates a line for every item on the gear list", async () => {
+        const res = await POST(leavingReq()) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticketEquipment.createMany).toHaveBeenCalledWith({
+          data: [
+            { ticketId: "ticket-9", label: "מחשב נייד",   quantity: 1 },
+            { ticketId: "ticket-9", label: "מסך",         quantity: 1 },
+            { ticketId: "ticket-9", label: "חשבון Gmail", quantity: 1 },
+          ],
+          skipDuplicates: true,
+        })
+      })
+
+      it("builds the list itself and ignores what the form sent", async () => {
+        // A checklist that can arrive short is not a checklist.
+        await POST(leavingReq({ equipment: [{ label: "מסך", quantity: 1 }] }))
+
+        const data = (prisma.ticketEquipment.createMany as jest.Mock).mock.calls[0][0].data
+        expect(data).toHaveLength(3)
+      })
+
+      it("does not build a checklist for an ordinary ticket", async () => {
+        await POST({
+          json: async () => ({ subject: "x", description: "y", category: "אחר" }),
+        } as any)
+
+        expect(prisma.ticketEquipment.createMany).not.toHaveBeenCalled()
+      })
+    })
+
+    describe("PATCH close guard", () => {
+      const leavingTicket = {
+        id: "ticket-9", ticketNumber: 600, status: "בטיפול", urgency: "בינוני",
+        category: "עובד עוזב", subject: "עזיבת עובד", updatedAt: new Date(),
+        user: { name: "HR", email: "hr@cristalino.co.il" },
+      }
+
+      beforeEach(() => {
+        mockSession({ email: "admin@cristalino.co.il", name: "Admin", isAdmin: true })
+        ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(leavingTicket)
+        ;(prisma.ticket.update as jest.Mock).mockResolvedValue({ ...leavingTicket, status: "סגור" })
+      })
+
+      const closeReq = () => ({ json: async () => ({ id: "ticket-9", status: "סגור" }) }) as any
+
+      it("refuses to close while an item is unticked", async () => {
+        ;(prisma.ticketEquipment.findMany as jest.Mock).mockResolvedValue([
+          { label: "מחשב נייד", quantity: 1, receivedQty: 1 },
+          { label: "חשבון Gmail", quantity: 1, receivedQty: 0 },
+        ])
+
+        const res = await POST_PATCH_CLOSE(closeReq())
+
+        expect(res.status).toBe(400)
+        expect((await res.json()).blockers).toEqual(["חשבון Gmail"])
+        expect(prisma.ticket.update).not.toHaveBeenCalled()
+      })
+
+      it("blocks an admin exactly like anyone else", async () => {
+        ;(prisma.ticketEquipment.findMany as jest.Mock).mockResolvedValue([
+          { label: "מסך", quantity: 2, receivedQty: 1 },
+        ])
+
+        const res = await POST_PATCH_CLOSE(closeReq())
+
+        expect(res.status).toBe(400)
+      })
+
+      it("closes once every line is ticked", async () => {
+        ;(prisma.ticketEquipment.findMany as jest.Mock).mockResolvedValue([
+          { label: "מחשב נייד", quantity: 1, receivedQty: 1 },
+          { label: "מסך", quantity: 2, receivedQty: 2 },
+        ])
+
+        const res = await POST_PATCH_CLOSE(closeReq())
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticket.update).toHaveBeenCalled()
+      })
+
+      it("closes a ticket whose checklist was emptied", async () => {
+        ;(prisma.ticketEquipment.findMany as jest.Mock).mockResolvedValue([])
+
+        const res = await POST_PATCH_CLOSE(closeReq())
+
+        expect(res.status).toBe(200)
+      })
+
+      it("does not block a status change that is not a closure", async () => {
+        ;(prisma.ticketEquipment.findMany as jest.Mock).mockResolvedValue([
+          { label: "מסך", quantity: 1, receivedQty: 0 },
+        ])
+
+        const res = await PATCH({ json: async () => ({ id: "ticket-9", status: "בהמתנה", holdReason: "ממתין לציוד" }) } as any) as any
+
+        expect(res.status).toBe(200)
+      })
+
+      it("never reads the checklist for an ordinary ticket", async () => {
+        ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ ...leavingTicket, category: "אחר" })
+
+        const res = await POST_PATCH_CLOSE(closeReq())
+
+        expect(res.status).toBe(200)
+        expect(prisma.ticketEquipment.findMany).not.toHaveBeenCalled()
       })
     })
   })

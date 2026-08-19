@@ -8,8 +8,9 @@
  */
 
 import { NEW_EMPLOYEE_CATEGORY, DEFAULT_EQUIPMENT } from "@/lib/equipment"
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 
-export const DEFAULT_CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", NEW_EMPLOYEE_CATEGORY, "אחר"]
+export const DEFAULT_CATEGORIES = ["חומרה", "תוכנה", "רשת", "מדפסת", NEW_EMPLOYEE_CATEGORY, LEAVING_EMPLOYEE_CATEGORY, "אחר"]
 export const DEFAULT_PLATFORMS  = ["comax", "comax sales tracker", "אנדרואיד", "אייפד", "מחשב אישי"]
 export const DEFAULT_URGENCIES  = ["נמוך", "בינוני", "גבוה", "דחוף"]
 

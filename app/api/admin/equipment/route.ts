@@ -6,6 +6,9 @@
  * Everything still owed to a new employee, aggregated by item, so the admin can
  * send one order to the supplier instead of reading twenty tickets.
  *
+ * Leaving-employee tickets ("עובד עוזב") never appear here — their checklist is
+ * gear coming back, not gear to buy.
+ *
  * A line counts as outstanding when `receivedQty < quantity`. By default only
  * live tickets are scanned — once a ticket is closed the onboarding is over and
  * a leftover unticked line is bookkeeping, not a purchase. `includeClosed=1`
@@ -24,6 +27,7 @@ import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { aggregateShortage, formatSupplierText, totalOutstanding } from "@/lib/equipment"
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(req: NextRequest) {
@@ -35,8 +39,16 @@ export async function GET(req: NextRequest) {
 
     const includeClosed = req.nextUrl.searchParams.get("includeClosed") === "1"
 
+    // Offboarding checklists are excluded outright: gear waiting to come BACK
+    // from someone who is leaving is not gear to buy, and a fresh "עובד עוזב"
+    // ticket starts with every item unticked — it would swamp the order.
     const rows = await prisma.ticketEquipment.findMany({
-      where: includeClosed ? {} : { ticket: { status: { not: "סגור" } } },
+      where: {
+        ticket: {
+          category: { not: LEAVING_EMPLOYEE_CATEGORY },
+          ...(includeClosed ? {} : { status: { not: "סגור" } }),
+        },
+      },
       select: {
         label:       true,
         quantity:    true,
