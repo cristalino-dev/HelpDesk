@@ -13,9 +13,56 @@
  *   - Happy path: ticket is closed, response fields are correct
  *   - Compound close invariant: urgency forced to "נמוך"
  *   - validateKey helper accepts both Authorization and X-Api-Key headers
+ *
+ * The blocks above test the route's logic in isolation, re-stated as pure
+ * functions. The block at the bottom drives the real POST handler, because the
+ * bug that shipped in v3.61 lived in the wiring rather than in the logic: the
+ * note and the message were created with `void prisma...create(...)`, so the
+ * handler returned 200 and the rows were dropped when the request context tore
+ * down. No amount of pure-function testing can see that.
  */
 
-export {}
+import { POST } from "@/app/api/automation/close/route"
+
+// Callbacks handed to `after()` — Next.js runs these once the response is out.
+// Collected here so a test can run them and assert on what they did.
+const afterCallbacks: (() => unknown)[] = []
+
+jest.mock("@/lib/db", () => ({
+  prisma: {
+    ticket:          { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
+    ticketHistory:   { createMany: jest.fn() },
+    ticketNote:      { create: jest.fn() },
+    ticketMessage:   { create: jest.fn() },
+    ticketEquipment: { findMany: jest.fn() },
+  },
+}))
+jest.mock("@/lib/logError", () => ({ logError: jest.fn(), logInfo: jest.fn() }))
+jest.mock("@/lib/mail", () => ({
+  sendMail:                  jest.fn(),
+  mailTicketClosedWithReview: jest.fn(() => "<html>closed</html>"),
+  mailTicketUpdatedStaff:     jest.fn(() => "<html>staff</html>"),
+  mailNewMessageToUser:       jest.fn(() => "<html>message</html>"),
+}))
+jest.mock("next/server", () => ({
+  NextRequest: class {},
+  NextResponse: class {
+    status: number
+    data: unknown
+    constructor(data: unknown, init?: { status?: number }) {
+      this.data = data
+      this.status = init?.status ?? 200
+    }
+    static json(data: unknown, init?: { status?: number }) {
+      return new (this as unknown as { new (d: unknown, i?: { status?: number }): unknown })(data, init)
+    }
+    async json() { return this.data }
+  },
+  after: (cb: () => unknown) => { afterCallbacks.push(cb) },
+}))
+
+import { prisma } from "@/lib/db"
+import { sendMail } from "@/lib/mail"
 
 // ── Minimal stubs ──────────────────────────────────────────────────────────────
 
@@ -212,5 +259,236 @@ describe("history entry generation", () => {
     const statusEntry = entries.find(e => e.field === "status")!
     expect(statusEntry.oldValue).toBe("בטיפול")
     expect(statusEntry.newValue).toBe("סגור")
+  })
+})
+
+// ── The real handler: side effects that must survive the response ──────────────
+//
+// Everything above this line tests re-stated logic. Everything below drives the
+// exported POST, because the failure being guarded against is not a wrong value
+// — it is a write that never happens.
+
+describe("POST /api/automation/close — persisted side effects", () => {
+  const ticketDb  = prisma.ticket        as unknown as { findUnique: jest.Mock; update: jest.Mock; updateMany: jest.Mock }
+  const historyDb = prisma.ticketHistory as unknown as { createMany: jest.Mock }
+  const noteDb    = prisma.ticketNote    as unknown as { create: jest.Mock }
+  const messageDb = prisma.ticketMessage as unknown as { create: jest.Mock }
+  const mail      = sendMail as jest.Mock
+
+  const BEFORE = {
+    id:           "ticket-523",
+    ticketNumber: 523,
+    subject:      "מדפסת לא מדפיסה",
+    description:  "תיאור",
+    status:       "בטיפול",
+    urgency:      "גבוה",
+    category:     "חומרה",
+    platform:     "Windows",
+    phone:        "050-0000000",
+    computerName: "PC-12",
+    assignedTo:   "tech@cristalino.co.il",
+    user: { name: "דנה", email: "dana@cristalino.co.il" },
+  }
+  const AFTER = { ...BEFORE, status: "סגור", urgency: "נמוך" }
+
+  type Res = { status: number; json: () => Promise<Record<string, unknown>> }
+
+  /** Build the fake NextRequest the route reads: two headers and a JSON body. */
+  const call = (body: Record<string, unknown>, key = VALID_KEY) =>
+    POST({
+      headers: {
+        get: (n: string) => (n.toLowerCase() === "authorization" ? `Bearer ${key}` : null),
+      },
+      json: async () => body,
+    } as never) as unknown as Promise<Res>
+
+  /** Run what the route deferred with `after()`, the way Next.js would. */
+  const flushAfter = async () => {
+    const pending = afterCallbacks.splice(0)
+    await Promise.all(pending.map(cb => cb()))
+  }
+
+  const originalEnv = process.env
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    afterCallbacks.length = 0
+    process.env = { ...originalEnv, AUTOMATION_API_KEY: VALID_KEY }
+
+    ticketDb.findUnique.mockResolvedValue(BEFORE)
+    ticketDb.update.mockResolvedValue(AFTER)
+    ticketDb.updateMany.mockResolvedValue({ count: 0 })
+    historyDb.createMany.mockResolvedValue({ count: 2 })
+    noteDb.create.mockResolvedValue({ id: "note-1" })
+    messageDb.create.mockResolvedValue({ id: "msg-1" })
+    mail.mockResolvedValue(undefined)
+  })
+
+  afterAll(() => { process.env = originalEnv })
+
+  it("persists the note and the message that came with the close", async () => {
+    // The v3.61 regression: this returned 200 and wrote neither row.
+    const res = await call({
+      ticketNumber: 523,
+      message:      "הבעיה טופלה — המדפסת אותחלה.",
+      note:         "Restarted the print spooler remotely.",
+      actorName:    "Deploy Bot",
+      actorEmail:   "bot@cristalino.co.il",
+    })
+
+    expect(res.status).toBe(200)
+
+    expect(messageDb.create).toHaveBeenCalledTimes(1)
+    expect(messageDb.create).toHaveBeenCalledWith({
+      data: {
+        ticketId:    "ticket-523",
+        content:     "הבעיה טופלה — המדפסת אותחלה.",
+        authorName:  "Deploy Bot",
+        authorEmail: "bot@cristalino.co.il",
+        authorRole:  "staff",
+      },
+    })
+
+    expect(noteDb.create).toHaveBeenCalledTimes(1)
+    expect(noteDb.create).toHaveBeenCalledWith({
+      data: {
+        ticketId:    "ticket-523",
+        content:     "Restarted the print spooler remotely.",
+        authorName:  "Deploy Bot",
+        authorEmail: "bot@cristalino.co.il",
+      },
+    })
+  })
+
+  it("defaults the note/message author to Automation when no actor is given", async () => {
+    await call({ ticketNumber: 523, message: "טופל", note: "auto" })
+
+    expect(messageDb.create.mock.calls[0][0].data).toMatchObject({
+      authorName:  "Automation",
+      authorEmail: "helpdesk@cristalino.co.il",
+      authorRole:  "staff",
+    })
+    expect(noteDb.create.mock.calls[0][0].data).toMatchObject({
+      authorName:  "Automation",
+      authorEmail: "helpdesk@cristalino.co.il",
+    })
+  })
+
+  it("does not answer 200 until the note and message writes have settled", async () => {
+    // This is the assertion that fails against `void prisma...create()`. A
+    // response that outruns its own writes is the whole bug — checking only
+    // that create() was *called* would pass on the broken code too.
+    let releaseNote: () => void = () => {}
+    noteDb.create.mockReturnValue(new Promise(resolve => {
+      releaseNote = () => resolve({ id: "note-1" })
+    }))
+
+    let responded = false
+    const pending = call({ ticketNumber: 523, message: "טופל", note: "slow write" })
+      .then(res => { responded = true; return res })
+
+    // Give every already-resolved await in the handler a chance to run.
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(responded).toBe(false)
+
+    releaseNote()
+    const res = await pending
+    expect(res.status).toBe(200)
+  })
+
+  it("writes nothing when neither a note nor a message was sent", async () => {
+    const res = await call({ ticketNumber: 523 })
+
+    expect(res.status).toBe(200)
+    expect(noteDb.create).not.toHaveBeenCalled()
+    expect(messageDb.create).not.toHaveBeenCalled()
+    // The close itself still happened.
+    expect(ticketDb.update).toHaveBeenCalledTimes(1)
+    expect(historyDb.createMany).toHaveBeenCalledTimes(1)
+  })
+
+  it("ignores a whitespace-only note or message", async () => {
+    await call({ ticketNumber: 523, message: "   ", note: "\n\t " })
+
+    expect(noteDb.create).not.toHaveBeenCalled()
+    expect(messageDb.create).not.toHaveBeenCalled()
+  })
+
+  it("trims the note and message before storing them", async () => {
+    await call({ ticketNumber: 523, message: "  טופל  ", note: "  done  " })
+
+    expect(messageDb.create.mock.calls[0][0].data.content).toBe("טופל")
+    expect(noteDb.create.mock.calls[0][0].data.content).toBe("done")
+  })
+
+  it("addresses all three closure emails", async () => {
+    await call({ ticketNumber: 523, message: "טופל" })
+    await flushAfter()
+
+    // Owner review request, assigned-staff update, and the new-message notice.
+    expect(mail).toHaveBeenCalledTimes(3)
+    const subjects = mail.mock.calls.map(c => c[0].subject as string)
+    expect(subjects.some(s => s.includes("HDTC-523"))).toBe(true)
+    expect(mail.mock.calls.some(c => c[0].to === "dana@cristalino.co.il")).toBe(true)
+    expect(mail.mock.calls.some(c => {
+      const to = c[0].to
+      return Array.isArray(to) && to.includes("tech@cristalino.co.il")
+    })).toBe(true)
+  })
+
+  it("keeps the closure emails alive past the response instead of abandoning them", async () => {
+    // `after` does not delay the *sending* — sendMail is called while the mails
+    // array is built. What it changes is who waits for the sends to finish: the
+    // framework, rather than nobody. Under a bare `void`, an in-flight send is
+    // dropped at request teardown and the owner never gets the review email.
+    let releaseMail: () => void = () => {}
+    mail.mockReturnValueOnce(new Promise<void>(resolve => { releaseMail = () => resolve() }))
+
+    await call({ ticketNumber: 523, message: "טופל" })
+
+    expect(mail).toHaveBeenCalledTimes(3)
+    expect(afterCallbacks.length).toBeGreaterThan(0)
+
+    let flushed = false
+    const pending = flushAfter().then(() => { flushed = true })
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(flushed).toBe(false)   // still holding the invocation open for the slow send
+
+    releaseMail()
+    await pending
+    expect(flushed).toBe(true)
+  })
+
+  it("runs the urgency sweep after the response rather than during it", async () => {
+    await call({ ticketNumber: 523 })
+
+    expect(ticketDb.updateMany).not.toHaveBeenCalled()
+
+    await flushAfter()
+
+    expect(ticketDb.updateMany).toHaveBeenCalledWith({
+      where: { status: "סגור", urgency: { not: "נמוך" } },
+      data:  { urgency: "נמוך" },
+    })
+  })
+
+  it("skips every side effect on an already-closed ticket", async () => {
+    ticketDb.findUnique.mockResolvedValue({ ...BEFORE, status: "סגור", urgency: "נמוך" })
+
+    const res = await call({ ticketNumber: 523, message: "טופל", note: "again" })
+
+    expect(await res.json()).toMatchObject({ ok: true, alreadyClosed: true })
+    expect(noteDb.create).not.toHaveBeenCalled()
+    expect(messageDb.create).not.toHaveBeenCalled()
+    expect(afterCallbacks).toHaveLength(0)
+  })
+
+  it("writes nothing when the API key is wrong", async () => {
+    const res = await call({ ticketNumber: 523, message: "טופל", note: "x" }, "wrong-key")
+
+    expect(res.status).toBe(401)
+    expect(noteDb.create).not.toHaveBeenCalled()
+    expect(messageDb.create).not.toHaveBeenCalled()
   })
 })

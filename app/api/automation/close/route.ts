@@ -42,10 +42,14 @@
  *    and sends the owner an email notification.
  * 5. Sends the standard closure email (review request) to the ticket owner.
  * 6. Sends a staff update email (excluding helpdesk@ to avoid self-notification).
- * 7. Runs a fire-and-forget urgency sweep — finds any closed tickets (status
- *    "סגור") whose urgency is not "נמוך" and corrects them. This is a safety
- *    net for tickets closed via paths that didn't enforce the compound-close
- *    invariant (direct DB edits, legacy scripts, etc.).
+ * 7. Runs an urgency sweep — finds any closed tickets (status "סגור") whose
+ *    urgency is not "נמוך" and corrects them. This is a safety net for tickets
+ *    closed via paths that didn't enforce the compound-close invariant (direct
+ *    DB edits, legacy scripts, etc.).
+ *
+ * The note and the message are written before the response — a 200 means they
+ * are on disk. The emails and the urgency sweep are scheduled with `after()`,
+ * so they run once the response is out but are still guaranteed to run.
  *
  * IDEMPOTENT:
  * ────────────
@@ -80,7 +84,7 @@ import {
   mailTicketUpdatedStaff,
   mailNewMessageToUser,
 } from "@/lib/mail"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 
 const DEFAULT_ACTOR_EMAIL = "helpdesk@cristalino.co.il"
@@ -215,30 +219,40 @@ export async function POST(req: NextRequest) {
     }
     await prisma.ticketHistory.createMany({ data: historyEntries })
 
-    // ── Technician note (internal, staff-only) ─────────────────────────────
+    // ── Technician note (internal) + client message (visible to owner) ─────
+    // These are awaited, not fire-and-forget. The 200 below reports the note and
+    // the message as recorded, so they have to be on disk before it is sent —
+    // an un-awaited create is dropped when the request context tears down.
+    const writes: Promise<unknown>[] = []
+
     if (note?.trim()) {
-      void prisma.ticketNote.create({
-        data: {
-          ticketId:    before.id,
-          content:     note.trim(),
-          authorName:  actorName,
-          authorEmail: actorEmail,
-        },
-      })
+      writes.push(
+        prisma.ticketNote.create({
+          data: {
+            ticketId:    before.id,
+            content:     note.trim(),
+            authorName:  actorName,
+            authorEmail: actorEmail,
+          },
+        })
+      )
     }
 
-    // ── Client message (visible to ticket owner) ───────────────────────────
     if (message?.trim()) {
-      void prisma.ticketMessage.create({
-        data: {
-          ticketId:    before.id,
-          content:     message.trim(),
-          authorName:  actorName,
-          authorEmail: actorEmail,
-          authorRole:  "staff",
-        },
-      })
+      writes.push(
+        prisma.ticketMessage.create({
+          data: {
+            ticketId:    before.id,
+            content:     message.trim(),
+            authorName:  actorName,
+            authorEmail: actorEmail,
+            authorRole:  "staff",
+          },
+        })
+      )
     }
+
+    await Promise.all(writes)
 
     // ── Email notifications ────────────────────────────────────────────────
     const ticketInfo = {
@@ -293,15 +307,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    void Promise.all(mails)
+    // Deferred, but not dropped: `after` hands the sends to Next.js, which keeps
+    // the invocation alive until they settle. A bare `void` loses them at request
+    // teardown, and the owner never gets the closure/review email.
+    after(async () => { await Promise.all(mails) })
 
     // ── Urgency sweep — fix any closed tickets with stale high urgency ──────
-    // Runs fire-and-forget after every successful closure. Catches tickets
-    // that were closed via a path that didn't enforce the compound-close
-    // invariant (direct DB edits, legacy scripts, etc.).
-    void prisma.ticket.updateMany({
-      where: { status: "סגור", urgency: { not: "נמוך" } },
-      data:  { urgency: "נמוך" },
+    // Runs after the response on every successful closure. Catches tickets that
+    // were closed via a path that didn't enforce the compound-close invariant
+    // (direct DB edits, legacy scripts, etc.). Scheduled with `after` so it does
+    // not hold up the caller but still survives request teardown.
+    after(async () => {
+      await prisma.ticket.updateMany({
+        where: { status: "סגור", urgency: { not: "נמוך" } },
+        data:  { urgency: "נמוך" },
+      })
     })
 
     // ── Response ───────────────────────────────────────────────────────────

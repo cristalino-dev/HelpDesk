@@ -5,6 +5,60 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.62 — סגירה אוטומטית ששומרת את מה שהיא מדווחת ששמרה
+
+**An automation close that sent a message and a note returned 200 and saved
+neither. Both are now written before the response is sent.**
+
+`POST /api/automation/close` created the `TicketNote` and the `TicketMessage`
+with `void prisma...create(...)` — started, never awaited. The handler returned
+its response and the request context tore down while those writes were still in
+flight, so they were abandoned. The status change and the history rows survived
+only because they *were* awaited.
+
+Seen in production on 2026-08-23: ticket 523 was closed through the endpoint
+with both a `message` and a `note`. The call returned 200, the status and
+urgency were correct, both `TicketHistory` rows were there — and there were zero
+`TicketMessage` and zero `TicketNote` rows. Both had to be inserted by hand
+afterwards.
+
+### What changed for users
+
+- **A closing message from automation actually reaches the ticket.** It appears
+  in the chat thread, from staff, where the owner can see it.
+- **A technician note from automation is actually kept.** The internal record of
+  *why* a ticket was closed by a script stops disappearing.
+- **Closure emails are no longer at risk of being dropped.** The review request
+  to the owner, the update to the assigned technician and the new-message notice
+  were fired the same un-awaited way, so a send still in flight when the request
+  ended went nowhere.
+
+### What changed for developers
+
+- **The note and message writes are awaited before the response.** A 200 from
+  this endpoint now means the rows are on disk. This is the whole fix: the
+  response was making a promise the handler had not kept.
+- **The emails and the urgency sweep moved to `after()`** (`next/server`). They
+  still do not block the caller, but Next.js now keeps the invocation alive
+  until they settle instead of nobody waiting for them. Fully supported under
+  `next start`, which is how this deploys; the drain on `SIGTERM` finishes
+  pending callbacks before PM2 swaps the process.
+- **The distinction that matters:** `after()` is for work whose result the
+  response does not claim. A row the response reports as written is not that —
+  it has to be awaited. The two `void`s in this file were on the wrong side of
+  that line.
+- **`__tests__/AutomationClose.test.ts` now drives the real handler.** Every
+  test in it was a pure re-statement of the route's logic, which is why a suite
+  covering this endpoint could be green while the endpoint silently dropped
+  half its writes. The added block imports `POST`, mocks Prisma and mail, and
+  asserts on the writes themselves.
+- **The regression test gates on ordering, not on invocation.** Asserting that
+  `create()` was *called* passes against `void` too. The test holds the note
+  create unresolved and asserts the handler has not answered yet — the only
+  shape of assertion that fails on the old code. Verified failing against it.
+
+---
+
 ## v3.61 — נוהל עזיבת עובד
 
 **A leaving employee now gets a full return checklist, and the ticket refuses to
