@@ -46,8 +46,18 @@ export default function TicketDetailPage() {
   const [loading, setLoading]     = useState(true)
   const [isStaff, setIsStaff]     = useState(false)
   const [editing, setEditing]     = useState(false)
-  const [editForm, setEditForm]   = useState({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "" })
+  const [editForm, setEditForm]   = useState({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "", ownerEmail: "" })
   const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError]   = useState("")
+  /** Every registered user, for the מגיש picker. Admin-only (GET /api/users). */
+  const [users, setUsers] = useState<{ id: string; name: string | null; email: string }[]>([])
+  /**
+   * Email awaiting confirmation in the "move this ticket" dialog. The picker
+   * never writes straight into editForm — a mis-click on a native select is one
+   * keystroke, and this is the field that decides whose dashboard the ticket
+   * lives on. Null when no dialog is open.
+   */
+  const [ownerConfirm, setOwnerConfirm] = useState<string | null>(null)
   const [noteText, setNoteText]     = useState("")
   const [noteImages, setNoteImages] = useState<PendingImage[]>([])
   const [noteSaving, setNoteSaving] = useState(false)
@@ -97,6 +107,15 @@ export default function TicketDetailPage() {
           .then(list => { if (Array.isArray(list) && list.length) setStaffMembers(list) })
           .catch(() => {})
       }
+      // The מגיש picker offers every registered user, not just staff — the
+      // whole point is to move a ticket onto the right person. /api/users is
+      // admin-only, which is also exactly who may send ownerEmail.
+      if (session?.user?.isAdmin) {
+        fetch("/api/users")
+          .then(r => r.ok ? r.json() : null)
+          .then(list => { if (Array.isArray(list)) setUsers(list) })
+          .catch(() => {})
+      }
     }
   }, [status, session])
 
@@ -128,6 +147,7 @@ export default function TicketDetailPage() {
         phone: data.phone, computerName: data.computerName,
         urgency: data.urgency, category: data.category,
         platform: data.platform, status: data.status,
+        ownerEmail: data.user?.email ?? "",
       })
     }
     revisionRef.current = ticketRevision(data)
@@ -191,12 +211,25 @@ export default function TicketDetailPage() {
   const saveEdit = async () => {
     if (!ticket) return
     setEditSaving(true)
+    setEditError("")
     try {
-      const ok = await updateTicket(ticket.id, editForm)
+      const { ownerEmail, ...fields } = editForm
+      // ownerEmail is admin-only on the server, so it travels only when it is
+      // actually a move. Sending it unchanged would turn every ordinary staff
+      // edit into a 403.
+      const moved = ownerEmail !== "" && ownerEmail !== (ticket.user?.email ?? "")
+      const ok = await updateTicket(ticket.id, moved ? { ...fields, ownerEmail } : fields)
       if (ok) { setEditing(false); await load() }
+      else setEditError("שמירת השינויים נכשלה. נסו שנית.")
     } finally {
       setEditSaving(false)
     }
+  }
+
+  /** Display name for an email, falling back to the address itself. */
+  const userLabel = (email: string) => {
+    const u = users.find(x => x.email === email)
+    return u?.name || u?.email || email || "—"
   }
 
   const addNote = async () => {
@@ -453,7 +486,7 @@ export default function TicketDetailPage() {
         )}
         {isStaff && editing && (
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setEditing(false)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
+            <button onClick={() => { setEditing(false); setEditError(""); setEditForm(f => ({ ...f, ownerEmail: ticket.user?.email ?? "" })) }} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
             <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: T.green, color: T.dark, cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
               {editSaving ? "שומר..." : "שמור"}
             </button>
@@ -505,6 +538,52 @@ export default function TicketDetailPage() {
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
                 style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Owner-move confirmation. Changing מגיש is not a typo-level edit: the
+          ticket leaves one person's dashboard and appears on another's, and
+          every later mail about it — status, closure, the service review —
+          goes to the new owner. So the pick is staged, named back to the
+          admin, and only applied on אישור. Cancelling leaves editForm
+          untouched, which is what snaps the select back. */}
+      {ownerConfirm !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="אישור העברת פנייה"
+          onClick={() => setOwnerConfirm(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.28)" }}
+          >
+            <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: "#16181D" }}>
+              העברת פנייה HDTC-{ticket.ticketNumber}
+            </h2>
+            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: "#374151", lineHeight: 1.7 }}>
+              המגיש ישונה מ<strong>{ticket.user?.name ?? ticket.user?.email ?? "—"}</strong> ל<strong>{userLabel(ownerConfirm)}</strong>.
+            </p>
+            <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: "#9ca3af" }}>
+              הפנייה תעבור לרשימת הפניות של {userLabel(ownerConfirm)}, והעדכונים עליה — כולל בקשת הדירוג בסגירה — יישלחו אליו. השינוי ייכתב ליומן הפנייה ויישמר בלחיצה על &quot;שמור&quot;.
+            </p>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-start" }}>
+              <button
+                onClick={() => { setEditForm(f => ({ ...f, ownerEmail: ownerConfirm })); setOwnerConfirm(null) }}
+                style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: T.green, color: T.dark, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
+              >
+                אישור
+              </button>
+              <button
+                onClick={() => setOwnerConfirm(null)}
+                style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
               >
                 ביטול
               </button>
@@ -567,6 +646,16 @@ export default function TicketDetailPage() {
             </div>
           </div>
 
+          {/* A failed save used to be silent — the form simply stayed open. It
+              matters more now that one of the fields can be refused on its
+              own (a non-admin sending ownerEmail, or an address no longer on
+              the roster). */}
+          {editError && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "9px 12px", fontSize: "0.82rem", color: "#dc2626", marginBottom: 16 }}>
+              {editError}
+            </div>
+          )}
+
           {/* Hold reason banner */}
           {ticket.status === "בהמתנה" && ticket.holdReason && (
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 14px", marginBottom: 16, background: "#f3f4f6", borderRadius: 10, border: "1px solid #e5e7eb" }}>
@@ -582,7 +671,27 @@ export default function TicketDetailPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
             <div>
               <span style={labelStyle}>מגיש</span>
-              <span style={valueStyle}>{ticket.user?.name ?? ticket.user?.email ?? "—"}</span>
+              {editing && session?.user?.isAdmin
+                ? <select
+                    aria-label="מגיש"
+                    style={{ ...inputStyle, cursor: "pointer" }}
+                    value={editForm.ownerEmail}
+                    onChange={e => setOwnerConfirm(e.target.value)}
+                  >
+                    {/* The current owner is always listed, even if the roster
+                        fetch failed or they were since removed — otherwise the
+                        select would silently show somebody else as מגיש. */}
+                    {!users.some(u => u.email === editForm.ownerEmail) && editForm.ownerEmail !== "" && (
+                      <option value={editForm.ownerEmail}>
+                        {ticket.user?.name ?? ticket.user?.email}
+                      </option>
+                    )}
+                    {users.map(u => (
+                      <option key={u.id} value={u.email}>{u.name || u.email}</option>
+                    ))}
+                  </select>
+                : <span style={valueStyle}>{ticket.user?.name ?? ticket.user?.email ?? "—"}</span>
+              }
             </div>
             <div>
               <span style={labelStyle}>טלפון</span>
@@ -1057,6 +1166,7 @@ function historyIcon(field: string): string {
     case "status":     return "🔄"
     case "urgency":    return "⚡"
     case "assignedTo": return "👤"
+    case "owner":      return "🔀"
     case "edited":     return "✏️"
     default:           return "📝"
   }
@@ -1068,6 +1178,7 @@ function historyDotColor(field: string): string {
     case "status":     return "#EDF0F4"
     case "urgency":    return "#fef3c7"
     case "assignedTo": return "#EDEFEA"
+    case "owner":      return "#e0e7ff"
     case "edited":     return "#f3f4f6"
     default:           return "#f3f4f6"
   }
@@ -1083,6 +1194,8 @@ function historyLabel(entry: TicketHistoryEntry): string {
       return `דחיפות שונתה: ${entry.oldValue ?? "—"} ← ${entry.newValue ?? "—"}`
     case "assignedTo":
       return `הפנייה הוקצתה מחדש: ${entry.newValue ?? "—"}`
+    case "owner":
+      return `המגיש שונה: ${entry.oldValue ?? "—"} ← ${entry.newValue ?? "—"}`
     case "edited":
       return "פרטי הפנייה עודכנו"
     default:

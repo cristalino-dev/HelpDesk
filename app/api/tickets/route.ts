@@ -216,17 +216,24 @@ export async function POST(req: NextRequest) {
  *   status  {string}  New status: "פתוח" | "בטיפול" | "סגור"
  *   …other fields (staff only): subject, description, phone, computerName,
  *                               urgency, category, platform, assignedTo
+ *   ownerEmail {string}  ADMIN ONLY — move the ticket to this registered
+ *                        user's name (the מגיש). Must already exist; unlike
+ *                        POST's onBehalfOfEmail it does not create a user.
+ *                        Sending the current owner's address is a no-op.
  *
  * AUTHORIZATION:
- *   Staff / admin — may set any status, edit any field, reassign.
+ *   Admin         — everything below, plus ownerEmail.
+ *   Staff         — may set any status, edit any field, reassign. Not ownerEmail.
  *   Regular user  — may close their own ticket at any time.
  *                   May re-open their own ticket within 4 weeks of closure.
  *                   Cannot change any other status or ticket owned by someone else.
  *
  * RESPONSE:
  *   200 — The updated Ticket object (JSON)
- *   400 — Offboarding ticket closed with items still unticked (`blockers`)
- *   403 — Forbidden (wrong owner, invalid transition, or reopen window expired)
+ *   400 — Offboarding ticket closed with items still unticked (`blockers`),
+ *         or ownerEmail naming somebody who is not a registered user
+ *   403 — Forbidden (wrong owner, invalid transition, reopen window expired,
+ *         or a non-admin sending ownerEmail)
  *   500 — Database or unexpected error (logged to Log table)
  */
 export async function PATCH(req: NextRequest) {
@@ -235,7 +242,7 @@ export async function PATCH(req: NextRequest) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email ?? "")
-    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo } = await req.json()
+    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo, ownerEmail } = await req.json()
 
     // Fetch ticket first so we can check ownership for non-staff
     const before = await prisma.ticket.findUnique({
@@ -284,6 +291,33 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    // OWNER REASSIGNMENT — ADMIN ONLY.
+    // A ticket filed against the wrong person is filed against the wrong
+    // dashboard: the owner is who sees it under "הפניות שלי", who gets the
+    // status mail and who is asked to rate the service. Moving it is therefore
+    // the same privilege as opening one in someone else's name (POST's
+    // onBehalfOfEmail), and is gated the same way — isAdmin, not isStaff.
+    //
+    // The new owner must already be a registered user. POST upserts because
+    // opening a ticket for a brand-new hire is a real case; correcting an
+    // existing ticket is not — the picker offers the roster, so an email that
+    // is not on it is a mistake, and silently creating a user from it would
+    // hide that.
+    let newOwner: { id: string; name: string | null; email: string } | null = null
+    const wantedOwner = typeof ownerEmail === "string" ? ownerEmail.trim().toLowerCase() : ""
+    if (wantedOwner !== "" && wantedOwner !== (before.user?.email ?? "").toLowerCase()) {
+      if (!session.user.isAdmin) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+      newOwner = await prisma.user.findUnique({
+        where:  { email: wantedOwner },
+        select: { id: true, name: true, email: true },
+      })
+      if (!newOwner) {
+        return NextResponse.json({ error: "המשתמש המבוקש אינו רשום במערכת" }, { status: 400 })
+      }
+    }
+
     // Build update payload from only the fields that were sent
     const data: Record<string, string | null> = {}
     if (status       !== undefined) data.status       = status
@@ -297,6 +331,7 @@ export async function PATCH(req: NextRequest) {
       if (platform     !== undefined) data.platform     = platform
       if (assignedTo   !== undefined) data.assignedTo   = assignedTo
     }
+    if (newOwner) data.userId = newOwner.id
     // ON-HOLD — staff may place a ticket on hold with a mandatory reason.
     if (isStaff && status === "בהמתנה") {
       data.holdReason = holdReason?.trim() || null
@@ -342,6 +377,18 @@ export async function PATCH(req: NextRequest) {
     }
     if (isStaff) {
       if (assignedTo !== undefined && assignedTo !== before.assignedTo) historyEntries.push({ ticketId: id, field: "assignedTo", oldValue: before.assignedTo, newValue: assignedTo, actorName, actorEmail })
+    }
+    // Owner moves are recorded by display name, not id — the history is read by
+    // people, and "מי פתח את זה" is exactly the question this row answers.
+    if (newOwner) {
+      historyEntries.push({
+        ticketId: id, field: "owner",
+        oldValue: before.user?.name ?? before.user?.email ?? null,
+        newValue: newOwner.name ?? newOwner.email,
+        actorName, actorEmail,
+      })
+    }
+    if (isStaff) {
       // Generic "edited" entry for text-field changes (subject, description, phone, computerName, category, platform)
       const beforeFields: Record<string, string | null> = {
         subject: before.subject, description: before.description,
@@ -357,6 +404,12 @@ export async function PATCH(req: NextRequest) {
       await prisma.ticketHistory.createMany({ data: historyEntries })
     }
 
+    // Every user-facing mail below is addressed to the ticket's owner. After a
+    // reassignment that is the *new* owner: the person who now has the ticket
+    // on their dashboard is the person the update concerns. `before.user` is
+    // kept for the history row above, which is about who it used to be.
+    const owner = newOwner ?? before.user
+
     // Send email notifications (non-blocking)
     const ticketInfo = {
       id: ticket.id,
@@ -369,8 +422,8 @@ export async function PATCH(req: NextRequest) {
       phone:        ticket.phone,
       computerName: ticket.computerName,
       status:       ticket.status,
-      submitterName:  before.user?.name ?? before.user?.email ?? "משתמש",
-      submitterEmail: before.user?.email ?? "",
+      submitterName:  owner?.name ?? owner?.email ?? "משתמש",
+      submitterEmail: owner?.email ?? "",
     }
     const changedBy = session.user.name ?? session.user.email ?? "צוות תמיכה"
     // STATUS CHANGES are personal, not broadcast: the staff-update email goes
@@ -387,15 +440,15 @@ export async function PATCH(req: NextRequest) {
     }
     // Notify user on status change
     // Use data.status so auto-changes (e.g. auto-בטיפול on self-assign) also trigger notifications
-    if (data.status === "סגור" && before.user?.email) {
+    if (data.status === "סגור" && owner?.email) {
       // Closure: always send the review-request email, even if the user closed it themselves
-      mails.push(sendMail({ to: before.user.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
-    } else if (data.status === "בטיפול" && before.user?.email && before.user.email !== session.user.email) {
+      mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
+    } else if (data.status === "בטיפול" && owner?.email && owner.email !== session.user.email) {
       // In-progress: only notify if a staff member (not the user) changed the status
-      mails.push(sendMail({ to: before.user.email, subject: `עדכון על פנייתך – בטיפול`, html: mailTicketStatusUser(ticketInfo) }))
-    } else if (data.status === "פתוח" && before.status === "סגור" && before.user?.email && before.user.email !== session.user.email) {
+      mails.push(sendMail({ to: owner.email, subject: `עדכון על פנייתך – בטיפול`, html: mailTicketStatusUser(ticketInfo) }))
+    } else if (data.status === "פתוח" && before.status === "סגור" && owner?.email && owner.email !== session.user.email) {
       // Staff-initiated re-open: notify the ticket owner
-      mails.push(sendMail({ to: before.user.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
+      mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
     }
     void Promise.all(mails)
 

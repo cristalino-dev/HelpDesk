@@ -5,6 +5,71 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.63 — שינוי המגיש של פנייה
+
+**A ticket filed against the wrong person can now be moved to the right one,
+from the edit form, after confirming who it goes to.**
+
+מגיש was the one field on the ticket that could not be corrected. Everything
+else — נושא, טלפון, שם מחשב, קטגוריה, פלטפורמה, דחיפות, סטטוס, מוקצה ל — has been
+editable for versions; the owner was fixed at the moment the ticket was filed.
+That is the field that decides whose dashboard the ticket sits on, so a ticket
+opened under the wrong name (an email-ingested ticket that matched the sender
+rather than the person it is about, a ticket opened on behalf of the wrong
+employee) stayed wrong, and the only way out was to close it and open another.
+
+### What changed for users
+
+- **מגיש is a dropdown while editing.** It lists every registered user, the same
+  roster as the "פתיחת פנייה בשם" picker.
+- **Choosing somebody asks first.** A dialog names both sides — "המגיש ישונה
+  מ*דנה לוי* ל*יוסי כהן*" — and spells out what follows the ticket: it moves to
+  that person's ticket list, and the updates about it, including the service
+  rating request when it closes, go to them.
+- **Nothing moves until you confirm, and nothing saves until you press שמור.**
+  ביטול on the dialog leaves the field where it was. Confirming stages the
+  change into the edit form like any other field.
+- **Only admins see the picker.** Other staff see מגיש as they always have, and
+  can still edit every other field.
+- **The move is in the ticket's history**, by name: "המגיש שונה: דנה לוי ← יוסי
+  כהן", with the admin who did it as the actor.
+- **A failed save now says so.** The edit form used to just stay open.
+
+### What changed for developers
+
+- **`PATCH /api/tickets` accepts `ownerEmail`.** Admin-only — a non-admin
+  sending one that differs from the current owner gets a 403, and this is the
+  only PATCH field gated on `isAdmin` rather than `isStaff`.
+- **It does not create users.** `POST`'s `onBehalfOfEmail` upserts, because
+  opening a ticket for a new hire before their account exists is real. Correcting
+  an existing ticket is not: the picker offers the roster, so an address that is
+  not on it is a mistake, and it comes back 400 rather than quietly creating a
+  user nobody will ever sign in as.
+- **Sending the current owner's address is a no-op**, compared case- and
+  whitespace-insensitively. The client's edit form always holds an `ownerEmail`,
+  so without this every ordinary staff edit would 403 and every admin edit would
+  write a history row saying nothing changed. `saveEdit()` also only puts the
+  field on the wire when it actually differs — belt and braces, because either
+  side alone is a trap for the next caller.
+- **User-facing mail follows the new owner.** The closure/review request, the
+  בטיפול notice and the re-open notice are addressed to the post-move owner, and
+  `submitterName`/`submitterEmail` in the mail payload come from them too. A
+  review request sent to the previous owner would ask the wrong person to rate a
+  service they never received. `before.user` is still what the history row
+  records — that is the half that is about who it *used* to be.
+- **The confirmation is a staged pick, not a post-hoc undo.** `onChange` writes
+  to `ownerConfirm`, never to `editForm`; only אישור copies it across. The
+  regression tests assert exactly that — that the select still reads the old
+  owner while the dialog is open, and that ביטול leaves the save with no
+  `ownerEmail` on it. Both fail against a picker that writes through and merely
+  shows a dialog; verified failing.
+- **New `__tests__/TicketOwnerChange.test.tsx`** renders the real ticket page.
+  `__tests__/TicketsAPI.test.tsx` covers the server half: the move, the history
+  row, the 403, the 400, the no-op, and the closure mail landing on the new
+  owner.
+
+---
+
 ## v3.62 — סגירה אוטומטית ששומרת את מה שהיא מדווחת ששמרה
 
 **An automation close that sent a message and a note returned 200 and saved

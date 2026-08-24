@@ -78,6 +78,12 @@ export async function setTicketStatusOrError(id: string, status: string): Promis
  * the server: subject, description, phone, computerName, urgency, category,
  * platform, assignedTo).
  *
+ * `ownerEmail` is also accepted and is admin-only: it moves the ticket into
+ * another registered user's name. Send it only when it actually differs from
+ * the current owner — the server answers 403 to a non-admin who sends a
+ * different one, so a client that always includes the field would break
+ * ordinary staff edits.
+ *
  * @returns true if the server accepted the request (HTTP 2xx)
  */
 export async function updateTicket(id: string, fields: Record<string, unknown>): Promise<boolean> {

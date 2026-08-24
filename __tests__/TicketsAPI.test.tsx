@@ -791,6 +791,123 @@ describe("Tickets API", () => {
     })
   })
 
+  // ── OWNER REASSIGNMENT (v3.63) ───────────────────────────────────────────
+  // `ownerEmail` moves a ticket into another registered user's name. It is the
+  // only PATCH field gated on isAdmin rather than isStaff, and the only one
+  // that can be refused for naming somebody who does not exist — both because
+  // the owner decides whose dashboard the ticket lives on and who every
+  // user-facing mail about it reaches.
+  describe("PATCH /api/tickets — ownerEmail", () => {
+    const OLD_OWNER = { name: "דנה לוי", email: "dana@cristalino.co.il" }
+    const NEW_OWNER = { id: "user-2", name: "יוסי כהן", email: "yossi@cristalino.co.il" }
+
+    /** The ticket as it stands before the move. */
+    const existing = (over: any = {}) => ({
+      id: "ticket-1",
+      status: "פתוח",
+      urgency: "בינוני",
+      assignedTo: "staff@cristalino.co.il",
+      subject: "מסך לא נדלק",
+      description: "d", phone: "050", computerName: "PC-1",
+      category: "חומרה", platform: "מחשב אישי",
+      user: OLD_OWNER,
+      ...over,
+    })
+
+    const req = (body: any) => ({ json: async () => body }) as any
+
+    beforeEach(() => {
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(existing())
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-1", ticketNumber: 441, status: "פתוח", subject: "מסך לא נדלק",
+        assignedTo: "staff@cristalino.co.il",
+      })
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(NEW_OWNER)
+    })
+
+    it("moves the ticket to the chosen user when an admin asks", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+
+      const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as any
+
+      expect(res.status).toBe(200)
+      expect(prisma.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { email: NEW_OWNER.email } })
+      )
+      expect(prisma.ticket.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ userId: "user-2" }) })
+      )
+    })
+
+    it("records the move in the ticket history, by name", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+
+      await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email }))
+
+      const rows = (prisma.ticketHistory.createMany as jest.Mock).mock.calls[0][0].data
+      expect(rows).toContainEqual(expect.objectContaining({
+        field: "owner", oldValue: "דנה לוי", newValue: "יוסי כהן",
+        actorName: "Admin", actorEmail: "admin@cristalino.co.il",
+      }))
+    })
+
+    it("refuses a non-admin staff member — this field is not part of a staff edit", async () => {
+      mockSession({ email: "staff@cristalino.co.il", isAdmin: false, name: "Staff" })
+
+      const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as any
+
+      expect(res.status).toBe(403)
+      expect(prisma.ticket.update).not.toHaveBeenCalled()
+    })
+
+    it("refuses an address that is not a registered user, instead of creating one", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
+
+      const res = await PATCH(req({ id: "ticket-1", ownerEmail: "nobody@cristalino.co.il" })) as any
+
+      expect(res.status).toBe(400)
+      expect(prisma.user.upsert).not.toHaveBeenCalled()
+      expect(prisma.ticket.update).not.toHaveBeenCalled()
+    })
+
+    // A staff edit that leaves מגיש alone still carries the field in the form
+    // state. If that counted as a move, every non-admin edit would 403 and
+    // every admin edit would write a no-op history row.
+    it("treats the current owner's own address as no move at all", async () => {
+      mockSession({ email: "staff@cristalino.co.il", isAdmin: false, name: "Staff" })
+
+      const res = await PATCH(req({
+        id: "ticket-1", subject: "מסך לא נדלק בכלל", ownerEmail: "  DANA@Cristalino.co.il  ",
+      })) as any
+
+      expect(res.status).toBe(200)
+      expect(prisma.user.findUnique).not.toHaveBeenCalled()
+      expect(prisma.ticket.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.not.objectContaining({ userId: expect.anything() }) })
+      )
+      const rows = (prisma.ticketHistory.createMany as jest.Mock).mock.calls[0][0].data
+      expect(rows).not.toContainEqual(expect.objectContaining({ field: "owner" }))
+    })
+
+    // The point of the move is that the ticket is now somebody else's. A
+    // closure mail that still went to the previous owner would ask the wrong
+    // person to rate a service they never received.
+    it("sends the closure mail to the new owner, not the old one", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({
+        id: "ticket-1", ticketNumber: 441, status: "סגור", subject: "מסך לא נדלק",
+        assignedTo: "staff@cristalino.co.il",
+      })
+
+      await PATCH(req({ id: "ticket-1", status: "סגור", ownerEmail: NEW_OWNER.email }))
+
+      const recipients = (sendMail as jest.Mock).mock.calls.map(c => c[0].to)
+      expect(recipients).toContain(NEW_OWNER.email)
+      expect(recipients).not.toContain(OLD_OWNER.email)
+    })
+  })
+
   describe("GET /api/tickets", () => {
     it("returns all tickets for admin", async () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true })
