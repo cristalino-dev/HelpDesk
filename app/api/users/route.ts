@@ -33,6 +33,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
+import { resolveUserByEmail } from "@/lib/users"
 import { NextRequest, NextResponse } from "next/server"
 
 /**
@@ -175,12 +176,10 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // Find or create the helpdesk fallback account that will inherit the tickets
-    const fallback = await prisma.user.upsert({
-      where:  { email: "helpdesk@cristalino.co.il" },
-      create: { email: "helpdesk@cristalino.co.il", name: "Helpdesk" },
-      update: {},
-    })
+    // Find or create the helpdesk fallback account that will inherit the
+    // tickets. Case-insensitively: a second fallback account would silently
+    // strand the reassigned tickets on a row nobody signs in to.
+    const fallback = await resolveUserByEmail("helpdesk@cristalino.co.il", "Helpdesk")
 
     // Reassign all of the deleted user's tickets to the fallback account
     const { count: reassigned } = await prisma.ticket.updateMany({

@@ -5,6 +5,74 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.65 — חשבון אחד לכל אדם
+
+**Three places could quietly give one person a second account. They now all ask
+the same question, in one place, and ask it case-insensitively.**
+
+v3.64 fixed a case-sensitive lookup on the מגיש picker and named a second
+instance of the same root cause without fixing it. That instance was worse than
+the one that got fixed, and there turned out to be a third.
+
+`auth.ts` writes the `User` row with `session.user.email` exactly as Google
+handed it over, so a row can carry capitals. Every *other* entry point
+normalises the address it is given — a value picked from a dropdown, an inbound
+`From:` header — and then matched the row exactly. The miss was not a 404. It
+was an `upsert` whose `where` found nothing, so it **inserted**: one person, two
+rows, tickets split between them, and only one of the two is the account they
+can actually sign in to.
+
+**Verified against production before and after: 96 users, zero mixed-case
+addresses, zero case-duplicates.** The bug never fired. It was one capitalised
+Google account, or one email from a mixed-case sender, away from firing.
+
+### What changed for users
+
+- **Filing a ticket on somebody's behalf finds their real account**, whatever
+  case their address is stored in, instead of creating a parallel one that
+  collects the ticket while their own dashboard stays empty.
+- **A ticket emailed in lands on the sender's real account.** This is the one
+  that would have hurt most: it runs unattended every two minutes, so a single
+  mixed-case sender would have accumulated ticket after ticket on an account
+  nobody was watching.
+- **Deleting a user reassigns their tickets to the real helpdesk account**, not
+  to a second one — which would have "reassigned" the tickets and lost them in
+  the same breath.
+
+### What changed for developers
+
+- **New `lib/users.ts`** — `findUserByEmail()` (case-insensitive, no create) and
+  `resolveUserByEmail()` (find-or-create). Three call sites now share them:
+  `POST /api/tickets` (`onBehalfOfEmail`), `POST /api/admin/ingest-mail`
+  (the reporter), and `DELETE /api/users` (the helpdesk fallback). v3.64's
+  inline `findFirst` in `PATCH /api/tickets` moved onto the same helper.
+- **Which helper you want is a real decision.** Use `resolveUserByEmail` where
+  the caller may legitimately name somebody who has never signed in. Use
+  `findUserByEmail` where they must already exist — the מגיש picker offers the
+  roster, so an address off it is a mistake, and 400 says so.
+- **Creating still goes through `upsert`, not `create`**, so two requests naming
+  the same brand-new address at once collide harmlessly on the unique index
+  rather than throwing P2002 at one of the callers.
+- **An existing row is never renamed.** The name argument applies on create
+  only: a person's own profile edit outranks whatever a mail header or a
+  typed-in form field claims they are called.
+- **`mode: "insensitive"` was verified against the real database**, not just
+  asserted as an argument shape in a mock. `findFirst` matched
+  `MORIN@CRISTALINO.CO.IL` to the stored `morin@cristalino.co.il`; `findUnique`
+  on the same needle matched nothing. That is the v3.64 fix, observed.
+- **This is not a complete fix, and the remaining hole is in the schema.** Two
+  addresses differing only in case are still two legal values of a
+  `String @unique` column, so a row created concurrently by `auth.ts` with
+  capitals can still land beside one of ours. Closing it means a unique index on
+  `lower(email)` — raw SQL, run inside the deploy swap window, and its own
+  change. What shipped here removes every duplicate the *application* can
+  produce.
+- **New `__tests__/resolveUser.test.ts`** (8 tests) plus endpoint-level
+  regressions in `TicketsAPI` and `UsersAPI`. The onBehalf one was verified
+  failing against the old `upsert`.
+
+---
+
 ## v3.64 — ליטוש של שינוי המגיש
 
 **A review pass over v3.63. Three things it got wrong or left expensive, and a

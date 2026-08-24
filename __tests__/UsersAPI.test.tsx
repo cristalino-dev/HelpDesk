@@ -15,6 +15,7 @@ jest.mock("@/lib/db", () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
       update: jest.fn(),
@@ -89,11 +90,32 @@ describe("DELETE /api/users — last-admin guard", () => {
     mockUser.findUnique
       .mockResolvedValueOnce({ id: "self-id" })
       .mockResolvedValueOnce({ isAdmin: false })
+    mockUser.findFirst.mockResolvedValue(null)     // no fallback account yet
     mockUser.upsert.mockResolvedValue({ id: "fallback-id" })
     ;(prisma.ticket.updateMany as jest.Mock).mockResolvedValue({ count: 2 })
     mockUser.delete.mockResolvedValue({})
     const res = await DELETE(req({ id: "u1" }))
     expect(res.status).toBe(200)
     expect(mockUser.delete).toHaveBeenCalledWith({ where: { id: "u1" } })
+  })
+
+  // The reassignment target is looked up case-insensitively (v3.65). A second
+  // fallback account would strand the deleted user's tickets on a row nobody
+  // signs in to — the tickets would be "reassigned" and simultaneously gone.
+  it("reuses an existing helpdesk account whose address carries capitals", async () => {
+    mockUser.findUnique
+      .mockResolvedValueOnce({ id: "self-id" })
+      .mockResolvedValueOnce({ isAdmin: false })
+    mockUser.findFirst.mockResolvedValue({ id: "existing-fallback", email: "HelpDesk@cristalino.co.il" })
+    ;(prisma.ticket.updateMany as jest.Mock).mockResolvedValue({ count: 2 })
+    mockUser.delete.mockResolvedValue({})
+
+    const res = await DELETE(req({ id: "u1" }))
+
+    expect(res.status).toBe(200)
+    expect(mockUser.upsert).not.toHaveBeenCalled()
+    expect(prisma.ticket.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { userId: "existing-fallback" } })
+    )
   })
 })

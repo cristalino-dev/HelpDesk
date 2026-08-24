@@ -319,9 +319,45 @@ describe("Tickets API", () => {
       beforeEach(() => {
         mockSession(admin)
         ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(admin)
+        // resolveUserByEmail() looks before it creates; null = nobody registered.
+        ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(null)
         ;(prisma.ticket.create as jest.Mock).mockResolvedValue({
           id: "ticket-9", ticketNumber: 1009, subject: "מסך שחור", status: "פתוח",
         })
+      })
+
+      // THE DUPLICATE-ACCOUNT BUG (fixed v3.65). auth.ts stores Google's
+      // address verbatim, so this person's row carries capitals. The upsert
+      // this replaced matched `where: { email: "dana@..." }` exactly, found
+      // nothing, and inserted a SECOND row — the ticket then belonged to an
+      // account she cannot sign in to, while her own dashboard stayed empty.
+      it("files against the existing account when its address carries capitals", async () => {
+        const existing = { id: "user-7", email: "Dana@Cristalino.co.il", name: "דנה לוי" }
+        ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(existing)
+
+        const res = await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" })) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.user.upsert).not.toHaveBeenCalled()
+        expect(prisma.ticket.create).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ userId: "user-7" }) })
+        )
+      })
+
+      it("still creates the row for a hire who has genuinely never signed in", async () => {
+        ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(null)
+        ;(prisma.user.upsert as jest.Mock).mockResolvedValue({
+          id: "user-new", email: "new.hire@cristalino.co.il", name: "עובד חדש",
+        })
+
+        const res = await POST(behalfReq({
+          onBehalfOfEmail: "New.Hire@cristalino.co.il", onBehalfOfName: "עובד חדש",
+        })) as any
+
+        expect(res.status).toBe(200)
+        expect(prisma.user.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { email: "new.hire@cristalino.co.il" } })
+        )
       })
 
       it("assigns the ticket to the named user, not the admin who filed it", async () => {

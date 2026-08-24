@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
 import { isOffboarding, offboardingChecklist, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
+import { findUserByEmail, resolveUserByEmail } from "@/lib/users"
 
 /**
  * POST /api/tickets
@@ -106,14 +107,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // upsert (not findUnique) so an admin can open a ticket for a new hire who
-    // has not signed in yet — the User row is created on the spot.
+    // resolveUserByEmail (not a bare upsert) so an admin can open a ticket for
+    // a new hire who has not signed in yet, WITHOUT minting a second row for
+    // somebody already registered under a differently-cased address — the
+    // upsert this replaced matched `behalfEmail` exactly, and `auth.ts` stores
+    // whatever Google sent. See lib/users.ts.
     const owner = onBehalf
-      ? await prisma.user.upsert({
-          where:  { email: behalfEmail },
-          create: { email: behalfEmail, name: (typeof onBehalfOfName === "string" && onBehalfOfName.trim()) || null },
-          update: {},
-        })
+      ? await resolveUserByEmail(behalfEmail, typeof onBehalfOfName === "string" ? onBehalfOfName : null)
       : actor
 
     const ticket = await prisma.ticket.create({
@@ -309,14 +309,11 @@ export async function PATCH(req: NextRequest) {
       if (!session.user.isAdmin) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
-      // Case-insensitive on purpose: `auth.ts` stores whatever Google returned
-      // verbatim, so a row can carry capitals, and matching a lowercased needle
-      // against it with findUnique would answer "not registered" about somebody
-      // who plainly is. findFirst because findUnique has no `mode`.
-      newOwner = await prisma.user.findFirst({
-        where:  { email: { equals: wantedOwner, mode: "insensitive" } },
-        select: { id: true, name: true, email: true },
-      })
+      // Case-insensitive: `auth.ts` stores whatever Google returned verbatim,
+      // so a row can carry capitals and an exact match would answer "not
+      // registered" about somebody who plainly is. No create — the picker
+      // offers the roster, so an address off it is a mistake, not a new hire.
+      newOwner = await findUserByEmail(wantedOwner)
       if (!newOwner) {
         return NextResponse.json({ error: "המשתמש המבוקש אינו רשום במערכת" }, { status: 400 })
       }

@@ -40,6 +40,7 @@ import { logError } from "@/lib/logError"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser } from "@/lib/mail"
 import { hasTicketKeyword, buildIngestedTicket, fixCharsetLabels, DEFAULT_TICKET_KEYWORD } from "@/lib/mailIngest"
+import { resolveUserByEmail } from "@/lib/users"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
@@ -107,12 +108,12 @@ export async function POST(req: NextRequest) {
           keyword,
         )
 
-        // Reporter: upsert a User by the sender's email so the ticket has an owner
-        const reporter = await prisma.user.upsert({
-          where:  { email: t.reporterEmail },
-          create: { email: t.reporterEmail, name: t.reporterName },
-          update: {},
-        })
+        // Reporter: find-or-create a User by the sender's email so the ticket
+        // has an owner. Case-insensitively — buildIngestedTicket() lowercases
+        // the From: header, and an exact-match upsert against that would give
+        // a sender whose row carries capitals a second, parallel account that
+        // collects their emailed tickets while they see none of them.
+        const reporter = await resolveUserByEmail(t.reporterEmail, t.reporterName)
 
         let ticket
         try {
