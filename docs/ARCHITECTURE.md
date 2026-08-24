@@ -1,6 +1,16 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 1.11 · Last updated 2026-04-29 · v3.12 Release
+> Version 2.0 · Last updated 2026-08-24 · v3.65
+
+This document describes **how the system is built** — the database schema, the
+HTTP surface, the authorization rules, and the deployment shape.
+
+Two things deliberately do **not** live here:
+
+| You want | Read |
+|---|---|
+| What changed in each release | [`RELEASE_NOTES.md`](../RELEASE_NOTES.md) — the version record |
+| Day-to-day working rules and current state | `HANDOFF.md` in the repo root — **gitignored, local-only**, so it is not in a fresh clone |
 
 ---
 
@@ -10,35 +20,75 @@
 2. [Technology Stack](#2-technology-stack)
 3. [High-Level Architecture Diagram](#3-high-level-architecture-diagram)
 4. [Request Flow Diagrams](#4-request-flow-diagrams)
-   - 4.1 Authentication Flow
-   - 4.2 Employee Submitting a Ticket
-   - 4.3 Admin Changing Ticket Status
-   - 4.4 Client Error Logging Flow
-   - 4.5 Contact Form Email Flow
 5. [Application Layer Map](#5-application-layer-map)
-6. [Database Schema — Full Field Reference](#6-database-schema--full-field-reference)
-   - 6.1 User Table
-   - 6.2 Ticket Table
-   - 6.3 Log Table
-   - 6.4 Entity Relationship Diagram
+6. [Database Schema Reference](#6-database-schema-reference)
 7. [API Routes Reference](#7-api-routes-reference)
 8. [Authorization Matrix](#8-authorization-matrix)
 9. [Error Logging Architecture](#9-error-logging-architecture)
-10. [Deployment Architecture](#10-deployment-architecture)
-11. [Environment Variables Reference](#11-environment-variables-reference)
+10. [Background Jobs](#10-background-jobs)
+11. [Deployment Architecture](#11-deployment-architecture)
+12. [Environment Variables Reference](#12-environment-variables-reference)
 
 ---
 
 ## 1. System Overview
 
-Cristalino HelpDesk is an internal web application for Cristalino Group LTD employees to submit IT support requests and for the IT department to manage them. The system has two user roles:
+Cristalino HelpDesk is an internal web application for Cristalino Group LTD
+employees to submit IT support requests and for the IT department to manage
+them. The UI is Hebrew, right-to-left throughout (`lang="he" dir="rtl"`).
 
-| Role | Entry Point | Capabilities |
-|------|-------------|--------------|
-| **Employee** | `/dashboard` | Open tickets, view own tickets, edit profile |
-| **Admin (IT Staff)** | `/admin`, `/admin/logs` | View all tickets, update status, manage users, view dedicated error logs |
+There are four effective roles. Only **Admin** is a database flag; the other
+three come from hardcoded address lists in `lib/staffEmails.ts`.
 
-Authentication is Google OAuth only — employees use their corporate `@cristalino` Google account. There are no passwords stored in the system.
+| Role | How you get it | Entry point | Capabilities |
+|------|----------------|-------------|--------------|
+| **Employee** | Any signed-in user | `/dashboard` | Open tickets, view/search own tickets, chat with staff, close and re-open own tickets, edit profile |
+| **Viewer** | Listed in `VIEWER_EMAILS` | `/tickets/view` | Read-only list of all tickets; cannot modify anything |
+| **Staff** | Listed in `STAFF_EMAILS`, **or** `isAdmin = true` | `/tickets` | All tickets, edit any field, assign, internal notes, attachments, record equipment arrivals |
+| **Admin** | `User.isAdmin = true` in the DB | `/admin` | Everything Staff can do, plus user management, error logs, field options, licenses, printers, the equipment shortage report, changing a ticket's submitter, and deleting tickets |
+
+`isAdmin` implies staff — every staff guard in the codebase reads
+`session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)`.
+
+Authentication is Google OAuth only; no passwords are stored. There is **no
+domain restriction in application code** — `auth.ts` defines no `signIn`
+callback. Limiting sign-in to `@cristalino.co.il` is the job of the Google Cloud
+OAuth client / Workspace configuration. Any account Google lets through is
+auto-provisioned as a regular (non-admin) `User` row by the `session` callback.
+
+The login button passes `prompt: "select_account"`, so users with several Google
+accounts always get the account picker rather than being signed in silently.
+
+### Ticket lifecycle
+
+```
+   פתוח  ──────────────►  בטיפול  ──────────────►  סגור
+     │                      │  ▲                     │
+     │                      ▼  │                     │
+     └────────────────►  בהמתנה ─┘                     │
+                    (holdReason required)             │
+                                                      │
+     ◄────────────────────────────────────────────────┘
+       re-open: owner within 4 weeks; staff/admin at any time
+```
+
+Four statuses, not three: **בהמתנה** (on hold) requires a free-text
+`holdReason`, which is cleared automatically when the ticket leaves that status.
+
+**Compound close is a system-wide invariant.** Setting `status = "סגור"` always
+also forces `urgency = "נמוך"`. It is enforced server-side in
+`PATCH /api/tickets`, re-applied by `POST /api/automation/close`, and swept for
+every 5 minutes by `POST /api/admin/sweep`. Client code must never reproduce it
+— call `closeTicket()` from `lib/ticketApi.ts`.
+
+Two categories carry extra behaviour:
+
+- **`"עובד חדש"` (new employee)** — the form demands four extra fields (first
+  name, last name, phone, job title), which are folded into the description as a
+  labelled block rather than stored in new columns. See `lib/newEmployee.ts`.
+- **`"עובד עוזב"` (leaving employee)** — the ticket is born with a return
+  checklist covering *every* item on the equipment list, and **cannot be closed
+  while any line is untouched**. See `lib/offboarding.ts`.
 
 ---
 
@@ -48,88 +98,75 @@ Authentication is Google OAuth only — employees use their corporate `@cristali
 |-------|-----------|---------|-------|
 | Framework | Next.js | 16.2.2 | App Router, Turbopack dev server |
 | Language | TypeScript | 5.x | Strict mode |
-| UI | React | 19.x | Client components where interaction needed |
-| Styling | Inline React styles | — | No Tailwind in components (Turbopack path issue) |
-| Auth | NextAuth | v5.0.0-beta.30 | Google OAuth, JWT sessions |
-| ORM | Prisma | 5.x | Type-safe DB client |
-| Database | PostgreSQL | 18 | AWS RDS (managed) |
-| Email | nodemailer | 7.x | Google Workspace SMTP |
-| Testing | Jest + RTL | 30 + 16 | 40+ unit tests, gate the build |
-| Hosting | Ubuntu Server | — | PM2 process manager |
-| Deploy | SSH + SCP | — | deploy.sh — build runs on server |
+| UI | React | 19.2.4 | Client components wherever there is interaction |
+| Styling | Inline React styles | — | No Tailwind in components; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind resets |
+| Auth | NextAuth | 5.0.0-beta.30 | Google OAuth, JWT sessions |
+| ORM | Prisma | 5.22.0 | Type-safe DB client |
+| Database | PostgreSQL | — | AWS RDS (managed) |
+| Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
+| Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
+| HTTP client | axios | 1.14.x | |
+| Testing | Jest + RTL | 30 + 16 | **568 tests across 35 suites** — they gate the build |
+| Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
+| Deploy | SSH + SCP | — | `deploy.sh` — the build runs on the server |
+
+`nodemailer`, `imapflow` and `mailparser` are listed in `next.config.ts`
+under `serverExternalPackages` — they are Node-only and must not be bundled.
 
 ---
 
 ## 3. High-Level Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        EMPLOYEE'S BROWSER                           │
-│                                                                     │
-│   ┌──────────┐  ┌───────────┐  ┌─────────┐  ┌─────────┐           │
-│   │  /login  │  │/dashboard │  │ /admin  │  │/profile │  /contact  │
-│   └────┬─────┘  └─────┬─────┘  └────┬────┘  └────┬────┘     │     │
-│        │              │              │              │           │    │
-└────────┼──────────────┼──────────────┼──────────────┼───────────┼───┘
-         │              │              │              │           │
-         │  HTTPS       │              │              │           │
-         ▼              ▼              ▼              ▼           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                   AWS LIGHTSAIL — WINDOWS SERVER 2022               │
-│                   Next.js 16 running on port 3000                   │
-│                                                                     │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │                     NEXT.JS APP ROUTER                        │  │
-│  │                                                               │  │
-│  │  Server Components    │    Client Components                  │  │
-│  │  ─────────────────    │    ─────────────────                  │  │
-│  │  app/page.tsx         │    app/dashboard/page.tsx             │  │
-│  │  app/layout.tsx       │    app/admin/page.tsx                 │  │
-│  │                       │    app/login/page.tsx                 │  │
-│  │                       │    app/profile/page.tsx               │  │
-│  │                       │    app/contact/page.tsx               │  │
-│  │                       │    app/help/page.tsx                  │  │
-│  │                       │    components/TicketForm.tsx           │  │
-│  │                       │    components/TicketTable.tsx          │  │
-│  │                       │    components/ErrorBoundary.tsx        │  │
-│  │                       │    components/ClientErrorHandler.tsx   │  │
-│  │                       │    components/FooterCopyright.tsx      │  │
-│  ├───────────────────────────────────────────────────────────────┤  │
-│  │                       API ROUTES                               │  │
-│  │  /api/auth/[...nextauth]  — OAuth callbacks (NextAuth)        │  │
-│  │  /api/tickets             — Ticket CRUD                        │  │
-│  │  /api/profile             — User profile read/write            │  │
-│  │  /api/users               — Admin: user management             │  │
-│  │  /api/admin/logs        — Admin: dedicated log fetch/clear   │  │
-│  │  /api/logs              — Public: write log entry (telemetry)│  │
-│  │  /api/contact           — Send email via SMTP                │  │
-│  ├───────────────────────────────────────────────────────────────┤  │
-│  │                     PRISMA ORM (lib/db.ts)                     │  │
-│  └───────────────────────────────────────────────────────────────┘  │
-│                              │                                      │
-└──────────────────────────────┼──────────────────────────────────────┘
-                               │  TCP 5432
-                               ▼
-             ┌─────────────────────────────────────┐
-             │  AWS LIGHTSAIL RDS                   │
-             │  PostgreSQL 18                       │
-             │                                     │
-             │  Tables: User, Ticket, Log           │
-             └─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             BROWSER (Hebrew RTL)                             │
+│                                                                              │
+│  /login  /dashboard  /tickets  /tickets/[id]  /admin  /profile  /open        │
+│  /contact  /help  /manual  /admin-manual  /review/[ticketId]  /tickets/view  │
+└───────────────────────────────┬──────────────────────────────────────────────┘
+                                │  HTTPS (nginx + Certbot)
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│              AWS LIGHTSAIL — UBUNTU 24.04 · PM2 · port 3000                  │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                        NEXT.JS 16 APP ROUTER                           │ │
+│  │                                                                        │ │
+│  │  Server Components        │  Client Components                         │ │
+│  │  ─────────────────        │  ─────────────────                         │ │
+│  │  app/layout.tsx           │  every page under app/ except layout       │ │
+│  │  app/page.tsx (redirect)  │  components/*.tsx                          │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │                            API ROUTES                                  │ │
+│  │  /api/auth/[...nextauth]   OAuth callbacks (NextAuth)                  │ │
+│  │  /api/tickets   /api/tickets/all   /api/tickets/[id]/*                 │ │
+│  │  /api/profile   /api/users   /api/staff   /api/reviews   /api/contact  │ │
+│  │  /api/attachments/[id]     /api/logs (write-only telemetry)            │ │
+│  │  /api/admin/{logs, digest, sweep, ingest-mail, equipment,              │ │
+│  │              field-options, licenses, printers}                        │ │
+│  │  /api/automation/close     Bearer-key machine-to-machine closure       │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │             lib/  — pure logic, storage helpers, mail templates        │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │                      PRISMA ORM (lib/db.ts)                            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  uploads/ticket-attachments/   ← attachment bytes (since v3.48)              │
+│  uploads/printer-drivers/      ← driver binaries                             │
+│  (both outside the deploy archive, so they survive deploys)                  │
+└───┬───────────────────────┬──────────────────────┬───────────────────────────┘
+    │ TCP 5432              │ SMTP                 │ IMAP 993
+    ▼                       ▼                      ▼
+┌──────────────┐   ┌──────────────────┐   ┌──────────────────┐
+│  AWS RDS     │   │ Google Workspace │   │ Google Workspace │
+│  PostgreSQL  │   │ SMTP (outbound)  │   │ IMAP (inbound)   │
+│  13 tables   │   │ helpdesk@        │   │ helpdesk@        │
+└──────────────┘   └──────────────────┘   └──────────────────┘
 
-                   ┌─────────────────────────┐
-                   │  GOOGLE OAUTH SERVERS    │
-                   │  accounts.google.com    │
-                   │                         │
-                   │  OAuth 2.0 + OpenID     │
-                   └─────────────────────────┘
-
-                   ┌─────────────────────────┐
-                   │  SMTP MAIL SERVER        │
-                   │  (configured via env)   │
-                   │                         │
-                   │  → dev@cristalino.co.il │
-                   └─────────────────────────┘
+                   ┌──────────────────────┐
+                   │ GOOGLE OAUTH SERVERS │
+                   │ accounts.google.com  │
+                   └──────────────────────┘
 ```
 
 ---
@@ -147,16 +184,16 @@ Browser                  Next.js Server             Google OAuth          Postgr
    │  redirect /login         │                          │                    │
    │<─────────────────────────│                          │                    │
    │                          │                          │                    │
-   │  Click "Google Sign-In"  │                          │                    │
+   │  Click "התחברות עם Google"│                          │                    │
    │─────────────────────────>│                          │                    │
-   │                          │  signIn("google")        │                    │
-   │  redirect to Google      │─────────────────────────>│                    │
+   │                          │  signIn("google",        │                    │
+   │                          │    {callbackUrl},        │                    │
+   │  redirect to Google      │    {prompt:select_account})────────────────>  │
    │<─────────────────────────│                          │                    │
    │                          │                          │                    │
    │  User picks account      │                          │                    │
    │─────────────────────────────────────────────────────>                    │
    │                          │                          │                    │
-   │  Google sends auth code  │                          │                    │
    │  GET /api/auth/callback  │                          │                    │
    │─────────────────────────>│                          │                    │
    │                          │  exchange code for token │                    │
@@ -169,82 +206,180 @@ Browser                  Next.js Server             Google OAuth          Postgr
    │                          │                          │                    │
    │                          │  [first login]           │                    │
    │                          │  create(email,name,img)──│───────────────────>│
-   │                          │                          │  User row created  │
    │                          │  isAdmin, id ────────────│───────────────────<│
    │                          │                          │                    │
    │                          │  sign JWT cookie         │                    │
-   │                          │  (contains isAdmin, id)  │                    │
+   │                          │  (carries isAdmin, id)   │                    │
    │  redirect /dashboard     │                          │                    │
    │<─────────────────────────│                          │                    │
-   │                          │                          │                    │
 ```
+
+`isAdmin` is re-read from the database on **every** session access, so promoting
+or demoting a user takes effect on their next request — not only at next login.
 
 ### 4.2 Employee Submitting a Ticket
 
 ```
-Browser (Dashboard)         Next.js /api/tickets         PostgreSQL
-       │                           │                          │
-       │  Click "+ פנייה חדשה"      │                          │
-       │  (TicketForm appears)      │                          │
-       │                           │                          │
-       │  Fill form fields          │                          │
-       │  Click "שלח פנייה"         │                          │
-       │                           │                          │
-       │  POST /api/tickets         │                          │
-       │  { subject, description,   │                          │
-       │    phone, computerName,    │                          │
-       │    urgency, category }     │                          │
-       │──────────────────────────>│                          │
-       │                           │  auth() → read JWT       │
-       │                           │  findUnique(email) ─────>│
-       │                           │  <── user.id ────────────│
-       │                           │  ticket.create(          │
-       │                           │    ...fields,            │
-       │                           │    userId: user.id       │
-       │                           │  ) ─────────────────────>│
-       │                           │  <── Ticket row ─────────│
-       │  200 { ticket }           │                          │
-       │<──────────────────────────│                          │
-       │                           │                          │
-       │  onSuccess() called        │                          │
-       │  Form hides               │                          │
-       │  GET /api/tickets ────────>│                          │
-       │                           │  findMany(userId) ──────>│
-       │                           │  <── [tickets] ──────────│
-       │  200 [tickets]            │                          │
-       │<──────────────────────────│                          │
-       │  Ticket list updates      │                          │
-       │                           │                          │
+Browser (Dashboard / /open)   POST /api/tickets            PostgreSQL      SMTP
+       │                            │                          │            │
+       │  Fill TicketForm            │                          │            │
+       │  (+ equipment lines,        │                          │            │
+       │   + new-employee fields     │                          │            │
+       │     if category = עובד חדש) │                          │            │
+       │  Click "שלח פנייה"          │                          │            │
+       │───────────────────────────>│                          │            │
+       │                            │  auth() → read JWT       │            │
+       │                            │  [401 if no session]     │            │
+       │                            │                          │            │
+       │                            │  onBehalfOfEmail present │            │
+       │                            │  and NOT admin → 403     │            │
+       │                            │                          │            │
+       │                            │  newEmployee incomplete  │            │
+       │                            │  → 400                   │            │
+       │                            │                          │            │
+       │                            │  resolveUserByEmail() ──>│            │
+       │                            │  (case-insensitive find, │            │
+       │                            │   create if truly new)   │            │
+       │                            │                          │            │
+       │                            │  ticket.create(...) ────>│            │
+       │                            │  equipment lines ───────>│            │
+       │                            │  offboarding checklist ─>│            │
+       │                            │    (if עובד עוזב)         │            │
+       │                            │  history "created" ─────>│            │
+       │                            │                          │            │
+       │                            │  mailTicketOpenedUser ───────────────>│
+       │                            │  mailTicketOpenedStaff ──────────────>│
+       │  201 { ticket }            │                          │            │
+       │<───────────────────────────│                          │            │
+       │  GET /api/tickets → list refreshes                    │            │
 ```
 
-### 4.3 Admin Changing Ticket Status
+### 4.3 Staff Changing Ticket Status
 
 ```
-Browser (Admin)             Next.js /api/tickets         PostgreSQL
-       │                           │                          │
-       │  Expand ticket card        │                          │
-       │  Click "בטיפול" button     │                          │
-       │                           │                          │
-       │  PATCH /api/tickets        │                          │
-       │  { id, status: "בטיפול" }  │                          │
-       │──────────────────────────>│                          │
-       │                           │  auth() → isAdmin check  │
-       │                           │  [403 if not admin]      │
-       │                           │  ticket.update(          │
-       │                           │    { id },               │
-       │                           │    { status }            │
-       │                           │  ) ─────────────────────>│
-       │                           │  updatedAt auto-bumped   │
-       │                           │  <── updated Ticket ─────│
-       │  200 { ticket }           │                          │
-       │<──────────────────────────│                          │
-       │  loadTickets() re-runs    │                          │
-       │  Card disappears from     │                          │
-       │  queue (status = סגור)    │                          │
-       │                           │                          │
+Browser (/admin or /tickets)   PATCH /api/tickets           PostgreSQL      SMTP
+       │                            │                          │            │
+       │  { id, status }            │                          │            │
+       │───────────────────────────>│                          │            │
+       │                            │  auth() → isStaff?       │            │
+       │                            │  regular user may only   │            │
+       │                            │  close/re-open own       │            │
+       │                            │  (4-week reopen window)  │            │
+       │                            │                          │            │
+       │                            │  status = "סגור"          │            │
+       │                            │    → urgency = "נמוך"     │            │
+       │                            │      (compound close)    │            │
+       │                            │  status = "בהמתנה"        │            │
+       │                            │    → holdReason required │            │
+       │                            │  leaving "בהמתנה"         │            │
+       │                            │    → holdReason = null   │            │
+       │                            │  assignedTo = self       │            │
+       │                            │    and was "פתוח"         │            │
+       │                            │    → status = "בטיפול"    │            │
+       │                            │                          │            │
+       │                            │  offboarding ticket with │            │
+       │                            │  unticked lines → 400    │            │
+       │                            │  { blockers }            │            │
+       │                            │                          │            │
+       │                            │  ticket.update() ───────>│            │
+       │                            │  AWAIT history           │            │
+       │                            │    createMany() ────────>│            │
+       │                            │                          │            │
+       │                            │  status change → owner + assignee only│
+       │                            │  other edits  → all staff ───────────>│
+       │  200 { ticket }            │                          │            │
+       │<───────────────────────────│                          │            │
 ```
 
-### 4.4 Client Error Logging Flow
+The history write is **awaited**, never `void`-ed, so a client re-fetch that
+follows the response always sees the new timeline entry.
+
+### 4.4 Email-to-Ticket Ingestion
+
+```
+cron (*/2 min)         POST /api/admin/ingest-mail      Gmail IMAP     PostgreSQL
+  run-ingest.sh              │                              │              │
+  (flock-guarded)            │                              │              │
+       │  x-ingest-secret    │                              │              │
+       │───────────────────>│                              │              │
+       │                     │  [401 if secret wrong]       │              │
+       │                     │  [503 if SMTP_USER/PASS unset]              │
+       │                     │                              │              │
+       │                     │  connect imapflow TLS :993 ─>│              │
+       │                     │  search { seen:false,        │              │
+       │                     │           subject: keyword } │              │
+       │                     │  <── matching messages ──────│              │
+       │                     │                              │              │
+       │                     │  fixCharsetLabels()          │              │
+       │                     │   iso-8859-8-i/-e            │              │
+       │                     │     → windows-1255           │              │
+       │                     │  simpleParser()              │              │
+       │                     │  buildIngestedTicket()       │              │
+       │                     │                              │              │
+       │                     │  dedupe on sourceMessageId ─────────────────>│
+       │                     │  resolveUserByEmail(From) ──────────────────>│
+       │                     │  ticket.create(urgency=דחוף) ───────────────>│
+       │                     │  history "created" ─────────────────────────>│
+       │                     │                              │              │
+       │                     │  mark \Seen ────────────────>│              │
+       │  200 { ok, created, tickets[] }                     │              │
+       │<───────────────────│                              │              │
+```
+
+Non-matching emails are left **unread and untouched**. `Ticket.sourceMessageId`
+is `@unique`, so the same email can never produce two tickets even if a run
+overlaps or is retried.
+
+### 4.5 Equipment Request → Shortage Report
+
+```
+Opener (any ticket)        Technician                Admin console
+       │                        │                          │
+       │ POST /api/tickets      │                          │
+       │  { equipment: [        │                          │
+       │     {label, quantity}] │                          │
+       │  }                     │                          │
+       │   — or later —         │                          │
+       │ POST /api/tickets/     │                          │
+       │      [id]/equipment    │                          │
+       │  (upsert by label)     │                          │
+       ▼                        │                          │
+  TicketEquipment rows          │                          │
+  quantity = N                  │                          │
+  receivedQty = 0               │                          │
+       │                        │                          │
+       │   items arrive ────────►                          │
+       │                        │ PATCH /api/tickets/      │
+       │                        │       [id]/equipment     │
+       │                        │  { id, receivedQty }     │
+       │                        │  or { id, received:true }│
+       │                        │  STAFF ONLY              │
+       │                        ▼                          │
+       │                 receivedQty ↑                     │
+       │                 receivedAt / receivedBy set       │
+       │                        │                          │
+       │                        │   GET /api/admin/        │
+       │                        │       equipment  ────────►
+       │                        │                          │
+       │                        │   aggregateShortage():   │
+       │                        │   every line where       │
+       │                        │   receivedQty < quantity,│
+       │                        │   grouped by label,      │
+       │                        │   live tickets only      │
+       │                        │   (?includeClosed=1 to   │
+       │                        │    audit closed ones)    │
+       │                        │                          ▼
+       │                        │                  "ציוד חסר" tab
+       │                        │                  + supplierText
+       │                        │                    (one order)
+```
+
+`TicketEquipment.label` is a **snapshot** of the `FieldOption` label at request
+time — renaming or deleting an equipment option later must not rewrite the
+history of tickets already filed. Leaving-employee tickets never appear in the
+shortage report: their checklist is gear coming back, not gear to buy.
+
+### 4.6 Client Error Logging Flow
 
 ```
 Browser                    ErrorBoundary /           Next.js          PostgreSQL
@@ -255,13 +390,12 @@ Browser                    ErrorBoundary /           Next.js          PostgreSQL
     │  OR promise rejection      │                       │                 │
     │───────────────────────────>│                       │                 │
     │                            │                       │                 │
-    │  [ErrorBoundary]           │                       │                 │
-    │  componentDidCatch runs    │                       │                 │
-    │  Shows fallback UI         │                       │                 │
+    │                            │  isChunkError()?      │                 │
+    │                            │   yes → reload once,  │                 │
+    │                            │         do not log    │                 │
+    │                            │   (stale build after  │                 │
+    │                            │    a deploy)          │                 │
     │                            │                       │                 │
-    │  [ClientErrorHandler]      │                       │                 │
-    │  window "error" /          │                       │                 │
-    │  "unhandledrejection"      │                       │                 │
     │                            │  POST /api/logs       │                 │
     │                            │  { level, message,    │                 │
     │                            │    source, stack }    │                 │
@@ -269,52 +403,17 @@ Browser                    ErrorBoundary /           Next.js          PostgreSQL
     │                            │                       │  log.create()──>│
     │                            │                       │  log.deleteMany │
     │                            │                       │  (> 30 days) ──>│
-    │                            │                       │  200 { ok:true }│
+    │                            │                       │  200 { ok }     │
     │                            │                       │<────────────────│
-    │  Admin visits logs tab     │                       │                 │
-    │  GET /api/logs?date=today  │                       │                 │
-    │───────────────────────────────────────────────────>│                 │
-    │                            │                       │  log.findMany() │
-    │                            │                       │  (where date)──>│
-    │                            │                       │<────────────────│
-    │  Logs shown in textarea    │                       │                 │
-    │<───────────────────────────────────────────────────│                 │
+    │                                                                      │
+    │  Admin opens יומן שגיאות tab                                          │
+    │  GET /api/admin/logs?date=YYYY-MM-DD ───────────────────────────────>│
+    │<─────────────────────────────────────────────────────────────────────│
 ```
 
-### 4.5 Contact Form Email Flow
-
-```
-Browser (/contact)          Next.js /api/contact        SMTP Server
-       │                           │                          │
-       │  Type message              │                          │
-       │  Click "שלח הודעה"         │                          │
-       │                           │                          │
-       │  POST /api/contact         │                          │
-       │  { message }               │                          │
-       │──────────────────────────>│                          │
-       │                           │  auth() → get session    │
-       │                           │  [401 if not logged in]  │
-       │                           │  [400 if empty message]  │
-       │                           │                          │
-       │                           │  read SMTP_* env vars    │
-       │                           │  [503 if not configured] │
-       │                           │                          │
-       │                           │  createTransport(config) │
-       │                           │  sendMail({              │
-       │                           │    to: dev@cristalino    │
-       │                           │    subject: "HelpDesk    │
-       │                           │             Issues"      │
-       │                           │    replyTo: sender       │
-       │                           │    body: message         │
-       │                           │  }) ─────────────────────>
-       │                           │  (delivered to inbox)    │
-       │                           │<─────────────────────────│
-       │  200 { ok: true }         │                          │
-       │<──────────────────────────│                          │
-       │  Success banner shown     │                          │
-       │  Textarea cleared         │                          │
-       │                           │                          │
-```
+`lib/chunkError.ts` filters out stale-chunk failures — a tab left open across a
+deploy requests JS chunks whose hashes no longer exist. Those are not bugs, so
+the page reloads once instead of logging noise.
 
 ---
 
@@ -322,399 +421,546 @@ Browser (/contact)          Next.js /api/contact        SMTP Server
 
 ```
 app/
-│
-├── layout.tsx              SERVER — HTML shell, lang/dir, Providers mount
-├── page.tsx                SERVER — Root redirect (/ → /login or /admin or /dashboard)
-├── globals.css             CSS    — Base resets (input, label, button, textarea)
+├── layout.tsx              SERVER — HTML shell, lang="he" dir="rtl", Providers mount
+├── page.tsx                SERVER — Root redirect (→ /login | /admin | /dashboard)
+├── globals.css             CSS    — Tailwind resets only
 ├── providers.tsx           CLIENT — SessionProvider + ErrorBoundary + ClientErrorHandler
 │
-├── login/page.tsx          CLIENT — Google sign-in UI
-├── dashboard/page.tsx      CLIENT — Employee ticket list + new ticket form
-├── admin/page.tsx          CLIENT — Admin: ticket queue | users | logs
+├── login/page.tsx          CLIENT — Google sign-in (prompt=select_account)
+├── dashboard/page.tsx      CLIENT — Employee: own tickets, form, search, stat filters
+├── open/page.tsx           CLIENT — Ticket-open shortcut, pre-filled from profile
 ├── profile/page.tsx        CLIENT — Account settings (name, phone, station)
-├── contact/page.tsx        CLIENT — Contact dev team form
-├── help/page.tsx           SERVER — Hebrew user manual (static content, no auth needed)
+├── contact/page.tsx        CLIENT — Contact-the-dev-team form
+├── help/page.tsx           CLIENT — Hebrew user manual
+├── manual/page.tsx         CLIENT — Printable manual
+├── admin-manual/page.tsx   CLIENT — Staff/admin manual
+├── review/[ticketId]/      CLIENT — Service rating page (no login required)
 │
-└── api/
-    ├── auth/[...nextauth]/route.ts  — NextAuth OAuth handlers (GET + POST)
-    ├── tickets/route.ts             — GET (own/all) | POST (create) | PATCH (status/assignedTo)
-    ├── profile/route.ts             — GET (own profile) | PATCH (update)
-    ├── users/route.ts               — GET (all users) | PATCH (any user) [admin]
-    ├── logs/route.ts                — GET (by date) [admin] | POST (write entry)
-    └── contact/route.ts             — POST (send email via SMTP)
+├── tickets/
+│   ├── page.tsx            CLIENT — Staff: all tickets, weekly/all-time stats, sort
+│   ├── view/page.tsx       CLIENT — Viewer role: read-only ticket list
+│   └── [id]/page.tsx       CLIENT — Ticket detail: notes, messages, attachments,
+│                                    equipment, history timeline, polling by revision
+├── admin/
+│   ├── page.tsx            CLIENT — Tabs: תור פניות · ניהול משתמשים · יומן שגיאות ·
+│   │                                שדות מערכת · רישוי · מדפסות · ציוד חסר
+│   ├── logs/page.tsx       CLIENT — Standalone error-log viewer
+│   └── reviews/page.tsx    CLIENT — Service-review dashboard
+│
+└── api/                    See §7 for the full route reference
 
 components/
-├── TicketForm.tsx          CLIENT — New ticket form with pre-fill and tooltip
-├── TicketTable.tsx         CLIENT — User ticket card list (display-only)
-├── ErrorBoundary.tsx       CLIENT — React render error catch + fallback UI
-├── ClientErrorHandler.tsx  CLIENT — window.onerror + unhandledrejection listener
-└── FooterCopyright.tsx     CLIENT — Shared version footer + LinkedIn easter egg
+├── AppHeader.tsx           Shared header + role badge + hamburger nav
+├── Logo.tsx                Brand mark
+├── TicketForm.tsx          New-ticket form (profile pre-fill, category-driven fields)
+├── TicketTable.tsx         Ticket card list
+├── EquipmentPicker.tsx     Item + quantity picker for equipment requests
+├── NewEmployeeFields.tsx   The four mandatory "עובד חדש" fields
+├── OffboardingNotice.tsx   Return-checklist banner for "עובד עוזב"
+├── ImageAttachments.tsx    Pending/uploaded image strip
+├── ErrorBoundary.tsx       React render-error catch + fallback UI
+├── ClientErrorHandler.tsx  window.onerror + unhandledrejection listener
+├── ErrorToast.tsx          Transient error banner
+└── FooterCopyright.tsx     Shared version footer
 
 lib/
-├── db.ts          — Prisma singleton (prevents connection pool exhaustion in dev)
-├── version.ts     — APP_VERSION constant (single source of truth)
-└── logError.ts    — Server-side logError() helper (used by all API routes)
+├── db.ts                   Prisma singleton (prevents dev connection-pool exhaustion)
+├── version.ts              VERSION constant — the single source of version truth
+├── theme.ts                Design tokens: T, STATUS, URGENCY maps
+│
+├── users.ts                Case-insensitive User lookup / create (v3.65)
+├── staffEmails.ts          STAFF_EMAILS, VIEWER_EMAILS, STAFF_MEMBERS, BOT_EMAIL,
+│                           ASSIGNABLE_FALLBACK, parseMentions()
+├── staffMembers.ts         Server-side resolver for the DB-driven staff roster
+│
+├── ticketApi.ts            Client mutation helpers — closeTicket(), updateTicket()
+├── ticketSearch.ts         HDTC-number-aware search (`494`, `#494`, `HDTC-494`, …)
+├── ticketRevision.ts       Compact signature so detail-page polling avoids re-renders
+├── staleTicket.ts          isStaleOpen() — STALE_WORKDAYS = 4
+├── workdays.ts             Israeli Sun–Thu workday arithmetic
+│
+├── equipment.ts            Equipment selection, receipt clamping, shortage aggregation
+├── newEmployee.ts          The four mandatory onboarding fields ↔ description block
+├── offboarding.ts          Return checklist + close blockers for "עובד עוזב"
+├── fieldOptions.ts         Dropdown defaults + fetchFieldOptions()
+│
+├── mail.ts                 sendMail() + every outbound HTML template
+├── mailIngest.ts           Pure inbound-email → ticket logic (no I/O)
+├── attachmentStorage.ts    Ticket attachment bytes on disk (v3.48+)
+├── printerStorage.ts       Printer driver binaries on disk
+│
+├── logError.ts             Server-side logError() → Log table
+├── chunkError.ts           Stale-chunk detection + one-shot reload
+├── pasteImage.ts           handleImagePaste() for any textarea
+└── useIsMobile.ts          useIsMobile() hook — 768 px breakpoint
 
 types/
-├── next-auth.d.ts — Augments NextAuth Session with isAdmin + id
-└── ticket.ts      — Ticket and TicketWithUser interfaces
+├── next-auth.d.ts          Augments NextAuth Session with isAdmin + id
+├── ticket.ts               Ticket / TicketWithUser interfaces
+└── printer.ts              Printer + PrinterDriver interfaces
 
 prisma/
-├── schema.prisma  — Database models: User, Ticket, Log
-└── migrations/    — SQL migration history
+├── schema.prisma           13 models — see §6
+└── migrations/             SQL migration history
+
+scripts/
+└── migrate-attachments-to-disk.js   One-shot v3.48 backfill
+
+__tests__/                  35 suites, 568 tests — gate the build
 ```
+
+> **Every entry point that receives an email address from outside must resolve
+> it through `lib/users.ts`.** `auth.ts` stores the address exactly as Google
+> supplied it, so a row can carry capitals; matching a lowercased address with
+> `findUnique` misses it, and an `upsert` built on that miss inserts a second
+> account for the same person. The three callers are
+> `app/api/tickets/route.ts` (on-behalf-of), `app/api/users/route.ts`
+> (deletion reassignment) and `app/api/admin/ingest-mail/route.ts` (inbound
+> sender). See v3.65 in [`RELEASE_NOTES.md`](../RELEASE_NOTES.md).
 
 ---
 
-## 6. Database Schema — Full Field Reference
+## 6. Database Schema Reference
 
-### 6.1 User Table
+Thirteen models. `prisma/schema.prisma` is the source of truth; this section is
+the annotated reading of it.
 
-The `User` table represents every person who has ever signed in to the system. Rows are created automatically on first Google OAuth login by the `session` callback in `auth.ts`.
+Every `id` is a CUID (`@default(cuid())`) unless noted — sortable, URL-safe, and
+unique across tables.
+
+### 6.1 User
+
+Every person who has ever signed in. Rows are created automatically on first
+Google OAuth login by the `session` callback in `auth.ts`, and by
+`resolveUserByEmail()` when an admin files a ticket on someone's behalf or an
+email arrives from an unknown address.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `email` | String | ✓ | `@unique`. The lookup key everywhere. **Stored as Google supplied it**, so it can carry capitals — always match through `lib/users.ts`, never a bare `findUnique` on a lowercased address |
+| `name` | String? | ✗ | Display name from Google on first login, then editable at `/profile` |
+| `image` | String? | ✗ | Google profile photo URL. Set on first login, never refreshed. Not rendered — the UI uses initials |
+| `isAdmin` | Boolean | ✓ | Default `false`. Grants `/admin` and every admin-only endpoint. Re-read from the DB on every session access |
+| `phone` | String? | ✗ | Set at `/profile`; pre-fills the ticket form |
+| `station` | String? | ✗ | Workstation hostname/ID; pre-fills the ticket form's computer field |
+| `tickets` | Ticket[] | — | Relation — tickets this user owns |
+
+### 6.2 Ticket
+
+The central table.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key; used in URLs (`/tickets/<id>`) and unguessable, which is what makes the public review link safe |
+| `ticketNumber` | Int | ✓ | `@unique @default(autoincrement())`. The human-facing number, shown as `HDTC-<n>` |
+| `assignedTo` | String | ✓ | Email of the handling staff member. Default `helpdesk@cristalino.co.il`. May be `bot@cristalino.co.il` (the automation bot — never a mail recipient) |
+| `subject` | String | ✓ | Short title |
+| `description` | String | ✓ | Full details. For `"עובד חדש"` tickets this also carries the labelled new-employee block (see `lib/newEmployee.ts`) |
+| `phone` | String | ✓ | Reporter's contact number. Empty string for email-ingested tickets |
+| `computerName` | String | ✓ | Affected machine. Empty string for email-ingested tickets |
+| `urgency` | String | ✓ | Default `"בינוני"`. `נמוך` \| `בינוני` \| `גבוה` \| `דחוף` — extendable via FieldOption, but these four are protected from deletion |
+| `category` | String | ✓ | Default `"אחר"`. FieldOption-driven; `עובד חדש` and `עובד עוזב` are protected and carry extra behaviour |
+| `platform` | String | ✓ | Default `"מחשב אישי"`. FieldOption-driven |
+| `status` | String | ✓ | Default `"פתוח"`. `פתוח` \| `בטיפול` \| `בהמתנה` \| `סגור` |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+| `updatedAt` | DateTime | ✓ | `@updatedAt`. **Not bumped** by adding a message or note — see `lib/ticketRevision.ts` |
+| `userId` | String | ✓ | FK → `User.id`. The מגיש (submitter). Admins can move it via `PATCH /api/tickets { ownerEmail }` |
+| `sourceMessageId` | String? | ✗ | `@unique`. The source email's `Message-ID` for email-ingested tickets; the idempotency key that stops one email becoming two tickets. Null for UI tickets |
+| `holdReason` | String? | ✗ | Required while `status = "בהמתנה"`; cleared automatically on reinstatement |
+
+Relations: `user`, `notes`, `attachments`, `messages`, `review`, `history`,
+`equipment`.
+
+Indexes: `@@index([userId])` (the user dashboard filters by owner) and
+`@@index([status])` (the digest and sweep crons filter by it every few minutes).
+Postgres does not index foreign keys automatically.
+
+### 6.3 TicketHistory
+
+The audit trail. Written on creation and on every field change.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `ticketId` | String | ✓ | FK → `Ticket.id`, `onDelete: Cascade` |
+| `field` | String | ✓ | `"created"` \| `"status"` \| `"urgency"` \| `"assignedTo"` \| `"edited"` |
+| `oldValue` | String? | ✗ | Previous value |
+| `newValue` | String? | ✗ | New value. For a hold this reads `בהמתנה: <holdReason>` |
+| `actorName` | String | ✓ | Who made the change — the acting admin, not the ticket owner |
+| `actorEmail` | String | ✓ | Their address |
+| `changedAt` | DateTime | ✓ | `@default(now())` |
+
+Indexed on `ticketId`.
+
+### 6.4 TicketMessage
+
+Two-way user ↔ staff conversation. Visible to the ticket owner.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `ticketId` | String | ✓ | FK → `Ticket.id`, cascade |
+| `content` | String | ✓ | Message body |
+| `authorName` | String | ✓ | Sender's display name |
+| `authorEmail` | String | ✓ | Sender's address. Only the author may delete their own message |
+| `authorRole` | String | ✓ | `"staff"` \| `"user"` |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+
+Indexed on `ticketId`.
+
+### 6.5 TicketNote
+
+Internal technician notes. **Never shown to the ticket owner.** Supports
+`@mention` handles and pasted images.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `ticketId` | String | ✓ | FK → `Ticket.id`, cascade |
+| `content` | String | ✓ | Note body; `@handle` mentions trigger notification email |
+| `authorName` | String | ✓ | Staff member's name |
+| `authorEmail` | String | ✓ | Staff member's address |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+
+Indexed on `ticketId`.
+
+### 6.6 TicketAttachment
+
+Since v3.48 the bytes live on the server filesystem under
+`uploads/ticket-attachments/`; the row holds only metadata.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key; the URL is `/api/attachments/<id>` |
+| `ticketId` | String | ✓ | FK → `Ticket.id`, cascade |
+| `dataUrl` | String? | ✗ | **Legacy** inline base64 for rows created before v3.48. Null once the file is on disk. Still served as a fallback |
+| `storedName` | String? | ✗ | `@unique`. On-disk filename (`uuid.ext`) |
+| `mimeType` | String? | ✗ | Content type |
+| `size` | Int? | ✗ | Decoded size in bytes |
+| `filename` | String? | ✗ | Original name shown to the user |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+
+Indexed on `ticketId`. `scripts/migrate-attachments-to-disk.js` moves legacy
+rows onto disk.
+
+### 6.7 TicketEquipment
+
+Equipment requested on a ticket. Introduced in v3.58.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `ticketId` | String | ✓ | FK → `Ticket.id`, cascade |
+| `label` | String | ✓ | e.g. `"מסך"`, `"חשבון Gmail"`. A **snapshot** of the FieldOption label at request time, so renaming the option later does not rewrite filed tickets |
+| `quantity` | Int | ✓ | Default `1`. How many were requested (max 99) |
+| `receivedQty` | Int | ✓ | Default `0`. How many arrived / were installed, clamped to `0..quantity` |
+| `receivedAt` | DateTime? | ✗ | When the line was last marked fully received |
+| `receivedBy` | String? | ✗ | Email of the staff member who marked it |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+
+`@@unique([ticketId, label])` — re-posting an existing label updates its
+quantity rather than adding a duplicate line. Indexed on `ticketId` for the
+shortage scan.
+
+Despite the name, equipment is **not** limited to onboarding tickets — any
+ticket may carry lines. The `"עובד חדש"` category only decides whether the
+picker is expanded by default.
+
+### 6.8 TicketReview
+
+Service rating, one per ticket.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `ticketId` | String | ✓ | `@unique`, FK → `Ticket.id`, cascade |
+| `rating` | Int | ✓ | 1–5 |
+| `comment` | String? | ✗ | Optional free text |
+| `submitterName` | String | ✓ | Who rated |
+| `submitterEmail` | String | ✓ | Their address |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+
+### 6.9 License
+
+Software license inventory, managed in the admin **רישוי** tab.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `key` | String | ✓ | The license number / product key |
+| `category` | String | ✓ | Default `"Office"`. Managed via FieldOption (`field = "licenseCategory"`) |
+| `username` | String? | ✗ | Account the license was activated with |
+| `password` | String? | ✗ | Masked in the UI, click-to-reveal |
+| `remark` | String? | ✗ | Free text — who received it, which machine |
+| `createdAt` / `updatedAt` | DateTime | ✓ | Timestamps |
+
+`@@unique([category, key])` — bulk insert skips duplicates. Indexed on
+`category`.
+
+### 6.10 Printer
+
+Printer inventory, managed in the admin **מדפסות** tab.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `name` | String | ✓ | Display name |
+| `maker` | String? | ✗ | יצרן — manufacturer |
+| `model` | String? | ✗ | Model number / name |
+| `supplier` | String? | ✗ | ספק — supplier the printer belongs to |
+| `ipv4` | String? | ✗ | Network IPv4 address |
+| `hostname` | String? | ✗ | Network hostname |
+| `inkToner` | String? | ✗ | סוג דיו/טונר — required ink/toner type |
+| `tonerLevel` | Int? | ✗ | 0–100 % remaining |
+| `supplierSerial` | String? | ✗ | מספר ספק — supplier-assigned serial |
+| `createdAt` / `updatedAt` | DateTime | ✓ | Timestamps |
+| `drivers` | PrinterDriver[] | — | Relation |
+
+Indexed on `name`.
+
+### 6.11 PrinterDriver
+
+Driver binaries can be hundreds of MB, so the files live under
+`uploads/printer-drivers/` and the row holds only metadata.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `printerId` | String | ✓ | FK → `Printer.id`, cascade |
+| `filename` | String | ✓ | Original name shown to the user |
+| `storedName` | String | ✓ | `@unique`. On-disk name (uuid + sanitized original) |
+| `size` | Int | ✓ | Bytes. Max 100 MB per file |
+| `mimeType` | String? | ✗ | Content type |
+| `createdAt` | DateTime | ✓ | `@default(now())` |
+
+Indexed on `printerId`.
+
+### 6.12 FieldOption
+
+DB-driven dropdown values, managed in the admin **שדות מערכת** tab.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `field` | String | ✓ | `"category"` \| `"platform"` \| `"urgency"` \| `"licenseCategory"` \| `"equipment"` |
+| `label` | String | ✓ | The value shown in the dropdown |
+| `order` | Int | ✓ | Default `0`. Sort position |
+
+`@@unique([field, label])`, indexed on `field`. Defaults are auto-seeded on the
+first `GET` for any field whose rows are missing. Deletion is blocked for the
+four protected urgencies and for the `עובד חדש` / `עובד עוזב` categories, which
+business logic depends on.
+
+### 6.13 Log
+
+Error and telemetry sink. Has no foreign keys.
+
+| Column | Type | Required | Description |
+|---|---|---|---|
+| `id` | String (CUID) | ✓ | Primary key |
+| `timestamp` | DateTime | ✓ | `@default(now())` |
+| `level` | String | ✓ | Default `"error"` |
+| `message` | String | ✓ | Error message, or an audit line (ticket deletions are recorded here) |
+| `source` | String? | ✗ | Route or component that reported it |
+| `stack` | String? | ✗ | Stack trace |
+| `date` | String | ✓ | `"YYYY-MM-DD"` — the query key for the admin log tab |
+
+Indexed on `date` and `timestamp`. Rows older than 30 days are deleted on write.
+
+### 6.14 Entity Relationship Diagram
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              TABLE: User                                     │
-├──────────────┬───────────────┬──────────┬──────────────────────────────────┤
-│ Column       │ Type          │ Required │ Description                      │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ id           │ String (CUID) │ ✓        │ Primary key. Auto-generated by   │
-│              │               │          │ Prisma using @default(cuid()).   │
-│              │               │          │ CUIDs are sortable, URL-safe,    │
-│              │               │          │ and unique across tables.        │
-│              │               │          │ Example: "clh3k2x4f0001..."      │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ email        │ String        │ ✓        │ Google OAuth email address.      │
-│              │               │          │ @unique constraint — one row     │
-│              │               │          │ per email address.               │
-│              │               │          │ Used as the lookup key in auth   │
-│              │               │          │ and API routes.                  │
-│              │               │          │ Example: "alon@cristalino.co.il" │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ name         │ String?       │ ✗        │ Display name. Set from Google    │
-│              │               │          │ profile on first login, then     │
-│              │               │          │ editable via /profile page.      │
-│              │               │          │ Null for users who never signed  │
-│              │               │          │ in with a Google account that    │
-│              │               │          │ has a display name set.          │
-│              │               │          │ Example: "Alon Kerem"            │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ image        │ String?       │ ✗        │ URL of the user's Google profile │
-│              │               │          │ photo. Set on first login, never │
-│              │               │          │ updated after. Not displayed in  │
-│              │               │          │ the current UI (avatars use      │
-│              │               │          │ initials instead).               │
-│              │               │          │ Example: "https://lh3.google..." │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ isAdmin      │ Boolean       │ ✓        │ Whether this user can access     │
-│              │               │          │ /admin and admin-only API        │
-│              │               │          │ endpoints. Defaults to false.    │
-│              │               │          │ Changed via admin user table or  │
-│              │               │          │ direct SQL.                      │
-│              │               │          │ Takes effect on next login.      │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ phone        │ String?       │ ✗        │ Employee's contact phone number. │
-│              │               │          │ Set via /profile page.           │
-│              │               │          │ Pre-fills TicketForm.phone.      │
-│              │               │          │ Null until the user saves it.    │
-│              │               │          │ Example: "050-1234567"           │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ station      │ String?       │ ✗        │ Workstation hostname or ID.      │
-│              │               │          │ Set via /profile page.           │
-│              │               │          │ Pre-fills TicketForm.computer    │
-│              │               │          │ Name field.                      │
-│              │               │          │ Null until saved.                │
-│              │               │          │ Example: "PC-ALON-01"            │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ tickets      │ Ticket[]      │ —        │ Prisma relation field (virtual). │
-│              │               │          │ Not a DB column — it's a         │
-│              │               │          │ back-reference allowing Prisma   │
-│              │               │          │ to load related Ticket rows via  │
-│              │               │          │ include: { user: true }.         │
-└──────────────┴───────────────┴──────────┴──────────────────────────────────┘
-```
+┌────────────────┐
+│      User      │
+│ id · email(U)  │
+│ isAdmin        │
+└───────┬────────┘
+        │ 1 : N   (userId — the מגיש)
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│                        Ticket                            │
+│  id · ticketNumber(U) · status · urgency · category      │
+│  holdReason? · sourceMessageId(U)?                       │
+└──┬────────┬────────┬─────────┬──────────┬────────────────┘
+   │ 1:N    │ 1:N    │ 1:N     │ 1:N      │ 1:1      │ 1:N
+   ▼        ▼        ▼         ▼          ▼          ▼
+┌────────┐┌────────┐┌────────┐┌─────────┐┌────────┐┌──────────┐
+│Ticket  ││Ticket  ││Ticket  ││Ticket   ││Ticket  ││Ticket    │
+│History ││Message ││Note    ││Attach-  ││Review  ││Equipment │
+│        ││        ││        ││ment     ││        ││          │
+└────────┘└────────┘└────────┘└─────────┘└────────┘└──────────┘
+   all six: onDelete: Cascade
+   TicketReview   — ticketId @unique  (one review per ticket)
+   TicketEquipment— @@unique([ticketId, label])
 
-### 6.2 Ticket Table
+┌────────────────┐          ┌────────────────┐
+│    Printer     │ 1 : N    │ PrinterDriver  │
+│ id · name      ├─────────►│ storedName (U) │
+└────────────────┘  cascade └────────────────┘
 
-The `Ticket` table represents every support request submitted by employees. Once created, only the `status` field is changed (by admins). All other fields are immutable.
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              TABLE: Ticket                                   │
-├──────────────┬───────────────┬──────────┬──────────────────────────────────┤
-│ Column       │ Type          │ Required │ Description                      │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ id           │ String (CUID) │ ✓        │ Primary key. Auto-generated.     │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ subject      │ String        │ ✓        │ One-line problem description.    │
-│              │               │          │ Shown as the card title in both  │
-│              │               │          │ dashboard and admin queue.       │
-│              │               │          │ No length limit in schema, but   │
-│              │               │          │ UI truncates with ellipsis.      │
-│              │               │          │ Example: "המדפסת לא מדפיסה"       │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ description  │ String        │ ✓        │ Full details of the problem.     │
-│              │               │          │ Multi-line text. Shown in the    │
-│              │               │          │ expanded admin card panel.       │
-│              │               │          │ Preserved with white-space:      │
-│              │               │          │ pre-wrap for line breaks.        │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ phone        │ String        │ ✓        │ Employee's contact number at     │
-│              │               │          │ time of submission.              │
-│              │               │          │ Pre-filled from User.phone if    │
-│              │               │          │ set. Stored per-ticket so it     │
-│              │               │          │ remains accurate even if the     │
-│              │               │          │ user later changes their profile.│
-│              │               │          │ Example: "050-1234567"           │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ computerName │ String        │ ✓        │ Hostname of the affected machine.│
-│              │               │          │ Pre-filled from User.station.    │
-│              │               │          │ The "?" tooltip in TicketForm    │
-│              │               │          │ explains how to find this value  │
-│              │               │          │ (Start → cmd → hostname).        │
-│              │               │          │ Example: "PC-ALON-01"            │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ urgency      │ String        │ ✓        │ Priority level. Controls queue   │
-│              │               │          │ sort order in admin panel.       │
-│              │               │          │ Default: "בינוני"                │
-│              │               │          │                                  │
-│              │               │          │ Valid values:                    │
-│              │               │          │  "נמוך"   — Low. Non-urgent.      │
-│              │               │          │  "בינוני" — Medium (default).    │
-│              │               │          │  "גבוה"   — High. Significant    │
-│              │               │          │             work impact.         │
-│              │               │          │  "דחוף"   — Urgent. Complete     │
-│              │               │          │             work stoppage.       │
-│              │               │          │                                  │
-│              │               │          │ Queue sort rank:                 │
-│              │               │          │  דחוף=0, גבוה=1, בינוני=2, נמוך=3│
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ category     │ String        │ ✓        │ Type of IT issue.                │
-│              │               │          │ Default: "אחר"                   │
-│              │               │          │                                  │
-│              │               │          │ Valid values:                    │
-│              │               │          │  "חומרה"  — Hardware (PC, screen,│
-│              │               │          │             keyboard, mouse)     │
-│              │               │          │  "תוכנה"  — Software (OS, apps,  │
-│              │               │          │             errors)              │
-│              │               │          │  "רשת"    — Network (internet,   │
-│              │               │          │             Wi-Fi, VPN)          │
-│              │               │          │  "מדפסת"  — Printer issues       │
-│              │               │          │  "אחר"    — Other / uncategorised│
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ status       │ String        │ ✓        │ Current state of the ticket.     │
-│              │               │          │ Default: "פתוח"                  │
-│              │               │          │ Only changed by admins via       │
-│              │               │          │ PATCH /api/tickets.              │
-│              │               │          │                                  │
-│              │               │          │ Valid values:                    │
-│              │               │          │  "פתוח"   — Open. Awaiting       │
-│              │               │          │             attention.           │
-│              │               │          │  "בטיפול" — In Progress. Tech is │
-│              │               │          │             working on it.       │
-│              │               │          │  "סגור"   — Closed. Resolved.    │
-│              │               │          │             Removed from queue.  │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ createdAt    │ DateTime      │ ✓        │ When the ticket was submitted.   │
-│              │               │          │ Auto-set by Prisma @default(now) │
-│              │               │          │ Server time (UTC).               │
-│              │               │          │ Used for FIFO queue ordering     │
-│              │               │          │ within same urgency level.       │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ updatedAt    │ DateTime      │ ✓        │ When the ticket was last changed.│
-│              │               │          │ Auto-updated by Prisma @updatedAt│
-│              │               │          │ on any field change.             │
-│              │               │          │ Currently only changes when      │
-│              │               │          │ status is updated.               │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ userId       │ String        │ ✓        │ Foreign key → User.id            │
-│              │               │          │ Set at creation from the         │
-│              │               │          │ authenticated user's DB row.     │
-│              │               │          │ Never changes after creation.    │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ user         │ User          │ —        │ Prisma relation (virtual).       │
-│              │               │          │ Populated by include: { user }   │
-│              │               │          │ in admin ticket fetches.         │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ assignedTo   │ String?       │ —        │ Email of the staff member        │
-│              │               │          │ currently responsible for this   │
-│              │               │          │ ticket. Optional (nullable).     │
-│              │               │          │ Set by admins via PATCH          │
-│              │               │          │ /api/tickets { assignedTo }.     │
-│              │               │          │ Shown in the ticket queue with   │
-│              │               │          │ a quick "הקצה לעצמי" button.     │
-└──────────────┴───────────────┴──────────┴──────────────────────────────────┘
-```
-
-### 6.3 Log Table
-
-The `Log` table stores all error events from both client and server. It is used exclusively by the admin error log viewer. Entries are never shown to regular users.
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              TABLE: Log                                      │
-├──────────────┬───────────────┬──────────┬──────────────────────────────────┤
-│ Column       │ Type          │ Required │ Description                      │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ id           │ String (CUID) │ ✓        │ Primary key. Auto-generated.     │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ timestamp    │ DateTime      │ ✓        │ Exact time of the error.         │
-│              │               │          │ Auto-set by Prisma @default(now) │
-│              │               │          │ Server time (UTC).               │
-│              │               │          │ Used to order log entries        │
-│              │               │          │ chronologically in the log tab.  │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ level        │ String        │ ✓        │ Severity of the event.           │
-│              │               │          │ Default: "error"                 │
-│              │               │          │ Currently only "error" is used.  │
-│              │               │          │ Reserved for future: "warn",     │
-│              │               │          │ "info" levels.                   │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ message      │ String        │ ✓        │ The error message string.        │
-│              │               │          │ Truncated to 2000 characters by  │
-│              │               │          │ logError() and POST /api/logs.   │
-│              │               │          │ Example: "Cannot read properties │
-│              │               │          │ of undefined (reading 'map')"    │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ source       │ String?       │ ✗        │ Where the error originated.      │
-│              │               │          │ For API routes: the route path   │
-│              │               │          │ and method, e.g.                 │
-│              │               │          │ "/api/tickets POST".             │
-│              │               │          │ For client errors: the page URL  │
-│              │               │          │ path from window.location.       │
-│              │               │          │ Null if not provided.            │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ stack        │ String?       │ ✗        │ JavaScript stack trace.          │
-│              │               │          │ Truncated to 5000 characters.    │
-│              │               │          │ For React errors: includes both  │
-│              │               │          │ the JS stack and React's         │
-│              │               │          │ component tree stack             │
-│              │               │          │ (from info.componentStack).      │
-│              │               │          │ Null for errors without a trace. │
-├──────────────┼───────────────┼──────────┼──────────────────────────────────┤
-│ date         │ String        │ ✓        │ ISO date string: "YYYY-MM-DD"    │
-│              │               │          │ Derived from timestamp at write  │
-│              │               │          │ time. Used for two purposes:     │
-│              │               │          │                                  │
-│              │               │          │ 1. FILTERING: Admin log tab      │
-│              │               │          │    queries WHERE date = ?        │
-│              │               │          │    to show a specific day.       │
-│              │               │          │                                  │
-│              │               │          │ 2. CLEANUP: Entries with date <  │
-│              │               │          │    cutoff date are deleted.      │
-│              │               │          │    String comparison is safe     │
-│              │               │          │    because ISO dates sort        │
-│              │               │          │    lexicographically.            │
-│              │               │          │                                  │
-│              │               │          │ Example: "2026-04-09"            │
-└──────────────┴───────────────┴──────────┴──────────────────────────────────┘
-```
-
-### 6.4 Entity Relationship Diagram
-
-```
-┌─────────────────────────────────────┐
-│               User                  │
-├─────────────────────────────────────┤
-│ id        PK  CUID                  │
-│ email     UNIQUE  String            │
-│ name      String?                   │
-│ image     String?                   │
-│ isAdmin   Boolean  DEFAULT false    │
-│ phone     String?                   │
-│ station   String?                   │
-└──────────────────┬──────────────────┘
-                   │  1 : N
-                   │  (one user, many tickets)
-                   │
-                   ▼
-┌─────────────────────────────────────┐
-│               Ticket                │
-├─────────────────────────────────────┤
-│ id          PK  CUID                │
-│ subject     String                  │
-│ description String                  │
-│ phone       String                  │
-│ computerName String                 │
-│ urgency     String  DEFAULT "בינוני"│
-│ category    String  DEFAULT "אחר"  │
-│ status      String  DEFAULT "פתוח" │
-│ createdAt   DateTime  DEFAULT now() │
-│ updatedAt   DateTime  @updatedAt    │
-│ userId      FK → User.id            │
-└─────────────────────────────────────┘
-
-┌─────────────────────────────────────┐
-│               Log                   │
-├─────────────────────────────────────┤
-│ id        PK  CUID                  │
-│ timestamp DateTime  DEFAULT now()   │
-│ level     String    DEFAULT "error" │
-│ message   String                    │
-│ source    String?                   │
-│ stack     String?                   │
-│ date      String  ("YYYY-MM-DD")    │
-└─────────────────────────────────────┘
-  (Log has no foreign keys — it is
-   independent of User and Ticket)
+┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+│    License     │  │  FieldOption   │  │      Log       │
+│ @@unique       │  │ @@unique       │  │ (no FKs —      │
+│ (category,key) │  │ (field,label)  │  │  independent)  │
+└────────────────┘  └────────────────┘  └────────────────┘
 ```
 
 ---
 
 ## 7. API Routes Reference
 
+**Auth column key** — `—` none · `User` any signed-in user ·
+`Owner/Staff` the ticket's owner or any staff member · `Staff` staff or admin ·
+`Admin` `isAdmin` only · `Secret` shared-secret header (cron) ·
+`Key` Bearer API key.
+
+### Tickets
+
 | Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET/POST | `/api/auth/[...nextauth]` | — | NextAuth OAuth handler (managed by library) |
-| GET | `/api/tickets` | User | Own tickets (or all tickets if admin) |
-| POST | `/api/tickets` | User | Create new ticket |
-| PATCH | `/api/tickets` | Staff/User | Update ticket fields. **Closure is compound**: setting `status="סגור"` also forces `urgency="נמוך"` (single source of truth — see `lib/ticketApi.ts`). Users may close/reopen own tickets; staff may edit all fields |
-| GET | `/api/tickets/[id]` | User | Full ticket detail with messages, notes, and attachments |
-| POST | `/api/tickets/[id]/messages` | User | Post a conversation message. Accepts optional `replyToEmail`, `replyToName`, `replyToMsgId` to target a reply at a specific participant — sends them a deep-link notification email and avoids double-notifying via the general message email |
-| GET | `/api/profile` | User | Get own name/phone/station |
+|---|---|---|---|
+| GET | `/api/tickets` | User | Own tickets; **all** tickets with nested `user` if admin |
+| POST | `/api/tickets` | User | Create a ticket. Accepts `equipment[]` on any category, `newEmployee{}` (mandatory for `עובד חדש`, else 400), and `onBehalfOfEmail` / `onBehalfOfName` (**admin only**, 403 otherwise) → 201 |
+| PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }` |
+| GET | `/api/tickets/all` | Staff / Viewer | All tickets — the read-only viewer list |
+| GET | `/api/tickets/[id]` | Owner/Staff | Full detail: messages, notes, attachment metadata, equipment |
+| DELETE | `/api/tickets/[id]` | **Admin** | Permanently erase a ticket. No undo, no soft-delete. Child rows cascade; attachment bytes are unlinked first; the deletion itself is written to `Log` |
+| GET | `/api/tickets/[id]/history` | Owner/Staff | Audit timeline |
+| POST | `/api/tickets/[id]/messages` | Owner/Staff | Post a conversation message. Optional `replyToEmail` / `replyToName` / `replyToMsgId` target one participant with a deep-link email and suppress the general notification |
+| DELETE | `/api/tickets/[id]/messages` | Author | Delete your own message |
+| POST | `/api/tickets/[id]/notes` | Staff | Internal note; `@handle` mentions notify by email |
+| POST | `/api/tickets/[id]/attachments` | Owner/Staff | Upload an image (data URL in, bytes to disk) |
+| POST | `/api/tickets/[id]/equipment` | Owner/Staff | Add/amend lines `[{ label, quantity }]`; upsert by label. Frozen for the owner once the ticket is closed |
+| PATCH | `/api/tickets/[id]/equipment` | **Staff** | Record arrivals: `{ id, receivedQty }` or `{ id, received: true }` |
+| DELETE | `/api/tickets/[id]/equipment` | Staff, or Owner | Owner only while nothing has arrived against the line |
+
+All three equipment verbs return the ticket's full ordered line list, so the
+client can replace state without a second round-trip.
+
+### People and profile
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/profile` | User | Own name/phone/station (`image` and `isAdmin` are not exposed) |
 | PATCH | `/api/profile` | User | Update own name/phone/station |
-| GET | `/api/users` | Admin | Get all users |
-| PATCH | `/api/users` | Admin | Update any user (name/phone/station/isAdmin) |
-| GET | `/api/logs?date=YYYY-MM-DD` | Admin | Get log entries for a date |
-| POST | `/api/logs` | None | Write a log entry (+ 30-day cleanup) |
-| POST | `/api/contact` | User | Send email to dev@cristalino.co.il |
+| GET | `/api/users` | Admin | All users |
+| PATCH | `/api/users` | Admin | Update name/phone/station/`isAdmin`. Revoking the last admin is refused |
+| DELETE | `/api/users` | Admin | Delete a user; their tickets are bulk-reassigned to `helpdesk@`. Self-deletion blocked |
+| GET | `/api/staff` | Staff | Effective roster — DB users with `isAdmin = true`, plus the bot for assignment. Feeds assignment dropdowns and `@mention` chips |
+
+### Reviews, attachments, contact
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/reviews?ticket=<id>` | — | **Public.** Ticket summary + existing review, to bootstrap the rating page |
+| GET | `/api/reviews` | Staff | All reviews for the dashboard |
+| POST | `/api/reviews` | — | **Public.** Submit a rating for a closed ticket |
+| PATCH | `/api/reviews` | — | **Public.** Change an existing rating/comment |
+| GET | `/api/attachments/[id]` | Owner/Staff | Serve attachment bytes (disk, or legacy `dataUrl`). Cached immutable |
+| POST | `/api/contact` | User | Email the dev team. 503 if SMTP is unconfigured |
+
+Review POST/PATCH are intentionally unauthenticated: the ticket CUID in the
+emailed link is unguessable, so only the recipient can reach the URL.
+
+### Admin console
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/admin/logs?date=YYYY-MM-DD` | Staff | Log entries for a date |
+| DELETE | `/api/admin/logs` | **Admin** | Clear logs |
+| GET | `/api/admin/field-options` | User | All options grouped by field; auto-seeds defaults |
+| POST | `/api/admin/field-options` | Admin | Add an option |
+| DELETE | `/api/admin/field-options` | Admin | Remove an option; refused for protected urgencies and the two special categories |
+| GET / POST / PATCH / DELETE | `/api/admin/licenses` | Admin | License inventory; POST accepts bulk keys (newline or `;` separated) |
+| GET / POST / PATCH / DELETE | `/api/admin/printers` | Admin | Printer inventory |
+| POST / DELETE | `/api/admin/printers/drivers` | Admin | Upload / remove a driver file (≤ 100 MB, extension allowlist) |
+| GET | `/api/admin/printers/drivers/[id]` | Admin | Download a driver file |
+| GET | `/api/admin/equipment?includeClosed=1` | **Staff** | Shortage report — everything still owed, aggregated by item, plus `supplierText`. Staff-gated, not admin-only: the technicians who tick items off are the ones who need it |
+
+### Machine-to-machine and cron
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET/POST | `/api/auth/[...nextauth]` | — | NextAuth OAuth handler |
+| POST | `/api/logs` | — | Write a telemetry/error entry (+ 30-day cleanup). Deliberately open — the client must be able to report errors even when auth is what broke |
+| POST | `/api/automation/close` | Key | Close a ticket by `ticketNumber`. `Authorization: Bearer <AUTOMATION_API_KEY>` or `X-Api-Key`. Optional `message`, `note`, `actorName`, `actorEmail`, `fields{}`. Idempotent — an already-closed ticket returns `{ ok: true, alreadyClosed: true }`. 503 if the key is unset |
+| POST | `/api/admin/digest` | Secret | `x-digest-secret` → `DIGEST_SECRET`. Daily open-ticket summary to staff |
+| POST | `/api/admin/sweep` | Secret | `x-sweep-secret` → `SWEEP_SECRET`, falling back to `DIGEST_SECRET`. Repairs closed tickets whose urgency is not `נמוך` |
+| POST | `/api/admin/ingest-mail` | Secret | `x-ingest-secret` → `INGEST_SECRET`, falling back to `DIGEST_SECRET`. Polls IMAP and creates tickets. Returns `{ ok, created, tickets[] }`; 503 if the mailbox is unconfigured |
 
 ---
 
 ## 8. Authorization Matrix
 
+### Pages
+
 ```
-Route / Action              │ Unauthenticated │ Regular User │ Admin
-────────────────────────────┼─────────────────┼──────────────┼──────────
-GET /                       │ → /login        │ → /dashboard │ → /admin
-GET /login                  │ ✓               │ ✓            │ ✓
-GET /dashboard              │ → /login        │ ✓            │ ✓
-GET /admin                  │ → /login        │ → /dashboard │ ✓
-GET /profile                │ → /login        │ ✓            │ ✓
-GET /help                   │ ✓               │ ✓            │ ✓
-GET /contact                │ → /login        │ ✓            │ ✓
-────────────────────────────┼─────────────────┼──────────────┼──────────
-POST /api/tickets           │ 401             │ ✓            │ ✓
-GET  /api/tickets           │ 401             │ Own only     │ All
-PATCH /api/tickets          │ 401             │ 403          │ ✓
-GET  /api/profile           │ 401             │ Own only     │ Own only
-PATCH /api/profile          │ 401             │ Own only     │ Own only
-GET  /api/users             │ 401             │ 403          │ ✓
-PATCH /api/users            │ 401             │ 403          │ ✓
-GET  /api/logs              │ 403             │ 403          │ ✓
-POST /api/logs              │ ✓ (open)        │ ✓            │ ✓
-POST /api/contact           │ 401             │ ✓            │ ✓
+Route                       │ Unauthenticated │ Employee    │ Viewer      │ Staff │ Admin
+────────────────────────────┼─────────────────┼─────────────┼─────────────┼───────┼───────
+GET /                       │ → /login        │ → /dashboard│ → /dashboard│ → ... │ → /admin
+GET /login                  │ ✓               │ ✓           │ ✓           │ ✓     │ ✓
+GET /dashboard              │ → /login        │ ✓           │ ✓           │ ✓     │ ✓
+GET /open                   │ → /login        │ ✓           │ ✓           │ ✓     │ ✓
+GET /profile  /contact      │ → /login        │ ✓           │ ✓           │ ✓     │ ✓
+GET /help  /manual          │ → /login        │ ✓           │ ✓           │ ✓     │ ✓
+GET /tickets                │ → /login        │ → /dashboard│ → /dashboard│ ✓     │ ✓
+GET /tickets/[id]           │ → /login        │ Own only    │ Read-only   │ ✓     │ ✓
+GET /tickets/view           │ → /login        │ → /dashboard│ ✓           │ ✓     │ ✓
+GET /admin                  │ → /login        │ → /dashboard│ → /dashboard│ → ... │ ✓
+GET /admin/logs  /reviews   │ → /login        │ → /dashboard│ → /dashboard│ ✓     │ ✓
+GET /admin-manual           │ → /login        │ → /dashboard│ → /dashboard│ ✓     │ ✓
+GET /review/[ticketId]      │ ✓ (no login)    │ ✓           │ ✓           │ ✓     │ ✓
 ```
+
+### API
+
+```
+Endpoint                          │ Unauth │ Employee   │ Viewer │ Staff │ Admin
+──────────────────────────────────┼────────┼────────────┼────────┼───────┼──────
+GET   /api/tickets                │ 401    │ Own only   │ Own    │ Own   │ All
+POST  /api/tickets                │ 401    │ ✓          │ ✓      │ ✓     │ ✓ +onBehalfOf
+PATCH /api/tickets                │ 401    │ Own close/ │ 403    │ ✓     │ ✓ +ownerEmail
+                                  │        │ reopen ≤4w │        │       │
+GET   /api/tickets/all            │ 401    │ 403        │ ✓      │ ✓     │ ✓
+GET   /api/tickets/[id]           │ 401    │ Own only   │ ✓      │ ✓     │ ✓
+DELETE/api/tickets/[id]           │ 401    │ 403        │ 403    │ 403   │ ✓
+POST  /api/tickets/[id]/notes     │ 401    │ 403        │ 403    │ ✓     │ ✓
+POST  /api/tickets/[id]/messages  │ 401    │ Own ticket │ 403    │ ✓     │ ✓
+POST  /api/tickets/[id]/equipment │ 401    │ Own ticket │ 403    │ ✓     │ ✓
+PATCH /api/tickets/[id]/equipment │ 401    │ 403        │ 403    │ ✓     │ ✓
+GET   /api/attachments/[id]       │ 401    │ Own only   │ 403    │ ✓     │ ✓
+GET/PATCH /api/profile            │ 401    │ Own only   │ Own    │ Own   │ Own
+GET/PATCH/DELETE /api/users       │ 401    │ 403        │ 403    │ 403   │ ✓
+GET   /api/staff                  │ 401    │ 403        │ 403    │ ✓     │ ✓
+GET   /api/admin/logs             │ 401    │ 401        │ 401    │ ✓     │ ✓
+DELETE/api/admin/logs             │ 403    │ 403        │ 403    │ 403   │ ✓
+GET   /api/admin/field-options    │ 401    │ ✓          │ ✓      │ ✓     │ ✓
+POST/DELETE /api/admin/field-opts │ 403    │ 403        │ 403    │ 403   │ ✓
+*     /api/admin/licenses         │ 403    │ 403        │ 403    │ 403   │ ✓
+*     /api/admin/printers[/*]     │ 403    │ 403        │ 403    │ 403   │ ✓
+GET   /api/admin/equipment        │ 401    │ 403        │ 403    │ ✓     │ ✓
+POST  /api/contact                │ 401    │ ✓          │ ✓      │ ✓     │ ✓
+POST  /api/logs                   │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
+GET   /api/reviews (list)         │ 401    │ 403        │ 403    │ ✓     │ ✓
+GET   /api/reviews?ticket=        │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
+POST/PATCH /api/reviews           │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
+POST  /api/automation/close       │ Bearer AUTOMATION_API_KEY (no session)
+POST  /api/admin/{digest,sweep,ingest-mail}  │ shared-secret header (no session)
+```
+
+Page guards are client-side redirects; **every one of them is backed by a
+server-side check in the corresponding API route.** The client guard is
+convenience, not security.
 
 ---
 
 ## 9. Error Logging Architecture
 
-Three separate mechanisms capture errors, all writing to the same `Log` database table:
+Three mechanisms capture errors, all writing to the same `Log` table:
 
 ```
-                     ┌─────────────────────────────────────┐
-                     │           Log Database Table         │
+                     ┌──────────────────────────────────────┐
+                     │           Log database table         │
                      │  id, timestamp, level, message,      │
                      │  source, stack, date                 │
                      └──────────────────────────────────────┘
@@ -722,94 +968,170 @@ Three separate mechanisms capture errors, all writing to the same `Log` database
                             │             │             │
           ┌─────────────────┤             │             ├────────────────────┐
           │                 │             │             │                    │
-  ┌───────────────┐  ┌──────────────┐    │    ┌─────────────────────┐       │
-  │ ErrorBoundary │  │ClientError   │    │    │ API Routes          │       │
-  │               │  │Handler       │    │    │                     │       │
-  │ React render  │  │              │    │    │ try/catch in:       │       │
-  │ errors        │  │ window.error │    │    │  /api/tickets       │       │
-  │               │  │ unhandled    │    │    │  /api/profile       │       │
-  │ componentDid  │  │ rejection    │    │    │  /api/users         │       │
-  │ Catch()       │  │              │    │    │                     │       │
-  └───────┬───────┘  └──────┬───────┘    │    │ calls logError()   │       │
-          │                 │            │    │ from lib/logError.ts│       │
-          │  POST           │  POST      │    │                     │       │
-          └─────────────────┘            │    │ Direct DB write     │       │
-               /api/logs                 │    │ (no HTTP round-trip)│       │
-                    │                    │    └─────────────────────┘       │
-                    └────────────────────┘                                  │
-                    Prisma log.create()  ◄──────────────────────────────────┘
-                    + log.deleteMany()
-                    (30-day cleanup)
+  ┌───────────────┐  ┌──────────────┐     │    ┌─────────────────────┐       │
+  │ ErrorBoundary │  │ ClientError  │     │    │ API routes          │       │
+  │               │  │ Handler      │     │    │                     │       │
+  │ React render  │  │              │     │    │ try/catch calls     │       │
+  │ crashes       │  │ window error │     │    │ logError() from     │       │
+  │               │  │ + unhandled  │     │    │ lib/logError.ts     │       │
+  │ componentDid  │  │ rejection    │     │    │                     │       │
+  │ Catch()       │  │              │     │    │ Direct Prisma write │       │
+  └───────┬───────┘  └──────┬───────┘     │    │ (no HTTP round-trip)│       │
+          │                 │             │    └─────────────────────┘       │
+          │   both first check isChunkError() — a stale build after a        │
+          │   deploy reloads once instead of logging (lib/chunkError.ts)     │
+          │                 │             │                                  │
+          │  POST           │  POST       │                                  │
+          └─────────────────┴─────────────┘                                  │
+               /api/logs  (open, no auth)                                    │
+                    │                                                        │
+                    └────────────────────────────────────────────────────────┘
+                    Prisma log.create() + log.deleteMany(> 30 days)
 ```
 
-**Why three mechanisms?**
-
 | Mechanism | What it catches | How it logs |
-|-----------|----------------|-------------|
-| `ErrorBoundary` | React component render crashes | POST /api/logs |
-| `ClientErrorHandler` | Unhandled JS errors + promise rejections | POST /api/logs |
+|---|---|---|
+| `ErrorBoundary` | React component render crashes | `POST /api/logs` |
+| `ClientErrorHandler` | Unhandled JS errors + promise rejections | `POST /api/logs` |
 | `logError()` in API routes | Server-side DB/logic errors | Direct Prisma write |
+
+Reading is separate from writing: `POST /api/logs` is open so a broken client
+can always report, while `GET /api/admin/logs` is staff-gated and
+`DELETE /api/admin/logs` is admin-only.
 
 ---
 
-## 10. Deployment Architecture
+## 10. Background Jobs
+
+Three cron entries, all installed idempotently by `deploy.sh` and all
+authenticating to `localhost:3000` with a shared secret read from
+`.env.local` at run time.
+
+| Schedule | Script | Endpoint | Purpose |
+|---|---|---|---|
+| `0 9 * * *` (09:00 Israel) | `send-digest.sh` | `POST /api/admin/digest` | Daily summary of open tickets to every `isAdmin` user |
+| `*/5 * * * *` | `run-sweep.sh` | `POST /api/admin/sweep` | Repair any closed ticket whose urgency drifted off `נמוך` |
+| `*/2 * * * *` | `run-ingest.sh` | `POST /api/admin/ingest-mail` | Poll IMAP; turn matching emails into urgent tickets |
+
+`run-ingest.sh` is **`flock`-guarded** — a slow IMAP scan must not let the next
+tick start a second overlapping run. Each script appends to
+`/home/ubuntu/helpdesk/logs/{digest,sweep,ingest}.log`.
+
+### Email-to-ticket rules
+
+An inbound message to `helpdesk@cristalino.co.il` becomes a ticket only if the
+**subject contains the keyword** (`TICKET_MAIL_KEYWORD`, default `ticket`,
+case-insensitive substring). The IMAP search is server-side filtered
+(`{ seen: false, subject: keyword }`) so the whole mailbox is never scanned.
+
+| Ticket field | Source |
+|---|---|
+| `subject` | Email subject with the keyword removed and separators tidied. Fallback `"פנייה מהמייל"` |
+| `description` | Plain-text body. Fallback `"(לא צורף תוכן להודעה)"` |
+| `urgency` | Always `"דחוף"` |
+| `category` / `platform` | Defaults (`"אחר"` / `"מחשב אישי"`) |
+| `phone` / `computerName` | Empty strings |
+| owner | `resolveUserByEmail()` on the `From` address; display name from the header, fallbacks: address, then `"שולח לא ידוע"`; address fallback `mail-ingest@cristalino.co.il` |
+| `sourceMessageId` | The email's `Message-ID` — `@unique`, the idempotency key |
+
+Hebrew bodies labelled `iso-8859-8-i` / `-e` are relabelled to `windows-1255`
+by `fixCharsetLabels()` before parsing, or `mailparser` mangles them.
+
+On success the route writes a `created` history row, emails staff and the
+sender, and flags the message `\Seen`. Non-matching mail is left unread and
+untouched. **Prerequisite:** IMAP must be enabled for the mailbox in Gmail
+(Settings → Forwarding and POP/IMAP).
+
+---
+
+## 11. Deployment Architecture
 
 ```
-Developer Machine
+Developer machine
         │
         │  1. ./deploy.sh
         │
-        │  2. tar: app/, components/, lib/, prisma/, public/,
-        │     types/, auth.ts, package.json, tsconfig.json,
-        │     next.config.ts → helpdesk-src.tar.gz
+        │  2. tar: app/ components/ lib/ prisma/ public/ types/ scripts/
+        │     auth.ts package.json tsconfig.json next.config.ts
+        │        → helpdesk-src.tar.gz
         │
-        │  3. scp tar.gz → ubuntu@server:/home/ubuntu/helpdesk/
-        │
+        │  3. scp → ubuntu@server:/home/ubuntu/helpdesk/
         ▼
-Ubuntu Server — /home/ubuntu/helpdesk/
+Ubuntu server — /home/ubuntu/helpdesk/
         │
-        │  4. pm2 stop helpdesk
+        │  4. maintenance page comes up (maintenance-server.js)
         │
         │  5. tar -xzf helpdesk-src.tar.gz
         │
         │  6. npm install
-        │     npx prisma migrate deploy   ← applies pending migrations
-        │     npx prisma generate         ← regenerates Prisma Client
-        │     npm run build               ← next build
+        │     npx prisma migrate deploy   ← apply pending migrations
+        │     npx prisma generate         ← regenerate Prisma Client
+        │     npx jest --ci               ← 568 tests; a failure aborts the deploy
+        │     next build                  ← into .next-staging (NEXT_DIST_DIR)
+        │        while the OLD build keeps serving from .next
         │
-        │  7. pm2 start helpdesk
+        │  7. pm2 stop → swap .next-staging ↔ .next → pm2 start
+        │     (downtime is the swap window, seconds)
         │
+        │  8. install/refresh the three cron entries
         ▼
      Port 3000 → nginx → https://helpdesk.cristalino.co.il
-
-IMPORTANT RULES:
-─────────────────
-• NEVER build locally and copy .next — Turbopack embeds absolute paths
-  from the build machine into compiled JS chunks. Building on a different
-  machine causes module hash mismatches on the server.
-• PM2 is configured with systemd (pm2 startup) so the app survives reboots.
 ```
+
+**Rules that are not negotiable:**
+
+- **Never build locally and copy `.next`.** Turbopack embeds absolute paths from
+  the build machine into compiled chunks; a foreign build produces module-hash
+  mismatches on the server.
+- **`uploads/` is never in the archive and never in the `rm -rf` list**, so
+  ticket attachments and printer drivers survive every deploy.
+- **Tests gate the build.** `npm run build` is
+  `prisma generate && jest --ci && next build` — the same gate runs on the
+  server.
+- PM2 is registered with systemd (`pm2 startup`), so the app survives reboots.
+
+SSL is terminated by nginx with a Certbot certificate; `ssl-init.sh` performs
+the one-time setup and `setup-server.sh` the one-time machine provisioning.
 
 ---
 
-## 11. Environment Variables Reference
+## 12. Environment Variables Reference
 
 | Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | ✓ | PostgreSQL connection string. Format: `postgresql://USER:PASS@HOST:5432/DB` |
-| `AUTH_SECRET` | ✓ | Secret for signing JWT cookies. Generate: `openssl rand -base64 32` |
-| `AUTH_GOOGLE_ID` | ✓ | Google OAuth Client ID from Google Cloud Console |
-| `AUTH_GOOGLE_SECRET` | ✓ | Google OAuth Client Secret |
-| `NEXTAUTH_URL` | ✓ | Public URL of the app. Must match Google OAuth redirect URI. E.g. `https://helpdesk.cristalino.co.il` |
-| `AUTH_TRUST_HOST` | ✓ | Set to `true` when behind a reverse proxy (nginx). Required on the server. |
-| `ADMIN_EMAILS` | ✗ | Comma-separated list of emails to auto-grant admin on first login (optional). |
-| `SMTP_HOST` | ✗ | Mail server hostname for /contact. E.g. `smtp.office365.com` |
-| `SMTP_PORT` | ✗ | SMTP port. `587` (STARTTLS, recommended) or `465` (SSL). Default: `587` |
-| `SMTP_USER` | ✗ | SMTP authentication username (usually the From address) |
-| `SMTP_PASS` | ✗ | SMTP password or app-specific password |
-| `SMTP_FROM` | ✗ | Sender address in emails. Defaults to `SMTP_USER` if not set. |
+|---|---|---|
+| `DATABASE_URL` | ✓ | PostgreSQL connection string: `postgresql://USER:PASS@HOST:5432/DB` |
+| `AUTH_SECRET` | ✓ | Signs the JWT cookie. Generate with `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID` | ✓ | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | ✓ | Google OAuth client secret |
+| `AUTH_TRUST_HOST` | ✓ | `true` behind a reverse proxy. Required on the server |
+| `NEXTAUTH_URL` | ✗ | Public URL. Omitted in `.env.example` so `AUTH_TRUST_HOST` can resolve it dynamically for multiple domains |
+| `NEXT_PUBLIC_APP_URL` | ✗ | Base URL used to build links inside emails. Defaults to `https://helpdesk.cristalino.co.il` |
+| `SMTP_USER` | ✗ | Google Workspace mailbox (`helpdesk@cristalino.co.il`). Doubles as the IMAP username |
+| `SMTP_PASS` | ✗ | Google **App Password** (16 chars, no spaces). Doubles as the IMAP password |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | ✗ | Overrides for non-Workspace SMTP. `SMTP_FROM` defaults to `SMTP_USER` |
+| `IMAP_HOST` | ✗ | IMAP server. Default `imap.gmail.com` |
+| `TICKET_MAIL_KEYWORD` | ✗ | Subject keyword that triggers ingestion. Default `ticket` |
+| `DIGEST_SECRET` | ✗ | `x-digest-secret` for the digest cron; also the fallback for the other two |
+| `SWEEP_SECRET` | ✗ | `x-sweep-secret`. Falls back to `DIGEST_SECRET` |
+| `INGEST_SECRET` | ✗ | `x-ingest-secret`. Falls back to `DIGEST_SECRET` |
+| `AUTOMATION_API_KEY` | ✗ | Bearer key for `POST /api/automation/close`. Unset ⇒ the endpoint returns 503 |
 
-> SMTP variables are optional but the `/contact` page will return HTTP 503 "SMTP not configured" if they are missing.
+**Degradation when optional variables are unset:** `sendMail()` becomes a no-op
+so the app runs locally without mail; `/api/contact` returns 503; the ingest
+endpoint returns 503; the automation endpoint returns 503; a cron whose secret
+is missing logs a skip and exits 0.
+
+> **`ADMIN_EMAILS` is documented in `.env.example` and in the `auth.ts` header
+> comment, but nothing reads it.** The logic was considered and never
+> implemented. Admin access is granted either from the admin console's
+> ניהול משתמשים tab, or directly:
+>
+> ```sql
+> UPDATE "User" SET "isAdmin" = true WHERE email = 'user@cristalino.co.il';
+> ```
+>
+> `isAdmin` is re-read on every session access, so the change lands on the next
+> request.
 
 ---
 
