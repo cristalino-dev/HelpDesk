@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-08-24 · v3.65
+> Version 2.0 · Last updated 2026-08-24 · v3.66
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **568 tests across 35 suites** — they gate the build |
+| Testing | Jest + RTL | 30 + 16 | **582 tests across 37 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` — the build runs on the server |
 
@@ -468,7 +468,9 @@ lib/
 ├── version.ts              VERSION constant — the single source of version truth
 ├── theme.ts                Design tokens: T, STATUS, URGENCY maps
 │
-├── users.ts                Case-insensitive User lookup / create (v3.65)
+├── users.ts                Case-insensitive User lookup / create (v3.65) — the
+│                           ONLY way to resolve a User from an email, auth.ts
+│                           included since v3.66
 ├── staffEmails.ts          STAFF_EMAILS, VIEWER_EMAILS, STAFF_MEMBERS, BOT_EMAIL,
 │                           ASSIGNABLE_FALLBACK, parseMentions()
 ├── staffMembers.ts         Server-side resolver for the DB-driven staff roster
@@ -506,17 +508,24 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  35 suites, 568 tests — gate the build
+__tests__/                  37 suites, 582 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
-> it through `lib/users.ts`.** `auth.ts` stores the address exactly as Google
-> supplied it, so a row can carry capitals; matching a lowercased address with
-> `findUnique` misses it, and an `upsert` built on that miss inserts a second
-> account for the same person. The three callers are
+> it through `lib/users.ts`.** Matching a lowercased address against a row that
+> carries capitals with `findUnique` misses it, and an `upsert` built on that
+> miss inserts a second account for the same person. The callers are
 > `app/api/tickets/route.ts` (on-behalf-of), `app/api/users/route.ts`
-> (deletion reassignment) and `app/api/admin/ingest-mail/route.ts` (inbound
-> sender). See v3.65 in [`RELEASE_NOTES.md`](../RELEASE_NOTES.md).
+> (deletion reassignment), `app/api/admin/ingest-mail/route.ts` (inbound
+> sender) and, since v3.66, `auth.ts` — which used to be the one place that
+> stored the address exactly as Google supplied it, and is therefore how a row
+> came to carry capitals in the first place.
+>
+> Since v3.66 the database enforces this rather than merely expecting it:
+> `UNIQUE (lower(email))`, added out of band by the migration
+> `20260824000000_user_email_case_insensitive` because Prisma has no syntax for
+> a functional index. `prisma migrate dev` reports it as drift; that is
+> expected. See v3.65 and v3.66 in [`RELEASE_NOTES.md`](../RELEASE_NOTES.md).
 
 ---
 
@@ -538,9 +547,9 @@ email arrives from an unknown address.
 | Column | Type | Required | Description |
 |---|---|---|---|
 | `id` | String (CUID) | ✓ | Primary key |
-| `email` | String | ✓ | `@unique`. The lookup key everywhere. **Stored as Google supplied it**, so it can carry capitals — always match through `lib/users.ts`, never a bare `findUnique` on a lowercased address |
+| `email` | String | ✓ | `@unique`, **plus a second out-of-band `UNIQUE (lower(email))`** (v3.66) — the plain unique is over the exact bytes, so it alone would let one person hold two rows differing only in case. The lookup key everywhere. Stored lowercased and trimmed; always match through `lib/users.ts`, never a bare `findUnique` on an address from outside |
 | `name` | String? | ✗ | Display name from Google on first login, then editable at `/profile` |
-| `image` | String? | ✗ | Google profile photo URL. Set on first login, never refreshed. Not rendered — the UI uses initials |
+| `image` | String? | ✗ | Google profile photo URL. Set on first login (via `resolveUserByEmail`'s optional third argument), never refreshed. Not rendered — the UI uses initials |
 | `isAdmin` | Boolean | ✓ | Default `false`. Grants `/admin` and every admin-only endpoint. Re-read from the DB on every session access |
 | `phone` | String? | ✗ | Set at `/profile`; pre-fills the ticket form |
 | `station` | String? | ✗ | Workstation hostname/ID; pre-fills the ticket form's computer field |
@@ -1059,26 +1068,39 @@ Developer machine
         ▼
 Ubuntu server — /home/ubuntu/helpdesk/
         │
-        │  4. maintenance page comes up (maintenance-server.js)
+        │  4. tar -xzf helpdesk-src.tar.gz
         │
-        │  5. tar -xzf helpdesk-src.tar.gz
-        │
-        │  6. npm install
-        │     npx prisma migrate deploy   ← apply pending migrations
-        │     npx prisma generate         ← regenerate Prisma Client
-        │     npx jest --ci               ← 568 tests; a failure aborts the deploy
+        │  5. npm install                 ← skipped if package-lock hash unchanged
+        │     npx prisma generate         ← skipped if schema.prisma hash unchanged
         │     next build                  ← into .next-staging (NEXT_DIST_DIR)
-        │        while the OLD build keeps serving from .next
+        │        the OLD build keeps serving from .next throughout,
+        │        so a failed build leaves the live site untouched
         │
-        │  7. pm2 stop → swap .next-staging ↔ .next → pm2 start
-        │     (downtime is the swap window, seconds)
+        │  ┌─ 6. SWAP WINDOW — the only downtime, seconds ──────────────┐
+        │  │    pm2 stop helpdesk                                       │
+        │  │    maintenance page comes up (maintenance-server.js)       │
+        │  │    npx prisma migrate deploy   ← pending migrations        │
+        │  │    rm -rf .next && mv .next-staging .next                  │
+        │  │    pm2 start ecosystem.config.js                           │
+        │  └────────────────────────────────────────────────────────────┘
         │
-        │  8. install/refresh the three cron entries
+        │  7. install/refresh the three cron entries, then health-check
+        │     until the app answers HTTP 200
         ▼
      Port 3000 → nginx → https://helpdesk.cristalino.co.il
 ```
 
 **Rules that are not negotiable:**
+
+- **Migrations run INSIDE the swap window, with the app stopped and `set -e`
+  armed.** A migration that fails there does not abort cleanly — it leaves the
+  site down, because `.next` is never swapped and pm2 is never restarted. Any
+  migration that can fail on existing data (v3.66's `UNIQUE (lower(email))` is
+  the type case) should be written `IF NOT EXISTS` and applied by hand against
+  the *running* app first, where a failure costs nothing.
+- **Jest is not a server-side gate.** `deploy.sh` runs `next build` directly,
+  not `npm run build`, so the test suite never executes on the server. Run
+  `npx jest --ci` locally before deploying.
 
 - **Never build locally and copy `.next`.** Turbopack embeds absolute paths from
   the build machine into compiled chunks; a foreign build produces module-hash

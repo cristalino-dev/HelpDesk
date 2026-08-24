@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.65** · Updated 2026-08-24
+> **Current version: 3.66** · Updated 2026-08-24
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -75,7 +75,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **568 tests across 35 suites**, gating the build.
+- **Tests:** Jest 30 + React Testing Library 16 — **582 tests across 37 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -89,7 +89,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 
 Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.md` §6](docs/ARCHITECTURE.md#6-database-schema-reference).
 
-- **User** — OAuth metadata, `name`, `isAdmin`, `phone`, `station`. 1→N Ticket. ⚠️ `email` is stored exactly as Google supplied it and may carry capitals.
+- **User** — OAuth metadata, `name`, `isAdmin`, `phone`, `station`. 1→N Ticket. `email` is `@unique` **plus an out-of-band `UNIQUE (lower(email))`** (v3.66) — the plain unique is over the exact bytes, so on its own it would let one person hold two rows differing only in case. Stored lowercased since v3.66; rows created before that may still carry capitals, so resolve through `lib/users.ts`.
 - **Ticket** — `ticketNumber` (autoincrement, the human `HDTC-N` id), `subject`, `description`, `phone`, `computerName`, `urgency`, `category`, `platform`, `status`, `assignedTo`, plus **`holdReason`** (required while בהמתנה) and **`sourceMessageId`** (`@unique`, the email-ingest idempotency key). FK → User. Indexed on `userId` and `status`. Relations: notes, attachments, messages, review, history, equipment.
 - **TicketHistory** — audit trail: `field`, `oldValue`, `newValue`, `actorName`, `actorEmail`, `changedAt`. Written on create and on every status/urgency/assignedTo/edit change.
 - **TicketMessage** — two-way user↔staff chat with email notifications. Only the author may delete their own message.
@@ -108,7 +108,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 - **UI:** all components use inline React styles. No Tailwind in page/component files.
 - **Mobile:** `useIsMobile` hook (**768 px** breakpoint) used throughout. Hamburger menus on staff pages.
 - **Search:** each page has a `useMemo`-derived `filtered` that chains stat-card filter → text search → sort. Ticket-number queries bypass the filter via `lib/ticketSearch.ts`.
-- **User lookup:** `lib/users.ts` — `findUserByEmail()` matches **case-insensitively** (`findFirst` + `mode: "insensitive"`; `findUnique` has no `mode`), `resolveUserByEmail()` creates only when the address is genuinely new. Every entry point that takes an address from outside must go through it.
+- **User lookup:** `lib/users.ts` — `findUserByEmail()` matches **case-insensitively** (`findFirst` + `mode: "insensitive"`; `findUnique` has no `mode`), `resolveUserByEmail()` creates only when the address is genuinely new, lowercased. Every entry point that takes an address from outside goes through it — `auth.ts` included, since v3.66. `auth.ts` also writes the *stored* address back onto the session, which is what lets the ~30 `session.user.email === storedEmail` checks elsewhere keep working.
 - **Email (outbound):** `lib/mail.ts` has `sendMail()` + all HTML templates. Self-notification excluded on PATCH. RTL is enforced with `dir="rtl"` + inline `direction:rtl;text-align:right` on the card div inside `wrap()` — Gmail strips html/body-level direction, so never rely on those. Status changes notify only the ticket owner + assigned staff member; non-status edits still broadcast to staff.
 - **Email (inbound):** `lib/mailIngest.ts` (pure, testable) + `app/api/admin/ingest-mail/route.ts` (IMAP I/O). Polled by cron every 2 min. See §6.
 - **File storage:** `lib/attachmentStorage.ts` and `lib/printerStorage.ts`. `uploads/` is git-ignored, excluded from the deploy archive, and not in deploy.sh's `rm -rf` list, so files survive deploys.
@@ -131,7 +131,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 7. **User deletion** — `DELETE /api/users` upserts `helpdesk@cristalino.co.il` as fallback, bulk-reassigns all tickets, then deletes. Self-deletion blocked; demoting the last remaining admin is blocked.
 8. **Ticket deletion is admin-only and permanent** — no soft-delete flag. Child rows cascade, attachment bytes are unlinked first, and the act is logged to `Log`.
 9. **Equipment receiving is staff-only** — anyone may ask for a screen; only the technician who handed it over may say it arrived, because the shortage report is the purchase order.
-10. **Email addresses are matched case-insensitively** — always via `lib/users.ts`. A bare `findUnique` on a lowercased address misses rows and turns an `upsert` into a duplicate account.
+10. **Email addresses are matched case-insensitively** — always via `lib/users.ts`. A bare `findUnique` on a lowercased address misses rows and turns an `upsert` into a duplicate account. Since v3.66 the database backs this up with `UNIQUE (lower(email))` on `User`, created by a raw-SQL migration because Prisma cannot express a functional index — so `prisma migrate dev` reporting it as drift is expected, not a reason to reset.
 11. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` only supplies curated handles/names for matching emails (and is the empty-DB fallback). Clients fetch `GET /api/staff`.
 12. **FieldOption deletions are guarded** — the four urgencies and the עובד חדש / עובד עוזב categories cannot be removed; business logic depends on them.
 
@@ -170,6 +170,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.66 | The database enforces one account per person — `UNIQUE (lower(email))` on `User` (raw-SQL migration), and `auth.ts` finally resolves through `lib/users.ts` instead of storing Google's casing verbatim |
 | 3.65 | One account per person — all three email lookups (on-behalf-of, mail ingest, user deletion) now resolve through `lib/users.ts` and ignore case |
 | 3.64 | Polish of the מגיש change — case-insensitive owner lookup, roster fetched on first edit rather than every view, cancel restores the whole form |
 | 3.63 | Admins can change a ticket's submitter, after confirming |
@@ -216,4 +217,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.65 — updated 2026-08-24.*
+*Production build v3.66 — updated 2026-08-24.*
