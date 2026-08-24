@@ -107,21 +107,38 @@ export default function TicketDetailPage() {
           .then(list => { if (Array.isArray(list) && list.length) setStaffMembers(list) })
           .catch(() => {})
       }
-      // The מגיש picker offers every registered user, not just staff — the
-      // whole point is to move a ticket onto the right person. /api/users is
-      // admin-only, which is also exactly who may send ownerEmail.
-      if (session?.user?.isAdmin) {
-        fetch("/api/users")
-          .then(r => r.ok ? r.json() : null)
-          .then(list => { if (Array.isArray(list)) setUsers(list) })
-          .catch(() => {})
-      }
     }
   }, [status, session])
+
+  /** Guards the one-shot roster fetch below against React's effect re-runs. */
+  const rosterFetched = useRef(false)
+
+  // The מגיש picker offers every registered user, not just staff — the whole
+  // point is to move a ticket onto the right person. It is fetched on the first
+  // edit rather than on load: the roster is only reachable from inside the edit
+  // form, and most visits to a ticket never open it. /api/users is admin-only,
+  // which is also exactly who may send ownerEmail.
+  useEffect(() => {
+    if (!editing || !session?.user?.isAdmin || rosterFetched.current) return
+    rosterFetched.current = true
+    fetch("/api/users")
+      .then(r => r.ok ? r.json() : null)
+      .then(list => { if (Array.isArray(list)) setUsers(list) })
+      .catch(() => {})
+  }, [editing, session])
 
   // Tracks the signature of the currently-displayed ticket so background polls
   // can skip re-rendering when nothing changed (see lib/ticketRevision.ts).
   const revisionRef = useRef<string>("")
+
+  /** The edit form's fields as they read straight off a ticket payload. */
+  const editFormFrom = (t: TicketDetail) => ({
+    subject: t.subject, description: t.description,
+    phone: t.phone, computerName: t.computerName,
+    urgency: t.urgency, category: t.category,
+    platform: t.platform, status: t.status,
+    ownerEmail: t.user?.email ?? "",
+  })
 
   // Applies a freshly-fetched ticket payload to component state.
   // `syncEditForm` is false during background polling while the user is editing,
@@ -141,15 +158,7 @@ export default function TicketDetailPage() {
       changedAt: data.createdAt,
     }]
     setHistory([...synthetic, ...rawHistory])
-    if (syncEditForm) {
-      setEditForm({
-        subject: data.subject, description: data.description,
-        phone: data.phone, computerName: data.computerName,
-        urgency: data.urgency, category: data.category,
-        platform: data.platform, status: data.status,
-        ownerEmail: data.user?.email ?? "",
-      })
-    }
+    if (syncEditForm) setEditForm(editFormFrom(data))
     revisionRef.current = ticketRevision(data)
   }
 
@@ -226,10 +235,24 @@ export default function TicketDetailPage() {
     }
   }
 
-  /** Display name for an email, falling back to the address itself. */
+  /**
+   * Discards every in-progress edit, not merely the staged owner move. The
+   * form state outlives edit mode, so a cancel that left it dirty handed the
+   * next עריכה the values the user had just thrown away — and שמור would then
+   * have written them.
+   */
+  const cancelEdit = () => {
+    setEditing(false)
+    setEditError("")
+    if (ticket) setEditForm(editFormFrom(ticket))
+  }
+
+  /** Display name for an email — the roster first, then the ticket's own owner. */
   const userLabel = (email: string) => {
     const u = users.find(x => x.email === email)
-    return u?.name || u?.email || email || "—"
+    if (u) return u.name || u.email
+    if (email && email === ticket?.user?.email) return ticket.user?.name ?? email
+    return email || "—"
   }
 
   const addNote = async () => {
@@ -486,7 +509,7 @@ export default function TicketDetailPage() {
         )}
         {isStaff && editing && (
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => { setEditing(false); setEditError(""); setEditForm(f => ({ ...f, ownerEmail: ticket.user?.email ?? "" })) }} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
+            <button onClick={cancelEdit} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
             <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: T.green, color: T.dark, cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
               {editSaving ? "שומר..." : "שמור"}
             </button>
@@ -568,7 +591,7 @@ export default function TicketDetailPage() {
               העברת פנייה HDTC-{ticket.ticketNumber}
             </h2>
             <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: "#374151", lineHeight: 1.7 }}>
-              המגיש ישונה מ<strong>{ticket.user?.name ?? ticket.user?.email ?? "—"}</strong> ל<strong>{userLabel(ownerConfirm)}</strong>.
+              המגיש ישונה מ<strong>{userLabel(editForm.ownerEmail)}</strong> ל<strong>{userLabel(ownerConfirm)}</strong>.
             </p>
             <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: "#9ca3af" }}>
               הפנייה תעבור לרשימת הפניות של {userLabel(ownerConfirm)}, והעדכונים עליה — כולל בקשת הדירוג בסגירה — יישלחו אליו. השינוי ייכתב ליומן הפנייה ויישמר בלחיצה על &quot;שמור&quot;.

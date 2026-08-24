@@ -5,6 +5,50 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.64 — ליטוש של שינוי המגיש
+
+**A review pass over v3.63. Three things it got wrong or left expensive, and a
+bug older than it that it had made inconsistent.**
+
+### What changed for users
+
+- **A ticket no longer costs a full user-table read to look at.** v3.63 fetched
+  the roster on every visit to every ticket, for every admin. The picker it
+  feeds only exists inside the edit form, and most visits never open it — so
+  the fetch now happens on the first עריכה and once per page, not per view.
+- **ביטול now actually cancels.** Editing the subject, pressing ביטול, then
+  opening עריכה again used to show the discarded text still sitting there —
+  and שמור would write it. This predates v3.63; v3.63 made it worse by
+  clearing the מגיש field on cancel and nothing else, so half the form reset
+  and half did not. The whole form is now restored from the ticket.
+- **The confirmation dialog describes the move you are actually making.** After
+  staging one change it named the saved owner as the "from" rather than the one
+  on screen, so a second pick read as a transition that was not the one about to
+  happen.
+
+### What changed for developers
+
+- **The owner lookup is case-insensitive.** `auth.ts` writes `session.user.email`
+  from Google verbatim, so a `User` row can carry capitals. v3.63 lowercased the
+  incoming address and matched it with `findUnique`, which would answer "המשתמש
+  המבוקש אינו רשום במערכת" about somebody plainly registered. Now
+  `findFirst` + `mode: "insensitive"` — `findUnique` has no `mode`.
+  - **The same latent bug is in v3.56's `onBehalfOfEmail`**, which upserts on a
+    lowercased address and would create a second row rather than 400. Not
+    touched here: it is a different endpoint with a different failure, and it
+    deserves its own change.
+- **`editFormFrom(ticket)` is now the one projection** from a ticket payload to
+  the edit form, shared by the load path and by cancel. The duplicate inline
+  object was how the two drifted apart in the first place.
+- **The roster fetch is guarded by a ref, not by `users.length`** — keying the
+  effect on the state it sets is how you get a re-run per render.
+- **Three regression tests**, each verified failing against the code it
+  describes: the roster is not requested before edit mode and is requested once;
+  cancel discards a subject edit as well as a staged owner move; the lookup
+  goes out case-insensitively.
+
+---
+
 ## v3.63 — שינוי המגיש של פנייה
 
 **A ticket filed against the wrong person can now be moved to the right one,

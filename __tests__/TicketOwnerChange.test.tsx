@@ -129,6 +129,61 @@ describe("מגיש picker — who gets to see it", () => {
   })
 })
 
+describe("מגיש picker — what it costs to look at a ticket", () => {
+  it("does not pull the user roster until the edit form is actually opened", async () => {
+    await openTicket()
+
+    // Most visits to a ticket never open עריכה, and the roster is only
+    // reachable from inside it. Reading the whole user table on every view
+    // paid for a dropdown nobody opened.
+    expect(fetched).not.toContain("/api/users")
+
+    const select = await startEditing()
+    await rosterLoaded(select)
+    expect(fetched).toContain("/api/users")
+  })
+
+  it("fetches the roster once, not on every trip through the edit form", async () => {
+    await openTicket()
+    const select = await startEditing()
+    await rosterLoaded(select)
+
+    fireEvent.click(screen.getByText("ביטול"))
+    fireEvent.click(await screen.findByText("עריכה"))
+    await screen.findByLabelText("מגיש")
+
+    expect(fetched.filter(u => u === "/api/users")).toHaveLength(1)
+  })
+})
+
+describe("cancelling an edit", () => {
+  // The form state outlives edit mode. A cancel that left it dirty handed the
+  // next עריכה the values the user had just discarded — and שמור wrote them.
+  it("discards every field, not only the staged owner move", async () => {
+    await openTicket()
+    const select = await startEditing()
+    await rosterLoaded(select)
+
+    fireEvent.change(screen.getByDisplayValue("החלפת טלוויזיה"), { target: { value: "נושא שנזרק" } })
+    fireEvent.change(select, { target: { value: "yossi@cristalino.co.il" } })
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "אישור העברת פנייה" })).getByText("אישור"))
+    await waitFor(() => expect(select.value).toBe("yossi@cristalino.co.il"))
+
+    fireEvent.click(screen.getByText("ביטול"))
+    fireEvent.click(await screen.findByText("עריכה"))
+
+    const reopened = await screen.findByLabelText("מגיש") as HTMLSelectElement
+    expect(reopened.value).toBe("alon@cristalino.co.il")
+    expect(screen.getByDisplayValue("החלפת טלוויזיה")).toBeInTheDocument()
+    expect(screen.queryByDisplayValue("נושא שנזרק")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText("שמור"))
+    await waitFor(() => expect(patches).toHaveLength(1))
+    expect(patches[0]).toMatchObject({ subject: "החלפת טלוויזיה" })
+    expect(patches[0]).not.toHaveProperty("ownerEmail")
+  })
+})
+
 describe("מגיש picker — the confirmation gate", () => {
   it("asks before moving the ticket, naming both people", async () => {
     await openTicket()

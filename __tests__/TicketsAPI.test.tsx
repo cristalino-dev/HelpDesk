@@ -7,7 +7,7 @@ jest.mock("@/auth", () => ({
 
 jest.mock("@/lib/db", () => ({
   prisma: {
-    user: { findUnique: jest.fn(), upsert: jest.fn() },
+    user: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     ticket: {
       create: jest.fn(),
       update: jest.fn(),
@@ -822,7 +822,7 @@ describe("Tickets API", () => {
         id: "ticket-1", ticketNumber: 441, status: "פתוח", subject: "מסך לא נדלק",
         assignedTo: "staff@cristalino.co.il",
       })
-      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(NEW_OWNER)
+      ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(NEW_OWNER)
     })
 
     it("moves the ticket to the chosen user when an admin asks", async () => {
@@ -831,8 +831,12 @@ describe("Tickets API", () => {
       const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as any
 
       expect(res.status).toBe(200)
-      expect(prisma.user.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { email: NEW_OWNER.email } })
+      // Case-insensitively: auth.ts stores Google's address verbatim, so a
+      // registered user can be sitting in the DB with capitals.
+      expect(prisma.user.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { email: { equals: NEW_OWNER.email, mode: "insensitive" } },
+        })
       )
       expect(prisma.ticket.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ userId: "user-2" }) })
@@ -862,7 +866,7 @@ describe("Tickets API", () => {
 
     it("refuses an address that is not a registered user, instead of creating one", async () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
-      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(null)
+      ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(null)
 
       const res = await PATCH(req({ id: "ticket-1", ownerEmail: "nobody@cristalino.co.il" })) as any
 
@@ -882,7 +886,7 @@ describe("Tickets API", () => {
       })) as any
 
       expect(res.status).toBe(200)
-      expect(prisma.user.findUnique).not.toHaveBeenCalled()
+      expect(prisma.user.findFirst).not.toHaveBeenCalled()
       expect(prisma.ticket.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.not.objectContaining({ userId: expect.anything() }) })
       )

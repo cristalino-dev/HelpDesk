@@ -309,8 +309,12 @@ export async function PATCH(req: NextRequest) {
       if (!session.user.isAdmin) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
-      newOwner = await prisma.user.findUnique({
-        where:  { email: wantedOwner },
+      // Case-insensitive on purpose: `auth.ts` stores whatever Google returned
+      // verbatim, so a row can carry capitals, and matching a lowercased needle
+      // against it with findUnique would answer "not registered" about somebody
+      // who plainly is. findFirst because findUnique has no `mode`.
+      newOwner = await prisma.user.findFirst({
+        where:  { email: { equals: wantedOwner, mode: "insensitive" } },
         select: { id: true, name: true, email: true },
       })
       if (!newOwner) {
