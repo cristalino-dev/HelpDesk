@@ -27,9 +27,27 @@
  * AUTO-PROVISIONING:
  * ───────────────────
  * When a Cristalino employee signs in for the first time, their account does
- * NOT exist in our database. The `session` callback handles this transparently:
- * it calls prisma.user.create() with the email/name/image from Google, giving
- * them a regular (non-admin) account. No manual registration step required.
+ * NOT exist in our database. The `session` callback handles this transparently
+ * via `resolveUserByEmail()`, giving them a regular (non-admin) account. No
+ * manual registration step required.
+ *
+ * EMAIL CASE (v3.66):
+ * ──────────────────
+ * This file used to be the one place that wrote an email exactly as Google
+ * handed it over, capitals and all, while every other entry point normalised
+ * first — which is how one person could end up with two rows (v3.65, rule 45).
+ * It now goes through lib/users.ts like everybody else: matched
+ * case-insensitively, created lowercased.
+ *
+ * It also writes the stored address back onto the session. That is the part
+ * the rest of the app depends on: some thirty places match
+ * `session.user.email` against a stored email exactly — by `===`, by
+ * `.includes()`, or as a `where: { email }` — for ticket ownership, message
+ * authorship, the self-notification filter, STAFF_EMAILS membership.
+ * Normalising the row but leaving the session holding Google's casing would
+ * break every one of them. The invariant to preserve is simply:
+ *
+ *   session.user.email is the address as the database stores it.
  *
  * ADMIN ASSIGNMENT:
  * ──────────────────
@@ -53,7 +71,7 @@
 
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
-import { prisma } from "@/lib/db"
+import { resolveUserByEmail } from "@/lib/users"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   /**
@@ -76,21 +94,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
      */
     async session({ session }) {
       if (session.user?.email) {
-        // Look up the user by their Google email address.
-        let user = await prisma.user.findUnique({ where: { email: session.user.email } })
+        // Find the row for this address ignoring case, or create it lowercased
+        // on a first-ever sign-in. isAdmin defaults to false (Prisma schema);
+        // name and image are applied on create only, so a later profile edit
+        // is never overwritten by whatever Google currently says.
+        const user = await resolveUserByEmail(
+          session.user.email,
+          session.user.name,
+          session.user.image,
+        )
 
-        // First-time login: the user doesn't exist in our database yet.
-        // Create a minimal record with their Google profile data.
-        // isAdmin defaults to false (see Prisma schema).
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email: session.user.email,
-              name: session.user.name,     // Display name from Google
-              image: session.user.image,   // Profile photo URL from Google
-            },
-          })
-        }
+        // The address as the database stores it — see EMAIL CASE above. Every
+        // `session.user.email === someStoredEmail` in the app rides on this.
+        session.user.email = user.email
 
         // Attach our application-specific fields to the session.
         // These are declared in types/next-auth.d.ts.

@@ -1,0 +1,40 @@
+-- Case-insensitive uniqueness on User.email (v3.66).
+--
+-- `User.email` is `String @unique`, and that is a btree over the exact bytes:
+-- "dana@cristalino.co.il" and "Dana@Cristalino.co.il" are two distinct legal
+-- values, so the column will happily hold one person twice. v3.65 closed every
+-- application path to that — lib/users.ts matches case-insensitively and
+-- creates normalised — but `auth.ts` writes whatever Google returned, and no
+-- amount of care in the application can order two concurrent writers. Only the
+-- database can. This is that constraint.
+--
+-- The plain `@unique` btree (`User_email_key`) STAYS. It is what Prisma needs
+-- for `findUnique({ where: { email } })`, and dropping it would break every
+-- call site that uses one. This index is strictly additional.
+--
+-- Prisma cannot express a functional index in schema.prisma (there is no
+-- `@@unique([lower(email)])`), so this migration is hand-written SQL and the
+-- User model carries a comment pointing at it. `prisma migrate dev` will
+-- report the index as drift for exactly that reason — it is expected, and it
+-- is not a signal to reset the database.
+--
+-- ── IF NOT EXISTS is load-bearing, not decoration ───────────────────────────
+-- deploy.sh runs `prisma migrate deploy` INSIDE the swap window: pm2 already
+-- stopped, `set -e` armed, the maintenance page serving. A migration that
+-- fails there does not abort cleanly — it leaves the site down. So create the
+-- index by hand FIRST, against the running app, where a failure costs nothing:
+--
+--   SELECT lower(email), count(*) FROM "User" GROUP BY 1 HAVING count(*) > 1;
+--   CREATE UNIQUE INDEX IF NOT EXISTS "User_email_lower_key" ON "User" (lower(email));
+--
+-- With the index already in place this statement is a no-op when the swap
+-- window arrives, and the deploy cannot fail on it. (96 rows: it builds in
+-- milliseconds and the ACCESS EXCLUSIVE lock is not worth CONCURRENTLY, which
+-- Prisma cannot run anyway — it wraps each migration in a transaction.)
+--
+-- If it DOES fail, the error names the offender:
+--   "Key (lower(email))=(dana@cristalino.co.il) is duplicated"
+-- Merge the two accounts (reassign the loser's tickets, delete the loser)
+-- before retrying. Do not weaken the index.
+
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_lower_key" ON "User" (lower(email));

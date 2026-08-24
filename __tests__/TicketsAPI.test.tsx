@@ -384,7 +384,9 @@ describe("Tickets API", () => {
 
         expect(prisma.user.upsert).toHaveBeenCalledWith({
           where:  { email: "newhire@cristalino.co.il" },
-          create: { email: "newhire@cristalino.co.il", name: "עובד חדש" },
+          // image is null here and not undefined: only auth.ts has a Google
+          // profile photo to pass. See lib/users.ts resolveUserByEmail.
+          create: { email: "newhire@cristalino.co.il", name: "עובד חדש", image: null },
           update: {},
         })
       })

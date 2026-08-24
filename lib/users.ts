@@ -14,16 +14,22 @@
  *
  * So: match case-insensitively, create normalised.
  *
- * WHAT THIS DOES NOT FIX
- * ──────────────────────
- * The remaining hole is in the database, not here. Two addresses differing
- * only in case are still two legal values of a `String @unique` column, so a
- * row created concurrently with capitals — only `auth.ts` does that — can
- * still land beside one of ours. Closing it properly means a unique index on
- * `lower(email)`, which is a raw-SQL migration run inside the deploy swap
- * window and belongs in its own change. This removes every duplicate the
- * application can produce on its own; it does not make the column
- * case-insensitive.
+ * WHAT GUARANTEES IT (v3.66)
+ * ─────────────────────────
+ * Care in the application is not a constraint. Until v3.66 two addresses
+ * differing only in case were still two legal values of a `String @unique`
+ * column, so a row created concurrently with capitals could land beside one of
+ * ours no matter how carefully this module matched. The database now refuses
+ * it: `UNIQUE (lower(email))`, added by the migration
+ * `20260824000000_user_email_case_insensitive`.
+ *
+ * That makes this module the happy path rather than the only guard. Every
+ * caller — `auth.ts` included, since v3.66 — goes through it, so the index
+ * should never actually fire; if it does, it fires as a P2002 on
+ * `User_email_lower_key` and something wrote an email without coming here.
+ *
+ * `normalizeEmail` is the definition of the stored form, and the index is the
+ * enforcement of it. Keep them saying the same thing.
  */
 
 import { prisma } from "@/lib/db"
@@ -58,21 +64,29 @@ export async function findUserByEmail(email: string) {
  * מגיש picker, which offers the roster), use `findUserByEmail` and treat null
  * as the error it is.
  *
- * @param name Display name, applied only when the row is created. An existing
- *             row is never renamed — their own profile edit outranks whatever
- *             a mail header or a typed-in form field claims they are called.
+ * @param name  Display name, applied only when the row is created. An existing
+ *              row is never renamed — their own profile edit outranks whatever
+ *              a mail header or a typed-in form field claims they are called.
+ * @param image Profile photo URL, same rule: set on create, never overwritten.
+ *              Only `auth.ts` has one to pass (Google supplies it).
  */
-export async function resolveUserByEmail(email: string, name?: string | null) {
+export async function resolveUserByEmail(email: string, name?: string | null, image?: string | null) {
   const existing = await findUserByEmail(email)
   if (existing) return existing
 
   // Genuinely new. `upsert` rather than `create` so that two requests racing
   // on the same brand-new address collide harmlessly on the unique index
   // instead of one of them throwing P2002 into the caller's face.
+  //
+  // Both racers insert the SAME normalised string, so they collide on the
+  // plain `User_email_key` — the constraint `upsert` knows how to absorb. The
+  // case-insensitive index cannot be reached from here for exactly that
+  // reason: normalising first is what keeps this an absorbed conflict rather
+  // than a P2002 thrown at the caller.
   const normalized = normalizeEmail(email)
   return prisma.user.upsert({
     where:  { email: normalized },
-    create: { email: normalized, name: name?.trim() || null },
+    create: { email: normalized, name: name?.trim() || null, image: image ?? null },
     update: {},
   })
 }

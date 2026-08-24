@@ -9,6 +9,12 @@ datasource db {
 
 model User {
   id      String   @id @default(cuid())
+  // Unique on the exact bytes, which is not the same as unique per person:
+  // "dana@x" and "Dana@X" both fit. A second, case-insensitive constraint —
+  // UNIQUE (lower(email)) — is created out of band by the migration
+  // 20260824000000_user_email_case_insensitive, because Prisma has no syntax
+  // for a functional index. `prisma migrate dev` reports it as drift; that is
+  // expected. Resolve a User from an email only through lib/users.ts.
   email   String   @unique
   name    String?
   image   String?

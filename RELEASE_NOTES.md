@@ -5,6 +5,103 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.66 — מסד הנתונים אוכף חשבון אחד לכל אדם
+
+**v3.65 removed every duplicate the application could produce and said so
+plainly: the remaining hole was in the schema, and only the database could
+close it. This closes it.**
+
+`User.email` is `String @unique`, which is a btree over the exact bytes.
+`dana@cristalino.co.il` and `Dana@Cristalino.co.il` are two distinct legal
+values, so the column would hold one person twice no matter how carefully
+`lib/users.ts` looked her up first. Two concurrent sign-ins cannot be ordered by
+being careful. They can be ordered by a constraint:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_lower_key" ON "User" (lower(email));
+```
+
+**Verified against production immediately before writing the migration: 96
+users, zero mixed-case addresses, zero case-duplicates — and every other
+email-bearing column (`Ticket.assignedTo`, `TicketMessage.authorEmail`,
+`TicketNote.authorEmail`, `TicketHistory.actorEmail`,
+`TicketReview.submitterEmail`, `TicketEquipment.receivedBy`) already entirely
+lowercase.** That last check is what made the `auth.ts` half of this change
+safe; see below.
+
+### What changed for users
+
+Nothing visible, and that is the intent. The bug this forecloses never fired —
+a duplicate account would have split one person's tickets across two rows, only
+one of which they can sign in to. Sign-in, ticket ownership, and the ticket
+history are unchanged.
+
+### What changed for developers
+
+- **New migration `20260824000000_user_email_case_insensitive`** — raw SQL,
+  because Prisma has no syntax for a functional index. The plain
+  `User_email_key` btree **stays**: Prisma needs it for
+  `findUnique({ where: { email } })`, and a dozen call sites use one. The new
+  index is strictly additional.
+- **`prisma migrate dev` will report the index as drift.** That is expected and
+  is not a signal to reset the database. `prisma/schema.prisma` carries a
+  comment on `User.email` pointing at the migration so the next person meets
+  the explanation before they meet the drift warning.
+- **`IF NOT EXISTS` is load-bearing, not decoration.** `deploy.sh` runs
+  `prisma migrate deploy` *inside* the swap window — pm2 stopped, maintenance
+  page up, `set -e` armed — so a migration that fails there does not abort
+  cleanly, it leaves the site down. **Create the index by hand first, against
+  the running app**, where a duplicate fails at zero cost:
+
+  ```sql
+  SELECT lower(email), count(*) FROM "User" GROUP BY 1 HAVING count(*) > 1;
+  CREATE UNIQUE INDEX IF NOT EXISTS "User_email_lower_key" ON "User" (lower(email));
+  ```
+
+  The in-window run is then a guaranteed no-op. If it does fail, the Postgres
+  error names the offender (`Key (lower(email))=(…) is duplicated`); merge the
+  two accounts before retrying, and do not weaken the index.
+- **`auth.ts` now goes through `lib/users.ts` too** — it was the last direct
+  `prisma.user.findUnique`/`create` on an email, and the one that wrote Google's
+  casing verbatim. The index alone would have turned that write into a P2002 at
+  sign-in; normalising on write makes the index a backstop rather than the only
+  guard, which is the right order of the two.
+- **The session carries the *stored* address, not the one Google sent.** This is
+  the load-bearing half of the `auth.ts` change. Some thirty places match
+  `session.user.email` against a stored email exactly — ticket ownership,
+  message authorship, the self-notification filter, `STAFF_EMAILS` membership.
+  Normalising the row while leaving the session on Google's casing would have
+  locked a mixed-case user out of their own ticket. The invariant is now stated
+  at the top of `auth.ts`: **`session.user.email` is the address as the database
+  stores it.** It is why the audit of the other email columns above mattered —
+  a lowercased session email must still match every address already on file.
+- **`resolveUserByEmail()` takes an optional `image`**, applied on create only,
+  like `name`. Only `auth.ts` has one to pass; without it the change would have
+  silently stopped storing Google profile photos.
+- **Normalising before the `upsert` is what keeps a race harmless.** Both racers
+  insert the identical string, so they collide on `User_email_key` — the
+  constraint `upsert` targets and absorbs. Upserting the raw address would
+  collide on the new functional index instead, which `upsert` does not target,
+  and the loser would throw P2002 at the caller. `__tests__/resolveUser.test.ts`
+  pins the `where` and the `create` to the same normalised value.
+- **New `__tests__/AuthSession.test.ts`** (6 tests) drives the real session
+  callback — auth.ts is imported and the config it hands to NextAuth captured —
+  rather than restating what it ought to do. Its prisma mock exposes only
+  `findFirst` and `upsert`, so a regression back to a direct `findUnique` fails
+  loudly instead of quietly reintroducing v3.65's bug.
+- **New `__tests__/EmailIndexMigration.test.ts`** (5 tests) holds the migration
+  to the properties the design assumes: unique over `lower(email)`,
+  `IF NOT EXISTS`, no `DROP` of the exact-email constraint, and no rewriting of
+  existing rows.
+- **Rule 45 is now fully satisfied** — every email→User resolution in the
+  codebase goes through `lib/users.ts`, and the database enforces what it
+  promises. The remaining `prisma.user.findUnique({ where: { email:
+  session.user.email } })` call sites (`/api/profile`, `/api/tickets`,
+  `/api/users`, ticket messages) are self-lookups, and the session invariant
+  above guarantees they hit.
+
+---
+
 ## v3.65 — חשבון אחד לכל אדם
 
 **Three places could quietly give one person a second account. They now all ask
