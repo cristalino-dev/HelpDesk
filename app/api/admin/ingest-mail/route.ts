@@ -162,8 +162,8 @@ export async function POST(req: NextRequest) {
         }
         const staffEmails = await getStaffEmails()
         void Promise.all([
-          sendMail({ to: staffEmails, subject: `פנייה חדשה (מייל): ${t.subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
-          sendMail({ to: t.reporterEmail, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
+          sendMail({ to: staffEmails, subject: `פנייה חדשה (מייל) HDTC-${ticket.ticketNumber}: ${t.subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
+          sendMail({ to: t.reporterEmail, subject: `פנייתך התקבלה — HDTC-${ticket.ticketNumber}`, html: mailTicketOpenedUser(ticketInfo) }),
         ])
 
         tickets.push(ticket.ticketNumber)

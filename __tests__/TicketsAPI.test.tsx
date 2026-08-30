@@ -371,7 +371,10 @@ describe("Tickets API", () => {
           expect.objectContaining({ data: expect.objectContaining({ userId: "user-7" }) })
         )
         // The confirmation email goes to the owner, not the admin
-        const userMail = (sendMail as jest.Mock).mock.calls.find(c => c[0].subject === "פנייתך התקבלה")
+        // Matched by prefix, not equality: the subject carries the ticket
+        // number ("פנייתך התקבלה — HDTC-42") so it is identifiable from the
+        // inbox list.
+        const userMail = (sendMail as jest.Mock).mock.calls.find(c => c[0].subject.startsWith("פנייתך התקבלה"))
         expect(userMail[0].to).toBe("dana@cristalino.co.il")
       })
 

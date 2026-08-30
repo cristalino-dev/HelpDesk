@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.66**
+**Version 3.67**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -84,7 +84,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Database | PostgreSQL (AWS RDS) |
 | Styling | Inline React styles; tokens in `lib/theme.ts` |
 | Mail | nodemailer v7 (outbound) · imapflow + mailparser (inbound) |
-| Tests | Jest 30 + React Testing Library 16 — 582 tests, 37 suites |
+| Tests | Jest 30 + React Testing Library 16 — 596 tests, 38 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
 | Deployment | SSH + SCP (`deploy.sh`) — build runs on server |
@@ -131,7 +131,7 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 582 tests across 37 suites
+├── __tests__/                                # 596 tests across 38 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── setup-server.sh  ssl-init.sh              # One-time server setup, SSL via Certbot

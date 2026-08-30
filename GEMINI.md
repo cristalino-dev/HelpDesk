@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.66** · Updated 2026-08-24
+> **Current version: 3.67** · Updated 2026-08-30
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -75,7 +75,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **582 tests across 37 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **596 tests across 38 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -170,10 +170,10 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.67 | The new-ticket emails carry the ticket number — `HDTC-<n>` in the subject line and in the message itself — and are rebuilt on the Cristalino palette in a bordered card that survives Gmail and Outlook |
 | 3.66 | The database enforces one account per person — `UNIQUE (lower(email))` on `User` (raw-SQL migration), and `auth.ts` finally resolves through `lib/users.ts` instead of storing Google's casing verbatim |
 | 3.65 | One account per person — all three email lookups (on-behalf-of, mail ingest, user deletion) now resolve through `lib/users.ts` and ignore case |
 | 3.64 | Polish of the מגיש change — case-insensitive owner lookup, roster fetched on first edit rather than every view, cancel restores the whole form |
-| 3.63 | Admins can change a ticket's submitter, after confirming |
 
 ---
 
@@ -217,4 +217,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.66 — updated 2026-08-24.*
+*Production build v3.67 — updated 2026-08-30.*

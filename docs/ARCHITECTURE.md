@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-08-24 · v3.66
+> Version 2.0 · Last updated 2026-08-30 · v3.67
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -68,7 +68,7 @@ accounts always get the account picker rather than being signed in silently.
      └────────────────►  בהמתנה ─┘                     │
                     (holdReason required)             │
                                                       │
-     ◄────────────────────────────────────────────────┘
+     ◄─────────────────────────────────────────────────┘
        re-open: owner within 4 weeks; staff/admin at any time
 ```
 
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **582 tests across 37 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **596 tests across 38 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` — the build runs on the server |
 
@@ -192,7 +192,7 @@ Browser                  Next.js Server             Google OAuth          Postgr
    │<─────────────────────────│                          │                    │
    │                          │                          │                    │
    │  User picks account      │                          │                    │
-   │─────────────────────────────────────────────────────>                    │
+   │───────────────────────────────────────────────────────>                    │
    │                          │                          │                    │
    │  GET /api/auth/callback  │                          │                    │
    │─────────────────────────>│                          │                    │
@@ -508,7 +508,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  37 suites, 582 tests — gate the build
+__tests__/                  38 suites, 596 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -787,7 +787,7 @@ Indexed on `date` and `timestamp`. Rows older than 30 days are deleted on write.
 └───────┬────────┘
         │ 1 : N   (userId — the מגיש)
         ▼
-┌─────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────┐
 │                        Ticket                            │
 │  id · ticketNumber(U) · status · urgency · category      │
 │  holdReason? · sourceMessageId(U)?                       │

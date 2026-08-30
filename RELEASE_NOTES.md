@@ -5,6 +5,84 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.67 — הפנייה החדשה במייל: מספר פנייה, מסגרת וצבעי המותג
+
+**The staff notification for a new ticket shipped for a long time without the
+one field a technician actually needs to act on it: the ticket number. Not in
+the body, not in the subject.** Someone reading `🎫 פנייה חדשה נפתחה` on a
+phone had the subject, the reporter and the description, and no way to say
+*which* ticket it was without opening the app and searching for it. This
+release puts `HDTC-<n>` in both mails and rebuilds them on the app's own
+palette.
+
+### What changed for users
+
+The subject line now leads with the number, so the queue is scannable straight
+from the inbox list:
+
+```
+פנייה חדשה HDTC-528: פתיחת עובדים חדשים
+פנייתך התקבלה — HDTC-528
+```
+
+The message itself is no longer a stack of bare paragraphs. It is a 600px card
+on the page grey, with a dark `#16181D` header bar carrying the `helpdesk`
+wordmark and a green `HDTC-528` chip, a 4px `#74C53A` accent rule under it, the
+ticket details in a bordered label/value panel, the description in its own
+panel with a green right-border, and a dark call-to-action button that opens
+the ticket. The submitter's confirmation leads with a hero block — *מספר הפנייה
+שלך* over `HDTC-528` at 24px — because that number is the whole reason they
+would keep the mail.
+
+The header chip is on all nine ticket templates, not just the two new-ticket
+ones, so every mail about a ticket says which ticket it is. The daily digest
+covers many tickets at once and deliberately has no chip.
+
+### What changed for developers
+
+`wrap()` in [`lib/mail.ts`](lib/mail.ts) takes an optional second argument:
+
+```ts
+function wrap(body: string, ticketNumber?: number): string
+```
+
+Pass the number and the header renders the chip; omit it (the digest) and the
+header is the wordmark alone. Three inline-styled helpers — `details()`,
+`badge()` and `button()` — build the repeated pieces, so a template is a list
+of parts rather than a wall of `<td style="…">`.
+
+**The colours are derived from [`lib/theme.ts`](lib/theme.ts), not copied out of
+it.** `URGENCY_COLOR` and `STATUS_COLOR` are built with `Object.fromEntries`
+over the app's own maps, so a re-brand reaches the mail without anyone
+remembering that the mail exists.
+
+Three constraints shape every line of this markup, and none of them are
+negotiable:
+
+- **Gmail strips `dir` from `<html>` and `<body>`, and drops the `<style>`
+  block's body rules.** Hebrew renders left-to-right unless `dir="rtl"` and
+  `direction:rtl;text-align:right` are inline on the content elements
+  themselves. They are, and a test asserts it.
+- **Outlook renders through Word.** No flex, no grid — the frame is nested
+  tables with inline styles.
+- **Subjects and descriptions are free text.** `esc()` escapes `&`, `<` and `>`
+  on every interpolation; an unescaped `<` in a ticket subject truncates the
+  rest of the message in most readers.
+
+### Tests
+
+[`__tests__/ticketMail.test.ts`](__tests__/ticketMail.test.ts) — 14 tests in
+four groups: the number renders in both mails and in the header chip (the
+regression this file exists for), free text cannot break the message, empty
+optional fields fall back to an em dash rather than an empty row, and the brand
+colours and RTL markers are present. The suite is 596 tests across 38.
+
+One existing test needed changing: `TicketsAPI.test.tsx` matched the
+confirmation mail by `subject === "פנייתך התקבלה"`, which the number broke. It
+now matches by prefix.
+
+---
+
 ## v3.66 — מסד הנתונים אוכף חשבון אחד לכל אדם
 
 **v3.65 removed every duplicate the application could produce and said so

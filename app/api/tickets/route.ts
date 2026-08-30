@@ -194,8 +194,10 @@ export async function POST(req: NextRequest) {
     }
     const staffEmails = await getStaffEmails()
     void Promise.all([
-      sendMail({ to: staffEmails, subject: `פנייה חדשה: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
-      sendMail({ to: owner.email, subject: "פנייתך התקבלה", html: mailTicketOpenedUser(ticketInfo) }),
+      // The ticket number leads the subject so the queue is scannable from the
+      // inbox list without opening anything.
+      sendMail({ to: staffEmails, subject: `פנייה חדשה HDTC-${ticket.ticketNumber}: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
+      sendMail({ to: owner.email, subject: `פנייתך התקבלה — HDTC-${ticket.ticketNumber}`, html: mailTicketOpenedUser(ticketInfo) }),
     ])
 
     return NextResponse.json(ticket)
