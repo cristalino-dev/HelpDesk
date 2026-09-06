@@ -42,8 +42,11 @@ next-env.d.ts
 
 /lib/generated/prisma
 
-# Deployment scripts contain server credentials — use *.example.ps1 templates instead
-deploy.ps1
+# Ad-hoc deployment/admin scripts that historically embedded server credentials.
+# deploy.ps1 is no longer among them: it is the committed twin of deploy.sh and
+# takes the key as -Key or $env:DEPLOY_KEY, exactly as deploy.sh does, so there
+# is nothing secret in it to leak. Anything you write locally that DOES hold a
+# credential belongs here, not in the tree.
 check.ps1
 secrets.local.json
 prisma/dev.db

@@ -1,0 +1,9 @@
+# Shell scripts and the maintenance template are executed on Linux — deploy.sh
+# runs under bash, and scripts/deploy-remote.sh is piped to bash over ssh. If
+# Git for Windows checks them out with CRLF (its default), bash fails on every
+# line with "$'\r': command not found". Pin them to LF regardless of platform.
+*.sh                                text eol=lf
+scripts/maintenance.template.html   text eol=lf
+
+# PowerShell is the opposite: keep native Windows line endings.
+*.ps1                               text eol=crlf

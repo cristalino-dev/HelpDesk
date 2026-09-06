@@ -87,7 +87,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Tests | Jest 30 + React Testing Library 16 — 674 tests, 42 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
-| Deployment | SSH + SCP (`deploy.sh`) — build runs on server; also runnable from GitHub Actions |
+| Deployment | SSH + SCP — `deploy.sh` (bash) or `deploy.ps1` (Windows); build runs on server; also runnable from GitHub Actions |
 
 ---
 
@@ -135,6 +135,9 @@ helpdesk/
 ├── __tests__/                                # 674 tests across 42 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
+├── deploy.ps1                                # The same, for Windows PowerShell
+├── scripts/deploy-remote.sh                  #   the server side, shared by both
+├── scripts/maintenance.template.html         #   the swap-window page, shared by both
 ├── .github/workflows/deploy.yml              # The same script, run from CI on demand
 ├── setup-server.sh  ssl-init.sh              # One-time server setup, SSL via Certbot
 └── ecosystem.config.js                       # PM2 config
@@ -237,6 +240,18 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 ```bash
 ./deploy.sh
 ```
+
+**On Windows, use PowerShell** — no Git Bash or WSL needed:
+
+```powershell
+.\deploy.ps1 -Key C:\Users\you\alon.pem
+```
+
+`deploy.ps1` is the twin of `deploy.sh` and shares its two moving parts
+(`scripts/maintenance.template.html`, `scripts/deploy-remote.sh`), so the two
+cannot drift. It uses the `ssh`, `scp` and `tar` that ship with Windows 10/11,
+and works from a locked-down temporary copy of your key rather than changing
+its permissions.
 
 The key defaults to `../CrisRouter/alon.pem`; point `DEPLOY_KEY` at it if yours
 lives elsewhere (`DEPLOY_HOST` and `DEPLOY_USER` override the target the same

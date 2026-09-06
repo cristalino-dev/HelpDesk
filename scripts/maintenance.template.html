@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>מערכת Helpdesk — עדכון</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(150deg, #16181D 0%, #1C1F26 55%, #0E1013 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      direction: rtl;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      padding: 44px 40px 36px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-bottom: 26px;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: rgba(116,197,58,0.15);
+      border: 1px solid rgba(116,197,58,0.3);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-text { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
+    .gear {
+      font-size: 2.8rem;
+      display: inline-block;
+      animation: spin 6s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.02em; }
+    .sub {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.62);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(116,197,58,0.12);
+      border: 1px solid rgba(116,197,58,0.3);
+      border-radius: 100px;
+      padding: 7px 18px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 30px;
+      color: #A5DB78;
+    }
+    .dot {
+      width: 7px; height: 7px;
+      background: #74C53A;
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+    .progress-wrap {
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      height: 5px;
+      overflow: hidden;
+      margin-bottom: 13px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      background: #74C53A;
+      transition: width 1s linear;
+    }
+    .timer { font-size: 0.81rem; color: rgba(255,255,255,0.52); }
+    .timer b { color: rgba(255,255,255,0.88); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M9 12h6M9 16h4M5 20h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v13a2 2 0 002 2z"
+            stroke="#74C53A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">מערכת Helpdesk</span>
+    </div>
+
+    <div class="gear">⚙️</div>
+    <h1>המערכת בעדכון</h1>
+    <p class="sub">מתבצעת החלפה לגרסה חדשה.<br>הדף יתרענן אוטומטית תוך שניות.</p>
+
+    <div class="badge">
+      <span class="dot"></span>
+      מעדכן לגרסה {{VERSION}}
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="pb"></div>
+    </div>
+    <p class="timer">מתרענן בעוד <b id="cd">15</b> שניות</p>
+  </div>
+
+  <script>
+    // The swap window is seconds long — retry quickly and keep retrying.
+    var TOTAL = 15;
+    var n = TOTAL;
+    var url = window.location.href;
+    function tick() {
+      n--;
+      document.getElementById('cd').textContent = n;
+      document.getElementById('pb').style.width = ((TOTAL - n) / TOTAL * 100) + '%';
+      if (n <= 0) {
+        window.location.replace(url);
+      } else {
+        setTimeout(tick, 1000);
+      }
+    }
+    setTimeout(tick, 1000);
+  </script>
+</body>
+</html>
