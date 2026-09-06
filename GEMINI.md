@@ -75,7 +75,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **688 tests across 43 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **700 tests across 44 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.

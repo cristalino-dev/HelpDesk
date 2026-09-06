@@ -4,8 +4,8 @@
 
 .DESCRIPTION
     The PowerShell twin of deploy.sh, for Windows without Git Bash or WSL. It
-    does exactly what deploy.sh does and shares its two moving parts —
-    scripts/maintenance.template.html and scripts/deploy-remote.sh — so the two
+    does exactly what deploy.sh does and shares its two moving parts -
+    scripts/maintenance.template.html and scripts/deploy-remote.sh - so the two
     entry points cannot drift apart. Only the plumbing differs.
 
     Everything it needs ships with Windows 10/11: ssh.exe and scp.exe (OpenSSH
@@ -13,7 +13,7 @@
 
     Three Windows-specific details it handles for you:
 
-      * OpenSSH refuses a key whose ACL is too permissive — the Windows
+      * OpenSSH refuses a key whose ACL is too permissive - the Windows
         equivalent of "UNPROTECTED PRIVATE KEY FILE". Rather than change the
         permissions on your key, it works from a locked-down temporary COPY and
         deletes it afterwards. Your alon.pem is never modified.
@@ -35,6 +35,15 @@
     $env:DEPLOY_KEY = "C:\Users\AlonKerem\Development\alon.pem"; .\deploy.ps1
 #>
 
+# KEEP THIS FILE PURE ASCII.
+# Windows PowerShell 5.1 reads a .ps1 with no byte-order mark in the system ANSI
+# codepage, not UTF-8. A single non-ASCII character here (an em dash in a
+# comment is enough) arrives as mojibake, terminates the string it sits in, and
+# the parser then reads the rest of the line as code -- which is exactly how an
+# em dash in the OpenSSH message below turned '>' into a redirection operator.
+# __tests__/deployScripts.test.ts fails the build if anything non-ASCII returns.
+# PowerShell 7 defaults to UTF-8 and will NOT reproduce the failure.
+
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
@@ -47,7 +56,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# ── Defaults, matching deploy.sh exactly ────────────────────────────────────
+# -- Defaults, matching deploy.sh exactly ------------------------------------
 if (-not $Key)       { $Key       = $env:DEPLOY_KEY }
 if (-not $Server)    { $Server    = if ($env:DEPLOY_HOST)       { $env:DEPLOY_HOST }       else { '18.195.248.157' } }
 if (-not $User)      { $User      = if ($env:DEPLOY_USER)       { $env:DEPLOY_USER }       else { 'ubuntu' } }
@@ -62,10 +71,10 @@ function Assert-ExitCode([string] $What) {
     if ($LASTEXITCODE -ne 0) { throw "$What failed (exit $LASTEXITCODE)." }
 }
 
-# ── Preflight ───────────────────────────────────────────────────────────────
+# -- Preflight ---------------------------------------------------------------
 foreach ($exe in 'ssh', 'scp', 'tar') {
     if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) {
-        throw "'$exe' not found. It ships with Windows 10/11 — enable it under Settings > System > Optional features > OpenSSH Client."
+        throw "'$exe' not found. It ships with Windows 10/11: enable OpenSSH Client under Settings / System / Optional features."
     }
 }
 
@@ -79,10 +88,10 @@ $Key = (Resolve-Path -LiteralPath $Key).Path
 $templatePath = Join-Path $Local 'scripts\maintenance.template.html'
 $remotePath   = Join-Path $Local 'scripts\deploy-remote.sh'
 foreach ($p in $templatePath, $remotePath) {
-    if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "Missing $p — is this the repository root?" }
+    if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "Missing $p - is this the repository root?" }
 }
 
-# ── Version ─────────────────────────────────────────────────────────────────
+# -- Version -----------------------------------------------------------------
 $versionFile = Join-Path $Local 'lib\version.ts'
 $match = [regex]::Match([System.IO.File]::ReadAllText($versionFile), 'export const VERSION = "([^"]*)"')
 if (-not $match.Success) { throw "Could not read VERSION from $versionFile." }
@@ -95,19 +104,19 @@ $tmpRem  = Join-Path $env:TEMP ("helpdesk-rem-"   + [guid]::NewGuid().ToString('
 $tmpTar  = Join-Path $env:TEMP ("helpdesk-src-"   + [guid]::NewGuid().ToString('N') + '.tar.gz')
 
 try {
-    # ── Locked-down copy of the key ─────────────────────────────────────────
+    # -- Locked-down copy of the key -----------------------------------------
     # ssh rejects a key others can read. We never touch the original.
     Copy-Item -LiteralPath $Key -Destination $tmpKey -Force
     $me = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
     & icacls $tmpKey /inheritance:r /grant:r "${me}:(R)" | Out-Null
     Assert-ExitCode 'icacls'
 
-    # ── Maintenance page (version baked in) ─────────────────────────────────
+    # -- Maintenance page (version baked in) ---------------------------------
     Write-Host "Generating maintenance page (v$Version)..."
     $html = [System.IO.File]::ReadAllText($templatePath).Replace('{{VERSION}}', $Version)
     [System.IO.File]::WriteAllText($tmpMain, $html, $utf8NoBom)
 
-    # ── Archive ─────────────────────────────────────────────────────────────
+    # -- Archive -------------------------------------------------------------
     Write-Host "Archiving source files..."
     $items = @(
         'app', 'components', 'lib', 'prisma', 'public', 'scripts', 'types', 'auth.ts',
@@ -132,14 +141,14 @@ try {
     $sizeMb = [math]::Round((Get-Item -LiteralPath $tmpTar).Length / 1MB, 1)
     Write-Host "Archive: ${sizeMb}M - uploading..."
 
-    # ── Upload ──────────────────────────────────────────────────────────────
-    # ${Server}: — the braces stop PowerShell reading "$Server:" as a drive.
+    # -- Upload --------------------------------------------------------------
+    # ${Server}: - the braces stop PowerShell reading "$Server:" as a drive.
     & scp -i $tmpKey -o StrictHostKeyChecking=no $tmpTar  "$User@${Server}:/tmp/helpdesk-src.tar.gz"
     Assert-ExitCode 'scp (archive)'
     & scp -i $tmpKey -o StrictHostKeyChecking=no $tmpMain "$User@${Server}:$RemoteDir/maintenance.html"
     Assert-ExitCode 'scp (maintenance page)'
 
-    # ── Build on the server, then swap ──────────────────────────────────────
+    # -- Build on the server, then swap --------------------------------------
     Write-Host "Building on server (app keeps running)..." -ForegroundColor Cyan
     # LF only: bash on the far end chokes on CRLF with "$'\r': command not found".
     $remoteScript = [System.IO.File]::ReadAllText($remotePath).Replace("`r`n", "`n")

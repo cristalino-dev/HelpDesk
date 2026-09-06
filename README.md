@@ -84,7 +84,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Database | PostgreSQL (AWS RDS) |
 | Styling | Inline React styles; tokens in `lib/theme.ts` |
 | Mail | nodemailer v7 (outbound) · imapflow + mailparser (inbound) |
-| Tests | Jest 30 + React Testing Library 16 — 688 tests, 43 suites |
+| Tests | Jest 30 + React Testing Library 16 — 700 tests, 44 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
 | Deployment | SSH + SCP — `deploy.sh` (bash) or `deploy.ps1` (Windows); build runs on server; also runnable from GitHub Actions |
@@ -132,7 +132,7 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 688 tests across 43 suites
+├── __tests__/                                # 700 tests across 44 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── deploy.ps1                                # The same, for Windows PowerShell

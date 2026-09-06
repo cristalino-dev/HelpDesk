@@ -51,11 +51,31 @@ permanent code anywhere in the message (which wins), then a temporary one, then
 the connection-level error codes. Anything it cannot classify is not retried —
 better one log line than hammering Gmail over something we do not understand.
 
+### Also: deploy.ps1 could not be parsed by Windows PowerShell 5.1
+
+The PowerShell deploy script shipped with em dashes in its comments. **Windows
+PowerShell 5.1 reads a `.ps1` with no byte-order mark in the system ANSI
+codepage, not UTF-8** — so each em dash arrived as `â€"`, terminated the string
+it sat in, and the parser read the rest of that line as code, which is how a
+`>` in the OpenSSH message became a redirection operator.
+
+The file is now pure ASCII, which sidesteps the encoding question entirely
+rather than depending on a BOM. Verified by decoding it both ways and comparing:
+identical, because there is nothing above 0x7F left in it.
+
+Worth knowing for anything else added there: **PowerShell 7 defaults to UTF-8
+and parses the broken file happily**, so a syntax check on a modern shell does
+not reproduce this. `__tests__/deployScripts.test.ts` asserts it at the byte
+level instead, and also pins the two deploy scripts against drift — the archive
+they build, their defaults, and their `DEPLOY_*` overrides all have to match, so
+a deploy from one can never ship a different tree than a deploy from the other.
+
 ### Tests
 
-14 new tests; 688 across 43 suites. The chart test reproduces the crash by
+26 new tests; 700 across 44 suites. The chart test reproduces the crash by
 hovering a 90-bucket range and re-rendering with a shorter one — it failed with
-the exact production message before the fix.
+the exact production message before the fix. The drift guard was mutation-tested
+by adding a file to one script's archive list and confirming it went red.
 
 ---
 
