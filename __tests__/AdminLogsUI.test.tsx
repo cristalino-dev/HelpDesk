@@ -8,6 +8,8 @@ jest.mock("next-auth/react", () => ({
 }))
 
 jest.mock("next/navigation", () => ({
+  // AppNav highlights the current page.
+  usePathname: () => "/",
   useRouter: () => ({
     push: jest.fn(),
   }),

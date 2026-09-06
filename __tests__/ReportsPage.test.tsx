@@ -19,7 +19,9 @@ import { axisMax } from "@/app/admin/reports/TimelineChart"
 const push = jest.fn()
 
 jest.mock("next-auth/react", () => ({ useSession: jest.fn(), signOut: jest.fn() }))
-jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }))
+jest.mock("next/navigation", () => ({
+  // AppNav highlights the current page.
+  usePathname: () => "/", useRouter: () => ({ push }) }))
 jest.mock("@/lib/useIsMobile", () => ({ useIsMobile: () => false }))
 
 // jsdom has no ResizeObserver; the chart measures its container with one.

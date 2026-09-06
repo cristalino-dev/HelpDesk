@@ -19,13 +19,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import FooterCopyright from "@/components/FooterCopyright"
 import AppHeader from "@/components/AppHeader"
-import { T, HDR } from "@/lib/theme"
+import AppNav from "@/components/AppNav"
+import { T } from "@/lib/theme"
 import { useIsMobile } from "@/lib/useIsMobile"
 
 interface LogEntry {
@@ -152,33 +152,11 @@ export default function AdminLogsPage() {
     }
   }
 
-  const initials = (name?: string | null) => {
-    if (!name) return ".."
-    const parts = name.split(" ")
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-    return name.slice(0, 2).toUpperCase()
-  }
-
   if (status === "loading" || !session) return null
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, direction: "rtl" }}>
-      <AppHeader wordmark="לוג שגיאות" subtitle={false}>
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 4 }}>
-          {!isMobile && <a href="/admin" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול</a>}
-          {!isMobile && <a href="/tickets" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>פניות</a>}
-          <span style={{ background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, letterSpacing: ".04em", margin: "0 4px" }}>
-            {isAdmin ? "ADMIN" : "STAFF"}
-          </span>
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 8, padding: isMobile ? "4px" : "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg, textDecoration: "none", cursor: "pointer" }}>
-            {!isMobile && <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>}
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
-              {initials(session?.user?.name)}
-            </div>
-          </Link>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 12px", fontWeight: 500 }}>{isMobile ? "↩" : "יציאה"}</button>
-        </div>
-      </AppHeader>
+      <AppHeader wordmark="לוג שגיאות" subtitle={false}><AppNav /></AppHeader>
 
       <main style={{ maxWidth: 1400, margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px" }}>
 

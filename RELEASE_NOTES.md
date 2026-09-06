@@ -5,6 +5,55 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.70 — סרגל ניווט אחד
+
+**Which links you saw depended on the page you were standing on, not on who you
+are.** The dashboard offered עזרה and צרו קשר but no דוחות. `/admin` offered
+דוחות and לוג שגיאות but no כל הפניות. `/admin/reviews` offered a single link
+back to the dashboard. Seven pages, seven hand-rolled rows of links, drifting
+apart every time one of them gained a feature.
+
+There is now one component — [`components/AppNav.tsx`](components/AppNav.tsx) —
+and one list, derived from the session:
+
+| | admin | staff | viewer | user |
+|---|---|---|---|---|
+| לוח אישי · עזרה · צרו קשר | ✓ | ✓ | ✓ | ✓ |
+| כל הפניות | ✓ | ✓ | ✓ (read-only twin) | |
+| לוג שגיאות | ✓ | ✓ | | |
+| ניהול פניות · דוחות · ביקורות · מדריך מנהל | ✓ | | | |
+
+### The bug inside the bug
+
+The dashboard gated כל הפניות on `STAFF_EMAILS.includes(email)`. The page
+behind it admits `isAdmin || STAFF_EMAILS`. So an admin who was not also on the
+staff list had no link to the ticket queue anywhere in the interface — the page
+would have let them straight in.
+
+That is the failure mode this component is built against, so `navLinksFor()` is
+pure and exported, and [`__tests__/AppNav.test.tsx`](__tests__/AppNav.test.tsx)
+holds it against the guards on the pages themselves. **A link that leads to a
+redirect is worse than no link**, and a page an admin may open but cannot reach
+is worse still.
+
+### What else changed
+
+Nine links stop fitting well before a phone, so below 1180px the row folds into
+the ☰ menu — rendering *the same list from the same source*, rather than the
+parallel mobile menu each page used to carry and forget to update.
+
+Removing the old rows took a duplicate mobile dropdown out of three pages
+(unreachable already: nothing set `menuOpen` once its button was gone) and
+around a dozen orphaned imports and pieces of state with it.
+
+### Tests
+
+28 new tests; 728 across 45 suites. Four existing suites needed `usePathname`
+added to their `next/navigation` mocks, since the shared nav highlights the
+current page.
+
+---
+
 ## v3.69 — שני תיקונים מיומן השגיאות
 
 Both of these came straight out of `/admin/logs`, and both were silent: one

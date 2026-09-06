@@ -38,26 +38,20 @@
  */
 
 "use client"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import TicketForm from "@/components/TicketForm"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
-import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, setTicketStatusOrError } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
-import { T, HDR } from "@/lib/theme"
+import { T } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
-
-function initials(name?: string | null) {
-  if (!name) return "?"
-  return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
-}
+import AppNav from "@/components/AppNav"
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -68,7 +62,6 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [linkCopied, setLinkCopied] = useState(false)
   /** Server refusal of a close (e.g. an unfinished offboarding checklist). */
   const [statusError, setStatusError] = useState<string | null>(null)
 
@@ -144,87 +137,10 @@ export default function DashboardPage() {
   const onHold = tickets.filter(t => t.status === "בהמתנה").length
   const closed = tickets.filter(t => t.status === "סגור").length
 
-  // Shared nav-link style helpers — dark chrome (light text on near-black)
-  const navBtn = {
-    fontSize: "0.82rem", color: HDR.link, textDecoration: "none",
-    padding: "8px 13px", borderRadius: "9px", fontWeight: 500,
-  } as const
-  const navBtnStrong = {
-    ...navBtn, color: HDR.linkStrong, fontWeight: 600,
-  } as const
-
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
       <ErrorToast message={statusError} onClose={() => setStatusError(null)} />
-      <AppHeader>
-        <>
-          {/* Secondary links — hidden on mobile */}
-          {!isMobile && <Link href="/help" style={navBtn}>עזרה</Link>}
-          {!isMobile && <Link href="/contact" style={navBtn}>צרו קשר</Link>}
-
-          {/* Staff / admin links — always shown (abbreviated on mobile) */}
-          {STAFF_EMAILS.includes(session?.user?.email ?? "") && (
-            <Link href="/tickets" style={navBtnStrong}>
-              {isMobile ? "פניות" : "כל הפניות"}
-            </Link>
-          )}
-          {VIEWER_EMAILS.includes(session?.user?.email ?? "") && (
-            <Link href="/tickets/view" style={navBtnStrong}>
-              {isMobile ? "פניות" : "כל הפניות"}
-            </Link>
-          )}
-          {session?.user?.isAdmin && (
-            <Link href="/admin" style={navBtnStrong}>
-              {isMobile ? "ניהול" : "ניהול פניות"}
-            </Link>
-          )}
-
-          {/* Copy helpdesk link */}
-          <button
-            title="העתק קישור למערכת"
-            onClick={() => {
-              // Share the public quick-open page — recipients land on the
-              // new-ticket form, not on the sharer's personal dashboard.
-              navigator.clipboard.writeText("https://helpdesk.cristalino.co.il/open")
-              setLinkCopied(true)
-              setTimeout(() => setLinkCopied(false), 2000)
-            }}
-            style={{ background: linkCopied ? HDR.greenPillBg : "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 11px", display: "flex", alignItems: "center", gap: "5px", color: linkCopied ? HDR.greenPillFg : HDR.link, fontSize: "0.82rem", fontWeight: 500, transition: "background 0.15s, color 0.15s" }}
-          >
-            {linkCopied ? (
-              <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                {!isMobile && "הועתק!"}
-              </>
-            ) : (
-              <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                {!isMobile && "קישור"}
-              </>
-            )}
-          </button>
-
-          {/* Profile avatar (+ name on desktop) — translucent pill, green initials */}
-          <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", padding: isMobile ? "4px" : "5px 7px 5px 12px", borderRadius: "999px", background: HDR.pillBg }}>
-            {!isMobile && (
-              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
-                {session?.user?.name}
-              </span>
-            )}
-            <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green, flexShrink: 0 }}>
-              {initials(session?.user?.name)}
-            </div>
-          </Link>
-
-          {/* Logout */}
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            style={{ fontSize: "0.82rem", color: HDR.muted, background: "transparent", border: "none", borderRadius: "9px", cursor: "pointer", padding: isMobile ? "6px 8px" : "8px 12px", fontWeight: 500 }}
-          >
-            {isMobile ? "↩" : "יציאה"}
-          </button>
-        </>
-      </AppHeader>
+      <AppHeader><AppNav /></AppHeader>
 
       {/* ── Main ───────────────────────────────────────────────────────────── */}
       <main style={{ maxWidth: "920px", margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>

@@ -1,21 +1,16 @@
 "use client"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import AppHeader from "@/components/AppHeader"
-import { T, HDR } from "@/lib/theme"
+import AppNav from "@/components/AppNav"
+import { T } from "@/lib/theme"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import type { TicketWithUser } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
-
-function initials(name?: string | null) {
-  if (!name) return "?"
-  return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
-}
 
 const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
@@ -37,7 +32,6 @@ export default function TicketsViewPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const isMobile = useIsMobile()
-  const [menuOpen, setMenuOpen] = useState(false)
 
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,53 +114,9 @@ export default function TicketsViewPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, position: "relative" }}>
-      <AppHeader wordmark="כל הפניות" subtitle={false}>
-        {isMobile ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ background: HDR.pillBg, color: HDR.link, fontSize: "0.68rem", fontWeight: 700, padding: "4px 11px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.16)" }}>צפייה</span>
-            <button
-              onClick={() => setMenuOpen(o => !o)}
-              style={{ background: HDR.pillBg, border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-            >
-              {menuOpen ? "✕" : "☰"}
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ background: HDR.pillBg, color: HDR.link, fontSize: "0.72rem", fontWeight: 700, padding: "4px 12px", borderRadius: 20, border: "1px solid rgba(255,255,255,0.16)" }}>
-              צפייה בלבד
-            </span>
-            <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח אישי</a>
-            {!isViewer && (
-              <a href="/tickets" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>ניהול פניות</a>
-            )}
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg, textDecoration: "none" }}>
-              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
-                {initials(session?.user?.name)}
-              </div>
-            </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
-          </div>
-        )}
-      </AppHeader>
+      <AppHeader wordmark="כל הפניות" subtitle={false}><AppNav /></AppHeader>
 
       {/* Mobile dropdown menu */}
-      {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 58, right: 0, left: 0, zIndex: 100, background: HDR.bg, boxShadow: "0 8px 24px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column" }}>
-          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>לוח אישי</a>
-          {!isViewer && (
-            <a href="/tickets" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>ניהול פניות</a>
-          )}
-          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#fff" }}>
-              {initials(session?.user?.name)}
-            </div>
-            {session?.user?.name}
-          </Link>
-          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: "rgba(255,255,255,0.7)", background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
-        </div>
-      )}
 
       <main style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 

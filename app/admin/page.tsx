@@ -58,11 +58,10 @@
  */
 
 "use client"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import Link from "next/link"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { ASSIGNABLE_FALLBACK } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
@@ -77,8 +76,9 @@ import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
 import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
-import { T, HDR, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
+import AppNav from "@/components/AppNav"
 
 // Cristalino theme: status/urgency pill colors come from the central palette.
 const URGENCY_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
@@ -100,18 +100,12 @@ const badge: React.CSSProperties = {
   letterSpacing: "0.01em",
 }
 
-function initials(name?: string | null) {
-  if (!name) return "?"
-  return name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
-}
-
 interface UserRow { id: string; name: string | null; email: string; phone: string | null; station: string | null; isAdmin: boolean }
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const isMobile = useIsMobile()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [statFilter, setStatFilter] = useState<string | null>(null)
   const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
@@ -728,54 +722,9 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg, position: "relative" }}>
       <ErrorToast message={statusError} onClose={() => setStatusError(null)} />
-      <AppHeader wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false}>
-        {isMobile ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ padding: "4px 11px", borderRadius: "999px", background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.68rem", fontWeight: 700, letterSpacing: ".04em" }}>ADMIN</span>
-            <button
-              onClick={() => setMenuOpen(o => !o)}
-              style={{ background: HDR.pillBg, border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, color: "#fff", fontSize: "1.3rem", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-            >
-              {menuOpen ? "✕" : "☰"}
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <a href="/admin-manual" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>מדריך מנהל</a>
-            <a href="/admin/reports" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>דוחות</a>
-            <a href="/admin/reviews" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>ביקורות</a>
-            <a href="/admin/logs" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוג שגיאות</a>
-            <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוח משתמש</a>
-            <span style={{ padding: "5px 12px", borderRadius: "999px", background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.7rem", fontWeight: 700, letterSpacing: ".04em", margin: "0 4px" }}>ADMIN</span>
-            <Link href="/profile" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer", padding: "5px 7px 5px 12px", borderRadius: "999px", background: HDR.pillBg }}>
-              <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
-              <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
-                {initials(session?.user?.name)}
-              </div>
-            </Link>
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
-          </div>
-        )}
-      </AppHeader>
+      <AppHeader wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false}><AppNav /></AppHeader>
 
       {/* Mobile dropdown menu */}
-      {menuOpen && isMobile && (
-        <div style={{ position: "absolute", top: 58, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
-          <a href="/admin-manual" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>📖 מדריך מנהל</a>
-          <a href="/admin/reports" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>📊 דוחות</a>
-          <a href="/admin/reviews" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⭐ ביקורות</a>
-          <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⚠️ לוג שגיאות</a>
-          <a href="/contact" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>צרו קשר</a>
-          <a href="/dashboard" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>לוח משתמש</a>
-          <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: T.text, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: T.green }}>
-              {initials(session?.user?.name)}
-            </div>
-            {session?.user?.name}
-          </Link>
-          <button onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/login" }) }} style={{ display: "block", width: "100%", textAlign: "right", padding: "14px 24px", color: T.muted, background: "none", border: "none", fontSize: "0.9rem", fontWeight: 500, cursor: "pointer" }}>יציאה</button>
-        </div>
-      )}
 
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
 

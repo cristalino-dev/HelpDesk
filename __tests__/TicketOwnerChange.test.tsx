@@ -25,6 +25,8 @@ jest.mock("next-auth/react", () => ({
 
 const push = jest.fn()
 jest.mock("next/navigation", () => ({
+  // AppNav highlights the current page.
+  usePathname: () => "/",
   useRouter: () => ({ push }),
   useParams: () => ({ id: "ticket-1" }),
 }))

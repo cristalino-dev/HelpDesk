@@ -16,12 +16,12 @@
 
 "use client"
 import { useEffect, useState } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import FooterCopyright from "@/components/FooterCopyright"
 import AppHeader from "@/components/AppHeader"
-import { T, HDR } from "@/lib/theme"
+import AppNav from "@/components/AppNav"
+import { T } from "@/lib/theme"
 
 interface Review {
   id: string
@@ -90,19 +90,7 @@ export default function ReviewsPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
 
-      <AppHeader wordmark="helpdesk" subtitle="ביקורות שירות">
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Link href="/admin" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>← ניהול פניות</Link>
-          <Link href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: 9, fontWeight: 500 }}>לוח משתמש</Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg }}>
-            <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session?.user?.name}</span>
-            <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
-              {initials(session?.user?.name)}
-            </div>
-          </div>
-          <button onClick={() => signOut({ callbackUrl: "/login" })} style={{ fontSize: "0.82rem", color: HDR.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 12px", fontWeight: 500 }}>יציאה</button>
-        </div>
-      </AppHeader>
+      <AppHeader wordmark="helpdesk" subtitle="ביקורות שירות"><AppNav /></AppHeader>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
