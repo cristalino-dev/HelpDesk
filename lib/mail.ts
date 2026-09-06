@@ -70,6 +70,42 @@ interface MailOptions {
   html: string
 }
 
+/** Total attempts, and the waits between them. */
+export const MAIL_ATTEMPTS = 3
+export const MAIL_BACKOFF_MS = [2_000, 8_000]
+
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
+
+/**
+ * Is this failure worth retrying?
+ *
+ * SMTP splits replies by first digit: 4xx is "temporary, try again", 5xx is
+ * "permanent, do not". The 421 that fills the log ("Server busy, try again
+ * later") is the former, and Gmail reaches for it under load.
+ *
+ * Nodemailer does not surface that consistently. A rejection during the SMTP
+ * conversation carries `responseCode`, but the greeting failure we actually
+ * see — `Invalid greeting. response=421-4.4.5 Server busy` — arrives as an
+ * EPROTOCOL error with the code only in the text. So this checks, in order:
+ * the numeric code, the connection-level error codes, and finally the message
+ * itself. A 5xx anywhere wins and stops the retries.
+ */
+export function isTransientMailError(err: unknown): boolean {
+  const e = (err ?? {}) as { responseCode?: number; code?: string; message?: string; response?: string }
+
+  if (typeof e.responseCode === "number") return e.responseCode >= 400 && e.responseCode < 500
+
+  // Connection-level failures never reached a reply code at all.
+  const NETWORK = ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "ECONNRESET", "EDNS", "EPROTOCOL", "ECONNREFUSED"]
+  const text = `${e.message ?? ""} ${e.response ?? ""}`
+
+  // A permanent code in the text beats a retryable-looking error code.
+  if (/\b5\d\d[- ]/.test(text)) return false
+  if (/\b4\d\d[- ]/.test(text)) return true
+
+  return typeof e.code === "string" && NETWORK.includes(e.code)
+}
+
 export async function sendMail({ to, subject, html }: MailOptions) {
   const transporter = createTransporter()
   if (!transporter) {
@@ -83,14 +119,32 @@ export async function sendMail({ to, subject, html }: MailOptions) {
   const recipients = (Array.isArray(to) ? to : [to]).filter(addr => addr !== BOT_EMAIL)
   if (recipients.length === 0) return
 
-  try {
-    await transporter.sendMail({ from: FROM, to: recipients, subject, html })
-    console.log(`[mail] sent "${subject}" → ${recipients.join(", ")}`)
-  } catch (err) {
-    const e = err instanceof Error ? err : new Error(String(err))
-    console.error("[mail] send failed:", e.message)
-    // Log to admin error log so it appears in the logs tab
-    await logError(`Mail send failed: ${e.message}`, `sendMail → "${subject}"`, e.stack).catch(() => {})
+  // Gmail answers "421-4.4.5 Server busy, try again later" under load, and a
+  // single attempt turned that into a silently lost notification — the ticket
+  // was created and nobody was told. Retry the failures Gmail itself calls
+  // temporary; give up immediately on the ones it calls permanent.
+  for (let attempt = 1; attempt <= MAIL_ATTEMPTS; attempt++) {
+    try {
+      await transporter.sendMail({ from: FROM, to: recipients, subject, html })
+      console.log(`[mail] sent "${subject}" → ${recipients.join(", ")}`)
+      return
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err))
+      const last = attempt === MAIL_ATTEMPTS
+      if (!last && isTransientMailError(err)) {
+        const wait = MAIL_BACKOFF_MS[attempt - 1]
+        console.warn(`[mail] attempt ${attempt}/${MAIL_ATTEMPTS} failed (${e.message}) — retrying in ${wait}ms`)
+        await sleep(wait)
+        continue
+      }
+      console.error("[mail] send failed:", e.message)
+      // Log to admin error log so it appears in the logs tab
+      await logError(
+        `Mail send failed after ${attempt} attempt${attempt === 1 ? "" : "s"}: ${e.message}`,
+        `sendMail → "${subject}"`, e.stack,
+      ).catch(() => {})
+      return
+    }
   }
 }
 

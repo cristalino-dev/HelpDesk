@@ -16,7 +16,7 @@
  *     lighter series colors legal — losing it is an accessibility regression.
  */
 
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import TimelineChart from "@/app/admin/reports/TimelineChart"
 import BreakdownBars from "@/app/admin/reports/BreakdownBars"
 import { buildTimeline, type ReportTicket } from "@/lib/reports"
@@ -90,6 +90,38 @@ describe("TimelineChart", () => {
   it("shows nothing but keeps its frame when every series is hidden", () => {
     render(<TimelineChart buckets={week} keys={[]} />)
     expect(screen.getByText("אין נתונים בטווח הזה")).toBeInTheDocument()
+  })
+
+  it("survives the bucket count shrinking while a point is hovered", () => {
+    // PRODUCTION CRASH: "Cannot read properties of undefined (reading 'opened')".
+    // `hover` is an index into `buckets`, and it outlives the buckets it was
+    // taken from. Hover day 40 of a 90-day range, then switch to monthly (4
+    // buckets) or drag-zoom to a shorter window, and buckets[40] is undefined
+    // — the hovered-point markers read [key] straight off it.
+    const long = buildTimeline(
+      Array.from({ length: 90 }, (_, i) => t(`2026-06-${String((i % 28) + 1).padStart(2, "0")}T09:00:00Z`)),
+      "2026-06-01", "2026-08-29", "day",
+    )
+    const short = buildTimeline([t("2026-06-01T09:00:00Z")], "2026-06-01", "2026-06-03", "day")
+
+    const view = render(<TimelineChart buckets={long} keys={["opened", "closed"]} />)
+    const svg = view.container.querySelector("svg") as SVGElement
+    // jsdom gives every element a zero-size rect, so indexAt() resolves to a
+    // real index only for clientX at the far right of the plot.
+    fireEvent.pointerMove(svg, { clientX: 900 })
+    expect(() => view.rerender(<TimelineChart buckets={short} keys={["opened", "closed"]} />)).not.toThrow()
+  })
+
+  it("clears the hover when the data underneath it changes", () => {
+    const a = buildTimeline([t("2026-06-01T09:00:00Z")], "2026-06-01", "2026-06-10", "day")
+    const b = buildTimeline([t("2026-06-01T09:00:00Z")], "2026-06-01", "2026-06-02", "day")
+    const view = render(<TimelineChart buckets={a} keys={["opened"]} />)
+    const svg = view.container.querySelector("svg") as SVGElement
+    fireEvent.pointerMove(svg, { clientX: 700 })
+    view.rerender(<TimelineChart buckets={b} keys={["opened"]} />)
+    // The pointer is no longer over the date it was over; no readout should
+    // survive the change.
+    expect(view.container.querySelectorAll("circle").length).toBeLessThanOrEqual(1)
   })
 
   it("carries a text description for a screen reader", () => {

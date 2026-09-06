@@ -5,6 +5,60 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.69 — שני תיקונים מיומן השגיאות
+
+Both of these came straight out of `/admin/logs`, and both were silent: one
+crashed a page the reader was already looking at, the other lost mail without
+telling anyone.
+
+### The reports timeline crashed when the range narrowed
+
+```
+Cannot read properties of undefined (reading 'opened')
+```
+
+`hover` is an index into the bucket array, and it outlived the buckets it was
+taken from. Hover over day 40 of a 90-day range, then switch to חודשי — four
+buckets — or drag-zoom into a shorter window, and `buckets[40]` is gone. The
+markers for the hovered point read `[key]` straight off it and the chart threw.
+
+Everything now reads a single resolved `hovered` bucket, which is `undefined`
+when the index no longer exists. Resetting the index in an effect would not have
+helped: an effect runs *after* the render that would already have crashed.
+Letting it resolve to `undefined` is also the behaviour you want — the crosshair
+lets go until you move the pointer, because it is no longer over the date it was
+marking.
+
+### A busy Gmail silently dropped notifications
+
+```
+Mail send failed: Invalid greeting. response=421-4.4.5 Server busy, try again
+later. (smtp.gmail.com)
+```
+
+SMTP splits replies by first digit: 4xx means *temporary, try again*, 5xx means
+*permanent, do not*. Gmail reaches for 421 under load. `sendMail` tried once,
+logged, and dropped the message — so a ticket was created and nobody was told.
+
+It now retries the failures Gmail itself calls temporary — three attempts, 2s
+then 8s apart — and still gives up immediately on the permanent ones, because a
+550 for a bad address will reject identically three times and only spam the log.
+
+Classifying that is fiddlier than reading `responseCode`, because the failure in
+the log never got that far: it is an `EPROTOCOL` greeting error carrying the
+code only in its text. `isTransientMailError()` checks the numeric code, then a
+permanent code anywhere in the message (which wins), then a temporary one, then
+the connection-level error codes. Anything it cannot classify is not retried —
+better one log line than hammering Gmail over something we do not understand.
+
+### Tests
+
+14 new tests; 688 across 43 suites. The chart test reproduces the crash by
+hovering a 90-bucket range and re-rendering with a shorter one — it failed with
+the exact production message before the fix.
+
+---
+
 ## v3.68 — דוחות: פניות לאורך זמן, לפי סוג, עם תובנות
 
 **The system has recorded every ticket since it went live and could not answer

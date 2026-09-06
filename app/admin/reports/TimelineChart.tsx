@@ -136,7 +136,14 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
     )
   }
 
-  const hovered = hover !== null ? buckets[hover] : null
+  // `hover` is an index, and it outlives the buckets it was taken from: hover
+  // day 40 of a 90-day range, then switch to monthly or drag-zoom to a shorter
+  // window, and buckets[40] is gone. Everything below reads THIS, never
+  // buckets[hover]. An effect resetting the index would not help — it runs
+  // after the render that would already have crashed — and resolving to
+  // undefined here is also the behaviour we want: the crosshair lets go until
+  // the pointer moves again, because it is no longer over the date it marked.
+  const hovered = hover !== null ? buckets[hover] : undefined
 
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%", userSelect: "none" }}>
@@ -182,7 +189,7 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
         )}
 
         {/* Crosshair: the reader aims at a date, not at a line. */}
-        {hover !== null && (
+        {hovered && hover !== null && (
           <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + plotH} stroke={T.borderStrong} strokeWidth={1} />
         )}
 
@@ -203,9 +210,9 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
 
         {/* The hovered point on every active series, ringed so it stays legible
             where two lines cross. */}
-        {hover !== null && active.map(key => (
+        {hovered && hover !== null && active.map(key => (
           <circle
-            key={`hv-${key}`} cx={x(hover)} cy={y(buckets[hover][key])} r={4.5}
+            key={`hv-${key}`} cx={x(hover)} cy={y(hovered[key])} r={4.5}
             fill={SERIES[key].color} stroke="#FFFFFF" strokeWidth={2}
           />
         ))}
