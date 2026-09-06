@@ -5,6 +5,49 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.71 — למדריך המנהל יש עכשיו שומר
+
+`/admin-manual` was the only page in the application with **no access guard at
+all**. Every other admin page redirects a stranger; this one rendered for
+anybody who knew the URL — and what it renders is a detailed tour of the admin
+panel: which tabs exist, what each one does, which endpoints back them, how the
+crons are wired. Its own badge says *Staff Only*.
+
+An audit of all seventeen pages found the other unguarded routes are
+deliberately public: `/open` is the link the copy button shares,
+`/review/[ticketId]` is reached by an unguessable CUID from a rating email,
+`/help` and `/manual` are the end-user documentation, and `/login` cannot
+require a session. Only the manual was an oversight.
+
+### The guard is server-side
+
+```ts
+const session = await auth()
+if (!session?.user) redirect("/login")
+if (!session.user.isAdmin && !STAFF_EMAILS.includes(session.user.email ?? "")) redirect("/dashboard")
+```
+
+The other admin pages guard in a `useEffect`, which renders the page and *then*
+navigates away — the content reaches the DOM either way. This page is a server
+component, so it follows [`app/page.tsx`](app/page.tsx) instead and settles the
+question before any HTML is sent. The route consequently moves from static
+(`○`) to dynamic (`ƒ`) in the build output, which is correct: its output now
+depends on who is asking.
+
+Audience is the support team as the page defines it in its own opening line —
+admins **and** `STAFF_EMAILS`, the same pair `/admin/logs` admits. The nav was
+updated to match, so staff now see מדריך מנהל: the rule that a link must never
+lead to a redirect cuts both ways, and a page someone may open should be
+reachable.
+
+### Tests
+
+6 new tests; 734 across 46 suites. They were mutation-tested by removing the
+guard and confirming four of them went red — a guard test that passes against
+an unguarded page is worse than none.
+
+---
+
 ## v3.70 — סרגל ניווט אחד
 
 **Which links you saw depended on the page you were standing on, not on who you

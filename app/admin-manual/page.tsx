@@ -1,5 +1,23 @@
+/**
+ * app/admin-manual/page.tsx — the support team's manual
+ *
+ * ACCESS: every other admin page redirects a stranger; this one did not. It
+ * says "Staff Only" on its badge and describes the admin panel in detail —
+ * which tabs exist, what each does, which endpoints back them — so anyone who
+ * guessed the URL got a tour of the interface they cannot open.
+ *
+ * The guard is server-side, following app/page.tsx: `auth()` + `redirect()`
+ * settle it before any HTML is sent, so there is none of the flash of wrong
+ * content that the client-side guards on the other admin pages still allow.
+ * Audience is the support team as the page itself defines it — admins and
+ * STAFF_EMAILS, the same pair /admin/logs admits.
+ */
+
 import type { Metadata } from "next"
 import Image from "next/image"
+import { redirect } from "next/navigation"
+import { auth } from "@/auth"
+import { STAFF_EMAILS } from "@/lib/staffEmails"
 import VERSION from "@/lib/version"
 
 export const metadata: Metadata = {
@@ -7,7 +25,11 @@ export const metadata: Metadata = {
   description: "מדריך שימוש לצוות התמיכה של מערכת ה-Helpdesk",
 }
 
-export default function AdminManualPage() {
+export default async function AdminManualPage() {
+  const session = await auth()
+  if (!session?.user) redirect("/login")
+  if (!session.user.isAdmin && !STAFF_EMAILS.includes(session.user.email ?? "")) redirect("/dashboard")
+
   return (
     <div style={{ background: "#F2F3F1", minHeight: "100vh", padding: "32px 16px", direction: "rtl" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>

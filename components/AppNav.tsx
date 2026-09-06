@@ -78,9 +78,11 @@ export function navLinksFor(user: NavUser): NavLink[] {
     links.push({ href: "/admin/reviews", label: "ביקורות",     icon: "⭐" })
   }
 
-  // The error log admits staff as well as admins (see its own guard).
-  if (isAdmin || isStaff) links.push({ href: "/admin/logs", label: "לוג שגיאות", short: "שגיאות", icon: "⚠️" })
-  if (isAdmin)            links.push({ href: "/admin-manual", label: "מדריך מנהל", short: "מדריך", icon: "📖" })
+  // Both of these admit staff as well as admins, per their own guards: the
+  // error log has always, and the manual is addressed to the support team in
+  // its own opening line.
+  if (isAdmin || isStaff) links.push({ href: "/admin/logs",   label: "לוג שגיאות", short: "שגיאות", icon: "⚠️" })
+  if (isAdmin || isStaff) links.push({ href: "/admin-manual", label: "מדריך מנהל", short: "מדריך",  icon: "📖" })
 
   return links
 }

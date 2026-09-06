@@ -68,14 +68,16 @@ describe("everyone else sees only what they can open", () => {
     for (const href of hrefs(plain)) expect(href.startsWith("/admin")).toBe(false)
   })
 
-  it("gives staff the queue and the error log, which their guards allow", () => {
-    // /tickets admits isAdmin || STAFF_EMAILS; /admin/logs admits staff too.
-    expect(hrefs(staff)).toContain("/tickets")
-    expect(hrefs(staff)).toContain("/admin/logs")
+  it("gives staff everything their guards allow", () => {
+    // /tickets admits isAdmin || STAFF_EMAILS; /admin/logs and /admin-manual
+    // admit staff too. Each of these is asserted against the page's own guard.
+    for (const href of ["/tickets", "/admin/logs", "/admin-manual"]) {
+      expect(hrefs(staff)).toContain(href)
+    }
   })
 
   it("does not give staff the admin-only pages", () => {
-    for (const href of ["/admin", "/admin/reports", "/admin/reviews", "/admin-manual"]) {
+    for (const href of ["/admin", "/admin/reports", "/admin/reviews"]) {
       expect(hrefs(staff)).not.toContain(href)
     }
   })
