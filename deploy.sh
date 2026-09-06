@@ -1,11 +1,19 @@
 #!/bin/bash
 set -e
 
-SERVER="18.195.248.157"
-USER="ubuntu"
-REMOTE_DIR="/home/ubuntu/helpdesk"
+# Overridable so the same script runs from a laptop and from CI. Defaults are
+# the values this has always used, so an existing local checkout is unaffected.
+SERVER="${DEPLOY_HOST:-18.195.248.157}"
+USER="${DEPLOY_USER:-ubuntu}"
+REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/home/ubuntu/helpdesk}"
 LOCAL="$(cd "$(dirname "$0")" && pwd)"
-KEY="$LOCAL/../CrisRouter/alon.pem"
+KEY="${DEPLOY_KEY:-$LOCAL/../CrisRouter/alon.pem}"
+
+if [ ! -f "$KEY" ]; then
+  echo "Deploy key not found: $KEY" >&2
+  echo "Set DEPLOY_KEY to its path, e.g. DEPLOY_KEY=/c/Users/you/alon.pem ./deploy.sh" >&2
+  exit 1
+fi
 
 chmod 600 "$KEY"
 
@@ -172,11 +180,22 @@ MAINTHTML
 # ── Create tar archive ───────────────────────────────────────────────────────
 echo "Archiving source files..."
 TMPTAR=$(mktemp /tmp/helpdesk-src.XXXXXX.tar.gz)
+# .env and .env.local are gitignored, so a CI checkout does not have them.
+# When they are absent we simply do not ship them and the server keeps the
+# copies it already holds — which is also why CI never needs the app's secrets,
+# only the SSH key. From a local checkout they are present and ship as before.
+ENV_FILES=()
+if [ -f "$LOCAL/.env" ]; then ENV_FILES+=(.env); fi
+if [ -f "$LOCAL/.env.local" ]; then ENV_FILES+=(.env.local); fi
+if [ ${#ENV_FILES[@]} -eq 0 ]; then
+  echo "  no local .env/.env.local — the server keeps its existing ones"
+fi
+
 tar -czf "$TMPTAR" \
   -C "$LOCAL" \
   app components lib prisma public scripts types auth.ts \
   package.json package-lock.json tsconfig.json \
-  .env .env.local ecosystem.config.js next.config.ts \
+  ${ENV_FILES[@]+"${ENV_FILES[@]}"} ecosystem.config.js next.config.ts \
   maintenance-server.js
 
 SIZE=$(du -sh "$TMPTAR" | cut -f1)

@@ -108,7 +108,7 @@ Two categories carry extra behaviour:
 | HTTP client | axios | 1.14.x | |
 | Testing | Jest + RTL | 30 + 16 | **674 tests across 42 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
-| Deploy | SSH + SCP | — | `deploy.sh` — the build runs on the server |
+| Deploy | SSH + SCP | — | `deploy.sh` — the build runs on the server. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override its defaults, which is how `.github/workflows/deploy.yml` runs the same script from a runner |
 
 `nodemailer`, `imapflow` and `mailparser` are listed in `next.config.ts`
 under `serverExternalPackages` — they are Node-only and must not be bundled.

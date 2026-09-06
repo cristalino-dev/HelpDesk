@@ -1,0 +1,100 @@
+# .github/workflows/deploy.yml — deploy HelpDesk to the Lightsail server
+#
+# WHY THIS EXISTS
+# ───────────────
+# deploy.sh needs SSH to the production box, which is not reachable from every
+# machine that might be holding the code (a cloud dev session, a laptop without
+# the key). This runs the SAME script from a runner that does have a route, so
+# there is one deploy implementation, not two that drift apart.
+#
+# MANUAL BY DESIGN
+# ────────────────
+# The trigger is workflow_dispatch — a button in the Actions tab, and an API
+# call. It deliberately does NOT fire on every push to main: that would make
+# each merge a production deploy, which is a bigger change of habit than this
+# workflow is meant to be. To opt in later, uncomment the `push:` block.
+#
+# WHAT CI DOES NOT HAVE
+# ─────────────────────
+# .env and .env.local are gitignored, so the checkout has neither. deploy.sh
+# omits them from the archive when they are absent and the server keeps the
+# copies it already holds. The only secret this workflow needs is the SSH key.
+#
+# SETUP (once)
+# ────────────
+#   Settings → Secrets and variables → Actions → New repository secret
+#     Name:  DEPLOY_SSH_KEY
+#     Value: the entire contents of alon.pem, including the
+#            -----BEGIN … KEY----- and -----END … KEY----- lines
+#   Optional overrides, if the server ever moves:
+#     DEPLOY_HOST (default 18.195.248.157), DEPLOY_USER (default ubuntu)
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+  # Uncomment to deploy automatically on every merge to main:
+  # push:
+  #   branches: [main]
+
+# One deploy at a time. Two overlapping runs would race over the same
+# .next-staging directory on the server and could swap in a half-built app.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The same gate as `npm run build` locally. A red suite must never reach
+      # the server: the server-side build is what swaps the live app.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run tests
+        run: npx jest --ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Write the deploy key
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > "$RUNNER_TEMP/deploy_key"
+          # A key pasted without its trailing newline is the single most common
+          # cause of "invalid format"; fail here with a clear message instead of
+          # inside ssh.
+          if ! ssh-keygen -y -f "$RUNNER_TEMP/deploy_key" > /dev/null 2>&1; then
+            echo "DEPLOY_SSH_KEY is not a valid private key." >&2
+            echo "Paste the whole alon.pem, BEGIN/END lines included." >&2
+            exit 1
+          fi
+
+      - name: Deploy
+        env:
+          DEPLOY_KEY: ${{ runner.temp }}/deploy_key
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          # Unset rather than pass empty, so deploy.sh falls back to its
+          # defaults when the optional secrets are not configured.
+          [ -n "$DEPLOY_HOST" ] || unset DEPLOY_HOST
+          [ -n "$DEPLOY_USER" ] || unset DEPLOY_USER
+          bash deploy.sh
+
+      - name: Shred the key
+        if: always()
+        run: shred -u "$RUNNER_TEMP/deploy_key" 2>/dev/null || rm -f "$RUNNER_TEMP/deploy_key"

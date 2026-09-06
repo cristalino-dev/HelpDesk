@@ -87,7 +87,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Tests | Jest 30 + React Testing Library 16 — 674 tests, 42 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
-| Deployment | SSH + SCP (`deploy.sh`) — build runs on server |
+| Deployment | SSH + SCP (`deploy.sh`) — build runs on server; also runnable from GitHub Actions |
 
 ---
 
@@ -135,6 +135,7 @@ helpdesk/
 ├── __tests__/                                # 674 tests across 42 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
+├── .github/workflows/deploy.yml              # The same script, run from CI on demand
 ├── setup-server.sh  ssl-init.sh              # One-time server setup, SSL via Certbot
 └── ecosystem.config.js                       # PM2 config
 ```
@@ -236,6 +237,22 @@ UPDATE "User" SET "isAdmin" = true WHERE email = 'user@company.com';
 ```bash
 ./deploy.sh
 ```
+
+The key defaults to `../CrisRouter/alon.pem`; point `DEPLOY_KEY` at it if yours
+lives elsewhere (`DEPLOY_HOST` and `DEPLOY_USER` override the target the same
+way):
+
+```bash
+DEPLOY_KEY=/c/Users/you/alon.pem ./deploy.sh
+```
+
+**Or deploy from GitHub Actions** — Actions → **Deploy** → *Run workflow*. It
+runs this same script from a runner, gated on `jest --ci` and `tsc --noEmit`, so
+it also works from a machine with no route to the server. Requires the
+`DEPLOY_SSH_KEY` repository secret; see
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) for the one-time
+setup. CI never holds the app's secrets: `.env`/`.env.local` are gitignored, so
+`deploy.sh` omits them from the archive and the server keeps its own copies.
 
 ```bash
 ./setup-server.sh
