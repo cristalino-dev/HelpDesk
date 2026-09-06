@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.67**
+**Version 3.68**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -84,7 +84,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Database | PostgreSQL (AWS RDS) |
 | Styling | Inline React styles; tokens in `lib/theme.ts` |
 | Mail | nodemailer v7 (outbound) · imapflow + mailparser (inbound) |
-| Tests | Jest 30 + React Testing Library 16 — 596 tests, 38 suites |
+| Tests | Jest 30 + React Testing Library 16 — 674 tests, 42 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
 | Deployment | SSH + SCP (`deploy.sh`) — build runs on server |
@@ -107,6 +107,7 @@ helpdesk/
 │   ├── admin/                                # Queue, users, logs, שדות מערכת,
 │   │   │                                     #   רישוי, מדפסות, ציוד חסר
 │   │   ├── logs/                             # Error log viewer
+│   │   ├── reports/                          # Timeline, breakdowns, insights
 │   │   └── reviews/                          # Service review dashboard
 │   ├── help/  manual/  admin-manual/         # User manual, printable, staff manual
 │   ├── review/[ticketId]/                    # Service rating page (no login)
@@ -131,7 +132,7 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 596 tests across 38 suites
+├── __tests__/                                # 674 tests across 42 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── setup-server.sh  ssl-init.sh              # One-time server setup, SSL via Certbot

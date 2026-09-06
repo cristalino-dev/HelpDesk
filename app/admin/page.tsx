@@ -742,6 +742,7 @@ export default function AdminPage() {
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <a href="/admin-manual" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>מדריך מנהל</a>
+            <a href="/admin/reports" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>דוחות</a>
             <a href="/admin/reviews" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>ביקורות</a>
             <a href="/admin/logs" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוג שגיאות</a>
             <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 13px", borderRadius: "9px", fontWeight: 500 }}>לוח משתמש</a>
@@ -761,6 +762,7 @@ export default function AdminPage() {
       {menuOpen && isMobile && (
         <div style={{ position: "absolute", top: 58, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
           <a href="/admin-manual" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>📖 מדריך מנהל</a>
+          <a href="/admin/reports" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>📊 דוחות</a>
           <a href="/admin/reviews" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⭐ ביקורות</a>
           <a href="/admin/logs" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>⚠️ לוג שגיאות</a>
           <a href="/contact" onClick={() => setMenuOpen(false)} style={{ display: "block", padding: "14px 24px", color: T.text2, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}>צרו קשר</a>

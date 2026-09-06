@@ -5,6 +5,97 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.68 — דוחות: פניות לאורך זמן, לפי סוג, עם תובנות
+
+**The system has recorded every ticket since it went live and could not answer
+"how many did we open last month, and what were they?" without exporting to a
+spreadsheet.** `/admin/reports` answers it on one screen: a timeline you can
+drag, breakdowns by five dimensions, and the numbers read back in plain Hebrew.
+
+### What changed for users
+
+Admins get a **דוחות** link in the admin nav (desktop and mobile). The page has
+three parts, all scoped by one filter row:
+
+- **Timeline** — a line for tickets opened, a line for tickets closed, and an
+  optional cumulative line for the open queue. Presets (7 / 30 / 90 days, year,
+  everything) or explicit dates; day, week or month resolution. **Dragging
+  across the chart zooms into that period.** Hovering puts a crosshair on the
+  nearest date and reads out every series at once; «הצג כטבלה» shows the same
+  numbers as a table.
+- **פילוח הפניות** — ranked bars by category, urgency, platform, status or
+  assigned technician, each with its count and share.
+- **תובנות** — closure rate, median handling time, the dominant category, the
+  busiest day, and whether the open queue grew or shrank.
+
+Nothing is written and nothing is emailed; the page only reads.
+
+### What changed for developers
+
+Three files, one idea: **the arithmetic is pure and lives in
+[`lib/reports.ts`](lib/reports.ts)** — bucketing, the timeline, breakdowns,
+medians and the insight sentences are all plain functions over plain rows, so
+they are tested without a database, a session or a browser.
+
+[`/api/admin/reports`](app/api/admin/reports/route.ts) returns one flat row per
+ticket **once**, and every control on the page recomputes in the browser. That
+is what makes dragging the timeline feel immediate; the cost is a payload of
+roughly 150 bytes per ticket, noted in the route's header with the threshold at
+which the aggregation should move server-side.
+
+**`Ticket` has no `closedAt` column.** A closure is a `TicketHistory` row
+(`field: "status"`, `newValue: "סגור"`), and a reopened ticket has several. The
+route takes the *latest* one, and only for tickets that are closed *now*, so
+that:
+
+```
+cumulative opened − cumulative closed = tickets actually open
+```
+
+Counting close *events* instead would double-count reopened tickets and sink
+the backlog line below the truth, silently. Tickets closed before history was
+recorded have no row; they are counted as opened, excluded from the closure
+line, and the page **says so** rather than under-reporting quietly.
+
+Buckets are civil days in **Asia/Jerusalem**, not UTC days — a ticket opened at
+01:30 local is opened today, and bucketing on the UTC date would move a whole
+night of tickets into the previous column. Weeks start on Sunday.
+
+### The charts
+
+Hand-rolled SVG; the app gains no charting dependency. Two decisions worth
+knowing, both made after rendering the thing and looking at it:
+
+- **The backlog gets its own plot.** It is an order of magnitude larger than the
+  daily flow, and sharing one y-axis flattened both lines into an unreadable
+  band at the baseline. Stacked small multiples over a shared x — never a second
+  y-axis.
+- **`text-anchor` is logical, not physical.** Inside the RTL page "start" means
+  the *right* edge, so every axis label drew backwards off its own end and the
+  first and last ticks were clipped. The `<svg>` sets `direction: ltr`; the plot
+  is an LTR coordinate space with Hebrew labels laid out correctly inside it.
+
+Series colours are validated categorical slots, not brand colours: the brand
+green sits at 2.15:1 on white, too faint to carry a 2px line. Category bars are
+nominal, so they all take one hue and length alone carries magnitude; the
+urgency and status breakdowns reuse the app's own maps from `lib/theme.ts`.
+
+### Tests
+
+78 new tests across four suites — 674 across 42 in total.
+[`reports.test.ts`](__tests__/reports.test.ts) covers the arithmetic including
+the reopened-ticket and timezone traps;
+[`ReportsAPI.test.ts`](__tests__/ReportsAPI.test.ts) covers close-date
+resolution and the admin gate;
+[`ReportsPage.test.tsx`](__tests__/ReportsPage.test.tsx) asserts that the page
+fetches exactly once and that no control refetches; and
+[`ReportsCharts.test.tsx`](__tests__/ReportsCharts.test.tsx) pins the chart
+geometry — the LTR coordinate space, the axis rounding, the empty and
+single-point ranges, and the visible share labels that keep every value
+reachable without hovering.
+
+---
+
 ## v3.67 — הפנייה החדשה במייל: מספר פנייה, מסגרת וצבעי המותג
 
 **The staff notification for a new ticket shipped for a long time without the

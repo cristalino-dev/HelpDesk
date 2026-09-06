@@ -31,11 +31,12 @@ export default function AdminManualPage() {
           </p>
 
           {/* Quick links */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 32 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 32 }}>
             {[
               { label: "כל הפניות",   href: "/tickets",        color: "#16181D", bg: "#E9F4E2" },
               { label: "פאנל ניהול",  href: "/admin",          color: "#16181D", bg: "#EDEFEA" },
               { label: "ביקורות",     href: "/admin/reviews",  color: "#16a34a", bg: "#f0fdf4" },
+              { label: "דוחות",       href: "/admin/reports",  color: "#2a78d6", bg: "#eef5fd" },
               { label: "לוח אישי",    href: "/dashboard",      color: "#0891b2", bg: "#ecfeff" },
             ].map(l => (
               <a key={l.href} href={l.href} style={{ display: "block", textAlign: "center", padding: "14px 10px", borderRadius: 10, background: l.bg, color: l.color, fontWeight: 700, fontSize: "0.85rem", textDecoration: "none", border: `1px solid ${l.bg}` }}>
@@ -168,6 +169,23 @@ export default function AdminManualPage() {
               "@mention בהערה → מייל אישי לאיש הצוות שהוזכר",
               "הודעה חדשה בשיחה → מייל לצד השני",
               "כל המיילים נשלחים מ-helpdesk@cristalino.co.il",
+            ]} />
+          </Section>
+
+          <Section icon="📊" title="דוחות — /admin/reports">
+            <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              כמה פניות נפתחו ונסגרו, מתי, ומאיזה סוג. כל הבקרות בדף משנות את התצוגה מיד — הנתונים נטענים פעם אחת ומחושבים בדפדפן.
+            </p>
+            <FeatureList items={[
+              "גישה מהירה: לחצו דוחות בסרגל הניווט של פאנל הניהול",
+              "טווח תאריכים: לחצני קיצור (7 ימים / 30 / 90 / שנה / הכל) או בחירה ידנית",
+              "רזולוציה: יומי, שבועי או חודשי — השבוע מתחיל ביום ראשון",
+              "ציר זמן: קו לפניות שנפתחו, קו לפניות שנסגרו, וקו מצטבר של הפניות הפתוחות",
+              "גרירה לרוחב הגרף מתמקדת בתקופה שנבחרה",
+              "לחיצה על מקרא מסתירה או מציגה סדרה; «הצג כטבלה» מציג את אותם מספרים כטבלה",
+              "פילוח לפי קטגוריה, דחיפות, פלטפורמה, סטטוס או טכנאי מטפל",
+              "תובנות: קצב הסגירה, זמן טיפול חציוני, הקטגוריה הדומיננטית והיום העמוס ביותר",
+              "תאריך הסגירה נלקח מהיסטוריית הפנייה. פנייה שנסגרה, נפתחה מחדש ונסגרה שוב נספרת פעם אחת בלבד",
             ]} />
           </Section>
 

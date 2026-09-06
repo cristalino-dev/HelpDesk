@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-08-30 · v3.67
+> Version 2.0 · Last updated 2026-09-06 · v3.68
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **596 tests across 38 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **674 tests across 42 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` — the build runs on the server |
 
@@ -445,6 +445,8 @@ app/
 │   ├── page.tsx            CLIENT — Tabs: תור פניות · ניהול משתמשים · יומן שגיאות ·
 │   │                                שדות מערכת · רישוי · מדפסות · ציוד חסר
 │   ├── logs/page.tsx       CLIENT — Standalone error-log viewer
+│   ├── reports/            CLIENT — Ticket analytics: page.tsx + TimelineChart.tsx
+│   │                                + BreakdownBars.tsx (hand-rolled SVG, no chart lib)
 │   └── reviews/page.tsx    CLIENT — Service-review dashboard
 │
 └── api/                    See §7 for the full route reference
@@ -508,7 +510,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  38 suites, 596 tests — gate the build
+__tests__/                  42 suites, 674 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -865,6 +867,7 @@ client can replace state without a second round-trip.
 | GET | `/api/reviews` | Staff | All reviews for the dashboard |
 | POST | `/api/reviews` | — | **Public.** Submit a rating for a closed ticket |
 | PATCH | `/api/reviews` | — | **Public.** Change an existing rating/comment |
+| GET | `/api/admin/reports` | Admin | Every ticket flattened for the reports page — opened date, resolved close date, and the five dimensions it breaks down by |
 | GET | `/api/attachments/[id]` | Owner/Staff | Serve attachment bytes (disk, or legacy `dataUrl`). Cached immutable |
 | POST | `/api/contact` | User | Email the dev team. 503 if SMTP is unconfigured |
 
