@@ -13,7 +13,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, PROTECTED_URGENCIES } from "@/lib/fieldOptions"
-import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
+import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY, COMAX_TIME_REPORTER } from "@/lib/equipment"
 import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -37,6 +37,11 @@ const DEFAULTS: Record<Field, string[]> = {
 const REQUIRED_LABELS: { field: Field; label: string }[] = [
   { field: "category", label: NEW_EMPLOYEE_CATEGORY },
   { field: "category", label: LEAVING_EMPLOYEE_CATEGORY },
+  // Added after this install was seeded: the Comax time reporter is a seat of
+  // its own, billed separately from the Comax user, so closing the account
+  // does not release it. Without this back-fill the line would appear on new
+  // installs only, and never on the one that needs it.
+  { field: "equipment", label: COMAX_TIME_REPORTER },
 ]
 
 /** Ensure each field has at least the default values seeded. */

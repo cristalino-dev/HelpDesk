@@ -47,7 +47,7 @@ jest.mock("next/server", () => ({
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
-import { NEW_EMPLOYEE_CATEGORY, DEFAULT_EQUIPMENT } from "@/lib/equipment"
+import { NEW_EMPLOYEE_CATEGORY, DEFAULT_EQUIPMENT, COMAX_TIME_REPORTER } from "@/lib/equipment"
 import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 
 const mockAuth = auth as jest.Mock
@@ -122,6 +122,31 @@ describe("field-options seeding", () => {
     )
     expect(call).toBeDefined()
     expect(call![0]).toMatchObject({ skipDuplicates: true })
+  })
+
+  it("back-fills the Comax time-reporter line into an already-seeded equipment list", async () => {
+    // The offboarding checklist is generated from the equipment options, so a
+    // line added to DEFAULT_EQUIPMENT after this install was seeded would
+    // otherwise appear on new installs only — and never on the live one that
+    // needs it. That is what REQUIRED_LABELS is for.
+    opt.findFirst.mockResolvedValue(null)
+    await GET()
+
+    const call = opt.createMany.mock.calls.find(
+      c => c[0].data[0]?.label === COMAX_TIME_REPORTER,
+    )
+    expect(call).toBeDefined()
+    expect(call![0].data[0]).toMatchObject({ field: "equipment" })
+    expect(call![0].skipDuplicates).toBe(true)
+  })
+
+  it("does not add the time-reporter line twice when it is already there", async () => {
+    opt.findFirst.mockResolvedValue({ id: "eq-1", field: "equipment", label: COMAX_TIME_REPORTER })
+    await GET()
+
+    expect(opt.createMany.mock.calls.some(
+      c => c[0].data[0]?.label === COMAX_TIME_REPORTER,
+    )).toBe(false)
   })
 
   it("does not re-create the category when it already exists", async () => {

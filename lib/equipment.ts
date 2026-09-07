@@ -25,6 +25,13 @@
 export const NEW_EMPLOYEE_CATEGORY = "עובד חדש"
 
 /** Seed values for the "equipment" field option list. */
+/**
+ * The Comax time-reporter seat. Named because the offboarding back-fill in
+ * app/api/admin/field-options needs to refer to this exact label, and a typo
+ * there would silently add a thirteenth, near-duplicate line instead.
+ */
+export const COMAX_TIME_REPORTER = "מדווח שעות קומקס"
+
 export const DEFAULT_EQUIPMENT = [
   "מחשב",
   "מחשב נייד",
@@ -38,6 +45,10 @@ export const DEFAULT_EQUIPMENT = [
   "חשבון Gmail",
   "חשבון Zoho",
   "משתמש קומקס",
+  // A separate Comax seat from the user account, and separately billed, so
+  // closing the account does not release it. It has to be its own line or it
+  // is the one nobody remembers.
+  COMAX_TIME_REPORTER,
 ]
 
 /** Hard ceiling on a single line's quantity — guards against typos and abuse. */

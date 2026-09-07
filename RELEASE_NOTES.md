@@ -5,6 +5,54 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.73 — מדווח שעות קומקס נכנס לרשימת הסגירה
+
+Closing an employee's accounts is already a ticket type: the **עובד עוזב**
+category, which is born with a checklist of every item on the equipment list
+and **cannot be closed until every line is ticked** (enforced server-side in
+`PATCH /api/tickets` and the automation close endpoint — the disabled button is
+a courtesy, not the rule).
+
+That checklist already carried `חשבון Gmail`, `חשבון Zoho` and `משתמש קומקס`
+alongside the hardware. One thing was missing, and it is exactly the kind of
+item this feature exists to catch: **the Comax time-reporter is a separate seat
+from the Comax user, billed separately, and closing the account does not
+release it.** It is now line 13.
+
+```
+ 1. מחשב            8. אוזניות
+ 2. מחשב נייד       9. טלפון נייד
+ 3. מסך            10. חשבון Gmail
+ 4. מסך שני        11. חשבון Zoho
+ 5. עכבר           12. משתמש קומקס
+ 6. מקלדת          13. מדווח שעות קומקס   ← new
+ 7. תחנת עגינה
+```
+
+### Why it needed more than one line of code
+
+`DEFAULT_EQUIPMENT` seeds a field **only when that field is empty**, so adding
+a value to it reaches new installs and never the running one. The endpoint
+already has the mechanism for this — `REQUIRED_LABELS`, which back-fills
+individual values into already-populated fields with
+`createMany` + `skipDuplicates` (not `create`: every signed-in page load hits
+this endpoint, and two first-loads racing would collide on the `(field, label)`
+unique index and take out every dropdown in the app). The new line is
+registered there, so it appears on the next page load.
+
+It is also an ordinary `FieldOption`, so it can be renamed or removed from
+**שדות מערכת** like any other, and an ex-employee who never had the seat has
+the line struck off by staff — a decision someone makes, rather than one nobody
+makes.
+
+### Tests
+
+2 new tests; 741 across 46 suites. Mutation-tested by deleting the
+`REQUIRED_LABELS` entry and confirming the back-fill test went red — without it
+the line would have been invisible in production while passing every test.
+
+---
+
 ## v3.72 — «לוח אישי» הוא שוב אישי
 
 Three items in the nav did nearly the same thing, and for one group of people
