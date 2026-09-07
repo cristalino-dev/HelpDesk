@@ -57,7 +57,7 @@ export async function setTicketStatus(id: string, status: string): Promise<boole
  * Same request as setTicketStatus(), different failure handling: the boolean
  * helpers above swallow the reason, which is fine while every refusal is a
  * permission error the UI already prevents. Closing is no longer like that —
- * a "עובד עוזב" ticket refuses to close while its return checklist has an
+ * a "סגירת משתמש" ticket refuses to close while its return checklist has an
  * unticked line, and the caller has something worth showing the user.
  *
  * @returns null on success, or the server's Hebrew message on refusal.

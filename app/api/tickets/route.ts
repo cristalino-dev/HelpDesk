@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     // so a hand-crafted request cannot invent equipment.
     //
     // OFFBOARDING is the exception: the checklist is not a selection at all.
-    // A "עובד עוזב" ticket is born with EVERY item on the gear list, accounts
+    // A "סגירת משתמש" ticket is born with EVERY item on the gear list, accounts
     // included, and the server builds that list itself rather than trusting the
     // form — a checklist that can arrive short is not a checklist.
     //

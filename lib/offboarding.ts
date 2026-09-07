@@ -2,7 +2,7 @@
  * lib/offboarding.ts — Leaving-employee return checklist
  *
  * The mirror image of the onboarding kit. When someone leaves Cristalino, a
- * ticket under the "עובד עוזב" category is opened and the ticket is born with a
+ * ticket under the "סגירת משתמש" category is opened and the ticket is born with a
  * checklist of EVERY item on the equipment list — laptop, screen, docking
  * station, and the account items too (חשבון Gmail, חשבון Zoho, משתמש קומקס).
  *
@@ -37,7 +37,41 @@ import { outstandingOf, type EquipmentLine, type EquipmentSelection } from "@/li
  * any other category option, but the UI and the close guard key off this exact
  * label, so the field-options endpoint refuses to delete it.
  */
-export const LEAVING_EMPLOYEE_CATEGORY = "עובד עוזב"
+export const LEAVING_EMPLOYEE_CATEGORY = "סגירת משתמש"
+
+/**
+ * Phrases that mean "somebody is leaving" in the words people actually type.
+ *
+ * The category is a dropdown nobody reads: a ticket gets filed as אחר with
+ * "סגירת משתמש ליוסי" in the subject, and the checklist that would have caught
+ * the Zoho seat is never built. Matching the free text is how the form offers
+ * the right category at the moment the person is describing the job.
+ *
+ * "עובד עוזב" is here because it is what this category was CALLED until v3.74 —
+ * people will keep typing it for a long time, and it should keep working.
+ */
+export const OFFBOARDING_PHRASES = [
+  "סגירת משתמש", "סגירת יוזר", "סגירת חשבון", "סגירת עובד",
+  "לסגור משתמש", "לסגור יוזר", "לסגור חשבון",
+  "עובד עוזב", "עוזב את החברה", "עוזבת את החברה", "עזיבת עובד",
+  "סיום העסקה", "סיום עבודה", "מסיים עבודה", "מסיימת עבודה",
+  "offboarding", "close user", "closing user",
+]
+
+/**
+ * Does this free text describe an offboarding?
+ *
+ * Deliberately a phrase match, not a keyword one. "סגירה" alone appears in
+ * every third ticket ("סגירת הפנייה", "סגירת חלון") and a hint that fires on
+ * noise is a hint people learn to dismiss without reading.
+ */
+export function suggestsOffboarding(...texts: (string | null | undefined)[]): boolean {
+  const haystack = texts.filter(Boolean).join(" ").toLowerCase()
+  if (!haystack.trim()) return false
+  // Collapse runs of whitespace so "סגירת   משתמש" and a line break both match.
+  const normalized = haystack.replace(/\s+/g, " ")
+  return OFFBOARDING_PHRASES.some(p => normalized.includes(p.toLowerCase()))
+}
 
 /** True when this ticket is an offboarding procedure. */
 export function isOffboarding(category?: string | null): boolean {

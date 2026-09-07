@@ -29,7 +29,7 @@
  *   description  — Full problem details (required, 4-row textarea)
  *   equipment    — Equipment checklist, available on any category; opens by
  *                  itself for "עובד חדש", and replaced by a read-only notice
- *                  for "עובד עוזב" (the server builds that list). See
+ *                  for "סגירת משתמש" (the server builds that list). See
  *                  lib/equipment.ts and lib/offboarding.ts
  *   newEmployee  — First name, last name, phone and job description of the new
  *                  hire. Shown and required only when the category is
@@ -72,7 +72,7 @@ import NewEmployeeFields from "./NewEmployeeFields"
 import OffboardingNotice from "./OffboardingNotice"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewEmployeeDetails } from "@/lib/newEmployee"
-import { isOffboarding } from "@/lib/offboarding"
+import { isOffboarding, suggestsOffboarding, LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T } from "@/lib/theme"
@@ -155,6 +155,19 @@ export default function TicketForm({
   // An offboarding ticket gets the FULL gear list, built server-side — there is
   // nothing to pick, so the picker is replaced by a notice of what is coming.
   const isLeaving     = isOffboarding(form.category)
+
+  /** Dismissing the offboarding hint silences it for this ticket only. */
+  const [hintDismissed, setHintDismissed] = useState(false)
+
+  // The category is a dropdown nobody reads: an offboarding gets filed as אחר
+  // with "סגירת משתמש ליוסי" in the subject, and the checklist that would have
+  // caught the Zoho seat is never built. Watching the text they are already
+  // writing is the one moment the right category can be offered for free.
+  // Offered, not imposed — the person may have a reason, and a form that
+  // rewrites your choices is worse than one that suggests.
+  const offboardingHinted = suggestsOffboarding(form.subject, form.description)
+  const showOffboardingHint =
+    offboardingHinted && !isLeaving && !hintDismissed && categories.includes(LEAVING_EMPLOYEE_CATEGORY)
   const showEquipment = !isLeaving && (isNewEmployee || equipmentOpen || Object.keys(equipment).length > 0)
 
   /**
@@ -383,6 +396,40 @@ export default function TicketForm({
             onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
             placeholder="תאר בקצרה את הבעיה"
           />
+
+          {showOffboardingHint && (
+            <div
+              role="status"
+              style={{
+                marginTop: 9, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                background: T.greenBg, border: `1px solid rgba(116,197,58,0.45)`,
+                borderRadius: 10, padding: "10px 12px",
+              }}
+            >
+              <span style={{ fontSize: "0.83rem", color: T.text2, lineHeight: 1.5, flex: 1, minWidth: 180 }}>
+                נראה שזו <strong>סגירת משתמש</strong>. הקטגוריה הזו פותחת את הפנייה עם רשימת סגירת חשבונות
+                והחזרת ציוד, ולא מאפשרת לסגור אותה עד שכל הפריטים סומנו.
+              </span>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, category: LEAVING_EMPLOYEE_CATEGORY }))}
+                style={{
+                  background: T.dark, color: "#FFFFFF", border: "none", borderRadius: 8,
+                  padding: "7px 14px", fontSize: "0.82rem", fontWeight: 700, cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                השתמש בקטגוריה
+              </button>
+              <button
+                type="button" aria-label="התעלם מההצעה" onClick={() => setHintDismissed(true)}
+                style={{
+                  background: "none", border: "none", color: T.text3, cursor: "pointer",
+                  fontSize: "1rem", lineHeight: 1, padding: "6px 4px",
+                }}
+              >✕</button>
+            </div>
+          )}
         </div>
 
         {/* ── Computer Name + Phone (two-column grid) ── */}

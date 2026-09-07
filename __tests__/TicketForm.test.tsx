@@ -470,3 +470,71 @@ describe("TicketForm", () => {
     })
   })
 })
+
+
+describe("the סגירת משתמש suggestion", () => {
+  /**
+   * The category is a dropdown nobody reads: an offboarding gets filed as אחר
+   * with "סגירת משתמש ליוסי" in the subject, and the checklist that would have
+   * caught the Zoho seat is never built. The hint watches the text the person
+   * is already writing and offers the category — offers, not imposes.
+   */
+  const typeSubject = async (text: string) => {
+    render(<TicketForm onSuccess={jest.fn()} />)
+    const subject = await screen.findByLabelText(/נושא הפנייה/)
+    fireEvent.change(subject, { target: { value: text } })
+    return subject
+  }
+
+  it("appears when the subject reads like an offboarding", async () => {
+    await typeSubject("סגירת משתמש ליוסי")
+    expect(await screen.findByText("השתמש בקטגוריה")).toBeInTheDocument()
+  })
+
+  it("appears for סגירת יוזר too", async () => {
+    await typeSubject("סגירת יוזר של דנה")
+    expect(await screen.findByText("השתמש בקטגוריה")).toBeInTheDocument()
+  })
+
+  it("stays away for an ordinary ticket", async () => {
+    await typeSubject("המסך לא נדלק")
+    await waitFor(() => expect(screen.queryByText("השתמש בקטגוריה")).not.toBeInTheDocument())
+  })
+
+  it("does not fire on the word סגירה by itself", async () => {
+    await typeSubject("סגירת הפנייה הקודמת")
+    await waitFor(() => expect(screen.queryByText("השתמש בקטגוריה")).not.toBeInTheDocument())
+  })
+
+  it("sets the category when the button is pressed, and then gets out of the way", async () => {
+    await typeSubject("סגירת משתמש ליוסי")
+    fireEvent.click(await screen.findByText("השתמש בקטגוריה"))
+
+    const select = screen.getByLabelText("קטגוריה") as HTMLSelectElement
+    expect(select.value).toBe("סגירת משתמש")
+    // Its work is done; leaving it up would just be noise.
+    await waitFor(() => expect(screen.queryByText("השתמש בקטגוריה")).not.toBeInTheDocument())
+  })
+
+  it("shows the return checklist once the category is applied", async () => {
+    await typeSubject("סגירת משתמש ליוסי")
+    fireEvent.click(await screen.findByText("השתמש בקטגוריה"))
+    expect(await screen.findByText(/רשימת החזרת ציוד וסגירת חשבונות/)).toBeInTheDocument()
+  })
+
+  it("can be dismissed, and stays dismissed while they keep typing", async () => {
+    const subject = await typeSubject("סגירת משתמש ליוסי")
+    fireEvent.click(await screen.findByLabelText("התעלם מההצעה"))
+    await waitFor(() => expect(screen.queryByText("השתמש בקטגוריה")).not.toBeInTheDocument())
+
+    fireEvent.change(subject, { target: { value: "סגירת משתמש ליוסי כהן" } })
+    await waitFor(() => expect(screen.queryByText("השתמש בקטגוריה")).not.toBeInTheDocument())
+  })
+
+  it("never rewrites the category on its own", async () => {
+    await typeSubject("סגירת משתמש ליוסי")
+    await screen.findByText("השתמש בקטגוריה")
+    // The person may have a reason for their choice; the form suggests.
+    expect((screen.getByLabelText("קטגוריה") as HTMLSelectElement).value).toBe("אחר")
+  })
+})

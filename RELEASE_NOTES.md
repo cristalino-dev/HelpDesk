@@ -5,6 +5,55 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.74 — «סגירת משתמש», ומערכת שמציעה אותה בעצמה
+
+### The category is renamed
+
+`עובד עוזב` → **`סגירת משתמש`**, which is what people call it.
+
+The label is not decoration: `lib/offboarding.ts` matches on this exact string
+to decide whether a ticket is an offboarding — which is what builds its
+checklist and what blocks its closure. So this is a data migration, not a
+rename. `20260906120000_rename_leaving_employee_category` moves the dropdown
+option **and** the category on every ticket already filed. Without the second
+half, existing offboarding tickets would have kept a category nothing matches:
+their checklist would have stopped being enforced and they would have become
+closable with lines still unticked.
+
+The `FieldOption` update is guarded against the new label already existing —
+that table has `UNIQUE (field, label)`, and an unguarded `UPDATE` aborts the
+whole migration rather than skipping.
+
+### The form now offers it
+
+The category is a dropdown nobody reads. An offboarding gets filed as `אחר`
+with *"סגירת משתמש ליוסי"* in the subject, and the checklist that would have
+caught the Zoho seat is never built. So the form watches the text being typed —
+subject and description — and when it reads like a user closure, a panel
+appears under the subject with a **השתמש בקטגוריה** button that applies it, and
+a ✕ that silences it for that ticket.
+
+It **offers, never imposes**. The person may have a reason for their choice,
+and a form that rewrites your selections is worse than one that suggests.
+
+Matching is by phrase, not keyword: `סגירה` alone appears in every third ticket
+(*"סגירת הפנייה"*, *"סגירת חלון"*), and a hint that fires on noise is one people
+learn to dismiss without reading. `OFFBOARDING_PHRASES` carries the wordings
+that actually occur — including **`עובד עוזב`**, because that is what this
+category was called until today and people will keep typing it for a long time.
+
+### Tests
+
+15 new tests; 756 across 46 suites — the matcher (including the phrases that
+must NOT fire) and the button end to end: it appears, it applies the category,
+it then gets out of the way, it stays dismissed, and it never changes the
+category by itself. The tests that hardcoded the old label now reference
+`LEAVING_EMPLOYEE_CATEGORY` instead, so the next rename is one edit; the single
+test that pins the literal string does so deliberately, because stored data
+depends on it.
+
+---
+
 ## v3.73 — מדווח שעות קומקס נכנס לרשימת הסגירה
 
 Closing an employee's accounts is already a ticket type: the **עובד עוזב**

@@ -44,6 +44,7 @@ jest.mock("next/server", () => ({
   },
 }))
 
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 
@@ -291,7 +292,7 @@ describe("GET /api/admin/equipment", () => {
     equipDb.findMany.mockResolvedValue([])
     await SHORTAGE_GET(shortageReq())
     expect(equipDb.findMany.mock.calls[0][0].where).toEqual({
-      ticket: { category: { not: "עובד עוזב" }, status: { not: "סגור" } },
+      ticket: { category: { not: LEAVING_EMPLOYEE_CATEGORY }, status: { not: "סגור" } },
     })
   })
 
@@ -300,7 +301,7 @@ describe("GET /api/admin/equipment", () => {
     equipDb.findMany.mockResolvedValue([])
     await SHORTAGE_GET(shortageReq(true))
     expect(equipDb.findMany.mock.calls[0][0].where).toEqual({
-      ticket: { category: { not: "עובד עוזב" } },
+      ticket: { category: { not: LEAVING_EMPLOYEE_CATEGORY } },
     })
   })
 
@@ -312,7 +313,7 @@ describe("GET /api/admin/equipment", () => {
     equipDb.findMany.mockResolvedValue([])
     await SHORTAGE_GET(shortageReq(true))
     expect(equipDb.findMany.mock.calls[0][0].where.ticket.category)
-      .toEqual({ not: "עובד עוזב" })
+      .toEqual({ not: LEAVING_EMPLOYEE_CATEGORY })
   })
 
   it("returns ready-to-send supplier text", async () => {

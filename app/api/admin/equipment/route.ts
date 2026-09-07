@@ -6,7 +6,7 @@
  * Everything still owed to a new employee, aggregated by item, so the admin can
  * send one order to the supplier instead of reading twenty tickets.
  *
- * Leaving-employee tickets ("עובד עוזב") never appear here — their checklist is
+ * Leaving-employee tickets ("סגירת משתמש") never appear here — their checklist is
  * gear coming back, not gear to buy.
  *
  * A line counts as outstanding when `receivedQty < quantity`. By default only
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const includeClosed = req.nextUrl.searchParams.get("includeClosed") === "1"
 
     // Offboarding checklists are excluded outright: gear waiting to come BACK
-    // from someone who is leaving is not gear to buy, and a fresh "עובד עוזב"
+    // from someone who is leaving is not gear to buy, and a fresh "סגירת משתמש"
     // ticket starts with every item unticked — it would swamp the order.
     const rows = await prisma.ticketEquipment.findMany({
       where: {

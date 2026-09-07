@@ -1,4 +1,5 @@
 import { POST, PATCH, GET } from "@/app/api/tickets/route"
+import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 
 // Mock dependencies
 jest.mock("@/auth", () => ({
@@ -438,7 +439,7 @@ describe("Tickets API", () => {
   })
 
   // ── OFFBOARDING (v3.61) ───────────────────────────────────────────────────
-  // A "עובד עוזב" ticket is a procedure, not a request: it is born with the
+  // A "סגירת משתמש" ticket is a procedure, not a request: it is born with the
   // whole gear list and refuses to close until every line is dealt with.
   describe("offboarding", () => {
     const OPTIONS = [{ label: "מחשב נייד" }, { label: "מסך" }, { label: "חשבון Gmail" }]
@@ -455,7 +456,7 @@ describe("Tickets API", () => {
       json: async () => ({
         subject: "עזיבת עובד", description: "יום אחרון ביום חמישי",
         phone: "050-1111111", computerName: "PC-9",
-        urgency: "בינוני", category: "עובד עוזב", platform: "מחשב אישי",
+        urgency: "בינוני", category: LEAVING_EMPLOYEE_CATEGORY, platform: "מחשב אישי",
         ...extra,
       }),
     }) as any
@@ -495,7 +496,7 @@ describe("Tickets API", () => {
     describe("PATCH close guard", () => {
       const leavingTicket = {
         id: "ticket-9", ticketNumber: 600, status: "בטיפול", urgency: "בינוני",
-        category: "עובד עוזב", subject: "עזיבת עובד", updatedAt: new Date(),
+        category: LEAVING_EMPLOYEE_CATEGORY, subject: "עזיבת עובד", updatedAt: new Date(),
         user: { name: "HR", email: "hr@cristalino.co.il" },
       }
 

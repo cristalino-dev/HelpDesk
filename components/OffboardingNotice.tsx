@@ -1,5 +1,5 @@
 /**
- * components/OffboardingNotice.tsx — What happens when you pick "עובד עוזב"
+ * components/OffboardingNotice.tsx — What happens when you pick "סגירת משתמש"
  *
  * Shown on both ticket forms in place of the equipment picker. There is nothing
  * to choose here: the return checklist is the whole gear list, built by the
