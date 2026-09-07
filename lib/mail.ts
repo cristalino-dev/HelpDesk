@@ -35,7 +35,7 @@ const C = {
   border:   T.border,
   text:     T.text,
   text2:    T.text2,
-  label:    T.text3,       // field labels
+  text3:    T.text3,       // labels, captions, secondary detail
   muted:    T.muted,       // footer
 } as const
 
@@ -175,7 +175,7 @@ function wrap(body: string, ticketNumber?: number) {
 <style>
   .header { font-size: 19px; font-weight: 800; color: ${C.text}; margin: 0 0 18px; padding-bottom: 14px; border-bottom: 2px solid ${C.border}; }
   .field { margin-bottom: 14px; }
-  .label { font-size: 11px; font-weight: 700; color: ${C.label}; text-transform: uppercase; letter-spacing: 0.06em; }
+  .label { font-size: 11px; font-weight: 700; color: ${C.text3}; text-transform: uppercase; letter-spacing: 0.06em; }
   .value { font-size: 15px; color: ${C.text}; margin-top: 3px; line-height: 1.55; }
   .badge { display: inline-block; padding: 4px 13px; border-radius: 20px; font-size: 12px; font-weight: 700; }
   .btn { display: inline-block; margin-top: 22px; padding: 13px 28px; background: ${C.dark}; color: #fff !important; text-decoration: none; border-radius: 9px; font-weight: 700; font-size: 15px; }
@@ -220,7 +220,7 @@ function details(rows: [label: string, value: string][]) {
   const cells = rows.map(([label, value], i) => {
     const border = i === rows.length - 1 ? "" : `border-bottom:1px solid ${C.border};`
     return `<tr><td style="padding:10px 14px;${border}">
-        <div dir="rtl" style="direction:rtl;text-align:right;font-size:11px;font-weight:700;color:${C.label};letter-spacing:0.06em">${label}</div>
+        <div dir="rtl" style="direction:rtl;text-align:right;font-size:11px;font-weight:700;color:${C.text3};letter-spacing:0.06em">${label}</div>
         <div dir="rtl" style="direction:rtl;text-align:right;font-size:15px;color:${C.text};margin-top:3px;line-height:1.55">${value}</div>
       </td></tr>`
   }).join("")
@@ -289,7 +289,7 @@ export function mailTicketOpenedStaff(t: TicketInfo) {
       ["דחיפות", badge(t.urgency, URGENCY_COLOR[t.urgency] ?? "")],
     ])}
 
-    <div dir="rtl" style="direction:rtl;text-align:right;font-size:11px;font-weight:700;color:${C.label};letter-spacing:0.06em;margin:0 0 6px">תיאור</div>
+    <div dir="rtl" style="direction:rtl;text-align:right;font-size:11px;font-weight:700;color:${C.text3};letter-spacing:0.06em;margin:0 0 6px">תיאור</div>
     <div dir="rtl" style="direction:rtl;text-align:right;background:${C.panel};border-right:3px solid ${C.green};border-radius:8px;padding:12px 15px;font-size:14px;color:${C.text};line-height:1.65;white-space:pre-wrap">${esc(t.description)}</div>
 
     ${button(url, "פתח פנייה ←")}
@@ -325,8 +325,8 @@ export function mailTicketUpdatedStaff(t: TicketInfo, changedBy: string) {
   return wrap(`
     <div class="header">🔄 פנייה עודכנה</div>
     <div class="field"><div class="label">עודכן על ידי</div><div class="value">${changedBy}</div></div>
-    <div class="field"><div class="label">נושא</div><div class="value">${t.subject}</div></div>
-    <div class="field"><div class="label">מגיש</div><div class="value">${t.submitterName}</div></div>
+    <div class="field"><div class="label">נושא</div><div class="value">${esc(t.subject)}</div></div>
+    <div class="field"><div class="label">מגיש</div><div class="value">${esc(t.submitterName)}</div></div>
     <div class="field">
       <div class="label">סטטוס</div>
       <div class="value"><span class="badge" style="${STATUS_COLOR[t.status] ?? ""}">${t.status}</span></div>
@@ -344,8 +344,8 @@ export function mailTicketStatusUser(t: TicketInfo) {
   const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">📬 עדכון על פנייתך</div>
-    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>פנייתך נמצאת כעת בטיפול הצוות הטכני.</p>
-    <div class="field"><div class="label">נושא</div><div class="value">${t.subject}</div></div>
+    <p style="color:${C.text2};font-size:15px">שלום ${esc(t.submitterName)},<br>פנייתך נמצאת כעת בטיפול הצוות הטכני.</p>
+    <div class="field"><div class="label">נושא</div><div class="value">${esc(t.subject)}</div></div>
     <div class="field">
       <div class="label">סטטוס חדש</div>
       <div class="value"><span class="badge" style="${STATUS_COLOR["בטיפול"]}">${"בטיפול"}</span></div>
@@ -363,16 +363,16 @@ export function mailTicketClosedWithReview(t: TicketInfo) {
   const rateLink   = reviewUrl(t.id)
   return wrap(`
     <div class="header">✅ פנייתך טופלה וסגורה</div>
-    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>
-      פנייה <strong style="font-family:monospace">HDTC-${t.ticketNumber}</strong> — <strong>${t.subject}</strong> — טופלה ונסגרה על ידי צוות התמיכה.
+    <p style="color:${C.text2};font-size:15px">שלום ${esc(t.submitterName)},<br>
+      פנייה <strong style="font-family:monospace">HDTC-${t.ticketNumber}</strong> — <strong>${esc(t.subject)}</strong> — טופלה ונסגרה על ידי צוות התמיכה.
     </p>
-    <div style="margin:24px 0;padding:22px 24px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:12px;border:1px solid #bbf7d0;text-align:center">
+    <div style="margin:24px 0;padding:22px 24px;background:linear-gradient(135deg,${C.greenBg},${C.greenBg});border-radius:12px;border:1px solid ${C.green};text-align:center">
       <div style="font-size:26px;margin-bottom:8px">⭐</div>
       <div style="font-size:17px;font-weight:800;color:#166534;margin-bottom:6px">איך היה השירות?</div>
       <div style="font-size:13px;color:#4b5563;margin-bottom:18px;line-height:1.6">שניה מזמנכם תעזור לנו להשתפר.<br>דרגו את חוויית התמיכה שלכם.</div>
       <a href="${rateLink}" style="display:inline-block;padding:13px 32px;background:#16a34a;color:#fff!important;text-decoration:none;border-radius:9px;font-weight:800;font-size:15px;letter-spacing:0.01em">דרגו את השירות ←</a>
     </div>
-    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0">
+    <p style="font-size:12px;color:${C.muted};text-align:center;margin:0">
       אם הבעיה חזרה, <a href="${ticketLink}" style="color:${C.greenInk}">לחצו כאן לפתיחת פנייה חדשה</a>.
     </p>
   `, t.ticketNumber)
@@ -383,12 +383,12 @@ export function mailNewMessageToUser(t: TicketInfo, messageContent: string, from
   const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">💬 תגובה חדשה על פנייתך</div>
-    <p style="color:#374151;font-size:15px">שלום ${t.submitterName},<br>${fromName} מצוות התמיכה הגיב על פנייתך:</p>
-    <div class="field"><div class="label">נושא הפנייה</div><div class="value">${t.subject}</div></div>
+    <p style="color:${C.text2};font-size:15px">שלום ${esc(t.submitterName)},<br>${esc(fromName)} מצוות התמיכה הגיב על פנייתך:</p>
+    <div class="field"><div class="label">נושא הפנייה</div><div class="value">${esc(t.subject)}</div></div>
     <div class="field"><div class="label">תגובה</div>
-      <div class="value" style="background:#f0f9ff;border-right:3px solid #2563eb;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${messageContent}</div>
+      <div class="value" style="background:${C.greenBg};border-right:3px solid ${C.greenInk};padding:10px 14px;border-radius:6px;white-space:pre-wrap">${esc(messageContent)}</div>
     </div>
-    <p style="color:#6b7280;font-size:13px">ניתן להגיב דרך המערכת.</p>
+    <p style="color:${C.text3};font-size:13px">ניתן להגיב דרך המערכת.</p>
     <a class="btn" href="${url}">פתח פנייה וענה ←</a>
   `, t.ticketNumber)
 }
@@ -398,11 +398,11 @@ export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fro
   const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">💬 תגובת משתמש על פנייה</div>
-    <p style="color:#374151;font-size:15px">${fromName} הגיב על פנייה:</p>
-    <div class="field"><div class="label">נושא</div><div class="value">${t.subject}</div></div>
-    <div class="field"><div class="label">מגיש</div><div class="value">${t.submitterName} &lt;${t.submitterEmail}&gt;</div></div>
+    <p style="color:${C.text2};font-size:15px">${esc(fromName)} הגיב על פנייה:</p>
+    <div class="field"><div class="label">נושא</div><div class="value">${esc(t.subject)}</div></div>
+    <div class="field"><div class="label">מגיש</div><div class="value">${esc(t.submitterName)} &lt;${esc(t.submitterEmail)}&gt;</div></div>
     <div class="field"><div class="label">תגובה</div>
-      <div class="value" style="background:#f9fafb;border-right:3px solid #6b7280;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${messageContent}</div>
+      <div class="value" style="background:${C.panel};border-right:3px solid ${C.text3};padding:10px 14px;border-radius:6px;white-space:pre-wrap">${esc(messageContent)}</div>
     </div>
     <a class="btn" href="${url}">פתח פנייה ←</a>
   `, t.ticketNumber)
@@ -412,11 +412,11 @@ export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fro
 export function mailReplyNotification(t: TicketInfo, replyContent: string, fromName: string, toName: string, messageId: string) {
   const url = `${ticketUrl(t.ticketNumber)}#msg-${messageId}`
   return wrap(`
-    <div class="header">↩ ${fromName} ענה לך בפנייה</div>
-    <p style="color:#374151;font-size:15px">שלום ${toName},<br><strong>${fromName}</strong> ענה להודעתך בפנייה <strong>"${t.subject}"</strong>:</p>
+    <div class="header">↩ ${esc(fromName)} ענה לך בפנייה</div>
+    <p style="color:${C.text2};font-size:15px">שלום ${esc(toName)},<br><strong>${esc(fromName)}</strong> ענה להודעתך בפנייה <strong>"${esc(t.subject)}"</strong>:</p>
     <div class="field">
       <div class="label">תגובה</div>
-      <div class="value" style="background:#f0f9ff;border-right:3px solid #2563eb;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${replyContent}</div>
+      <div class="value" style="background:${C.greenBg};border-right:3px solid ${C.greenInk};padding:10px 14px;border-radius:6px;white-space:pre-wrap">${esc(replyContent)}</div>
     </div>
     <a class="btn" href="${url}">לחץ כאן לצפייה בתגובה ←</a>
     <div style="margin-top:20px;padding:14px 18px;background:#fff7ed;border:2px solid #f97316;border-radius:10px;text-align:center">
@@ -467,20 +467,20 @@ export function mailDailyDigest(tickets: DigestTicket[]) {
     const isStale = ageMs > STALE_MS
     const age     = daysSince(t.createdAt)
     const url     = ticketUrl(t.ticketNumber)
-    const uc      = URGENCY_COLOR[t.urgency] ?? "background:#f3f4f6;color:#374151"
-    const ageStyle = isStale ? "color:#dc2626;font-weight:700" : "color:#6b7280"
+    const uc      = URGENCY_COLOR[t.urgency] ?? "background:${C.panel};color:${C.text2}"
+    const ageStyle = isStale ? "color:#dc2626;font-weight:700" : "color:${C.text3}"
     const rowBg    = isStale ? "background:#fff8f0" : "background:#fff"
     return `
-      <tr style="${rowBg};border-bottom:1px solid #f3f4f6">
+      <tr style="${rowBg};border-bottom:1px solid ${C.panel}">
         <td style="padding:9px 8px;white-space:nowrap">
-          <a href="${url}" style="color:#2563eb;font-weight:700;text-decoration:none;font-size:12px">HDTC-${t.ticketNumber}</a>
+          <a href="${url}" style="color:${C.greenInk};font-weight:700;text-decoration:none;font-size:12px">HDTC-${t.ticketNumber}</a>
         </td>
-        <td style="padding:9px 8px;font-size:13px;color:#111827;max-width:220px">${t.subject}</td>
+        <td style="padding:9px 8px;font-size:13px;color:${C.text};max-width:220px">${esc(t.subject)}</td>
         <td style="padding:9px 8px;white-space:nowrap">
           <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;${uc}">${t.urgency}</span>
         </td>
         <td style="padding:9px 8px;font-size:12px;${ageStyle}">${age}${isStale ? " ⏰" : ""}</td>
-        <td style="padding:9px 8px;font-size:12px;color:#6b7280">${t.user?.name ?? t.user?.email ?? "—"}</td>
+        <td style="padding:9px 8px;font-size:12px;color:${C.text3}">${t.user?.name ?? t.user?.email ?? "—"}</td>
       </tr>`
   }).join("")
 
@@ -490,44 +490,44 @@ export function mailDailyDigest(tickets: DigestTicket[]) {
   })
 
   const summaryCards = [
-    `<div style="background:#eff6ff;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
-       <div style="font-size:22px;font-weight:800;color:#2563eb">${tickets.length}</div>
-       <div style="font-size:11px;color:#6b7280;margin-top:2px">סה״כ פתוחות</div>
+    `<div style="background:${C.greenBg};border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
+       <div style="font-size:22px;font-weight:800;color:${C.greenInk}">${tickets.length}</div>
+       <div style="font-size:11px;color:${C.text3};margin-top:2px">סה״כ פתוחות</div>
      </div>`,
     urgentCount > 0
       ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
            <div style="font-size:22px;font-weight:800;color:#dc2626">${urgentCount}</div>
-           <div style="font-size:11px;color:#6b7280;margin-top:2px">דחוף 🔴</div>
+           <div style="font-size:11px;color:${C.text3};margin-top:2px">דחוף 🔴</div>
          </div>`
       : "",
     highCount > 0
       ? `<div style="background:#fff7ed;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
            <div style="font-size:22px;font-weight:800;color:#ea580c">${highCount}</div>
-           <div style="font-size:11px;color:#6b7280;margin-top:2px">גבוה 🟠</div>
+           <div style="font-size:11px;color:${C.text3};margin-top:2px">גבוה 🟠</div>
          </div>`
       : "",
     staleCount > 0
       ? `<div style="background:#fff8f0;border:1px solid #fdba74;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
            <div style="font-size:22px;font-weight:800;color:#c2410c">${staleCount}</div>
-           <div style="font-size:11px;color:#6b7280;margin-top:2px">⏰ 4+ ימים</div>
+           <div style="font-size:11px;color:${C.text3};margin-top:2px">⏰ 4+ ימים</div>
          </div>`
       : "",
   ].filter(Boolean).join("")
 
   return wrap(`
     <div class="header">📋 סיכום יומי — פניות פתוחות</div>
-    <p style="color:#6b7280;font-size:13px;margin:0 0 16px">${now}</p>
+    <p style="color:${C.text3};font-size:13px;margin:0 0 16px">${now}</p>
 
     <div style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap">${summaryCards}</div>
 
     <table style="width:100%;border-collapse:collapse">
       <thead>
-        <tr style="background:#f9fafb;border-bottom:2px solid #e5e7eb">
-          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">מס׳</th>
-          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">נושא</th>
-          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">דחיפות</th>
-          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">גיל</th>
-          <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;font-weight:700">מגיש</th>
+        <tr style="background:${C.panel};border-bottom:2px solid ${C.border}">
+          <th style="padding:8px;text-align:right;font-size:11px;color:${C.text3};font-weight:700">מס׳</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:${C.text3};font-weight:700">נושא</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:${C.text3};font-weight:700">דחיפות</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:${C.text3};font-weight:700">גיל</th>
+          <th style="padding:8px;text-align:right;font-size:11px;color:${C.text3};font-weight:700">מגיש</th>
         </tr>
       </thead>
       <tbody>${tableRows}</tbody>
@@ -542,10 +542,10 @@ export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy:
   const url = ticketUrl(t.ticketNumber)
   return wrap(`
     <div class="header">💬 הוזכרת בהערה</div>
-    <p style="color:#374151;font-size:15px">${mentionedBy} הזכיר אותך בהערה על פנייה:</p>
-    <div class="field"><div class="label">נושא הפנייה</div><div class="value">${t.subject}</div></div>
+    <p style="color:${C.text2};font-size:15px">${mentionedBy} הזכיר אותך בהערה על פנייה:</p>
+    <div class="field"><div class="label">נושא הפנייה</div><div class="value">${esc(t.subject)}</div></div>
     <div class="field"><div class="label">תוכן ההערה</div>
-      <div class="value" style="background:#f9fafb;border-right:3px solid #6366f1;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${noteContent}</div>
+      <div class="value" style="background:${C.panel};border-right:3px solid ${C.greenInk};padding:10px 14px;border-radius:6px;white-space:pre-wrap">${esc(noteContent)}</div>
     </div>
     <a class="btn" href="${url}">פתח פנייה ←</a>
   `, t.ticketNumber)

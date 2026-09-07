@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.74** · Updated 2026-09-06
+> **Current version: 3.75** · Updated 2026-09-07
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -75,7 +75,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **756 tests across 46 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **773 tests across 46 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -170,6 +170,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.75 | One design for all ten mail templates, and one manual: `/help` absorbs the user and support guides, with `/manual` and `/admin-manual` redirecting to it. Full operational handoff in [`docs/GEMINI-HANDOFF.md`](docs/GEMINI-HANDOFF.md) |
 | 3.74 | The offboarding category is renamed `עובד עוזב` → `סגירת משתמש` (with a data migration), and the ticket form now offers it as a button when the subject or description reads like a user closure |
 | 3.73 | The offboarding checklist gains `מדווח שעות קומקס` — a separately-billed Comax seat that closing the user account does not release — back-filled into the live install, not just new ones |
 | 3.72 | `לוח אישי` is personal again — `GET /api/tickets` no longer hands an admin the whole table, so the dashboard stops being an unlabelled copy of the queue; `/admin` is renamed `ניהול מערכת` |
@@ -220,4 +221,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.74 — updated 2026-09-06.*
+*Production build v3.75 — updated 2026-09-07.*

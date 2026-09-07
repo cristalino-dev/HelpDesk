@@ -5,6 +5,70 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.75 — מייל אחד, מדריך אחד, ומסמך מסירה
+
+### Every mail wears the same face
+
+v3.67 rebuilt the two new-ticket templates on the Cristalino palette and left
+the other eight carrying Tailwind's default greys and a blue accent. The frame
+was branded; the contents were not. Which design you got depended on which mail
+it was — a status change looked like a different product from the one that
+opened the ticket.
+
+39 colour values across the remaining templates now resolve from
+[`lib/theme.ts`](lib/theme.ts) rather than being hardcoded, so a re-brand
+reaches all ten. The status oranges and reds in the daily digest are deliberately
+**not** in that sweep: they carry meaning (⏰ stale, 🔴 overdue).
+
+**And a real defect, found by rendering them:** the eight older templates
+interpolated free text unescaped. A `<` in a ticket subject or a reply truncates
+the rest of the message in most clients — the same bug v3.67 fixed in the two it
+touched. 23 interpolations now go through `esc()`.
+
+### One manual
+
+There were three pages: `/help` (a user guide), `/manual` (a second, printable
+user guide saying much the same) and `/admin-manual` (the support team's).
+Whether you found the page that answered your question depended on which link
+you happened to click, and one of the three was always the least up to date.
+
+`/help` is now the only one. The support team's half is
+[`components/AdminGuide.tsx`](components/AdminGuide.tsx), rendered from the
+session for admins and `STAFF_EMAILS` — a server component, so a reader who may
+not see it is never sent the markup at all. `/manual` and `/admin-manual`
+redirect rather than 404: they are bookmarked, printed and linked from old mail.
+
+The page now carries **חזרה למסך הראשי** at the top and bottom. It is long, and
+it is the page people reach when they are already stuck.
+
+The two guides keep their own `Section`/`Steps`/`Note` helpers rather than
+sharing: both files had `Steps` and `Note` with *different* props, and unifying
+them meant rewriting every call site in both — a large diff across
+documentation, for nothing a reader would see.
+
+The nav loses its separate מדריך מנהל entry. Two links to one page is how it
+drifted apart in the first place.
+
+### A handoff document
+
+[`docs/GEMINI-HANDOFF.md`](docs/GEMINI-HANDOFF.md) — the operational companion
+to `ARCHITECTURE.md`: the domain rules that are easy to break, every deploy
+path, the release convention, what changed across v3.67–v3.75, and the known
+gaps.
+
+**It contains no secret values, and it says so at the top.** This repository is
+on GitHub. Every credential is *named and located* — which file on which server,
+which console issues a new one — never quoted.
+
+### Tests
+
+17 new tests; 773 across 46 suites. The shared mail identity (including that no
+template carries the old greys or blue), the escaping in the templates v3.67 did
+not touch, and `/help` showing the support guide to admins and staff while
+hiding it from everyone else.
+
+---
+
 ## v3.74 — «סגירת משתמש», ומערכת שמציעה אותה בעצמה
 
 ### The category is renamed

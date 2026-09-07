@@ -1,5 +1,22 @@
+/**
+ * app/help/page.tsx — the ONE manual
+ *
+ * There used to be three: /help (this user guide), /manual (a second, printable
+ * user guide saying much the same thing) and /admin-manual (the support team's).
+ * Whether you found the page that answered your question depended on which link
+ * you happened to click. The other two now redirect here.
+ *
+ * The admin half is the same content, rendered from components/AdminGuide and
+ * shown only to admins and STAFF_EMAILS — the pair /admin/logs admits. A server
+ * component reads the session, so a stranger is never sent the markup at all
+ * rather than being shown it and then hidden by CSS.
+ */
+
 import Image from "next/image"
 import Link from "next/link"
+import { auth } from "@/auth"
+import { STAFF_EMAILS } from "@/lib/staffEmails"
+import AdminGuide from "@/components/AdminGuide"
 import FooterCopyright from "@/components/FooterCopyright"
 import VERSION from "@/lib/version"
 import AppHeader from "@/components/AppHeader"
@@ -9,7 +26,11 @@ const badge = (bg: string, color: string, text: string) => (
   <span style={{ backgroundColor: bg, color, padding: "3px 12px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 700, display: "inline-block" }}>{text}</span>
 )
 
-export default function HelpPage() {
+export default async function HelpPage() {
+  const session = await auth()
+  const email = session?.user?.email ?? ""
+  const canSeeAdminGuide = !!session?.user?.isAdmin || STAFF_EMAILS.includes(email)
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F2F3F1", direction: "rtl" }}>
 
@@ -21,6 +42,13 @@ export default function HelpPage() {
       </AppHeader>
 
       <main style={{ maxWidth: "860px", margin: "0 auto", padding: "40px 24px", display: "flex", flexDirection: "column", gap: "40px" }}>
+
+        {/* Always a way out — this page is long, and it is the one people
+            reach when they are already stuck. */}
+        <Link
+          href="/dashboard"
+          style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.85rem", fontWeight: 600, color: "#3E7A24", background: "#E9F4E2", border: "1px solid rgba(116,197,58,0.45)", borderRadius: 999, padding: "7px 15px", textDecoration: "none" }}
+        >← חזרה למסך הראשי</Link>
 
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
@@ -357,6 +385,28 @@ export default function HelpPage() {
             <Note text="לאחר שליחת ההודעה תופיע הודעת אישור על המסך. הצוות יחזור אליכם בהקדם." />
           </Card>
         </section>
+
+        {canSeeAdminGuide && (
+          <section id="admin" style={{ scrollMarginTop: 80 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "8px 0 20px" }}>
+              <span style={{ height: 1, flex: 1, background: "#DEE1DC" }} />
+              <span style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: ".08em", color: "#3E7A24", background: "#E9F4E2", border: "1px solid rgba(116,197,58,0.45)", borderRadius: 999, padding: "5px 14px" }}>
+                לצוות התמיכה בלבד
+              </span>
+              <span style={{ height: 1, flex: 1, background: "#DEE1DC" }} />
+            </div>
+            <h2 style={{ margin: "0 0 6px", fontSize: "1.35rem", fontWeight: 800, color: "#16181D", textAlign: "center" }}>מדריך מנהל</h2>
+            <p style={{ margin: "0 0 26px", textAlign: "center", color: "#6A7068", fontSize: "0.9rem" }}>
+              ניהול התור, עריכת פניות, דוחות, הרשאות ותחזוקת המערכת
+            </p>
+            <AdminGuide />
+          </section>
+        )}
+
+        <Link
+          href="/dashboard"
+          style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.9rem", fontWeight: 700, color: "#FFFFFF", background: "#16181D", borderRadius: 10, padding: "11px 22px", textDecoration: "none" }}
+        >← חזרה למסך הראשי</Link>
 
       </main>
 

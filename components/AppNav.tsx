@@ -81,11 +81,12 @@ export function navLinksFor(user: NavUser): NavLink[] {
     links.push({ href: "/admin/reviews", label: "ביקורות",     icon: "⭐" })
   }
 
-  // Both of these admit staff as well as admins, per their own guards: the
-  // error log has always, and the manual is addressed to the support team in
-  // its own opening line.
-  if (isAdmin || isStaff) links.push({ href: "/admin/logs",   label: "לוג שגיאות", short: "שגיאות", icon: "⚠️" })
-  if (isAdmin || isStaff) links.push({ href: "/admin-manual", label: "מדריך מנהל", short: "מדריך",  icon: "📖" })
+  // The error log admits staff as well as admins, per its own guard.
+  //
+  // There is deliberately no separate מדריך מנהל entry: the support team's
+  // manual is a section of /help now, which everyone already has above. Two
+  // links to one page is how the nav drifted apart in the first place.
+  if (isAdmin || isStaff) links.push({ href: "/admin/logs", label: "לוג שגיאות", short: "שגיאות", icon: "⚠️" })
 
   return links
 }

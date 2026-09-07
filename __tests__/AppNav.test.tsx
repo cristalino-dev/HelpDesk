@@ -38,7 +38,7 @@ const hrefs = (u: Parameters<typeof navLinksFor>[0]) => navLinksFor(u).map(l => 
 describe("an admin sees everything", () => {
   const ADMIN_PAGES = [
     "/dashboard", "/help", "/contact", "/tickets",
-    "/admin", "/admin/reports", "/admin/reviews", "/admin/logs", "/admin-manual",
+    "/admin", "/admin/reports", "/admin/reviews", "/admin/logs",
   ]
 
   it.each(ADMIN_PAGES)("offers %s", page => {
@@ -69,9 +69,9 @@ describe("everyone else sees only what they can open", () => {
   })
 
   it("gives staff everything their guards allow", () => {
-    // /tickets admits isAdmin || STAFF_EMAILS; /admin/logs and /admin-manual
-    // admit staff too. Each of these is asserted against the page's own guard.
-    for (const href of ["/tickets", "/admin/logs", "/admin-manual"]) {
+    // /tickets admits isAdmin || STAFF_EMAILS, and /admin/logs admits staff
+    // too. Each is asserted against the page's own guard.
+    for (const href of ["/tickets", "/admin/logs"]) {
       expect(hrefs(staff)).toContain(href)
     }
   })
@@ -158,5 +158,20 @@ describe("initials", () => {
   it("does not throw on a missing name", () => {
     expect(initials(null)).toBe("?")
     expect(initials(undefined)).toBe("?")
+  })
+})
+
+
+describe("the manual has exactly one entry", () => {
+  it("does not link /admin-manual separately — it is a section of /help", () => {
+    // Two links to one page is how this nav drifted apart in the first place.
+    for (const user of [admin, staff]) {
+      expect(hrefs(user)).not.toContain("/admin-manual")
+      expect(hrefs(user)).toContain("/help")
+    }
+  })
+
+  it("offers /help to everyone, whatever their role", () => {
+    for (const user of [admin, staff, viewer, plain]) expect(hrefs(user)).toContain("/help")
   })
 })

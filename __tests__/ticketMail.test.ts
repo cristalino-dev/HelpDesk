@@ -23,6 +23,9 @@
 import {
   mailTicketOpenedStaff,
   mailTicketOpenedUser,
+  mailTicketStatusUser,
+  mailNewMessageToUser,
+  mailReplyNotification,
   mailDailyDigest,
   ticketUrl,
 } from "@/lib/mail"
@@ -127,5 +130,49 @@ describe("brand and direction", () => {
 
   it("frames the content in a bordered card", () => {
     expect(mailTicketOpenedStaff(ticket())).toContain(`border:1px solid ${T.border}`)
+  })
+})
+
+
+describe("every template wears the same face", () => {
+  /**
+   * v3.67 rebuilt the two new-ticket mails on the brand palette and left the
+   * other eight carrying Tailwind's default greys and a blue accent, so which
+   * design you got depended on which mail it was. These pin the shared
+   * identity: the dark header bar, the green rule, and no stray blue.
+   */
+  const samples = () => [
+    ["staff opened",  mailTicketOpenedStaff(ticket())],
+    ["user opened",   mailTicketOpenedUser(ticket())],
+    ["status change", mailTicketStatusUser(ticket({ status: "בטיפול" }))],
+    ["new message",   mailNewMessageToUser(ticket(), "בדקנו", "אביאל")],
+    ["reply",         mailReplyNotification(ticket(), "תודה", "משה", "אביאל", "m1")],
+  ] as const
+
+  it.each(samples())("%s carries the brand dark and green", (_name, html) => {
+    expect(html).toContain(T.dark)
+    expect(html).toContain(T.green)
+  })
+
+  it.each(samples())("%s has no leftover Tailwind grey or blue", (_name, html) => {
+    // The exact values that used to differ between templates.
+    for (const stale of ["#6b7280", "#374151", "#2563eb", "#f0f9ff", "#f9fafb", "#6366f1"]) {
+      expect(html.toLowerCase()).not.toContain(stale)
+    }
+  })
+
+  it("escapes free text in the templates v3.67 did not touch", () => {
+    // An unescaped "<" in a reply truncates the rest of the message.
+    const html = mailReplyNotification(
+      ticket({ subject: "<b>דחוף</b>" }), "<script>alert(1)</script>", "משה", "אביאל", "m1",
+    )
+    expect(html).toContain("&lt;script&gt;")
+    expect(html).not.toContain("<script>alert(1)</script>")
+    expect(html).toContain("&lt;b&gt;")
+  })
+
+  it("escapes the message body on its way to a technician", () => {
+    const html = mailNewMessageToUser(ticket(), "צריך <b>עכשיו</b>", "אביאל")
+    expect(html).toContain("&lt;b&gt;")
   })
 })
