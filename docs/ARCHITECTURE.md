@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-07 · v3.75
+> Version 2.0 · Last updated 2026-09-07 · v3.76
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **773 tests across 46 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **825 tests across 48 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
 
@@ -510,7 +510,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  46 suites, 773 tests — gate the build
+__tests__/                  48 suites, 825 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -867,6 +867,7 @@ client can replace state without a second round-trip.
 | GET | `/api/reviews` | Staff | All reviews for the dashboard |
 | POST | `/api/reviews` | — | **Public.** Submit a rating for a closed ticket |
 | PATCH | `/api/reviews` | — | **Public.** Change an existing rating/comment |
+| GET | `/api/admin/reports/export` | Admin | A real `.xlsx` of the tickets — `scope=all`, `scope=range&from&to`, or `scope=ticket&ticket=N`. Downloads via `Content-Disposition` |
 | GET | `/api/admin/reports` | Admin | Every ticket flattened for the reports page — opened date, resolved close date, and the five dimensions it breaks down by |
 | GET | `/api/attachments/[id]` | Owner/Staff | Serve attachment bytes (disk, or legacy `dataUrl`). Cached immutable |
 | POST | `/api/contact` | User | Email the dev team. 503 if SMTP is unconfigured |

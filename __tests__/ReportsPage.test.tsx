@@ -182,3 +182,92 @@ describe("the y-axis", () => {
     for (const v of [1, 6, 9, 26, 99, 101, 249, 1001]) expect(axisMax(v)).toBeGreaterThanOrEqual(v)
   })
 })
+
+
+describe("the export button", () => {
+  /**
+   * Each option is a plain link to the endpoint, which streams the file with
+   * its own filename — so the whole client side of this feature is a URL, and
+   * what these pin is that the URL carries the scope the reader chose. A button
+   * that always exported everything would look correct and quietly be wrong.
+   */
+  const openMenu = async () => {
+    const view = render(<ReportsPage />)
+    await waitFor(() => expect(screen.getByText("ציר זמן")).toBeInTheDocument())
+    fireEvent.click(screen.getByText("ייצוא לאקסל"))
+    return view
+  }
+
+  /** The menu itself — "כל הפניות" is also a nav link, so scope every lookup. */
+  const menu = () => screen.getByRole("menu")
+
+  /** The href behind a menu item, as a parsed URL. */
+  const hrefOf = (label: string) => {
+    const a = within(menu()).getByText(label).closest("a") as HTMLAnchorElement
+    return new URL(a.getAttribute("href")!, "https://x.test")
+  }
+
+  it("offers the three scopes", async () => {
+    await openMenu()
+    const m = within(menu())
+    expect(m.getByText("כל הפניות")).toBeInTheDocument()
+    expect(m.getByText("הטווח הנבחר")).toBeInTheDocument()
+    expect(m.getByText("פנייה בודדת")).toBeInTheDocument()
+  })
+
+  it("stays out of the way until it is asked for", async () => {
+    render(<ReportsPage />)
+    await waitFor(() => expect(screen.getByText("ציר זמן")).toBeInTheDocument())
+    expect(screen.queryByText("הטווח הנבחר")).not.toBeInTheDocument()
+  })
+
+  it("points the whole-table export at the endpoint", async () => {
+    await openMenu()
+    const url = hrefOf("כל הפניות")
+    expect(url.pathname).toBe("/api/admin/reports/export")
+    expect(url.searchParams.get("scope")).toBe("all")
+  })
+
+  it("carries the range currently on screen, not a fixed one", async () => {
+    await openMenu()
+    const p = hrefOf("הטווח הנבחר").searchParams
+    expect(p.get("scope")).toBe("range")
+    expect(p.get("from")).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(p.get("to")).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it("follows the range when the reader changes it", async () => {
+    await openMenu()
+    const first = hrefOf("הטווח הנבחר").searchParams.get("from")
+
+    // The menu stays open while the range changes underneath it.
+    fireEvent.click(screen.getByText("90 יום"))
+    expect(hrefOf("הטווח הנבחר").searchParams.get("from")).not.toBe(first)
+  })
+
+  it("exports a single ticket by number", async () => {
+    await openMenu()
+    fireEvent.change(screen.getByLabelText("מספר פנייה לייצוא"), { target: { value: "565" } })
+    const p = hrefOf("ייצוא").searchParams
+    expect(p.get("scope")).toBe("ticket")
+    expect(p.get("ticket")).toBe("565")
+  })
+
+  it("takes HDTC-565 as readily as 565 — that is how people refer to a ticket", async () => {
+    await openMenu()
+    fireEvent.change(screen.getByLabelText("מספר פנייה לייצוא"), { target: { value: "HDTC-565" } })
+    expect(hrefOf("ייצוא").searchParams.get("ticket")).toBe("565")
+  })
+
+  it("offers no link at all until a number is typed", async () => {
+    // A link to an export of nothing is worse than no link.
+    await openMenu()
+    expect(within(menu()).getByText("ייצוא").closest("a")).toBeNull()
+  })
+
+  it("closes the menu once an export is chosen", async () => {
+    await openMenu()
+    fireEvent.click(within(menu()).getByText("הטווח הנבחר"))
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument())
+  })
+})

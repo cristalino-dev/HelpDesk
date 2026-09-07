@@ -5,6 +5,66 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.76 — ייצוא לאקסל
+
+**ייצוא לאקסל** on `/admin/reports`, with three scopes: everything, the range
+currently on screen, or a single ticket by number (which takes `HDTC-565` as
+readily as `565`).
+
+### It is a real .xlsx, and that is the point
+
+A CSV would have been a tenth of the code and would have quietly corrupted this
+dataset. Excel strips the leading zero from `0528287036` the moment it decides
+a column is numeric, and Hebrew arrives as mojibake without a UTF-8 BOM that
+half the tools downstream then choke on. A workbook lets each cell declare its
+own type, so a phone number stays the string it is.
+
+[`lib/xlsx.ts`](lib/xlsx.ts) writes one, in about 200 lines and with **no new
+dependency**. A single-sheet workbook is a zip of five small XML files; the
+alternatives are large, and one of them is no longer published to npm at all.
+Every zip entry is **stored, not deflated**, so no compression code is needed
+and the same writer runs in the browser and on the server.
+
+Verified by reading the output back, not by trusting the code that wrote it:
+the test suite parses it with its own zip reader, and the file was additionally
+opened with `openpyxl` — an independent OOXML implementation — which returns
+`'0528287036'` as a string and `565` as an int.
+
+### What is in it
+
+Sixteen columns, including the ones the reports page deliberately does **not**
+carry: subject, description, reporter, their phone, hours to close. That is why
+the export has its own endpoint rather than reusing the page's data — the page
+fetches the whole history on every load and every byte is paid for by everyone,
+while an export is a deliberate act that happens once and can afford a round
+trip.
+
+The sheet opens right-to-left with the header row frozen and a filter on.
+Dates are `YYYY-MM-DD HH:mm` in Israel time as text, which sorts
+chronologically without the `styles.xml` machinery real Excel serial dates
+require.
+
+`closedAt` is resolved exactly as the reports route resolves it — the latest
+transition to `סגור`, only for tickets closed now. Asserted, because if the two
+ever disagree the spreadsheet and the chart above the button tell different
+stories about the same day, and the spreadsheet is the one people forward.
+
+### Each option is a link
+
+Not a scripted navigation: an anchor is the element that means "download", it
+can be opened in a new tab or copied, and there is no blob or object URL to
+leak. The single-ticket option renders no anchor at all until a number is
+typed — a link to an export of nothing is worse than no link.
+
+### Tests
+
+52 new tests; 825 across 48 suites. The zip signature and entry list, the cell
+types (that phone number above all), the escaping, sheet-name sanitising, every
+scope including the malformed ones, the download headers, and the menu's links
+carrying the scope the reader actually chose.
+
+---
+
 ## v3.75 — מייל אחד, מדריך אחד, ומסמך מסירה
 
 ### Every mail wears the same face

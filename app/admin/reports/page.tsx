@@ -81,6 +81,15 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
   )
 }
 
+const exportItem: React.CSSProperties = {
+  display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2,
+  borderRadius: 8, cursor: "pointer", textDecoration: "none",
+  padding: "8px 10px", textAlign: "right", width: "100%", color: T.text,
+  fontSize: "0.82rem",
+}
+
+const exportHint: React.CSSProperties = { fontSize: "0.72rem", color: T.text3, fontWeight: 500 }
+
 const INSIGHT_TONE = {
   good:    { fg: "#3E7A24", bg: "#E9F4E2", icon: "✓" },
   warn:    { fg: "#A9741A", bg: "#FBF1DE", icon: "!" },
@@ -121,6 +130,9 @@ export default function ReportsPage() {
   const [gran, setGran] = useState<Granularity>("day")
   const [dim, setDim] = useState<DimKey>("category")
   const [showTable, setShowTable] = useState(false)
+  /** The export menu, and the ticket number typed into its third option. */
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportTicket, setExportTicket] = useState("")
   const [show, setShow] = useState<Record<SeriesKey, boolean>>({ opened: true, closed: true, backlog: false })
 
   useEffect(() => {
@@ -177,6 +189,16 @@ export default function ReportsPage() {
   // chart component's header for why).
   const flowKeys = (["opened", "closed"] as SeriesKey[]).filter(k => show[k])
 
+  // Each export is a plain link to the endpoint, which streams the file with
+  // its own filename. An anchor rather than a scripted navigation: it is the
+  // element that means "download", it can be opened in a new tab or copied,
+  // and there is no blob or object URL to leak.
+  const exportHref = (params: Record<string, string>) =>
+    `/api/admin/reports/export?${new URLSearchParams(params)}`
+
+  /** Digits only — people say "HDTC-565" as often as "565". */
+  const exportTicketNumber = exportTicket.replace(/\D/g, "")
+
   const dimColors = dim === "status" ? STATUS : dim === "urgency" ? URGENCY : undefined
 
   if (status === "loading" || (!tickets && !error)) {
@@ -230,6 +252,75 @@ export default function ReportsPage() {
 
           <div style={{ display: "flex", gap: 6 }}>
             {GRANULARITIES.map(g => <Pill key={g.key} active={gran === g.key} onClick={() => setGran(g.key)}>{g.label}</Pill>)}
+          </div>
+
+          <div style={{ position: "relative", marginRight: "auto" }}>
+            <button
+              onClick={() => setExportOpen(o => !o)}
+              aria-expanded={exportOpen} aria-haspopup="menu"
+              style={{
+                display: "flex", alignItems: "center", gap: 7, background: T.dark, color: "#FFFFFF",
+                border: "none", borderRadius: 9, padding: "8px 15px", fontSize: "0.82rem",
+                fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              ייצוא לאקסל
+            </button>
+
+            {exportOpen && (
+              <div
+                role="menu" aria-label="ייצוא לאקסל"
+                style={{
+                  position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 50, minWidth: 250,
+                  background: T.card, border: `1px solid ${T.borderStrong}`, borderRadius: 12,
+                  boxShadow: "0 10px 30px rgba(20,22,26,0.14)", padding: 7,
+                  display: "flex", flexDirection: "column", gap: 2,
+                }}
+              >
+                <a href={exportHref({ scope: "all" })} onClick={() => setExportOpen(false)} style={exportItem}>
+                  <span style={{ fontWeight: 700 }}>כל הפניות</span>
+                  <span style={exportHint}>כל מה שנפתח אי פעם</span>
+                </a>
+
+                <a href={exportHref({ scope: "range", from, to })} onClick={() => setExportOpen(false)} style={exportItem}>
+                  <span style={{ fontWeight: 700 }}>הטווח הנבחר</span>
+                  <span style={exportHint}>{from} — {to}</span>
+                </a>
+
+                <div style={{ height: 1, background: T.border, margin: "5px 4px" }} />
+
+                <div style={{ padding: "4px 10px 8px" }}>
+                  <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.text, marginBottom: 6 }}>פנייה בודדת</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      value={exportTicket}
+                      onChange={e => setExportTicket(e.target.value)}
+                      placeholder="מספר פנייה, למשל 565"
+                      aria-label="מספר פנייה לייצוא"
+                      style={{ flex: 1, minWidth: 0, border: `1px solid ${T.borderStrong}`, borderRadius: 8, padding: "6px 9px", fontSize: "0.8rem", background: T.card, color: T.text }}
+                    />
+                    {/* An anchor only when there is something to fetch: a link
+                        to an export of nothing is worse than no link. */}
+                    {exportTicketNumber ? (
+                      <a
+                        href={exportHref({ scope: "ticket", ticket: exportTicketNumber })}
+                        onClick={() => setExportOpen(false)}
+                        style={{ background: T.dark, color: "#FFFFFF", borderRadius: 8, padding: "6px 13px", fontSize: "0.8rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}
+                      >ייצוא</a>
+                    ) : (
+                      <span
+                        aria-disabled="true"
+                        style={{ background: T.cardMuted, color: T.muted, borderRadius: 8, padding: "6px 13px", fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap" }}
+                      >ייצוא</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
