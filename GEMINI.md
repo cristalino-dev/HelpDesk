@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.71** · Updated 2026-09-06
+> **Current version: 3.72** · Updated 2026-09-06
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -75,7 +75,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **734 tests across 46 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **739 tests across 46 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -170,6 +170,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.72 | `לוח אישי` is personal again — `GET /api/tickets` no longer hands an admin the whole table, so the dashboard stops being an unlabelled copy of the queue; `/admin` is renamed `ניהול מערכת` |
 | 3.71 | `/admin-manual` is no longer readable by anyone with the URL — a server-side guard admits admins and staff, matching every other admin page |
 | 3.70 | One navigation bar — `components/AppNav.tsx` replaces seven hand-rolled link rows; an admin now sees every page they may open, everyone else exactly theirs |
 | 3.69 | Two fixes from the production error log — the reports timeline crashed when the bucket count shrank under a hovered point, and a Gmail `421 Server busy` silently dropped the notification instead of retrying |
@@ -217,4 +218,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.71 — updated 2026-09-06.*
+*Production build v3.72 — updated 2026-09-06.*

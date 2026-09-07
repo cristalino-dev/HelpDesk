@@ -73,7 +73,10 @@ export function navLinksFor(user: NavUser): NavLink[] {
   else if (isViewer)        links.push({ href: "/tickets/view", label: "כל הפניות", short: "פניות", icon: "📋" })
 
   if (isAdmin) {
-    links.push({ href: "/admin",         label: "ניהול פניות", short: "ניהול", icon: "⚙️" })
+    // "ניהול מערכת", not "ניהול פניות": only one of its seven tabs is the
+    // queue, and that queue is כל הפניות. The rest is users, licences,
+    // printers, missing equipment, system fields and the error log.
+    links.push({ href: "/admin",         label: "ניהול מערכת", short: "ניהול", icon: "⚙️" })
     links.push({ href: "/admin/reports", label: "דוחות",       icon: "📊" })
     links.push({ href: "/admin/reviews", label: "ביקורות",     icon: "⭐" })
   }

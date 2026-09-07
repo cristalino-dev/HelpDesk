@@ -5,6 +5,53 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.72 — «לוח אישי» הוא שוב אישי
+
+Three items in the nav did nearly the same thing, and for one group of people
+two of them were **identical**: `GET /api/tickets` branched on `isAdmin` and
+returned the entire table, so `/dashboard` — the page called *לוח אישי* — showed
+an admin every ticket in the system. It was the queue again, drawn as cards
+instead of rows, under a name that promised something personal.
+
+### What changed
+
+**`GET /api/tickets` now answers "mine", for everyone.** No role branch. The
+whole queue was never in question and is untouched: `GET /api/tickets/all`
+serves it to admins, `STAFF_EMAILS` and `VIEWER_EMAILS`, with the *identical*
+`orderBy` and `user` include the deleted branch had — which is why `/admin` was
+simply repointed at it and its queue tab shows exactly what it did before.
+
+**`/admin` is now `ניהול מערכת`, not `ניהול פניות`.** Only one of its seven tabs
+is the queue, and the queue is `כל הפניות`. The rest is users, licences,
+printers, missing equipment, system fields and the error log — none of it about
+an individual ticket. Its page header said `כל הפניות` too, which had quietly
+become the name of a different page.
+
+So the three are now distinct:
+
+| | who | what |
+|---|---|---|
+| **לוח אישי** | everyone | the tickets you opened |
+| **כל הפניות** | admin · staff · viewer | the whole queue, as a working table |
+| **ניהול מערכת** | admin | users, licences, printers, equipment, fields, log |
+
+### Also fixed on the way past
+
+The user lookup in that endpoint was a bare `findUnique` on the session
+address. Since v3.66 `auth.ts` stores the lowercased address so it worked, but
+a row created before that may carry capitals — and a miss here returns an empty
+dashboard rather than an error, which is the kind of bug nobody reports. It now
+resolves through `lib/users.ts` like every other entry point.
+
+### Tests
+
+5 new tests; 739 across 46 suites. They were mutation-tested by restoring the
+`isAdmin` branch and confirming two went red — the previous test for this
+endpoint was called *"returns all tickets for admin"* and passed against either
+behaviour, because its mock ignored the `where` clause.
+
+---
+
 ## v3.71 — למדריך המנהל יש עכשיו שומר
 
 `/admin-manual` was the only page in the application with **no access guard at

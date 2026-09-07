@@ -213,7 +213,10 @@ export default function AdminPage() {
   const loadTickets = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/tickets")
+      // /api/tickets is the caller's OWN tickets now; the queue lives here.
+      // Identical query to the admin branch this replaced — same orderBy, same
+      // `user` include — so nothing about this tab's data changed.
+      const res = await fetch("/api/tickets/all")
       if (!res.ok) { setTickets([]); return }
       const data = await res.json()
       setTickets(Array.isArray(data) ? data : [])
@@ -722,7 +725,7 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg, position: "relative" }}>
       <ErrorToast message={statusError} onClose={() => setStatusError(null)} />
-      <AppHeader wordmark={isMobile ? "ניהול" : "כל הפניות"} subtitle={false}><AppNav /></AppHeader>
+      <AppHeader wordmark={isMobile ? "ניהול" : "ניהול מערכת"} subtitle={false}><AppNav /></AppHeader>
 
       {/* Mobile dropdown menu */}
 

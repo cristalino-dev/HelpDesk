@@ -464,44 +464,33 @@ export async function PATCH(req: NextRequest) {
 }
 
 /**
- * GET /api/tickets
+ * GET /api/tickets — the caller's OWN tickets. Everyone, admins included.
  *
- * Returns tickets scoped to the requesting user's role:
+ * This used to branch on isAdmin and return the entire table to an admin,
+ * which made /dashboard — the page called "לוח אישי" — show every ticket in
+ * the system to the one group of people it was least personal for. It was
+ * indistinguishable from the queue, just drawn as cards instead of rows.
  *
- *   Regular user — returns only tickets where userId == their own DB id.
- *                  Sorted by createdAt DESC (newest first).
- *
- *   Admin        — returns ALL tickets, including a nested `user` object
- *                  with the submitter's name and email. The admin page then
- *                  sorts client-side by urgency rank + FIFO within each rank.
+ * The whole queue still exists and is unchanged: GET /api/tickets/all serves
+ * it to admins, STAFF_EMAILS and VIEWER_EMAILS, with the identical orderBy and
+ * `user` include this branch used to have. Anything that wants everyone's
+ * tickets asks that endpoint; this one answers "mine".
  *
  * RESPONSE:
- *   200 — Array of Ticket (users) or TicketWithUser (admins) objects
+ *   200 — Array of Ticket, newest first
  *   401 — Not authenticated
  *   500 — Database or unexpected error (logged to Log table)
  */
 export async function GET() {
   try {
     const session = await auth()
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const isAdmin = session.user.isAdmin
-
-    if (isAdmin) {
-      // Admin gets all tickets with user info for the queue display.
-      // Client-side sorting: urgency rank (דחוף=0 → נמוך=3) then createdAt ASC.
-      const tickets = await prisma.ticket.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          user: { select: { name: true, email: true } },
-        },
-      })
-      return NextResponse.json(tickets)
-    }
-
-    // Regular user: resolve their DB id from the session email, then filter.
-    const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
-    if (!user) return NextResponse.json([]) // Edge case: authenticated but not in DB yet
+    // Through lib/users.ts, never a bare findUnique: an address from outside
+    // may carry capitals that the stored row does not, and a miss here would
+    // silently show someone an empty dashboard rather than their tickets.
+    const user = await findUserByEmail(session.user.email)
+    if (!user) return NextResponse.json([]) // Authenticated but not in the DB yet
 
     const tickets = await prisma.ticket.findMany({
       where: { userId: user.id },

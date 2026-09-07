@@ -953,17 +953,73 @@ describe("Tickets API", () => {
     })
   })
 
-  describe("GET /api/tickets", () => {
-    it("returns all tickets for admin", async () => {
-      mockSession({ email: "admin@cristalino.co.il", isAdmin: true })
-      const mockTickets = [{ id: "1" }, { id: "2" }]
-      ;(prisma.ticket.findMany as jest.Mock).mockResolvedValue(mockTickets)
+  describe("GET /api/tickets — the caller's OWN tickets", () => {
+    /**
+     * This endpoint used to branch on isAdmin and hand an admin the entire
+     * table, which is what made /dashboard ("לוח אישי") show every ticket in
+     * the system to the people it was least personal for — an unlabelled
+     * duplicate of the queue. The queue still exists at /api/tickets/all;
+     * this one answers "mine", for everyone.
+     */
+    const OWNER = { id: "user-1", email: "admin@cristalino.co.il", name: "אלון" }
 
+    beforeEach(() => {
+      ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(OWNER)
+      ;(prisma.ticket.findMany as jest.Mock).mockResolvedValue([{ id: "1" }, { id: "2" }])
+    })
+
+    it("scopes an ADMIN's request to their own tickets — the regression this guards", async () => {
+      mockSession({ email: OWNER.email, isAdmin: true })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res = await GET() as any
-      const data = await res.json()
-
       expect(res.status).toBe(200)
-      expect(data).toHaveLength(2)
+
+      const where = (prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where
+      expect(where).toEqual({ userId: OWNER.id })
+    })
+
+    it("scopes a regular user's request the same way", async () => {
+      mockSession({ email: OWNER.email, isAdmin: false })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await GET() as any
+      expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({ userId: OWNER.id })
+    })
+
+    it("never returns an unscoped query, whatever the role", async () => {
+      for (const isAdmin of [true, false]) {
+        jest.clearAllMocks()
+        ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(OWNER)
+        ;(prisma.ticket.findMany as jest.Mock).mockResolvedValue([])
+        mockSession({ email: OWNER.email, isAdmin })
+        await GET()
+        const args = (prisma.ticket.findMany as jest.Mock).mock.calls[0][0]
+        expect(args.where?.userId).toBe(OWNER.id)
+      }
+    })
+
+    it("resolves the owner case-insensitively, not with a bare findUnique", async () => {
+      // auth.ts stores the lowercased address, but a row created before v3.66
+      // may carry capitals; a bare findUnique would miss it and show an empty
+      // dashboard instead of the person's tickets.
+      mockSession({ email: "Admin@Cristalino.co.IL", isAdmin: false })
+      await GET()
+      expect(prisma.user.findFirst).toHaveBeenCalled()
+      expect(prisma.user.findUnique).not.toHaveBeenCalled()
+    })
+
+    it("returns an empty list, not an error, for a session with no DB row yet", async () => {
+      ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(null)
+      mockSession({ email: "brand-new@cristalino.co.il", isAdmin: false })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await GET() as any
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual([])
+    })
+
+    it("rejects a session with no email", async () => {
+      mockSession({ isAdmin: true })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(((await GET()) as any).status).toBe(401)
     })
   })
 })
