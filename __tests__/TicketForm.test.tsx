@@ -538,3 +538,35 @@ describe("the סגירת משתמש suggestion", () => {
     expect((screen.getByLabelText("קטגוריה") as HTMLSelectElement).value).toBe("אחר")
   })
 })
+
+
+describe("what the form hands back", () => {
+  /**
+   * The parent needs the ticket NUMBER to show the confirmation. onSuccess used
+   * to take no arguments, so a regression here would not fail to compile in
+   * jest — SWC does not typecheck — and the dialog would simply show nothing.
+   */
+  it("passes the created ticket to onSuccess, not just a bare call", async () => {
+    const onSuccess = jest.fn()
+    mockFetch.mockImplementation((url: string, init?: { method?: string }) => {
+      if (url === "/api/admin/field-options") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(DEFAULT_FIELD_OPTIONS) })
+      }
+      if (url === "/api/tickets" && init?.method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "clx1", ticketNumber: 565 }) })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    })
+
+    render(<TicketForm onSuccess={onSuccess} />)
+    fireEvent.change(await screen.findByLabelText(/נושא הפנייה/), { target: { value: "המסך לא נדלק" } })
+    fireEvent.change(screen.getByLabelText(/תיאור/), { target: { value: "מאתמול" } })
+    fireEvent.change(screen.getByLabelText(/טלפון/), { target: { value: "0528287036" } })
+    fireEvent.submit(screen.getByRole("button", { name: /שלח/ }).closest("form")!)
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled())
+    expect(onSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "clx1", ticketNumber: 565, subject: "המסך לא נדלק" }),
+    )
+  })
+})

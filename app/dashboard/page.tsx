@@ -41,7 +41,9 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import TicketForm from "@/components/TicketForm"
+import { TicketCreatedDialog } from "@/components/TicketCreated"
 import TicketTable from "@/components/TicketTable"
 import type { Ticket } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
@@ -58,6 +60,8 @@ export default function DashboardPage() {
   const router = useRouter()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [showForm, setShowForm] = useState(false)
+  /** The ticket just created, while its confirmation is on screen. */
+  const [created, setCreated] = useState<{ id: string; ticketNumber: number; subject: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
@@ -282,7 +286,34 @@ export default function DashboardPage() {
           </a>
         )}
 
-        {showForm && <TicketForm onSuccess={() => { setShowForm(false); loadTickets() }} defaultPhone={profile.phone} defaultStation={profile.station} isAdmin={session?.user?.isAdmin} />}
+        {showForm && (
+          <TicketForm
+            onSuccess={t => { setShowForm(false); loadTickets(); setCreated(t) }}
+            defaultPhone={profile.phone} defaultStation={profile.station}
+            isAdmin={session?.user?.isAdmin}
+          />
+        )}
+
+        {/* The number is the only handle anyone has on a ticket, and this is
+            the one moment it is on screen. See components/TicketCreated. */}
+        {created && (
+          <TicketCreatedDialog
+            ticketNumber={created.ticketNumber}
+            subject={created.subject}
+            onClose={() => setCreated(null)}
+          >
+            <div style={{ display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" }}>
+              <Link
+                href={`/tickets/HDTC-${created.ticketNumber}`}
+                style={{ padding: "9px 18px", borderRadius: 10, background: T.card, border: `1px solid ${T.borderStrong}`, color: T.text2, fontWeight: 700, fontSize: "0.84rem", textDecoration: "none" }}
+              >צפה בפנייה</Link>
+              <button
+                onClick={() => setCreated(null)}
+                style={{ padding: "9px 18px", borderRadius: 10, background: "none", border: "none", color: T.text3, fontWeight: 600, fontSize: "0.84rem", cursor: "pointer" }}
+              >סגור</button>
+            </div>
+          </TicketCreatedDialog>
+        )}
 
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>

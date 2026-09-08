@@ -6,6 +6,7 @@ import AppHeader from "@/components/AppHeader"
 import EquipmentPicker from "@/components/EquipmentPicker"
 import NewEmployeeFields from "@/components/NewEmployeeFields"
 import OffboardingNotice from "@/components/OffboardingNotice"
+import { TicketCreatedCard } from "@/components/TicketCreated"
 import { DEFAULT_EQUIPMENT, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, fetchFieldOptions } from "@/lib/fieldOptions"
 import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewEmployeeDetails } from "@/lib/newEmployee"
@@ -286,18 +287,13 @@ export default function OpenTicketPage() {
 
         {/* ── Submission success ── */}
         {submitted && (
-          <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #86efac", boxShadow: "0 4px 20px rgba(22,163,74,0.1)", padding: "40px 32px", textAlign: "center" }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", fontSize: "2rem" }}>✅</div>
-            <h2 style={{ margin: "0 0 8px", fontSize: "1.2rem", fontWeight: 800, color: "#14532d" }}>הפנייה נשלחה בהצלחה!</h2>
-            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: "#166534" }}>
-              <strong>נושא:</strong> {submitted.subject}
-            </p>
-            <div style={{ display: "inline-block", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "10px 20px", margin: "12px 0 20px", fontSize: "1rem", fontWeight: 700, color: "#15803d", letterSpacing: "0.03em" }}>
-              HDTC-{submitted.ticketNumber}
-            </div>
-            <p style={{ margin: "0 0 24px", fontSize: "0.85rem", color: "#6b7280", lineHeight: 1.6 }}>
-              קיבלת אישור במייל עם מספר הפנייה. הצוות יפנה אליך בהקדם.<br />
-              ניתן לעקוב אחר הסטטוס בלוח הבקרה האישי.
+          <div style={{ background: "#fff", borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: "0 4px 20px rgba(20,22,26,0.08)", padding: "36px 28px" }}>
+            {/* The same card the dashboard shows in a modal — one place for the
+                number, the copy buttons and the wording. Inline here, because
+                on this page the confirmation IS the page. */}
+            <TicketCreatedCard ticketNumber={submitted.ticketNumber} subject={submitted.subject}>
+            <p style={{ margin: "0 auto 20px", maxWidth: 380, fontSize: "0.83rem", color: T.text3, lineHeight: 1.6 }}>
+              קיבלת גם אישור במייל עם מספר הפנייה. הצוות יפנה אליך בהקדם.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
               <a href="/dashboard" style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#16181D", color: "#fff", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", textDecoration: "none" }}>
@@ -318,6 +314,7 @@ export default function OpenTicketPage() {
                 + פתח פנייה נוספת
               </button>
             </div>
+            </TicketCreatedCard>
           </div>
         )}
 

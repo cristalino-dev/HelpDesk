@@ -5,6 +5,52 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.77 — מספר הפנייה, בידיים של מי שפתח אותה
+
+The ticket number is the only handle anyone has on a ticket. It is what the
+support team asks for on the phone, what every email about it leads with, and
+what somebody needs when they come back three days later to ask what happened.
+Until now the dashboard just closed the form and refreshed a list — the number
+existed, but nowhere the person who had just typed the ticket could see it.
+
+Opening a ticket now ends in a confirmation that **hands the number over**:
+
+- `HDTC-565`, large, in the brand green, and selectable with one click;
+- **העתק מספר** and **העתק קישור** — the bare number for a phone call, the full
+  URL for a message to a colleague;
+- and a plain sentence saying they will be asked for it. That line is the
+  reason the dialog exists at all; showing a number nobody knows to keep is the
+  same as not showing it.
+
+### One card, two placements
+
+[`components/TicketCreated.tsx`](components/TicketCreated.tsx) is the content;
+`TicketCreatedDialog` is that card in a modal. The dashboard uses the modal,
+because its form sits on a page that still has everything else on it. `/open`
+renders the card inline, replacing the block it had hand-rolled — on that page
+the confirmation *is* the page, and a modal over an empty background is a
+dialog about nothing. Either way the wording and the copy buttons come from one
+place and cannot drift.
+
+### A copy button that never lies
+
+`navigator.clipboard` is unavailable over plain HTTP and can be **refused** even
+over HTTPS. A copy button that quietly does nothing is worse than no button: the
+reader walks away believing they have the number. So every press reports what
+happened — **הועתק!** on success, **בחר והעתק** on failure, with the text
+selected so it can be copied by hand. Both paths are tested, including a browser
+with no clipboard API at all.
+
+`onSuccess` on `TicketForm` now receives the created ticket rather than being
+called empty. Jest transpiles through SWC and does not typecheck, so a
+regression there would not have failed a test — it is asserted directly.
+
+### Tests
+
+17 new tests; 842 across 49 suites.
+
+---
+
 ## v3.76 — ייצוא לאקסל
 
 **ייצוא לאקסל** on `/admin/reports`, with three scopes: everything, the range

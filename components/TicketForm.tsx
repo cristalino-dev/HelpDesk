@@ -50,7 +50,9 @@
  *
  * PROPS:
  * ───────
- *   onSuccess       {() => void}  Called after a successful POST. The parent
+ *   onSuccess       {(t) => void}  Called after a successful POST, with the
+ *                                 created ticket — the parent needs its number
+ *                                 to show the confirmation. The parent
  *                                 uses this to hide the form and reload tickets.
  *   defaultPhone    {string}      Pre-fills the phone field. Default: "".
  *   defaultStation  {string}      Pre-fills the computerName field. Default: "".
@@ -102,7 +104,7 @@ export default function TicketForm({
   isAdmin = false,
 }: {
   /** Callback invoked after the ticket is successfully created. */
-  onSuccess: () => void
+  onSuccess: (ticket: { id: string; ticketNumber: number; subject: string }) => void
   /** Phone number pre-filled from user profile. Empty if not saved. */
   defaultPhone?: string
   /** Workstation name pre-filled from user profile. Empty if not saved. */
@@ -282,7 +284,7 @@ export default function TicketForm({
         })
       }
 
-      onSuccess()
+      onSuccess({ id: created.id, ticketNumber: created.ticketNumber, subject: form.subject })
       // Reset form, but keep the pre-filled defaults (not blank strings)
       // so the next ticket opened in the same session is also pre-filled.
       setForm({
