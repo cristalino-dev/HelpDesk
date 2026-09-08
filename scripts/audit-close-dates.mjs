@@ -40,6 +40,22 @@
 
 import { PrismaClient } from "@prisma/client"
 
+// Without this the failure is a Prisma stack trace about a missing datasource,
+// which reads like a broken script rather than "you are on the wrong machine".
+if (!process.env.DATABASE_URL) {
+  console.error("")
+  console.error("DATABASE_URL is not set, so there is no database to audit.")
+  console.error("")
+  console.error("This script reads the live database, and the credentials live in")
+  console.error(".env on the server (gitignored, so never in a local checkout).")
+  console.error("Run it there:")
+  console.error("")
+  console.error("  ssh -i <key> ubuntu@<server> \\")
+  console.error("    \"cd /home/ubuntu/helpdesk && node scripts/audit-close-dates.mjs\"")
+  console.error("")
+  process.exit(1)
+}
+
 const prisma = new PrismaClient()
 
 const CLOSED = "סגור"
