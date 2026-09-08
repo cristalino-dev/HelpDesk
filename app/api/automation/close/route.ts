@@ -195,10 +195,6 @@ export async function POST(req: NextRequest) {
     if (fields.category     !== undefined) updateData.category     = fields.category
     if (fields.platform     !== undefined) updateData.platform     = fields.platform
 
-    const ticket = await prisma.ticket.update({
-      where: { id: before.id },
-      data:  updateData,
-    })
 
     // ── History entries ────────────────────────────────────────────────────
     type HistoryRow = {
@@ -217,7 +213,14 @@ export async function POST(req: NextRequest) {
     if (hasFieldEdit) {
       historyEntries.push({ ticketId: before.id, field: "edited", actorName, actorEmail })
     }
-    await prisma.ticketHistory.createMany({ data: historyEntries })
+
+    // One transaction: the closure and the row that records it, or neither.
+    // The closing date is derived from that row — Ticket has no closedAt — so
+    // a close that lands without it is closed with no closing date, for good.
+    const [ticket] = await prisma.$transaction([
+      prisma.ticket.update({ where: { id: before.id }, data: updateData }),
+      prisma.ticketHistory.createMany({ data: historyEntries }),
+    ])
 
     // ── Technician note (internal) + client message (visible to owner) ─────
     // These are awaited, not fire-and-forget. The 200 below reports the note and

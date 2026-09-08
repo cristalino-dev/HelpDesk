@@ -357,9 +357,11 @@ export async function PATCH(req: NextRequest) {
       data.status = "בטיפול"
     }
 
-    const ticket = await prisma.ticket.update({ where: { id }, data })
-
-    // Write history entries for each changed field
+    // Built BEFORE the update so both can be committed together. A ticket's
+    // closing date does not live on the ticket — it is derived from the
+    // history row written here — so a status change that lands without its row
+    // is a ticket that is closed with no closing date, permanently and
+    // silently. See scripts/audit-close-dates.mjs.
     const actorName  = session.user.name ?? session.user.email ?? "צוות"
     const actorEmail = session.user.email ?? ""
     type HistoryRow = { ticketId: string; field: string; oldValue?: string | null; newValue?: string | null; actorName: string; actorEmail: string }
@@ -403,9 +405,18 @@ export async function PATCH(req: NextRequest) {
       if (edited) historyEntries.push({ ticketId: id, field: "edited", actorName, actorEmail })
     }
 
-    if (historyEntries.length > 0) {
-      await prisma.ticketHistory.createMany({ data: historyEntries })
-    }
+
+    // One transaction: the status and the row that records it, or neither.
+    // These used to be two round trips, and anything interrupting the process
+    // between them — a deploy, a restart, a dropped connection — persisted the
+    // closure and lost its record.
+    const [ticket] = await prisma.$transaction([
+      prisma.ticket.update({ where: { id }, data }),
+      ...(historyEntries.length > 0
+        ? [prisma.ticketHistory.createMany({ data: historyEntries })]
+        : []),
+    ])
+
 
     // Every user-facing mail below is addressed to the ticket's owner. After a
     // reassignment that is the *new* owner: the person who now has the ticket

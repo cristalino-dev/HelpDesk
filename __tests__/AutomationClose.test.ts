@@ -30,6 +30,10 @@ const afterCallbacks: (() => unknown)[] = []
 
 jest.mock("@/lib/db", () => ({
   prisma: {
+    // Mirrors Prisma's array form: the operations are already evaluated by the
+    // time they reach here (each is a jest.fn call), so this resolves them in
+    // order and hands back their results — which is what the route destructures.
+    $transaction: jest.fn(async (ops) => Promise.all(ops)),
     ticket:          { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
     ticketHistory:   { createMany: jest.fn() },
     ticketNote:      { create: jest.fn() },

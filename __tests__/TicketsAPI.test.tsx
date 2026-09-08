@@ -8,6 +8,10 @@ jest.mock("@/auth", () => ({
 
 jest.mock("@/lib/db", () => ({
   prisma: {
+    // Mirrors Prisma's array form: the operations are already evaluated by the
+    // time they reach here (each is a jest.fn call), so this resolves them in
+    // order and hands back their results — which is what the route destructures.
+    $transaction: jest.fn(async (ops) => Promise.all(ops)),
     user: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
     ticket: {
       create: jest.fn(),
@@ -1021,6 +1025,61 @@ describe("Tickets API", () => {
       mockSession({ isAdmin: true })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(((await GET()) as any).status).toBe(401)
+    })
+  })
+
+  describe("a closure and its record are written together", () => {
+    /**
+     * ROOT CAUSE of blank closing dates in the export.
+     *
+     * `Ticket` has no `closedAt` column: the closing date is derived from the
+     * TicketHistory row written alongside the status change. Those used to be two
+     * separate round trips, so anything interrupting the process between them — a
+     * deploy, a restart, a dropped connection — persisted the closure and lost
+     * its record, leaving a ticket closed with no closing date, permanently and
+     * with nothing in the logs.
+     *
+     * They are now one transaction. This asserts that, because the failure it
+     * prevents is invisible: every test still passes if they are split again, and
+     * the damage only shows up in a spreadsheet weeks later.
+     */
+    const OWNER = { id: "u1", email: "owner@cristalino.co.il", name: "בעלים" }
+
+    const closeIt = async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "אדמין" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "t1", ticketNumber: 42, status: "פתוח", urgency: "בינוני",
+        subject: "s", description: "d", phone: "", computerName: "",
+        category: "אחר", platform: "מחשב אישי", assignedTo: "helpdesk@cristalino.co.il",
+        createdAt: new Date(), user: OWNER, equipment: [],
+      })
+      ;(prisma.ticket.update as jest.Mock).mockReturnValue({ id: "t1", ticketNumber: 42, status: "סגור", user: OWNER })
+      ;(prisma.ticketHistory.createMany as jest.Mock).mockReturnValue({ count: 1 })
+      return PATCH({ json: async () => ({ id: "t1", status: "סגור" }) } as never)
+    }
+
+    it("commits the status and the history row in ONE transaction", async () => {
+      await closeIt()
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1)
+      // Both operations, in the same array handed to $transaction.
+      expect((prisma.$transaction as jest.Mock).mock.calls[0][0]).toHaveLength(2)
+    })
+
+    it("records the closure as the exact value the export looks for", async () => {
+      await closeIt()
+      const rows = (prisma.ticketHistory.createMany as jest.Mock).mock.calls[0][0].data
+      // The export matches field="status" AND newValue="סגור" exactly. A row
+      // written with anything else is a closure the export cannot see.
+      expect(rows).toContainEqual(expect.objectContaining({ field: "status", newValue: "סגור" }))
+    })
+
+    it("never writes the status outside the transaction", async () => {
+      await closeIt()
+      // prisma.ticket.update is called to BUILD the operation, but the awaited
+      // write is the transaction itself.
+      expect(prisma.$transaction).toHaveBeenCalled()
+      const ops = (prisma.$transaction as jest.Mock).mock.calls[0][0]
+      expect(ops.length).toBeGreaterThan(1)
     })
   })
 })

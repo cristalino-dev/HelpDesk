@@ -59,6 +59,22 @@ export function formatDateTime(iso: string | null | undefined): string {
   return `${g("year")}-${g("month")}-${g("day")} ${g("hour")}:${g("minute")}`
 }
 
+/** The status a closed ticket has when nothing recorded when it closed. */
+export const CLOSED_DATE_UNKNOWN = "נסגרה — התאריך לא תועד"
+
+/**
+ * The closing-date cell.
+ *
+ * Three states, not two: a date, an empty cell for a ticket that is still
+ * open, and an explicit note for a ticket that is closed but whose closure was
+ * never recorded in its history. Leaving that third case blank makes it look
+ * like the export lost the date.
+ */
+export function closedAtCell(row: ExportRow): string {
+  if (row.closedAt) return formatDateTime(row.closedAt)
+  return row.status === "סגור" ? CLOSED_DATE_UNKNOWN : ""
+}
+
 /** Whole hours from open to close, or null while the ticket is still open. */
 export function hoursToClose(row: ExportRow): number | null {
   if (!row.closedAt) return null
@@ -88,7 +104,11 @@ export const EXPORT_COLUMNS: Column<ExportRow>[] = [
   { header: "שם מחשב",         value: r => r.computerName },
   { header: "משויך ל",         value: r => r.assignedTo },
   { header: "נפתחה",           value: r => formatDateTime(r.createdAt) },
-  { header: "נסגרה",           value: r => formatDateTime(r.closedAt) },
+  // A blank cell means "still open". A ticket that IS closed but has no
+  // recorded closing date is a different thing entirely, and saying so is the
+  // difference between a reader distrusting the column and understanding it.
+  // See scripts/audit-close-dates.mjs for how those tickets arise.
+  { header: "נסגרה",           value: r => closedAtCell(r) },
   { header: "שעות עד סגירה",   value: r => hoursToClose(r) },
 ]
 

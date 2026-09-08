@@ -5,6 +5,81 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.78 — למה יש פניות סגורות בלי תאריך סגירה
+
+Reported as "the export sometimes has no closing date". It is real, there are
+three distinct causes, and **one of them was still happening**.
+
+### Where a closing date comes from
+
+`Ticket` has no `closedAt` column. The date is derived from the ticket's
+history: the latest `TicketHistory` row with `field = "status"` and
+`newValue = "סגור"`. No row, no date — anywhere, for good.
+
+### Cause 1 — the writes were not atomic *(fixed)*
+
+`PATCH /api/tickets` and `/api/automation/close` each did this:
+
+```ts
+await prisma.ticket.update(...)          // the ticket is now closed
+// ...
+await prisma.ticketHistory.createMany(...) // and now we record it
+```
+
+Two round trips, **no transaction anywhere in the application**. Anything
+interrupting the process between them — a deploy, a pm2 restart, a dropped
+connection — persisted the closure and lost its record. The ticket is closed;
+nothing says when; nothing is logged. It is invisible until someone opens a
+spreadsheet weeks later.
+
+Both are now a single `$transaction`: the status and the row that records it,
+or neither. `__tests__/TicketsAPI.test.tsx` asserts it, and that assertion was
+mutation-tested by splitting them apart again — two tests go red. Without it,
+every test passes either way, which is exactly how this survived so long.
+
+### Cause 2 — tickets closed before the history table existed *(not fixable)*
+
+Tickets date from migration `20260407073347_init`. `TicketHistory` arrived in
+`20260426071446_add_ticket_history`, nineteen days later. Anything closed in
+that window has no row and never can: the information was never recorded.
+
+### Cause 3 — closed outside the API *(not fixable retroactively)*
+
+Direct database edits and one-off scripts. Not a hypothesis: the urgency sweep
+in `/api/automation/close` already exists to clean up after them, and its own
+comment cites "direct DB edits, legacy scripts".
+
+### Counting them
+
+[`scripts/audit-close-dates.mjs`](scripts/audit-close-dates.mjs) — read-only,
+run it on the server:
+
+```bash
+cd /home/ubuntu/helpdesk
+node scripts/audit-close-dates.mjs          # summary by cause
+node scripts/audit-close-dates.mjs --list   # every affected ticket
+```
+
+It sorts every closed-without-a-date ticket into **LEGACY** (created before the
+history table), **LOST WRITE** (has other history but no closure row — the
+non-atomic bug) and **NO HISTORY** (no rows at all — closed outside the API),
+and says how many LOST WRITE tickets were touched in the last 30 days. That
+last number is the one that matters: if it is zero, the fix above has nothing
+left to prevent and the rest is archaeology.
+
+### The export no longer hides it
+
+A blank cell was doing two jobs: "still open" and "closed, but nobody recorded
+when". The column now has three states, and says the third one out loud —
+**נסגרה — התאריך לא תועד**. A reader can tell an incomplete record from a
+broken export.
+
+### Tests
+
+8 new tests; 850 across 49 suites.
+
+---
+
 ## v3.77 — מספר הפנייה, בידיים של מי שפתח אותה
 
 The ticket number is the only handle anyone has on a ticket. It is what the

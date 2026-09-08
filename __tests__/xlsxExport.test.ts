@@ -16,7 +16,7 @@ import { inflateSync } from "zlib"
 import { buildXlsx, crc32, columnLetter, xmlEscape, XLSX_MIME, type Column } from "@/lib/xlsx"
 import {
   EXPORT_COLUMNS, applyScope, parseScope, exportFilename, sheetName,
-  formatDateTime, hoursToClose, type ExportRow,
+  formatDateTime, hoursToClose, closedAtCell, CLOSED_DATE_UNKNOWN, type ExportRow,
 } from "@/lib/reportExport"
 
 // ── A tiny zip reader, so the assertions read the file, not the writer ───────
@@ -230,5 +230,44 @@ describe("scopes", () => {
   it("names the sheet after it too", () => {
     expect(sheetName({ kind: "all" })).toBe("כל הפניות")
     expect(sheetName({ kind: "ticket", ticketNumber: 565 })).toBe("HDTC-565")
+  })
+})
+
+
+describe("the closing-date column has three states, not two", () => {
+  /**
+   * The reported symptom: "the export sometimes has no closing date". A blank
+   * cell was doing two jobs — "still open" and "closed, but nobody recorded
+   * when" — so the column looked broken rather than incomplete.
+   *
+   * The second case is real and has three causes, counted by
+   * scripts/audit-close-dates.mjs: tickets closed before TicketHistory existed
+   * (migration 20260426071446, while tickets date from 20260407073347), closes
+   * whose history row was lost because the two writes were not atomic, and
+   * closes made directly in the database.
+   */
+  it("shows the date when there is one", () => {
+    expect(closedAtCell(row({ status: "סגור", closedAt: "2026-09-02T09:00:00Z" })))
+      .toBe("2026-09-02 12:00")
+  })
+
+  it("leaves the cell EMPTY for a ticket that is still open", () => {
+    expect(closedAtCell(row({ status: "פתוח", closedAt: null }))).toBe("")
+    expect(closedAtCell(row({ status: "בטיפול", closedAt: null }))).toBe("")
+    expect(closedAtCell(row({ status: "בהמתנה", closedAt: null }))).toBe("")
+  })
+
+  it("says so explicitly for a CLOSED ticket with no recorded date", () => {
+    // Blank here is what made the column look untrustworthy.
+    expect(closedAtCell(row({ status: "סגור", closedAt: null }))).toBe(CLOSED_DATE_UNKNOWN)
+  })
+
+  it("puts that note in the workbook, where a reader will see it", () => {
+    const file = buildXlsx(EXPORT_COLUMNS, [row({ status: "סגור", closedAt: null })], "s")
+    expect(readZip(file)["xl/worksheets/sheet1.xml"]).toContain(CLOSED_DATE_UNKNOWN)
+  })
+
+  it("still reports no handling time for such a ticket, rather than a wrong one", () => {
+    expect(hoursToClose(row({ status: "סגור", closedAt: null }))).toBeNull()
   })
 })
