@@ -239,15 +239,21 @@ describe("TicketForm", () => {
    * travel to the API as onBehalfOfEmail.
    */
   describe("open in someone else's name (admin)", () => {
+    // As GET /api/users?withContact=1 returns it: phone/station are already
+    // resolved server-side, and *From says which source won. u2 is the common
+    // real case — someone who never filled a profile and never opened a ticket.
     const USERS = [
-      { id: "u1", name: "דנה כהן", email: "dana@cristalino.co.il", phone: "050-2222222", station: "PC-DANA" },
-      { id: "u2", name: null,      email: "guy@cristalino.co.il",  phone: null,           station: null },
+      { id: "u1", name: "דנה כהן", email: "dana@cristalino.co.il", phone: "050-2222222", station: "PC-DANA",
+        phoneFrom: "profile", stationFrom: "ticket" },
+      { id: "u2", name: null,      email: "guy@cristalino.co.il",  phone: null,           station: null,
+        phoneFrom: "none", stationFrom: "none" },
     ]
 
     /** Mocks field-options, the admin user list, and a successful ticket POST. */
     const mockAdminFetch = () => {
       mockFetch.mockImplementation((url) => {
-        if (url === "/api/users")   return Promise.resolve({ ok: true, json: () => Promise.resolve(USERS) })
+        if (typeof url === "string" && url.startsWith("/api/users"))
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(USERS) })
         if (url === "/api/tickets") return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: "t1" }) })
         return Promise.resolve({ ok: true, json: () => Promise.resolve(DEFAULT_FIELD_OPTIONS) })
       })
@@ -272,7 +278,7 @@ describe("TicketForm", () => {
       expect(screen.queryByText("פתיחת פנייה בשם")).not.toBeInTheDocument()
       // Non-admins must not even hit the admin-only users endpoint
       await waitFor(() => expect(mockFetch).toHaveBeenCalled())
-      expect(mockFetch.mock.calls.some(c => c[0] === "/api/users")).toBe(false)
+      expect(mockFetch.mock.calls.some(c => String(c[0]).startsWith("/api/users"))).toBe(false)
     })
 
     it("lists every registered user plus a new-user option for admins", async () => {
@@ -287,6 +293,66 @@ describe("TicketForm", () => {
       expect(screen.getByRole("option", { name: "guy@cristalino.co.il" })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: "➕ משתמש חדש…" })).toBeInTheDocument()
       expect(screen.getByRole("option", { name: "— בשמי —" })).toBeInTheDocument()
+    })
+
+    it("asks for the resolved contact details, not the bare profile columns", async () => {
+      // Without withContact=1 the endpoint returns the User row as-is, which is
+      // null for nearly everybody — the whole reason the fields came up blank.
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+      await waitFor(() =>
+        expect(mockFetch.mock.calls.some(c => c[0] === "/api/users?withContact=1")).toBe(true))
+    })
+
+    it("fills phone and computer name from the PICKED user, not the admin", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin defaultPhone="050-ADMIN" defaultStation="PC-ADMIN" />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: /דנה כהן/ })).toBeInTheDocument())
+      await user.selectOptions(screen.getByRole("combobox", { name: "פתיחת פנייה בשם" }), "dana@cristalino.co.il")
+
+      expect(screen.getByPlaceholderText("050-0000000")).toHaveValue("050-2222222")
+      expect((document.getElementById("computer-input") as HTMLInputElement)).toHaveValue("PC-DANA")
+    })
+
+    it("says where each filled value came from", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: /דנה כהן/ })).toBeInTheDocument())
+      await user.selectOptions(screen.getByRole("combobox", { name: "פתיחת פנייה בשם" }), "dana@cristalino.co.il")
+      expect(screen.getByText(/טלפון מהפרופיל/)).toBeInTheDocument()
+      expect(screen.getByText(/שם מחשב מפנייה קודמת/)).toBeInTheDocument()
+    })
+
+    it("SAYS SO when nothing is known, instead of two fields going quietly blank", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin defaultPhone="050-ADMIN" defaultStation="PC-ADMIN" />)
+      const user = userEvent.setup()
+
+      await waitFor(() => expect(screen.getByRole("option", { name: "guy@cristalino.co.il" })).toBeInTheDocument())
+      await user.selectOptions(screen.getByRole("combobox", { name: "פתיחת פנייה בשם" }), "guy@cristalino.co.il")
+
+      // The admin's own details must NOT be left behind on someone else's ticket
+      expect(screen.getByPlaceholderText("050-0000000")).toHaveValue("")
+      expect(screen.getByText(/אין פרטי טלפון ומחשב שמורים/)).toBeInTheDocument()
+    })
+
+    it("restores the admin's own details when the picker goes back to בשמי", async () => {
+      mockAdminFetch()
+      render(<TicketForm onSuccess={jest.fn()} isAdmin defaultPhone="050-ADMIN" defaultStation="PC-ADMIN" />)
+      const user = userEvent.setup()
+      const picker = () => screen.getByRole("combobox", { name: "פתיחת פנייה בשם" })
+
+      await waitFor(() => expect(screen.getByRole("option", { name: /דנה כהן/ })).toBeInTheDocument())
+      await user.selectOptions(picker(), "dana@cristalino.co.il")
+      await user.selectOptions(picker(), "")
+
+      expect(screen.getByPlaceholderText("050-0000000")).toHaveValue("050-ADMIN")
+      expect((document.getElementById("computer-input") as HTMLInputElement)).toHaveValue("PC-ADMIN")
+      expect(screen.queryByText(/מולאו אוטומטית/)).not.toBeInTheDocument()
     })
 
     it("sends onBehalfOfEmail when an existing user is picked", async () => {
@@ -339,7 +405,7 @@ describe("TicketForm", () => {
       render(<TicketForm onSuccess={jest.fn()} isAdmin />)
       const user = userEvent.setup()
 
-      await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/users")).toBe(true))
+      await waitFor(() => expect(mockFetch.mock.calls.some(c => String(c[0]).startsWith("/api/users"))).toBe(true))
       await fillAndSubmit(user)
 
       await waitFor(() => expect(mockFetch.mock.calls.some(c => c[0] === "/api/tickets")).toBe(true))

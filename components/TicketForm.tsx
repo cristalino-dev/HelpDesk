@@ -40,10 +40,16 @@
  * ─────────────────────────────────────────────
  * When `isAdmin` is true, an extra picker appears above the subject field so an
  * admin taking a phone call or a walk-up can file the ticket in the caller's
- * name. It lists every registered user (GET /api/users, admin-only) plus a
- * "משתמש חדש" option that reveals email + name inputs for someone who has never
- * signed in. Picking an existing user pre-fills phone and computer name from
- * THEIR saved profile rather than the admin's.
+ * name. It lists every registered user (GET /api/users?withContact=1,
+ * admin-only) plus a "משתמש חדש" option that reveals email + name inputs for
+ * someone who has never signed in.
+ *
+ * Picking an existing user pre-fills phone and computer name from THAT
+ * person's details rather than the admin's: their saved profile first, and
+ * failing that the last ticket of their own that filled the field, because
+ * almost nobody visits /profile and the profile columns are usually null. A
+ * line under the picker names the source, or says outright when nothing is
+ * known — see lib/contactDetails.ts.
  *
  * The choice is sent as `onBehalfOfEmail` / `onBehalfOfName`; the server
  * re-checks the admin flag and owns the actual assignment (see api/tickets).
@@ -68,6 +74,7 @@
 
 "use client"
 import { useState, useEffect } from "react"
+import { contactFromRow, contactSummary, type KnownContact, type ContactSource } from "@/lib/contactDetails"
 import ImageAttachments, { PendingImage } from "./ImageAttachments"
 import EquipmentPicker from "./EquipmentPicker"
 import NewEmployeeFields from "./NewEmployeeFields"
@@ -94,8 +101,19 @@ const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string 
 /** Sentinel value for the "add a brand-new user" option in the behalf picker. */
 const NEW_USER = "__new__"
 
-/** Shape of a row returned by GET /api/users (admin-only endpoint). */
-type PickableUser = { id: string; name: string | null; email: string; phone: string | null; station: string | null }
+/**
+ * Shape of a row returned by GET /api/users?withContact=1 (admin-only).
+ *
+ * `phone` and `station` here are the BEST KNOWN values, not the raw profile
+ * columns: the endpoint falls back to the person's most recent ticket when the
+ * profile is empty, and `phoneFrom`/`stationFrom` say which it used. See
+ * lib/contactDetails.ts.
+ */
+type PickableUser = {
+  id: string; name: string | null; email: string
+  phone: string | null; station: string | null
+  phoneFrom?: ContactSource; stationFrom?: ContactSource
+}
 
 export default function TicketForm({
   onSuccess,
@@ -186,9 +204,12 @@ export default function TicketForm({
   /** Email + name typed in when NEW_USER is selected. */
   const [newUser, setNewUser] = useState({ email: "", name: "" })
 
+  /** What the picker filled in, and from where — shown under the picker. */
+  const [behalfContact, setBehalfContact] = useState<KnownContact | null>(null)
+
   useEffect(() => {
     if (!isAdmin) return
-    fetch("/api/users")
+    fetch("/api/users?withContact=1")
       .then(r => (r.ok ? r.json() : []))
       .then(d => setUsers(Array.isArray(d) ? d : []))
       .catch(() => setUsers([]))
@@ -202,11 +223,26 @@ export default function TicketForm({
   const pickBehalf = (value: string) => {
     setBehalf(value)
     const picked = users.find(u => u.email === value)
-    setForm(f => ({
-      ...f,
-      phone:        picked ? (picked.phone   ?? "") : value === NEW_USER ? "" : defaultPhone,
-      computerName: picked ? (picked.station ?? "") : value === NEW_USER ? "" : defaultStation,
-    }))
+
+    if (!picked) {
+      // Back to "in my own name", or a person who does not exist yet: there is
+      // nothing to look up, so restore the admin's own defaults or clear.
+      setBehalfContact(null)
+      setForm(f => ({
+        ...f,
+        phone:        value === NEW_USER ? "" : defaultPhone,
+        computerName: value === NEW_USER ? "" : defaultStation,
+      }))
+      return
+    }
+
+    // The row is already resolved server-side; contactFromRow just normalises
+    // it and keeps the source labels, so the notice below can name where each
+    // value came from — and say when there was nothing to fill, rather than
+    // letting two required fields go quietly blank.
+    const contact = contactFromRow(picked)
+    setBehalfContact(contact)
+    setForm(f => ({ ...f, phone: contact.phone, computerName: contact.station }))
   }
 
   /** Whether the form is currently submitting (disables button, shows spinner). */
@@ -383,6 +419,19 @@ export default function TicketForm({
             {behalf !== "" && (
               <p style={{ margin: 0, fontSize: "0.78rem", color: T.text2, lineHeight: 1.6 }}>
                 הפנייה תירשם על שם משתמש זה, והוא יקבל את עדכוני המייל. הפעולה תתועד בהיסטוריית הפנייה על שמך.
+              </p>
+            )}
+
+            {/* What was auto-filled, and from where. The phone and machine are
+                required fields that this picker overwrites without being asked
+                to — saying nothing would leave an admin submitting values they
+                never saw, or hunting for two fields that just went blank. */}
+            {behalfContact && (
+              <p style={{
+                margin: 0, fontSize: "0.78rem", lineHeight: 1.6,
+                color: behalfContact.phoneFrom === "none" || behalfContact.stationFrom === "none" ? T.text : T.text2,
+              }}>
+                {contactSummary(behalfContact)}
               </p>
             )}
           </div>

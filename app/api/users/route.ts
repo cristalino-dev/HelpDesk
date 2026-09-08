@@ -33,6 +33,7 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
+import { resolveContact } from "@/lib/contactDetails"
 import { resolveUserByEmail } from "@/lib/users"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -51,12 +52,20 @@ import { NextRequest, NextResponse } from "next/server"
  *   station  {string | null}  Workstation hostname (null if never set)
  *   isAdmin  {boolean}        Whether the user has admin privileges
  *
+ * QUERY PARAMETERS:
+ *   withContact=1  Also resolve the best-known phone and workstation for each
+ *                  user, falling back to their most recent ticket when the
+ *                  profile column is empty, and say which source each came
+ *                  from. Adds phone/station/phoneFrom/stationFrom — see
+ *                  lib/contactDetails.ts. Off by default: the admin user table
+ *                  shows the profile itself and must not show a guess.
+ *
  * RESPONSES:
  *   200 — Array of user objects
  *   403 — Not an admin
  *   500 — Database error (logged)
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -74,7 +83,40 @@ export async function GET() {
       orderBy: { name: "asc" }, // Alphabetical; nulls sort first in PostgreSQL
     })
 
-    return NextResponse.json(users)
+    // ?withContact=1 — the ticket form's "open in someone else's name" picker
+    // asks for this; the admin user table does not, and pays nothing for it.
+    // Two extra queries in total, not one per user: `distinct` on a descending
+    // sort gives the newest row per user, and the emptiness filter is IN the
+    // query so a person whose latest ticket happened to omit a field still
+    // gets the last one that filled it.
+    if (req.nextUrl.searchParams.get("withContact") !== "1") {
+      return NextResponse.json(users)
+    }
+
+    const ids = users.map(u => u.id)
+    // Spelled out twice rather than parameterised on the field name: Prisma's
+    // types are what make `select` safe, and a computed key erases them.
+    const [byPhone, byStation] = await Promise.all([
+      prisma.ticket.findMany({
+        where: { userId: { in: ids }, phone: { not: "" } },
+        orderBy: { createdAt: "desc" },
+        distinct: ["userId"],
+        select: { userId: true, phone: true },
+      }),
+      prisma.ticket.findMany({
+        where: { userId: { in: ids }, computerName: { not: "" } },
+        orderBy: { createdAt: "desc" },
+        distinct: ["userId"],
+        select: { userId: true, computerName: true },
+      }),
+    ])
+    const phoneOf = new Map(byPhone.map(t => [t.userId, t.phone]))
+    const stationOf = new Map(byStation.map(t => [t.userId, t.computerName]))
+
+    return NextResponse.json(users.map(u => ({
+      ...u,
+      ...resolveContact(u, { phone: phoneOf.get(u.id), computerName: stationOf.get(u.id) }),
+    })))
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/users GET", e.stack)

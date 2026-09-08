@@ -130,6 +130,32 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // SEED THE OWNER'S PROFILE from what was just typed. Phone and machine are
+    // required on the form, so every ticket carries them — but almost nobody
+    // visits /profile, so the User columns stay null and the next admin filing
+    // on this person's behalf has nothing to pre-fill from.
+    //
+    // Only fills what is EMPTY. Overwriting a value someone deliberately saved
+    // with whatever a stand-in typed once would make the profile less reliable
+    // than the ticket, not more. `updateMany` does the emptiness check inside
+    // the UPDATE, so there is no read-then-write race with the profile page.
+    const text = (v: unknown) => (typeof v === "string" ? v.trim() : "")
+    const seedPhone = text(phone), seedStation = text(computerName)
+    void Promise.all([
+      seedPhone
+        ? prisma.user.updateMany({
+            where: { id: owner.id, OR: [{ phone: null }, { phone: "" }] },
+            data: { phone: seedPhone },
+          })
+        : null,
+      seedStation
+        ? prisma.user.updateMany({
+            where: { id: owner.id, OR: [{ station: null }, { station: "" }] },
+            data: { station: seedStation },
+          })
+        : null,
+    ]).catch(() => { /* a profile that stays empty is not worth failing a ticket over */ })
+
     // EQUIPMENT REQUEST — allowed on ANY ticket. A new hire needs a whole kit
     // and an existing employee may just want a second screen; both end up on
     // the same supplier order. Items are validated against the live option list

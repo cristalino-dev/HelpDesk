@@ -12,7 +12,7 @@ jest.mock("@/lib/db", () => ({
     // time they reach here (each is a jest.fn call), so this resolves them in
     // order and hands back their results — which is what the route destructures.
     $transaction: jest.fn(async (ops) => Promise.all(ops)),
-    user: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
+    user: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
     ticket: {
       create: jest.fn(),
       update: jest.fn(),
@@ -127,6 +127,59 @@ describe("Tickets API", () => {
       expect(data.id).toBe("ticket-1")
       expect(prisma.ticket.create).toHaveBeenCalled()
       expect(sendMail).toHaveBeenCalledTimes(2)
+    })
+
+    /**
+     * SEEDING THE OWNER'S PROFILE
+     *
+     * Phone and machine are required on the form, so every ticket carries
+     * them — but the User columns stay null because almost nobody visits
+     * /profile. That is why an admin opening a ticket in someone else's name
+     * had two blank fields to fill by hand. Carrying the values across closes
+     * the gap for the next ticket, without ever overwriting something the
+     * person deliberately saved.
+     */
+    describe("fills in the owner's empty profile from the ticket", () => {
+      const post = async (over: Record<string, unknown> = {}) => {
+        const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
+        mockSession(user)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(user)
+        ;(prisma.ticket.create as jest.Mock).mockResolvedValue({ id: "t1", ticketNumber: 1, subject: "s", status: "פתוח" })
+        await POST({ json: async () => ({
+          subject: "s", description: "d", phone: "050-1234567", computerName: "PC-1",
+          urgency: "בינוני", category: "חומרה", platform: "Windows", ...over,
+        }) } as never)
+        return (prisma.user.updateMany as jest.Mock).mock.calls.map(c => c[0])
+      }
+
+      it("saves the phone and the machine against the ticket's owner", async () => {
+        const calls = await post()
+        expect(calls).toHaveLength(2)
+        expect(calls.every(c => c.where.id === "user-1")).toBe(true)
+        expect(calls.map(c => c.data)).toEqual(
+          expect.arrayContaining([{ phone: "050-1234567" }, { station: "PC-1" }]))
+      })
+
+      it("only touches a field that is still EMPTY", async () => {
+        // The emptiness test lives in the WHERE clause, so a profile the person
+        // filled in themselves cannot be overwritten by whatever a stand-in
+        // typed — and there is no read-then-write race with the profile page.
+        for (const c of await post()) {
+          const field = c.data.phone ? "phone" : "station"
+          expect(c.where.OR).toEqual([{ [field]: null }, { [field]: "" }])
+        }
+      })
+
+      it("writes nothing when the value is blank or whitespace", async () => {
+        expect(await post({ phone: "   ", computerName: "" })).toHaveLength(0)
+      })
+
+      it("still creates the ticket when the profile write fails", async () => {
+        // A profile that stays empty is not worth failing a ticket over.
+        ;(prisma.user.updateMany as jest.Mock).mockRejectedValueOnce(new Error("db down"))
+        await expect(post()).resolves.toBeDefined()
+        expect(prisma.ticket.create).toHaveBeenCalled()
+      })
     })
 
     // ── EQUIPMENT REQUEST LINES (v3.58) ────────────────────────────────────
@@ -336,6 +389,18 @@ describe("Tickets API", () => {
       // this replaced matched `where: { email: "dana@..." }` exactly, found
       // nothing, and inserted a SECOND row — the ticket then belonged to an
       // account she cannot sign in to, while her own dashboard stayed empty.
+      it("seeds the OWNER's profile, never the admin's", async () => {
+        // The whole point: the admin typed the caller's phone, so it belongs on
+        // the caller's row. Writing it to the admin's would be worse than not
+        // writing it at all.
+        const dana = { id: "user-7", email: "dana@cristalino.co.il", name: "דנה לוי" }
+        ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(dana)
+        await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il", phone: "050-7", computerName: "PC-DANA" }))
+        const targets = (prisma.user.updateMany as jest.Mock).mock.calls.map(c => c[0].where.id)
+        expect(targets).toEqual(["user-7", "user-7"])
+        expect(targets).not.toContain(admin.id)
+      })
+
       it("files against the existing account when its address carries capitals", async () => {
         const existing = { id: "user-7", email: "Dana@Cristalino.co.il", name: "דנה לוי" }
         ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(existing)
