@@ -145,10 +145,10 @@ export default function AdminLogsPage() {
 
   const getLevelStyle = (level: string) => {
     switch (level.toLowerCase()) {
-      case "error": return { bg: "#FBEAEA", color: "#B4453F", label: "ERROR" }
+      case "error": return { bg: T.pillRedBg, color: T.pillRedFg, label: "ERROR" }
       case "warn":
-      case "warning": return { bg: "#FBF1DE", color: "#A9741A", label: "WARN" }
-      default: return { bg: "#E9F4E2", color: "#3E7A24", label: "INFO" }
+      case "warning": return { bg: T.pillAmberBg, color: T.pillAmberFg, label: "WARN" }
+      default: return { bg: T.greenBg, color: T.greenInk, label: "INFO" }
     }
   }
 
@@ -164,8 +164,8 @@ export default function AdminLogsPage() {
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, 1fr)", gap: isMobile ? 8 : 12, marginBottom: isMobile ? 16 : 28 }}>
           {[
             { label: "סה״כ אירועים",     value: logs.length,        color: T.text },
-            { label: "שגיאות",           value: totalErrors,        color: "#B4453F" },
-            { label: "אזהרות",           value: totalWarnings,      color: "#A9741A" },
+            { label: "שגיאות",           value: totalErrors,        color: T.pillRedFg },
+            { label: "אזהרות",           value: totalWarnings,      color: T.pillAmberFg },
             { label: "מקור שגיאה ראשי", value: mostFrequentSource, color: T.text2, isFull: true },
           ].map((stat, i) => (
             <div key={i} style={{ background: T.card, borderRadius: 14, padding: isMobile ? "12px 14px" : "16px 20px", border: `1px solid ${T.border}`, minWidth: 0 }}>
@@ -209,7 +209,7 @@ export default function AdminLogsPage() {
           {isAdmin && (
             <button
               onClick={clearLogs}
-              style={{ padding: "9px 18px", borderRadius: 10, border: "1px solid #EBC5C3", background: "#FBEAEA", color: "#B4453F", fontWeight: 700, cursor: "pointer", fontSize: "0.83rem" }}
+              style={{ padding: "9px 18px", borderRadius: 10, border: `1px solid ${T.redBorder}`, background: T.pillRedBg, color: T.pillRedFg, fontWeight: 700, cursor: "pointer", fontSize: "0.83rem" }}
             >
               נקה יומן אירועים
             </button>
@@ -217,7 +217,7 @@ export default function AdminLogsPage() {
         </div>
 
         {/* ── Entries Table — horizontal scroll wrapper prevents mobile overflow ── */}
-        <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.border}`, overflowX: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.border}`, overflowX: "auto", boxShadow: `0 1px 3px ${T.shadow1}` }}>
           <table style={{ width: "100%", minWidth: isMobile ? 640 : undefined, borderCollapse: "collapse", textAlign: "right" }}>
             <thead style={{ background: T.cardMuted, borderBottom: `1px solid ${T.border}` }}>
               <tr>

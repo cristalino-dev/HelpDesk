@@ -80,11 +80,11 @@ export default function ReviewsPage() {
   const dist  = [5, 4, 3, 2, 1].map(n => ({ n, count: reviews.filter(r => r.rating === n).length }))
 
   const RATING_COLOR: Record<number, { bg: string; color: string }> = {
-    5: { bg: "#dcfce7", color: "#166534" },
-    4: { bg: "#d1fae5", color: "#065f46" },
-    3: { bg: "#fef3c7", color: "#92400e" },
-    2: { bg: "#ffedd5", color: "#9a3412" },
-    1: { bg: "#fee2e2", color: "#991b1b" },
+    5: { bg: T.greenSBg, color: T.greenSFgDeep },
+    4: { bg: T.greenSBg, color: T.greenSFgDeep },
+    3: { bg: T.amberBg, color: T.amberFgDeep },
+    2: { bg: T.orangeBg, color: T.orangeFgDeep },
+    1: { bg: T.redBg, color: T.redFgDeep },
   }
 
   return (
@@ -98,32 +98,32 @@ export default function ReviewsPage() {
         {!loading && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
             {/* Total */}
-            <div style={{ backgroundColor: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>סה״כ ביקורות</div>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: "#1f2937" }}>{total}</div>
+            <div style={{ backgroundColor: T.card, borderRadius: 14, padding: "18px 22px", boxShadow: `0 1px 4px ${T.shadow2}`, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: T.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>סה״כ ביקורות</div>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: T.text }}>{total}</div>
             </div>
             {/* Average */}
-            <div style={{ backgroundColor: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>ציון ממוצע</div>
+            <div style={{ backgroundColor: T.card, borderRadius: 14, padding: "18px 22px", boxShadow: `0 1px 4px ${T.shadow2}`, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: T.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>ציון ממוצע</div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: "2rem", fontWeight: 800, color: avg >= 4 ? "#16a34a" : avg >= 3 ? "#d97706" : "#dc2626" }}>
+                <span style={{ fontSize: "2rem", fontWeight: 800, color: avg >= 4 ? T.greenSFg : avg >= 3 ? T.amberFg : T.redFg }}>
                   {total ? avg.toFixed(1) : "—"}
                 </span>
                 {total > 0 && <span style={{ fontSize: "1.4rem" }}>⭐</span>}
               </div>
             </div>
             {/* Distribution */}
-            <div style={{ backgroundColor: "#fff", borderRadius: 14, padding: "18px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>פילוח</div>
+            <div style={{ backgroundColor: T.card, borderRadius: 14, padding: "18px 22px", boxShadow: `0 1px 4px ${T.shadow2}`, border: `1px solid ${T.line}` }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: T.inkMuted, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>פילוח</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {dist.map(({ n, count }) => (
                   <div key={n} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", width: 14, textAlign: "left" }}>{n}</span>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: T.inkMuted, width: 14, textAlign: "left" }}>{n}</span>
                     <span style={{ fontSize: "0.72rem" }}>⭐</span>
-                    <div style={{ flex: 1, height: 6, backgroundColor: "#f3f4f6", borderRadius: 999 }}>
-                      <div style={{ height: 6, borderRadius: 999, backgroundColor: RATING_COLOR[n].bg.replace("bg",""), background: n >= 4 ? "#22c55e" : n === 3 ? "#f59e0b" : "#ef4444", width: total ? `${(count / total) * 100}%` : "0%" }} />
+                    <div style={{ flex: 1, height: 6, backgroundColor: T.fill, borderRadius: 999 }}>
+                      <div style={{ height: 6, borderRadius: 999, backgroundColor: RATING_COLOR[n].bg.replace("bg",""), background: n >= 4 ? T.greenSFg : n === 3 ? T.amberFg : T.redFg, width: total ? `${(count / total) * 100}%` : "0%" }} />
                     </div>
-                    <span style={{ fontSize: "0.72rem", color: "#9ca3af", width: 16, textAlign: "left" }}>{count}</span>
+                    <span style={{ fontSize: "0.72rem", color: T.inkFaint, width: 16, textAlign: "left" }}>{count}</span>
                   </div>
                 ))}
               </div>
@@ -133,26 +133,26 @@ export default function ReviewsPage() {
 
         {/* ── List header ── */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>כל הביקורות</h2>
+          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>כל הביקורות</h2>
           {!loading && total > 0 && (
-            <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>ממוינות לפי תאריך — חדשות ראשון</span>
+            <span style={{ fontSize: "0.8rem", color: T.inkFaint }}>ממוינות לפי תאריך — חדשות ראשון</span>
           )}
         </div>
 
         {/* ── Loading ── */}
         {loading && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#16181D", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ textAlign: "center", padding: "60px 0", color: T.inkFaint }}>
+            <div style={{ width: 36, height: 36, border: `3px solid ${T.line}`, borderTopColor: T.text, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען ביקורות...</p>
           </div>
         )}
 
         {/* ── Empty state ── */}
         {!loading && total === 0 && (
-          <div style={{ textAlign: "center", padding: "60px 24px", backgroundColor: "#fff", borderRadius: 16, border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+          <div style={{ textAlign: "center", padding: "60px 24px", backgroundColor: T.card, borderRadius: 16, border: `1px solid ${T.line}`, boxShadow: `0 1px 4px ${T.shadow1}` }}>
             <div style={{ fontSize: 40, marginBottom: 14 }}>⭐</div>
-            <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151" }}>אין ביקורות עדיין</p>
-            <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.85rem" }}>ביקורות יופיעו כאן לאחר שמשתמשים ידרגו פניות סגורות</p>
+            <p style={{ margin: "0 0 6px", fontWeight: 600, color: T.ink }}>אין ביקורות עדיין</p>
+            <p style={{ margin: 0, color: T.inkFaint, fontSize: "0.85rem" }}>ביקורות יופיעו כאן לאחר שמשתמשים ידרגו פניות סגורות</p>
           </div>
         )}
 
@@ -163,7 +163,7 @@ export default function ReviewsPage() {
               const col = RATING_COLOR[review.rating] ?? RATING_COLOR[3]
               const dateStr = new Date(review.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
               return (
-                <div key={review.id} style={{ backgroundColor: "#fff", borderRadius: 12, border: "1px solid #f3f4f6", borderRight: `4px solid ${review.rating >= 4 ? "#22c55e" : review.rating === 3 ? "#f59e0b" : "#ef4444"}`, padding: "16px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                <div key={review.id} style={{ backgroundColor: T.card, borderRadius: 12, border: `1px solid ${T.line}`, borderRight: `4px solid ${review.rating >= 4 ? "${T.greenSFg}" : review.rating === 3 ? "${T.amberFg}" : "${T.redFg}"}`, padding: "16px 20px", boxShadow: `0 1px 3px ${T.shadow1}` }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
 
                     {/* Left: rating + ticket + comment */}
@@ -173,15 +173,15 @@ export default function ReviewsPage() {
                         <span style={{ ...col, padding: "2px 10px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 700 }}>
                           {review.rating}/5
                         </span>
-                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
+                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
                           HDTC-{review.ticket.ticketNumber}
                         </a>
-                        <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1f2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "0.88rem", fontWeight: 600, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {review.ticket.subject}
                         </span>
                       </div>
                       {review.comment && (
-                        <p style={{ margin: "8px 0 0", padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: "0.88rem", color: "#374151", lineHeight: 1.6, borderRight: "3px solid #e5e7eb" }}>
+                        <p style={{ margin: "8px 0 0", padding: "10px 14px", background: T.fill2, borderRadius: 8, fontSize: "0.88rem", color: T.ink, lineHeight: 1.6, borderRight: `3px solid ${T.line}` }}>
                           &quot;{review.comment}&quot;
                         </p>
                       )}
@@ -190,12 +190,12 @@ export default function ReviewsPage() {
                     {/* Right: submitter + date */}
                     <div style={{ textAlign: "left", flexShrink: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#16181D,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", fontWeight: 800, color: "#fff", flexShrink: 0 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg,${T.inverseBg},${T.purpleFg})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", fontWeight: 800, color: T.inverseText, flexShrink: 0 }}>
                           {initials(review.submitterName)}
                         </div>
-                        <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "#374151" }}>{review.submitterName}</span>
+                        <span style={{ fontSize: "0.82rem", fontWeight: 600, color: T.ink }}>{review.submitterName}</span>
                       </div>
-                      <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>{dateStr}</span>
+                      <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>{dateStr}</span>
                     </div>
                   </div>
                 </div>

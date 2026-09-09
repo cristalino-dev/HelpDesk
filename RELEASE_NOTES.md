@@ -5,6 +5,117 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.80 — מצב כהה, עם מתג שזוכר
+
+**The app now has a dark theme and a switch on the top bar. Light stays the
+default: nobody gets dark until they ask for it, including on a laptop that is
+set to dark.**
+
+### What changed for users
+
+- **A switch in the top bar**, next to the copy-link button, at every width.
+  It shows which mode you are in rather than which one you could switch to, and
+  it is a real `switch` for a screen reader, not a button.
+- **The choice sticks.** It survives a reload, a new tab, and tomorrow morning.
+  Change it in one tab and the others follow.
+- **No flash.** The page is already the right colour on the first frame, not
+  after a beat of white.
+- **Notification email is unchanged and stays light.** An email should look the
+  same in everybody's inbox, and it will not follow the switch.
+
+### The obstacle, and the shape of the fix
+
+Every page here styles itself inline (rule 2), and **an inline style cannot be
+re-targeted**. There is no stylesheet to override `style="color:#374151"` from
+— not with a media query, not with a `[data-theme]` selector. The one thing
+that does reach inside an inline style is a CSS custom property, so:
+
+- **New `lib/palette.ts`** holds every colour twice, light and dark, and emits
+  them as two blocks of custom properties (`:root` and
+  `:root[data-theme="dark"]`). `DARK` is typed against `LIGHT`, so a token
+  added to one and forgotten in the other is a compile error, not a colour that
+  vanishes in one mode.
+- **`lib/theme.ts` keeps its shape.** `T`, `HDR`, `STATUS`, `URGENCY` all still
+  exist with the same names; their values are now `var(--c-…)` instead of
+  hexes. No call site had to change.
+- **Toggling re-paints without re-rendering.** The theme is one attribute on
+  `<html>`; React is not involved in the colour change at all.
+
+### 1,521 colours were typed inline
+
+The token system covered about a fifth of the app's colour. The rest — 1,521
+literals across 27 files — was typed in place, and every one had to be found
+and given a token, because a hex that stays behind is a hex that stays *light*
+when the lights go out.
+
+The replacement was property-aware, because the same literal meant opposite
+things in different places: `background: "#fff"` is a surface and becomes
+`#191C22` in dark mode, while `color: "#fff"` is text on something dark and
+becomes near-black. `T.dark` had the same problem in the other direction — it
+was both the ink you write with and the dark block you write *on*, so it is
+gone, replaced by `T.text` and the `T.inverseBg` / `T.inverseText` pair. Its 22
+call sites were decided one at a time.
+
+**`__tests__/Palette.test.ts` now refuses a raw hex anywhere under `app/` or
+`components/`**, which is what stops the problem growing back. Google's own
+sign-in mark is the one exemption — their brand, not our palette.
+
+### Light mode did not move
+
+This was meant to add a theme, not to restyle the app people already use, so
+the historical values are pinned in a test, token by token. The one place that
+took real care: **the app has always had two grey ramps** — the warm one on `T`
+(`#5B6260`, `#9AA09C`) and a cooler, darker one typed inline (`#374151`,
+`#6B7280`). An early pass folded them together, which shifted every secondary
+label in the app and was caught by the mail test. They are now kept apart:
+`T.text2` is still the warm grey it always was, and the cool one has its own
+tokens (`T.ink`, `T.inkMuted`, `T.inkFaint`, `T.inkFainter`).
+
+Near-duplicates *within* a role were consolidated — five near-white fills onto
+one, four Tailwind border greys onto two. Those shifts are at most a couple of
+RGB steps and are listed by the migration's own report.
+
+### Things that deliberately do not flip
+
+- **The top bar** was always dark; in dark mode it sits a step *above* the page
+  so it still reads as a bar.
+- **The raw-log console** on /admin. A console is dark in both themes.
+- **The login page's panel**, which is dark by design rather than by theme.
+- **The white chip behind the logo** — the JPEG has a baked-in white
+  background, and a themed chip would put a bright rectangle around it.
+- **Text on the lime green** (`T.onGreen`), because the lime is light in both.
+
+### What changed for developers
+
+- **New `lib/themeBoot.ts`** — theme constants, `themeBootScript()`,
+  `applyTheme()`. Deliberately *not* a client module: `app/layout.tsx` is a
+  Server Component and has to call `themeBootScript()` from there. Splitting
+  this out is what fixes "attempted to call themeBootScript() from the server".
+- **New `lib/useTheme.ts`** (client) — `useSyncExternalStore` over the `<html>`
+  attribute rather than `useState`, so every switch on a page agrees with every
+  other one without sharing a parent, and cross-tab changes land too.
+- **New `components/ThemeToggle.tsx`** — the knob travels with
+  `inset-inline-start`, not `translateX`: a positive `translateX` is toward the
+  physical right whatever the direction is, which on this RTL page would drive
+  the knob off the end of the rail. Motion is dropped under
+  `prefers-reduced-motion`.
+- **`app/layout.tsx`** renders the palette in a `<style precedence>` (React 19
+  hoists it into `<head>`) and the boot script inline as the first thing in
+  `<body>`. `suppressHydrationWarning` on `<html>` is required: the server
+  cannot know the visitor's choice, so the attribute is deliberately outside
+  React's control.
+- **`lib/mail.ts` imports `LIGHT` directly**, not `T`. Email clients have no
+  `:root` of ours and Gmail and Outlook have no custom properties at all, so
+  `var(--c-card)` in an inbox is simply an unresolved colour.
+- **`__tests__/ThemeToggle.test.tsx`** (14 tests) covers the default, the boot
+  script as the string it actually is, persistence in both directions,
+  keyboard operation, two switches staying in step, and localStorage throwing
+  in private mode.
+
+1,014 tests / 51 suites green. No migration.
+
+---
+
 ## v3.78 — למה יש פניות סגורות בלי תאריך סגירה
 
 Reported as "the export sometimes has no closing date". It is real, there are

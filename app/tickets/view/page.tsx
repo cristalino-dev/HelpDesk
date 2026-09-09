@@ -14,18 +14,18 @@ import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 
 const URGENCY_RANK: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
 const URGENCY_STYLE: Record<string, React.CSSProperties> = {
-  "נמוך":   { background: "#dcfce7", color: "#166534" },
-  "בינוני": { background: "#fef3c7", color: "#92400e" },
-  "גבוה":   { background: "#ffedd5", color: "#9a3412" },
-  "דחוף":   { background: "#fee2e2", color: "#991b1b" },
+  "נמוך":   { background: T.greenSBg, color: T.greenSFgDeep },
+  "בינוני": { background: T.amberBg, color: T.amberFgDeep },
+  "גבוה":   { background: T.orangeBg, color: T.orangeFgDeep },
+  "דחוף":   { background: T.redBg, color: T.redFgDeep },
 }
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
-  "פתוח":   { background: "#EDF0F4", color: "#3D5A7D" },
-  "בטיפול": { background: "#fef3c7", color: "#92400e" },
-  "סגור":   { background: "#dcfce7", color: "#166534" },
+  "פתוח":   { background: T.pillBlueBg, color: T.pillBlueFg },
+  "בטיפול": { background: T.amberBg, color: T.amberFgDeep },
+  "סגור":   { background: T.greenSBg, color: T.greenSFgDeep },
 }
 const URGENCY_BORDER: Record<string, string> = {
-  "נמוך": "#22c55e", "בינוני": "#f59e0b", "גבוה": "#f97316", "דחוף": "#ef4444",
+  "נמוך": T.greenSFg, "בינוני": T.amberFg, "גבוה": T.orangeFg, "דחוף": T.redFg,
 }
 
 export default function TicketsViewPage() {
@@ -122,10 +122,10 @@ export default function TicketsViewPage() {
 
         {/* Info banner for viewers */}
         {isViewer && (
-          <div style={{ background: "#E9F4E2", border: "1px solid #bfdbfe", borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: "0.83rem", color: "#3D5A7D" }}>
+          <div style={{ background: T.greenBg, border: `1px solid ${T.blueBorder}`, borderRadius: 12, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: "0.83rem", color: T.pillBlueFg }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" stroke="#16181D" strokeWidth="1.8"/>
-              <path d="M12 8v4M12 16h.01" stroke="#16181D" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="12" r="10" stroke={T.text} strokeWidth="1.8"/>
+              <path d="M12 8v4M12 16h.01" stroke={T.text} strokeWidth="2" strokeLinecap="round"/>
             </svg>
             <span>אתה במצב צפייה בלבד — לא ניתן לשנות פניות</span>
           </div>
@@ -137,28 +137,28 @@ export default function TicketsViewPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
-            style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.88rem", background: "#fff" }}
+            style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.88rem", background: T.card }}
           />
-          <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
             {[{ label: "פתוחות", val: false }, { label: "הכל", val: true }].map(opt => (
               <button key={String(opt.val)} onClick={() => setShowAll(opt.val)}
-                style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem", background: showAll === opt.val ? "#16181D" : "transparent", color: showAll === opt.val ? "#fff" : "#6b7280", transition: "all 0.15s" }}
+                style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem", background: showAll === opt.val ? T.inverseBg : "transparent", color: showAll === opt.val ? T.inverseText : T.inkMuted, transition: "all 0.15s" }}
               >{opt.label}</button>
             ))}
           </div>
-          <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{filtered.length} פניות</span>
+          <span style={{ fontSize: "0.78rem", color: T.inkFaint }}>{filtered.length} פניות</span>
         </div>
 
         {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
         {numberSuggestion && (
           <a
             href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#E9F4E2", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
               HDTC-{numberSuggestion.ticketNumber}
             </span>
-            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+            <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
             </span>
             <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(STATUS_STYLE[numberSuggestion.status] ?? {}) }}>{numberSuggestion.status}</span>
@@ -168,14 +168,14 @@ export default function TicketsViewPage() {
 
         {/* Ticket list */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#6366f1", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ textAlign: "center", padding: "60px 0", color: T.inkFaint }}>
+            <div style={{ width: 36, height: 36, border: `3px solid ${T.line}`, borderTopColor: T.purpleFg, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען פניות...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 24px", background: "#fff", borderRadius: 16, border: "1px solid #f3f4f6" }}>
-            <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>לא נמצאו פניות</p>
-            <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>נסו לשנות את הסינון או החיפוש</p>
+          <div style={{ textAlign: "center", padding: "60px 24px", background: T.card, borderRadius: 16, border: `1px solid ${T.line}` }}>
+            <p style={{ margin: "0 0 4px", fontWeight: 700, color: T.ink }}>לא נמצאו פניות</p>
+            <p style={{ margin: 0, fontSize: "0.82rem", color: T.inkFaint }}>נסו לשנות את הסינון או החיפוש</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -191,7 +191,7 @@ export default function TicketsViewPage() {
                   { key: "updatedAt", label: "עודכן" },
                 ] as const).map(col => (
                   <button key={col.key} onClick={() => handleSort(col.key)}
-                    style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? "#16181D" : "#9ca3af", whiteSpace: "nowrap" }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6, fontSize: "0.72rem", fontWeight: 700, color: sortKey === col.key ? T.text : T.inkFaint, whiteSpace: "nowrap" }}
                   >
                     {col.label}
                     <span style={{ fontSize: "0.65rem", opacity: sortKey === col.key ? 1 : 0.4 }}>
@@ -213,7 +213,7 @@ export default function TicketsViewPage() {
                 <div key={ticket.id}
                   onMouseEnter={() => setHoverId(ticket.id)}
                   onMouseLeave={() => setHoverId(null)}
-                  style={{ background: "#fff", borderRadius: 12, border: "1px solid #f3f4f6", borderRight: `4px solid ${URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb"}`, boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)", overflow: "hidden", transition: "box-shadow 0.15s", opacity: isClosed ? 0.75 : 1 }}
+                  style={{ background: T.card, borderRadius: 12, border: `1px solid ${T.line}`, borderRight: `4px solid ${URGENCY_BORDER[ticket.urgency] ?? "${T.line}"}`, boxShadow: hoverId === ticket.id ? `0 4px 16px ${T.shadow2}` : `0 1px 3px ${T.shadow1}`, overflow: "hidden", transition: "box-shadow 0.15s", opacity: isClosed ? 0.75 : 1 }}
                 >
                   {/* Main row */}
                   {isMobile ? (
@@ -222,31 +222,31 @@ export default function TicketsViewPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#E9F4E2", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
-                          <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
-                          <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
                         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
-                        <span style={{ fontSize: "0.68rem", color: "#9ca3af" }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
+                        <span style={{ fontSize: "0.68rem", color: T.inkFaint }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
                       </div>
                     </div>
                   ) : (
                   <div onClick={() => setExpanded(expanded === ticket.id ? null : ticket.id)}
                     style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? "#fef3c7" : "#f3f4f6", color: i === 0 && !showAll ? "#92400e" : "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? T.amberBg : T.fill, color: i === 0 && !showAll ? T.amberFgDeep : T.inkFaint, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
 
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#E9F4E2", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
-                        <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
-                      <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>
+                      <div style={{ fontSize: "0.73rem", color: T.inkFaint, marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
                       </div>
                     </div>
@@ -254,32 +254,32 @@ export default function TicketsViewPage() {
                     <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
                     <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
 
-                    <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
-                      <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>{isClosed ? "נסגר" : "נפתח"}</div>
+                    <div style={{ fontSize: "0.72rem", color: T.inkFaint, textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: "0.68rem", color: T.inkFainter, marginBottom: 1 }}>{isClosed ? "נסגר" : "נפתח"}</div>
                       {new Date(ticket.createdAt).toLocaleDateString("he-IL")}<br />
-                      <span style={{ color: isClosed ? "#16a34a" : "#6b7280", fontWeight: 600 }}>
+                      <span style={{ color: isClosed ? T.greenSFg : T.inkMuted, fontWeight: 600 }}>
                         {isClosed ? `נסגר לאחר ${formatWorkdays(wdOpen)}` : formatWorkdays(wdOpen)}
                       </span>
                     </div>
 
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
-                      <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   )}
 
                   {/* Expanded — read-only details */}
                   {isExpanded && (
-                    <div style={{ borderTop: "1px solid #f3f4f6", padding: "16px 18px", background: "#fafbfc" }}>
-                      <p style={{ margin: "0 0 12px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
+                    <div style={{ borderTop: `1px solid ${T.line}`, padding: "16px 18px", background: T.fill2 }}>
+                      <p style={{ margin: "0 0 12px", fontSize: "0.875rem", color: T.ink, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                        <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>📞 {ticket.phone}</span>
-                        <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>💬 {ticket.user?.email}</span>
-                        <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>🖥️ {ticket.computerName}</span>
-                        <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>📂 {ticket.category} · {ticket.platform}</span>
+                        <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>📞 {ticket.phone}</span>
+                        <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>💬 {ticket.user?.email}</span>
+                        <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>🖥️ {ticket.computerName}</span>
+                        <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>📂 {ticket.category} · {ticket.platform}</span>
                       </div>
                       <a href={`/tickets/HDTC-${ticket.ticketNumber}`}
-                        style={{ display: "inline-block", padding: "6px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, background: "#f0fdf4", color: "#15803d", textDecoration: "none" }}
+                        style={{ display: "inline-block", padding: "6px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, background: T.greenSBg, color: T.greenSFgDeep, textDecoration: "none" }}
                       >
                         🔍 פתח פנייה מלאה
                       </a>

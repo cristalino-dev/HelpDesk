@@ -12,31 +12,41 @@
 import nodemailer from "nodemailer"
 import { logError } from "@/lib/logError"
 import { BOT_EMAIL } from "@/lib/staffEmails"
-import { T, STATUS as STATUS_THEME, URGENCY as URGENCY_THEME } from "@/lib/theme"
+import { LIGHT } from "@/lib/palette"
+import { STATUS_TOKENS, URGENCY_TOKENS } from "@/lib/theme"
 
 const FROM    = '"מערכת הפניות" <helpdesk@cristalino.co.il>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://helpdesk.cristalino.co.il"
 
 /**
- * Brand tokens, read from the same `lib/theme.ts` the app renders with, so a
- * change to the palette moves the mail too instead of leaving it on a stale
- * copy. They are pulled into local constants because every one of them has to
- * be interpolated inline — email clients support neither CSS variables nor a
- * reliable <style> block (see the note on wrap()).
+ * Brand tokens, read from the same palette the app renders with, so a change
+ * to the colours moves the mail too instead of leaving it on a stale copy.
+ *
+ * From `LIGHT` specifically, and NOT from `lib/theme.ts`, whose tokens became
+ * `var(--c-…)` references in v3.80. A custom property needs a document that
+ * defines it; an email is HTML in somebody else's client, where there is no
+ * :root of ours, no <html data-theme>, and — in Gmail and Outlook — no
+ * custom-property support at all. `background:var(--c-card)` in an inbox is
+ * simply an unresolved colour.
+ *
+ * Mail therefore stays light for everyone, whatever the recipient chose in the
+ * app. That is the right answer regardless of the technical constraint: a
+ * notification should look the same in every inbox it lands in, and we cannot
+ * know what the receiving client's own dark-mode transform will do to it.
  */
 const C = {
-  dark:     T.dark,        // header bar, primary button
-  green:    T.green,       // accent rule, logo dot, ticket chip
-  greenInk: T.greenInk,
-  greenBg:  T.greenBg,
-  page:     T.bg,          // page background behind the card
-  card:     T.card,
-  panel:    T.cardMuted,   // details panel fill
-  border:   T.border,
-  text:     T.text,
-  text2:    T.text2,
-  text3:    T.text3,       // labels, captions, secondary detail
-  muted:    T.muted,       // footer
+  dark:     LIGHT.inverseBg,  // header bar, primary button
+  green:    LIGHT.green,      // accent rule, logo dot, ticket chip
+  greenInk: LIGHT.greenInk,
+  greenBg:  LIGHT.greenBg,
+  page:     LIGHT.bg,         // page background behind the card
+  card:     LIGHT.card,
+  panel:    LIGHT.cardMuted,  // details panel fill
+  border:   LIGHT.border,
+  text:     LIGHT.text,
+  text2:    LIGHT.text2,
+  text3:    LIGHT.text3,      // labels, captions, secondary detail
+  muted:    LIGHT.muted,      // footer
 } as const
 
 /**
@@ -246,12 +256,13 @@ function button(href: string, text: string) {
  * keeping a second hand-written copy also picks up "בהמתנה", which the copy
  * here was missing — an on-hold ticket used to mail an uncoloured pill.
  */
-const URGENCY_COLOR: Record<string, string> = Object.fromEntries(
-  Object.entries(URGENCY_THEME).map(([k, v]) => [k, `background:${v.bg};color:${v.fg}`]),
-)
-const STATUS_COLOR: Record<string, string> = Object.fromEntries(
-  Object.entries(STATUS_THEME).map(([k, v]) => [k, `background:${v.bg};color:${v.fg}`]),
-)
+const pillCss = (tokens: Record<string, { bg: keyof typeof LIGHT; fg: keyof typeof LIGHT }>) =>
+  Object.fromEntries(
+    Object.entries(tokens).map(([k, t]) => [k, `background:${LIGHT[t.bg]};color:${LIGHT[t.fg]}`]),
+  ) as Record<string, string>
+
+const URGENCY_COLOR: Record<string, string> = pillCss(URGENCY_TOKENS)
+const STATUS_COLOR:  Record<string, string> = pillCss(STATUS_TOKENS)
 
 // ── Email templates ───────────────────────────────────────────────────────────
 

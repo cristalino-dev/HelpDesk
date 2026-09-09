@@ -51,7 +51,7 @@ import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, setTicketStatusOrError } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
-import { T } from "@/lib/theme"
+import { T, HDR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 
@@ -154,9 +154,9 @@ export default function DashboardPage() {
         {!loading && tickets.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : `repeat(${onHold > 0 ? 4 : 3}, 1fr)`, gap: isMobile ? "8px" : "12px" }}>
             {[
-              { label: "פתוחות",   status: "פתוח",     count: open,       color: "#3D5A7D", dark: false },
-              { label: "בטיפול",   status: "בטיפול",   count: inProgress, color: "#A9741A", dark: false },
-              ...(onHold > 0 ? [{ label: "בהמתנה", status: "בהמתנה", count: onHold,     color: "#5B6260", dark: false }] : []),
+              { label: "פתוחות",   status: "פתוח",     count: open,       color: T.pillBlueFg, dark: false },
+              { label: "בטיפול",   status: "בטיפול",   count: inProgress, color: T.pillAmberFg, dark: false },
+              ...(onHold > 0 ? [{ label: "בהמתנה", status: "בהמתנה", count: onHold,     color: T.text3, dark: false }] : []),
               { label: "סגורות",   status: "סגור",     count: closed,     color: T.green,   dark: true  },
             ].map(({ label, status, count, color, dark }) => {
               const isActive = statusFilter === status
@@ -165,18 +165,18 @@ export default function DashboardPage() {
                   key={label}
                   onClick={() => setStatusFilter(f => f === status ? null : status)}
                   style={{
-                    backgroundColor: dark ? T.dark : "#fff",
+                    backgroundColor: dark ? T.inverseBg : T.card,
                     borderRadius: "14px",
                     padding: isMobile ? "13px 15px" : "18px 22px",
-                    boxShadow: isActive ? `0 0 0 2px rgba(116,197,58,0.30)` : "none",
+                    boxShadow: isActive ? `0 0 0 2px ${T.greenBorder}` : "none",
                     display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px",
-                    border: isActive ? `1px solid ${T.green}` : `1px solid ${dark ? T.dark : T.border}`,
+                    border: isActive ? `1px solid ${T.green}` : `1px solid ${dark ? T.inverseBg : T.border}`,
                     cursor: "pointer",
                     transition: "all 0.15s",
                     width: "100%", textAlign: "right",
                   }}
                 >
-                  <span style={{ fontSize: isMobile ? "0.76rem" : "0.82rem", color: dark ? "#A9AEA8" : T.text3, fontWeight: 500 }}>{label}</span>
+                  <span style={{ fontSize: isMobile ? "0.76rem" : "0.82rem", color: dark ? HDR.link : T.text3, fontWeight: 500 }}>{label}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     {isActive && <span style={{ fontSize: "0.68rem", color: dark ? T.green : T.muted, fontWeight: 700 }}>✕</span>}
                     <span style={{ fontSize: isMobile ? "1.5rem" : "1.9rem", fontWeight: 800, color: dark ? T.green : color, lineHeight: 1 }}>{count}</span>
@@ -200,8 +200,8 @@ export default function DashboardPage() {
           <button
             onClick={() => setShowForm(f => !f)}
             style={{
-              backgroundColor: showForm ? T.bg : T.dark,
-              color: showForm ? T.text2 : "#fff",
+              backgroundColor: showForm ? T.bg : T.inverseBg,
+              color: showForm ? T.text2 : T.inverseText,
               fontWeight: 600,
               padding: isMobile ? "10px 16px" : "11px 20px",
               borderRadius: "11px",
@@ -225,8 +225,8 @@ export default function DashboardPage() {
               width="15" height="15" viewBox="0 0 24 24" fill="none"
               style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.4, pointerEvents: "none" }}
             >
-              <circle cx="11" cy="11" r="8" stroke="#374151" strokeWidth="2"/>
-              <path d="M21 21l-4.35-4.35" stroke="#374151" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="11" cy="11" r="8" stroke={T.ink} strokeWidth="2"/>
+              <path d="M21 21l-4.35-4.35" stroke={T.ink} strokeWidth="2" strokeLinecap="round"/>
             </svg>
             <input
               value={search}
@@ -236,18 +236,18 @@ export default function DashboardPage() {
                 width: "100%",
                 padding: "9px 36px 9px 36px",
                 borderRadius: 10,
-                border: "1px solid #e5e7eb",
+                border: `1px solid ${T.line}`,
                 fontSize: "0.87rem",
-                background: "#fff",
+                background: T.card,
                 boxSizing: "border-box",
                 outline: "none",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                boxShadow: `0 1px 3px ${T.shadow1}`,
               }}
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", color: "#9ca3af", padding: "2px 6px" }}
+                style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", color: T.inkFaint, padding: "2px 6px" }}
               >
                 ✕
               </button>
@@ -257,7 +257,7 @@ export default function DashboardPage() {
 
         {/* Active filter summary */}
         {!loading && (search || statusFilter) && (
-          <div style={{ fontSize: "0.78rem", color: "#6b7280", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: "0.78rem", color: T.inkMuted, display: "flex", alignItems: "center", gap: 8 }}>
             <span>מציג {displayTickets.length} מתוך {tickets.length} פניות</span>
             {(search || statusFilter) && (
               <button
@@ -274,12 +274,12 @@ export default function DashboardPage() {
         {!loading && numberSuggestion && (
           <a
             href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
               HDTC-{numberSuggestion.ticketNumber}
             </span>
-            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+            <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
             </span>
             <span style={{ fontSize: "0.72rem", color: T.text3, flexShrink: 0 }}>{numberSuggestion.status} — פתחו ←</span>
@@ -316,8 +316,8 @@ export default function DashboardPage() {
         )}
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: T.green, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ textAlign: "center", padding: "60px 0", color: T.inkFaint }}>
+            <div style={{ width: "36px", height: "36px", border: `3px solid ${T.line}`, borderTopColor: T.green, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען פניות...</p>
           </div>
         ) : (

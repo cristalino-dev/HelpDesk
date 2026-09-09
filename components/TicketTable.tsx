@@ -25,10 +25,13 @@
  *
  * COLOUR CODING:
  * ───────────────
- *   נמוך   (low)    → green  (#22c55e border, #dcfce7 badge bg)
- *   בינוני (medium) → yellow (#f59e0b border, #fef3c7 badge bg)
- *   גבוה   (high)   → orange (#f97316 border, #ffedd5 badge bg)
- *   דחוף   (urgent) → red    (#ef4444 border, #fee2e2 badge bg)
+ *   נמוך   (low)    → green  (greenSFg border, greenSBg badge)
+ *   בינוני (medium) → yellow (amberFg border, amberBg badge)
+ *   גבוה   (high)   → orange (orangeFg border, orangeBg badge)
+ *   דחוף   (urgent) → red    (redFg border, redBg badge)
+ *
+ * The names are palette tokens (lib/palette.ts), not hexes — each is a
+ * different colour in light and dark mode.
  */
 
 "use client"
@@ -77,7 +80,7 @@ const pill: React.CSSProperties = {
 function Chevron() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-      <path d="M15 18l-6-6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M15 18l-6-6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   )
 }
@@ -118,7 +121,7 @@ function TicketCard({
 
   const isOnHold = ticket.status === "בהמתנה"
   const isStale = !isClosed && !isOnHold && isStaleOpen(ticket)
-  const borderColor = isStale ? "#f97316" : isClosed ? "#d1d5db" : isOnHold ? "#9ca3af" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")
+  const borderColor = isStale ? T.orangeFg : isClosed ? T.lineStrong : isOnHold ? T.inkFaint : (URGENCY_BORDER[ticket.urgency] ?? T.line)
   const openedDate = new Date(ticket.createdAt).toLocaleDateString("he-IL")
   const wdCount = isClosed
     ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
@@ -134,7 +137,7 @@ function TicketCard({
   const meta = `${leadLabel} · ${ticket.category} · ${ticket.platform} · ${openedDate} · ${wdLabel}`
 
   const urgencyStyle = isClosed
-    ? { backgroundColor: "#f3f4f6", color: "#9ca3af" }
+    ? { backgroundColor: T.fill, color: T.inkFaint }
     : (URGENCY_STYLES[ticket.urgency] ?? {})
 
   const closeBtn = showClose ? (
@@ -149,9 +152,9 @@ function TicketCard({
       style={{
         padding: "3px 10px",
         borderRadius: 8,
-        border: "1px solid #bbf7d0",
-        background: isClosing ? "#e5e7eb" : "#dcfce7",
-        color:  isClosing ? "#9ca3af" : "#15803d",
+        border: `1px solid ${T.greenSBorder}`,
+        background: isClosing ? T.line : T.greenSBg,
+        color:  isClosing ? T.inkFaint : T.greenSFgDeep,
         fontWeight: 700,
         fontSize: "0.72rem",
         cursor: isClosing ? "default" : "pointer",
@@ -179,9 +182,9 @@ function TicketCard({
       style={{
         padding: "3px 10px",
         borderRadius: 8,
-        border: "1px solid #bfdbfe",
-        background: isReopening ? "#e5e7eb" : "#EDF0F4",
-        color:  isReopening ? "#9ca3af" : "#3D5A7D",
+        border: `1px solid ${T.blueBorder}`,
+        background: isReopening ? T.line : T.pillBlueBg,
+        color:  isReopening ? T.inkFaint : T.pillBlueFg,
         fontWeight: 700,
         fontSize: "0.72rem",
         cursor: isReopening ? "default" : "pointer",
@@ -200,11 +203,11 @@ function TicketCard({
   if (isMobile) {
     return (
       <div style={{
-        backgroundColor: isStale ? "#fff8f2" : isClosed || isOnHold ? "#f9fafb" : "#fff",
+        backgroundColor: isStale ? T.orangeBg : isClosed || isOnHold ? T.fill2 : T.card,
         borderRadius: 12,
-        border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
+        border: isStale ? `1px solid ${T.orangeBorder}` : `1px solid ${T.line}`,
         borderRight: `4px solid ${borderColor}`,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+        boxShadow: `0 1px 3px ${T.shadow1}`,
         padding: "12px 14px",
         opacity: isClosed ? 0.52 : isOnHold ? 0.82 : 1,
         display: "flex",
@@ -216,15 +219,15 @@ function TicketCard({
           <span style={{
             fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.03em",
             flexShrink: 0, borderRadius: 6, padding: "1px 7px",
-            color:      isClosed ? "#9ca3af" : T.text,
-            background: isClosed ? "#f3f4f6"  : T.codeBg,
+            color:      isClosed ? T.inkFaint : T.text,
+            background: isClosed ? T.fill  : T.codeBg,
           }}>
             HDTC-{ticket.ticketNumber}
           </span>
           <span style={{
             fontWeight: 600, fontSize: "0.88rem",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            color: isClosed ? "#6b7280" : "#111827",
+            color: isClosed ? T.inkMuted : T.text,
             flex: 1, minWidth: 0,
           }}>
             {ticket.subject}
@@ -233,7 +236,7 @@ function TicketCard({
         </a>
 
         {/* Row 2: meta */}
-        <div style={{ fontSize: "0.72rem", color: "#9ca3af", lineHeight: 1.4 }}>
+        <div style={{ fontSize: "0.72rem", color: T.inkFaint, lineHeight: 1.4 }}>
           {meta}
         </div>
 
@@ -242,7 +245,7 @@ function TicketCard({
           <span style={{ ...pill, ...urgencyStyle }}>{ticket.urgency}</span>
           <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
           {isStale && (
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
               ⏰ {formatWorkdays(wdCount)}
             </span>
           )}
@@ -259,13 +262,13 @@ function TicketCard({
       onMouseEnter={() => setHoverId(ticket.id)}
       onMouseLeave={() => setHoverId(null)}
       style={{
-        backgroundColor: isStale ? "#fff8f2" : isClosed || isOnHold ? "#f9fafb" : "#fff",
+        backgroundColor: isStale ? T.orangeBg : isClosed || isOnHold ? T.fill2 : T.card,
         borderRadius: "12px",
-        border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
+        border: isStale ? `1px solid ${T.orangeBorder}` : `1px solid ${T.line}`,
         borderRight: `4px solid ${borderColor}`,
         boxShadow: isHovered && !isClosed
-          ? "0 4px 16px rgba(0,0,0,0.10)"
-          : "0 1px 3px rgba(0,0,0,0.05)",
+          ? `0 4px 16px ${T.shadow2}`
+          : `0 1px 3px ${T.shadow1}`,
         display: "grid",
         gridTemplateColumns: "1fr auto auto auto",
         alignItems: "center",
@@ -282,20 +285,20 @@ function TicketCard({
           <span style={{
             fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.03em",
             flexShrink: 0, borderRadius: 6, padding: "1px 7px",
-            color:      isClosed ? "#9ca3af" : T.text,
-            background: isClosed ? "#f3f4f6"  : T.codeBg,
+            color:      isClosed ? T.inkFaint : T.text,
+            background: isClosed ? T.fill  : T.codeBg,
           }}>
             HDTC-{ticket.ticketNumber}
           </span>
           <span style={{
             fontWeight: 600, fontSize: "0.9rem",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            color: isClosed ? "#6b7280" : "#111827",
+            color: isClosed ? T.inkMuted : T.text,
           }}>
             {ticket.subject}
           </span>
         </div>
-        <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{meta}</div>
+        <div style={{ fontSize: "0.75rem", color: T.inkFaint }}>{meta}</div>
       </a>
 
       {/* Urgency badge */}
@@ -305,7 +308,7 @@ function TicketCard({
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         <span style={{ ...pill, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
         {isStale && (
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
             ⏰ {formatWorkdays(wdCount)}
           </span>
         )}
@@ -341,17 +344,17 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
     return (
       <div style={{
         textAlign: "center", padding: "60px 24px",
-        backgroundColor: "#fff", borderRadius: "16px",
-        border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+        backgroundColor: T.card, borderRadius: "16px",
+        border: `1px solid ${T.line}`, boxShadow: `0 1px 4px ${T.shadow1}`,
       }}>
         <div style={{
-          width: "52px", height: "52px", borderRadius: "14px", backgroundColor: isFiltered ? "#f3f4f6" : T.greenBg,
+          width: "52px", height: "52px", borderRadius: "14px", backgroundColor: isFiltered ? T.fill : T.greenBg,
           display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
         }}>
           {isFiltered ? (
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="8" stroke="#9ca3af" strokeWidth="1.8"/>
-              <path d="M21 21l-4.35-4.35" stroke="#9ca3af" strokeWidth="1.8" strokeLinecap="round"/>
+              <circle cx="11" cy="11" r="8" stroke={T.inkFaint} strokeWidth="1.8"/>
+              <path d="M21 21l-4.35-4.35" stroke={T.inkFaint} strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
           ) : (
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -361,13 +364,13 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
         </div>
         {isFiltered ? (
           <>
-            <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151", fontSize: "0.95rem" }}>לא נמצאו פניות</p>
-            <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>נסו לשנות את החיפוש או הסינון</p>
+            <p style={{ margin: "0 0 6px", fontWeight: 600, color: T.ink, fontSize: "0.95rem" }}>לא נמצאו פניות</p>
+            <p style={{ margin: 0, color: T.inkFaint, fontSize: "0.82rem" }}>נסו לשנות את החיפוש או הסינון</p>
           </>
         ) : (
           <>
-            <p style={{ margin: "0 0 6px", fontWeight: 600, color: "#374151", fontSize: "0.95rem" }}>אין פניות עדיין</p>
-            <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.82rem" }}>לחצו על &quot;פנייה חדשה&quot; כדי לפתוח את הפנייה הראשונה שלכם</p>
+            <p style={{ margin: "0 0 6px", fontWeight: 600, color: T.ink, fontSize: "0.95rem" }}>אין פניות עדיין</p>
+            <p style={{ margin: 0, color: T.inkFaint, fontSize: "0.82rem" }}>לחצו על &quot;פנייה חדשה&quot; כדי לפתוח את הפנייה הראשונה שלכם</p>
           </>
         )}
       </div>
@@ -387,10 +390,10 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
       ) : (
         <div style={{
           textAlign: "center", padding: "28px 24px",
-          backgroundColor: "#fff", borderRadius: "12px",
-          border: "1px solid #f3f4f6",
+          backgroundColor: T.card, borderRadius: "12px",
+          border: `1px solid ${T.line}`,
         }}>
-          <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.85rem" }}>אין פניות פתוחות כרגע</p>
+          <p style={{ margin: 0, color: T.inkFaint, fontSize: "0.85rem" }}>אין פניות פתוחות כרגע</p>
         </div>
       )}
 
@@ -398,10 +401,10 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
       {closedTickets.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 2px" }}>
-            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#9ca3af", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkFaint, letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
               פניות סגורות ({closedTickets.length})
             </span>
-            <div style={{ flex: 1, height: "1px", backgroundColor: "#e5e7eb" }} />
+            <div style={{ flex: 1, height: "1px", backgroundColor: T.line }} />
           </div>
           {closedTickets.map(ticket => (
             <TicketCard key={ticket.id} ticket={ticket} {...cardProps} />

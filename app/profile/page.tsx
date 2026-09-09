@@ -104,7 +104,7 @@ export default function ProfilePage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: T.bg }}>
       <AppHeader logoHref="/dashboard">
-        <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 16px", borderRadius: "9px", border: "1px solid rgba(255,255,255,0.16)", fontWeight: 500 }}>← חזרה ללוח הבקרה</a>
+        <a href="/dashboard" style={{ fontSize: "0.82rem", color: HDR.link, textDecoration: "none", padding: "8px 16px", borderRadius: "9px", border: `1px solid ${HDR.pillBorder}`, fontWeight: 500 }}>← חזרה ללוח הבקרה</a>
       </AppHeader>
 
       <main style={{ maxWidth: "560px", margin: "0 auto", padding: "44px 24px" }}>
@@ -113,7 +113,7 @@ export default function ProfilePage() {
           <p style={{ margin: 0, color: T.muted, fontSize: "0.88rem" }}>פרטים אלו ישמשו למילוי אוטומטי בטפסי פנייה</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 1px 2px rgba(20,22,26,0.04)", border: `1px solid ${T.border}`, overflow: "hidden" }}>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: T.card, borderRadius: "16px", boxShadow: `0 1px 2px ${T.shadow1}`, border: `1px solid ${T.border}`, overflow: "hidden" }}>
           <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 6, height: 18, borderRadius: 3, background: T.green }} />
             <p style={{ margin: 0, fontWeight: 700, color: T.text, fontSize: "0.95rem" }}>פרטים אישיים</p>
@@ -132,33 +132,33 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
+            <div style={{ height: "1px", backgroundColor: T.fill }} />
 
             {/* Phone */}
             <div>
               <label>טלפון</label>
               <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="050-0000000" />
-              <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>ימולא אוטומטית בטפסי פנייה</p>
+              <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: T.inkFaint }}>ימולא אוטומטית בטפסי פנייה</p>
             </div>
 
             {/* Station */}
             <div>
               <label>שם מחשב / תחנת עבודה</label>
               <input value={form.station} onChange={e => setForm(f => ({ ...f, station: e.target.value }))} placeholder="לדוגמה: PC-ALON-01" />
-              <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>ימולא אוטומטית בטפסי פנייה</p>
+              <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: T.inkFaint }}>ימולא אוטומטית בטפסי פנייה</p>
             </div>
 
             {/* Email (readonly) */}
             <div>
               <label>כתובת אימייל</label>
               <input value={session?.user?.email ?? ""} disabled style={{ backgroundColor: T.cardMuted, color: T.muted, cursor: "not-allowed" }} />
-              <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>נקבע על ידי חשבון Google ולא ניתן לשינוי</p>
+              <p style={{ margin: "5px 0 0", fontSize: "0.75rem", color: T.inkFaint }}>נקבע על ידי חשבון Google ולא ניתן לשינוי</p>
             </div>
 
-            {error && <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: "#dc2626" }}>{error}</div>}
-            {saved && <div style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: "#16a34a" }}>הפרטים נשמרו בהצלחה</div>}
+            {error && <div style={{ backgroundColor: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: T.redFg }}>{error}</div>}
+            {saved && <div style={{ backgroundColor: T.greenSBg, border: `1px solid ${T.greenSBorder}`, borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: T.greenSFg }}>הפרטים נשמרו בהצלחה</div>}
 
-            <button type="submit" disabled={saving} style={{ background: saving ? "#9AA09C" : T.dark, color: "#fff", fontWeight: 600, padding: "13px 0", borderRadius: "11px", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+            <button type="submit" disabled={saving} style={{ background: saving ? T.disabled : T.inverseBg, color: T.inverseText, fontWeight: 600, padding: "13px 0", borderRadius: "11px", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
               {!saving && <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, display: "inline-block" }} />}
               {saving ? "שומר..." : "שמור פרטים"}
             </button>

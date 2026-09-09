@@ -40,7 +40,7 @@ export default function OffboardingNotice({
           {items.map(item => (
             <span
               key={item}
-              style={{ fontSize: "0.78rem", fontWeight: 600, color: T.text2, background: "#fff", border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px" }}
+              style={{ fontSize: "0.78rem", fontWeight: 600, color: T.text2, background: T.card, border: `1px solid ${T.border}`, borderRadius: 999, padding: "4px 11px" }}
             >
               {item}
             </span>

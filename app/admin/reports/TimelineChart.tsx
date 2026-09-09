@@ -43,9 +43,9 @@ import { T } from "@/lib/theme"
 import type { Bucket } from "@/lib/reports"
 
 export const SERIES = {
-  opened:  { color: "#2a78d6", label: "נפתחו" },
-  closed:  { color: "#eb6834", label: "נסגרו" },
-  backlog: { color: "#1baf7a", label: "פתוחות במצטבר" },
+  opened:  { color: T.blueFg, label: "נפתחו" },
+  closed:  { color: T.orangeFg, label: "נסגרו" },
+  backlog: { color: T.greenSFg, label: "פתוחות במצטבר" },
 } as const
 
 export type SeriesKey = keyof typeof SERIES
@@ -184,7 +184,7 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
           <rect
             x={Math.min(x(drag.from), x(drag.to))} y={PAD.top}
             width={Math.abs(x(drag.to) - x(drag.from))} height={plotH}
-            fill="#2a78d6" opacity={0.10}
+            fill={T.blueFg} opacity={0.10}
           />
         )}
 
@@ -204,7 +204,7 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
         {active.map(key => (
           <circle
             key={`end-${key}`} cx={x(n - 1)} cy={y(buckets[n - 1][key])} r={4}
-            fill={SERIES[key].color} stroke="#FFFFFF" strokeWidth={2}
+            fill={SERIES[key].color} stroke={T.inverseText} strokeWidth={2}
           />
         ))}
 
@@ -213,7 +213,7 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
         {hovered && hover !== null && active.map(key => (
           <circle
             key={`hv-${key}`} cx={x(hover)} cy={y(hovered[key])} r={4.5}
-            fill={SERIES[key].color} stroke="#FFFFFF" strokeWidth={2}
+            fill={SERIES[key].color} stroke={T.inverseText} strokeWidth={2}
           />
         ))}
 
@@ -233,7 +233,7 @@ export default function TimelineChart({ buckets, keys, onBrush, height = 300, xA
             // the point being read.
             [x(hover as number) > width / 2 ? "left" : "right"]: 12,
             background: T.card, border: `1px solid ${T.borderStrong}`, borderRadius: 10,
-            boxShadow: "0 6px 20px rgba(20,22,26,0.10)", padding: "9px 12px",
+            boxShadow: `0 6px 20px ${T.shadow2}`, padding: "9px 12px",
             pointerEvents: "none", minWidth: 132, direction: "rtl",
           }}
         >

@@ -74,8 +74,8 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       onClick={onClick}
       style={{
         padding: "6px 13px", borderRadius: 999, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600,
-        border: `1px solid ${active ? T.dark : T.borderStrong}`,
-        background: active ? T.dark : T.card, color: active ? "#FFFFFF" : T.text2,
+        border: `1px solid ${active ? T.inverseBg : T.borderStrong}`,
+        background: active ? T.inverseBg : T.card, color: active ? T.inverseText : T.text2,
       }}
     >{children}</button>
   )
@@ -91,9 +91,9 @@ const exportItem: React.CSSProperties = {
 const exportHint: React.CSSProperties = { fontSize: "0.72rem", color: T.text3, fontWeight: 500 }
 
 const INSIGHT_TONE = {
-  good:    { fg: "#3E7A24", bg: "#E9F4E2", icon: "✓" },
-  warn:    { fg: "#A9741A", bg: "#FBF1DE", icon: "!" },
-  neutral: { fg: "#5B6260", bg: "#F1F2F0", icon: "•" },
+  good:    { fg: T.greenInk, bg: T.greenBg, icon: "✓" },
+  warn:    { fg: T.pillAmberFg, bg: T.pillAmberBg, icon: "!" },
+  neutral: { fg: T.text3, bg: T.pillNeutralBg, icon: "•" },
 } as const
 
 const DIMENSIONS = [
@@ -222,7 +222,7 @@ export default function ReportsPage() {
         </div>
 
         {error && (
-          <div style={{ background: "#FBEAEA", color: "#B4453F", border: "1px solid #F0D2D1", borderRadius: 12, padding: "12px 16px", fontSize: "0.87rem" }}>{error}</div>
+          <div style={{ background: T.pillRedBg, color: T.pillRedFg, border: `1px solid ${T.redBorder}`, borderRadius: 12, padding: "12px 16px", fontSize: "0.87rem" }}>{error}</div>
         )}
 
         {/* ── Filters: one row, above everything they scope ─────────────── */}
@@ -259,7 +259,7 @@ export default function ReportsPage() {
               onClick={() => setExportOpen(o => !o)}
               aria-expanded={exportOpen} aria-haspopup="menu"
               style={{
-                display: "flex", alignItems: "center", gap: 7, background: T.dark, color: "#FFFFFF",
+                display: "flex", alignItems: "center", gap: 7, background: T.inverseBg, color: T.inverseText,
                 border: "none", borderRadius: 9, padding: "8px 15px", fontSize: "0.82rem",
                 fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
               }}
@@ -277,7 +277,7 @@ export default function ReportsPage() {
                 style={{
                   position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 50, minWidth: 250,
                   background: T.card, border: `1px solid ${T.borderStrong}`, borderRadius: 12,
-                  boxShadow: "0 10px 30px rgba(20,22,26,0.14)", padding: 7,
+                  boxShadow: `0 10px 30px ${T.shadow3}`, padding: 7,
                   display: "flex", flexDirection: "column", gap: 2,
                 }}
               >
@@ -309,7 +309,7 @@ export default function ReportsPage() {
                       <a
                         href={exportHref({ scope: "ticket", ticket: exportTicketNumber })}
                         onClick={() => setExportOpen(false)}
-                        style={{ background: T.dark, color: "#FFFFFF", borderRadius: 8, padding: "6px 13px", fontSize: "0.8rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}
+                        style={{ background: T.inverseBg, color: T.inverseText, borderRadius: 8, padding: "6px 13px", fontSize: "0.8rem", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}
                       >ייצוא</a>
                     ) : (
                       <span

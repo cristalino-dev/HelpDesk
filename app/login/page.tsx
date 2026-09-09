@@ -36,7 +36,7 @@
 import { signIn } from "next-auth/react"
 import Image from "next/image"
 import FooterCopyright from "@/components/FooterCopyright"
-import { T } from "@/lib/theme"
+import { T, HDR } from "@/lib/theme"
 
 export default function LoginPage() {
   return (
@@ -45,17 +45,17 @@ export default function LoginPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: `linear-gradient(150deg, ${T.dark} 0%, #1C1F26 55%, #0E1013 100%)`,
+      background: `linear-gradient(150deg, ${T.heroFrom} 0%, ${T.heroMid} 55%, ${T.heroTo} 100%)`,
       padding: "24px",
     }}>
       {/* Decorative circles — brand green glow */}
-      <div style={{ position: "fixed", top: "-80px", right: "-80px", width: "300px", height: "300px", borderRadius: "50%", backgroundColor: "rgba(116,197,58,0.08)", pointerEvents: "none" }} />
-      <div style={{ position: "fixed", bottom: "-120px", left: "-60px", width: "400px", height: "400px", borderRadius: "50%", backgroundColor: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
+      <div style={{ position: "fixed", top: "-80px", right: "-80px", width: "300px", height: "300px", borderRadius: "50%", backgroundColor: T.greenBg, pointerEvents: "none" }} />
+      <div style={{ position: "fixed", bottom: "-120px", left: "-60px", width: "400px", height: "400px", borderRadius: "50%", backgroundColor: HDR.hoverBg, pointerEvents: "none" }} />
 
       <div style={{
-        backgroundColor: "#ffffff",
+        backgroundColor: T.card,
         borderRadius: "24px",
-        boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
+        boxShadow: `0 25px 60px ${T.shadow4}`,
         padding: "48px 40px",
         display: "flex",
         flexDirection: "column",
@@ -69,8 +69,8 @@ export default function LoginPage() {
         <Image src="/logo.jpeg" alt="Cristalino Group" width={120} height={120} loading="eager" style={{ objectFit: "contain" }} />
 
         <div style={{ textAlign: "center" }}>
-          <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: T.dark, letterSpacing: "-0.01em" }}>
-            helpdesk<span style={{ color: "#B4BAB6", fontWeight: 500 }}> · </span><span style={{ color: T.text2, fontWeight: 600 }}>מערכת</span>
+          <h1 style={{ margin: "0 0 8px", fontSize: "1.6rem", fontWeight: 800, color: T.text, letterSpacing: "-0.01em" }}>
+            helpdesk<span style={{ color: T.muted2, fontWeight: 500 }}> · </span><span style={{ color: T.text2, fontWeight: 600 }}>מערכת</span>
           </h1>
           <p style={{ margin: 0, color: T.text3, fontSize: "0.9rem", lineHeight: 1.5 }}>
             התחברו עם חשבון Google שלכם<br />לפתיחת פנייה או מעקב אחר הפניות
@@ -88,16 +88,16 @@ export default function LoginPage() {
             padding: "13px 24px",
             borderRadius: "12px",
             border: `1px solid ${T.borderStrong}`,
-            backgroundColor: "#fff",
+            backgroundColor: T.card,
             color: T.text,
             fontWeight: 600,
             fontSize: "0.95rem",
             cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(20,22,26,0.06)",
+            boxShadow: `0 2px 8px ${T.shadow2}`,
             transition: "box-shadow 0.15s, border-color 0.15s",
           }}
-          onMouseOver={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(20,22,26,0.12)"; e.currentTarget.style.borderColor = T.green }}
-          onMouseOut={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(20,22,26,0.06)"; e.currentTarget.style.borderColor = T.borderStrong }}
+          onMouseOver={e => { e.currentTarget.style.boxShadow = `0 4px 16px ${T.shadow3}`; e.currentTarget.style.borderColor = T.green }}
+          onMouseOut={e => { e.currentTarget.style.boxShadow = `0 2px 8px ${T.shadow2}`; e.currentTarget.style.borderColor = T.borderStrong }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -108,7 +108,7 @@ export default function LoginPage() {
           התחברות עם Google
         </button>
 
-        <p style={{ margin: 0, fontSize: "0.75rem", color: "#9ca3af", textAlign: "center" }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: T.inkFaint, textAlign: "center" }}>
           כניסה מורשית לעובדי קריסטלינו בלבד
         </p>
       </div>

@@ -732,7 +732,7 @@ export default function AdminPage() {
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #e5e7eb", paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", borderBottom: `2px solid ${T.line}`, paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
           {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
@@ -759,26 +759,26 @@ export default function AdminPage() {
               value={userSearch}
               onChange={e => setUserSearch(e.target.value)}
               placeholder="חפש לפי שם או אימייל..."
-              style={{ padding: "10px 14px", borderRadius: "10px", border: "1px solid #e5e7eb", fontSize: "0.88rem", backgroundColor: "#fff", width: "100%", boxSizing: "border-box" }}
+              style={{ padding: "10px 14px", borderRadius: "10px", border: `1px solid ${T.line}`, fontSize: "0.88rem", backgroundColor: T.card, width: "100%", boxSizing: "border-box" }}
             />
 
             {usersLoading ? (
-              <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>טוען...</div>
+              <div style={{ textAlign: "center", padding: "40px", color: T.inkFaint }}>טוען...</div>
             ) : (
-              <div style={{ backgroundColor: "#fff", borderRadius: "14px", border: "1px solid #f3f4f6", overflow: "hidden" }}>
+              <div style={{ backgroundColor: T.card, borderRadius: "14px", border: `1px solid ${T.line}`, overflow: "hidden" }}>
                 {/* Table header */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 140px 80px 80px", gap: "12px", padding: "10px 16px", backgroundColor: "#f9fafb", borderBottom: "1px solid #f3f4f6", fontSize: "0.75rem", fontWeight: 700, color: "#6b7280" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 140px 80px 80px", gap: "12px", padding: "10px 16px", backgroundColor: T.fill2, borderBottom: `1px solid ${T.line}`, fontSize: "0.75rem", fontWeight: 700, color: T.inkMuted }}>
                   <span>שם</span><span>אימייל</span><span>טלפון</span><span>תחנה</span><span>מנהל</span><span></span>
                 </div>
-                {filteredUsers.length === 0 && <div style={{ padding: "32px", textAlign: "center", color: "#9ca3af", fontSize: "0.88rem" }}>לא נמצאו משתמשים</div>}
+                {filteredUsers.length === 0 && <div style={{ padding: "32px", textAlign: "center", color: T.inkFaint, fontSize: "0.88rem" }}>לא נמצאו משתמשים</div>}
                 {filteredUsers.map(u => (
-                  <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 140px 80px 80px", gap: "12px", padding: "12px 16px", borderBottom: "1px solid #f9fafb", alignItems: "center", fontSize: "0.85rem", color: "#374151" }}>
+                  <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 140px 80px 80px", gap: "12px", padding: "12px 16px", borderBottom: `1px solid ${T.line}`, alignItems: "center", fontSize: "0.85rem", color: T.ink }}>
                     <span style={{ fontWeight: 600 }}>{u.name ?? "—"}</span>
-                    <span style={{ color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
+                    <span style={{ color: T.inkMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</span>
                     <span>{u.phone ?? "—"}</span>
                     <span>{u.station ?? "—"}</span>
-                    <span style={{ color: u.isAdmin ? "#16181D" : "#9ca3af", fontWeight: u.isAdmin ? 700 : 400 }}>{u.isAdmin ? "כן" : "לא"}</span>
-                    <button onClick={() => setEditingUser({ ...u })} style={{ fontSize: "0.75rem", color: "#16181D", background: "#EDEFEA", border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>עריכה</button>
+                    <span style={{ color: u.isAdmin ? T.text : T.inkFaint, fontWeight: u.isAdmin ? 700 : 400 }}>{u.isAdmin ? "כן" : "לא"}</span>
+                    <button onClick={() => setEditingUser({ ...u })} style={{ fontSize: "0.75rem", color: T.text, background: T.codeBg, border: "none", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", fontWeight: 600 }}>עריכה</button>
                   </div>
                 ))}
               </div>
@@ -786,10 +786,10 @@ export default function AdminPage() {
 
             {/* Edit modal */}
             {editingUser && (
-              <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-                <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px", width: "420px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>עריכת משתמש</h3>
-                  <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>{editingUser.email}</div>
+              <div style={{ position: "fixed", inset: 0, backgroundColor: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+                <div style={{ backgroundColor: T.card, borderRadius: "16px", padding: "28px", width: "420px", boxShadow: `0 20px 60px ${T.shadow4}`, display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>עריכת משתמש</h3>
+                  <div style={{ fontSize: "0.8rem", color: T.inkMuted }}>{editingUser.email}</div>
 
                   {[
                     { label: "שם מלא",     key: "name"    as const, placeholder: "ישראל ישראלי" },
@@ -797,51 +797,51 @@ export default function AdminPage() {
                     { label: "תחנת עבודה", key: "station" as const, placeholder: "PC-USER-01" },
                   ].map(({ label, key, placeholder }) => (
                     <div key={key}>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>{label}</label>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: T.ink, marginBottom: "5px" }}>{label}</label>
                       <input value={editingUser[key] ?? ""} onChange={e => setEditingUser(u => u ? { ...u, [key]: e.target.value } : u)} placeholder={placeholder}
-                        style={{ width: "100%", padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "0.88rem", boxSizing: "border-box" }} />
+                        style={{ width: "100%", padding: "8px 12px", border: `1px solid ${T.lineStrong}`, borderRadius: "8px", fontSize: "0.88rem", boxSizing: "border-box" }} />
                     </div>
                   ))}
 
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <input type="checkbox" id="isAdmin" checked={editingUser.isAdmin} onChange={e => setEditingUser(u => u ? { ...u, isAdmin: e.target.checked } : u)} />
-                    <label htmlFor="isAdmin" style={{ fontSize: "0.88rem", color: "#374151", fontWeight: 600 }}>הרשאת מנהל</label>
+                    <label htmlFor="isAdmin" style={{ fontSize: "0.88rem", color: T.ink, fontWeight: 600 }}>הרשאת מנהל</label>
                   </div>
 
                   <div style={{ display: "flex", gap: "10px", justifyContent: "flex-start" }}>
-                    <button onClick={saveUser} disabled={userSaving} style={{ background: "#16181D", color: "#fff", fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                    <button onClick={saveUser} disabled={userSaving} style={{ background: T.inverseBg, color: T.inverseText, fontWeight: 700, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
                       {userSaving ? "שומר..." : "שמור"}
                     </button>
-                    <button onClick={closeEditModal} style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
+                    <button onClick={closeEditModal} style={{ background: T.fill, color: T.ink, fontWeight: 600, padding: "9px 20px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.85rem" }}>ביטול</button>
                   </div>
 
                   {/* Delete section */}
-                  <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginTop: 2 }}>
+                  <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14, marginTop: 2 }}>
                     {deleteError && (
-                      <div style={{ marginBottom: 10, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: "0.8rem", color: "#b91c1c" }}>
+                      <div style={{ marginBottom: 10, padding: "8px 12px", background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 8, fontSize: "0.8rem", color: T.redFgDeep }}>
                         {deleteError}
                       </div>
                     )}
                     {!deleteConfirm ? (
                       <button
                         onClick={() => { setDeleteConfirm(true); setDeleteError(null) }}
-                        style={{ background: "none", border: "1px solid #fca5a5", color: "#dc2626", fontWeight: 600, padding: "7px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.82rem" }}
+                        style={{ background: "none", border: `1px solid ${T.redBorder}`, color: T.redFg, fontWeight: 600, padding: "7px 16px", borderRadius: "8px", cursor: "pointer", fontSize: "0.82rem" }}
                       >
                         🗑 מחק משתמש
                       </button>
                     ) : (
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "0.82rem", color: "#374151", fontWeight: 600 }}>בטוח? הפניות יועברו לחשבון helpdesk.</span>
+                        <span style={{ fontSize: "0.82rem", color: T.ink, fontWeight: 600 }}>בטוח? הפניות יועברו לחשבון helpdesk.</span>
                         <button
                           onClick={deleteUser}
                           disabled={userDeleting}
-                          style={{ background: "#dc2626", color: "#fff", fontWeight: 700, padding: "7px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.82rem", opacity: userDeleting ? 0.6 : 1 }}
+                          style={{ background: T.redFg, color: T.inverseText, fontWeight: 700, padding: "7px 16px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.82rem", opacity: userDeleting ? 0.6 : 1 }}
                         >
                           {userDeleting ? "מוחק..." : "כן, מחק"}
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(false)}
-                          style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "7px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.82rem" }}
+                          style={{ background: T.fill, color: T.ink, fontWeight: 600, padding: "7px 14px", borderRadius: "8px", border: "none", cursor: "pointer", fontSize: "0.82rem" }}
                         >
                           ביטול
                         </button>
@@ -864,17 +864,17 @@ export default function AdminPage() {
                 value={logDate}
                 max={new Date().toISOString().slice(0, 10)}
                 onChange={e => { setLogDate(e.target.value); loadLogs(e.target.value) }}
-                style={{ padding: "8px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "0.88rem", backgroundColor: "#fff" }}
+                style={{ padding: "8px 12px", border: `1px solid ${T.lineStrong}`, borderRadius: "8px", fontSize: "0.88rem", backgroundColor: T.card }}
               />
               <button
                 onClick={() => loadLogs(logDate)}
-                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: "#EDEFEA", color: "#16181D", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: T.codeBg, color: T.text, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 רענן
               </button>
               {!logsLoading && (
-                <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>
+                <span style={{ fontSize: "0.78rem", color: T.inkFaint }}>
                   {logCount} {logCount === 1 ? "רשומה" : "רשומות"}
                 </span>
               )}
@@ -882,13 +882,13 @@ export default function AdminPage() {
                 <>
                   <button
                     onClick={copyLogText}
-                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: copyLogStatus ? "#dcfce7" : "#EDEFEA", color: copyLogStatus ? "#166534" : "#16181D", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: copyLogStatus ? T.greenSBg : T.codeBg, color: copyLogStatus ? T.greenSFgDeep : T.text, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
                   >
                     {copyLogStatus ? "✓ הועתק" : "📋 העתק הכל"}
                   </button>
                   <button
                     onClick={downloadLog}
-                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: "#f0fdf4", color: "#15803d", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                    style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", border: "none", background: T.greenSBg, color: T.greenSFgDeep, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
                   >
                     ⬇️ הורד
                   </button>
@@ -898,7 +898,7 @@ export default function AdminPage() {
 
             {/* Log viewer */}
             {logsLoading ? (
-              <div style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>טוען יומן...</div>
+              <div style={{ textAlign: "center", padding: "40px", color: T.inkFaint }}>טוען יומן...</div>
             ) : (
               <textarea
                 readOnly
@@ -907,10 +907,10 @@ export default function AdminPage() {
                   width: "100%",
                   height: "520px",
                   padding: "16px",
-                  border: "1px solid #e5e7eb",
+                  border: `1px solid ${T.line}`,
                   borderRadius: "12px",
-                  backgroundColor: "#16181D",
-                  color: "#e2e8f0",
+                  backgroundColor: T.consoleBg,
+                  color: T.consoleFg,
                   fontFamily: "'Courier New', Consolas, monospace",
                   fontSize: "0.78rem",
                   lineHeight: 1.7,
@@ -924,7 +924,7 @@ export default function AdminPage() {
               />
             )}
 
-            <p style={{ margin: 0, fontSize: "0.72rem", color: "#9ca3af" }}>
+            <p style={{ margin: 0, fontSize: "0.72rem", color: T.inkFaint }}>
               יומנים נמחקים אוטומטית לאחר 30 יום.
             </p>
           </div>
@@ -934,17 +934,17 @@ export default function AdminPage() {
         {tab === "fields" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {fieldError && (
-              <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, color: "#b91c1c", fontSize: "0.85rem" }}>{fieldError}</div>
+              <div style={{ padding: "10px 14px", background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 10, color: T.redFgDeep, fontSize: "0.85rem" }}>{fieldError}</div>
             )}
 
             {/* Add new option */}
-            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
-              <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>➕ הוסף ערך חדש</h3>
+            <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
+              <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>➕ הוסף ערך חדש</h3>
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <select
                   value={newFieldType}
                   onChange={e => setNewFieldType(e.target.value as "category" | "platform" | "urgency" | "equipment")}
-                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", background: "#f9fafb" }}
+                  style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.88rem", background: T.fill2 }}
                 >
                   <option value="category">קטגוריה</option>
                   <option value="platform">פלטפורמה</option>
@@ -956,12 +956,12 @@ export default function AdminPage() {
                   onChange={e => setNewFieldValue(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") addFieldOption() }}
                   placeholder="שם הערך החדש..."
-                  style={{ flex: 1, minWidth: 160, padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem" }}
+                  style={{ flex: 1, minWidth: 160, padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.88rem" }}
                 />
                 <button
                   onClick={addFieldOption}
                   disabled={fieldSaving || !newFieldValue.trim()}
-                  style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: fieldSaving || !newFieldValue.trim() ? "#e5e7eb" : "#16181D", color: fieldSaving || !newFieldValue.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: fieldSaving || !newFieldValue.trim() ? "not-allowed" : "pointer" }}
+                  style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: fieldSaving || !newFieldValue.trim() ? T.line : T.inverseBg, color: fieldSaving || !newFieldValue.trim() ? T.inkFaint : T.inverseText, fontWeight: 700, fontSize: "0.85rem", cursor: fieldSaving || !newFieldValue.trim() ? "not-allowed" : "pointer" }}
                 >
                   {fieldSaving ? "שומר..." : "הוסף"}
                 </button>
@@ -975,8 +975,8 @@ export default function AdminPage() {
               { key: "urgency",  label: "דחיפות" },
               { key: "equipment", label: "ציוד (רשימת פריטים לבחירה בפנייה)" },
             ] as const).map(({ key, label }) => (
-              <div key={key} style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>{label}</h3>
+              <div key={key} style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>{label}</h3>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(fieldRecords[key] ?? []).map(({ id, label: lbl }) => {
                     // Core urgencies and the new-employee category are system
@@ -984,23 +984,23 @@ export default function AdminPage() {
                     const isProtected = key === "urgency"
                       || (key === "category" && (lbl === NEW_EMPLOYEE_CATEGORY || lbl === LEAVING_EMPLOYEE_CATEGORY))
                     return (
-                      <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "#f3f4f6", fontSize: "0.85rem", fontWeight: 600, color: "#374151", border: "1px solid #e5e7eb" }}>
+                      <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: T.fill, fontSize: "0.85rem", fontWeight: 600, color: T.ink, border: `1px solid ${T.line}` }}>
                         {lbl}
                         {!isProtected && (
                           <button
                             onClick={() => removeFieldOption(id)}
                             title="מחק"
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.9rem", lineHeight: 1, padding: 0 }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: T.inkFaint, fontSize: "0.9rem", lineHeight: 1, padding: 0 }}
                           >✕</button>
                         )}
                         {isProtected && (
-                          <span title="ערך מערכת — לא ניתן למחיקה" style={{ color: "#d1d5db", fontSize: "0.75rem" }}>🔒</span>
+                          <span title="ערך מערכת — לא ניתן למחיקה" style={{ color: T.inkFainter, fontSize: "0.75rem" }}>🔒</span>
                         )}
                       </span>
                     )
                   })}
                   {(fieldRecords[key] ?? []).length === 0 && (
-                    <span style={{ fontSize: "0.82rem", color: "#9ca3af" }}>אין ערכים — הוסף אחד למעלה</span>
+                    <span style={{ fontSize: "0.82rem", color: T.inkFaint }}>אין ערכים — הוסף אחד למעלה</span>
                   )}
                 </div>
               </div>
@@ -1017,19 +1017,19 @@ export default function AdminPage() {
             if (!q) return true
             return [l.key, l.category, l.username ?? "", l.remark ?? ""].some(v => v.toLowerCase().includes(q))
           })
-          const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.85rem", boxSizing: "border-box", width: "100%" }
-          const thStyle: React.CSSProperties = { padding: "8px", textAlign: "right", fontSize: "0.72rem", color: "#6b7280", fontWeight: 700, whiteSpace: "nowrap" }
+          const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.85rem", boxSizing: "border-box", width: "100%" }
+          const thStyle: React.CSSProperties = { padding: "8px", textAlign: "right", fontSize: "0.72rem", color: T.inkMuted, fontWeight: 700, whiteSpace: "nowrap" }
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
               {/* Category manager */}
-              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>🏷️ קטגוריות רישוי</h3>
+              <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>🏷️ קטגוריות רישוי</h3>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                   {licCatRecords.map(c => (
-                    <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: "#f3f4f6", fontSize: "0.85rem", fontWeight: 600, color: "#374151", border: "1px solid #e5e7eb" }}>
+                    <span key={c.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 20, background: T.fill, fontSize: "0.85rem", fontWeight: 600, color: T.ink, border: `1px solid ${T.line}` }}>
                       {c.label}
-                      <button onClick={() => removeLicCategory(c.id)} title="מחק קטגוריה" style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.9rem", lineHeight: 1, padding: 0 }}>✕</button>
+                      <button onClick={() => removeLicCategory(c.id)} title="מחק קטגוריה" style={{ background: "none", border: "none", cursor: "pointer", color: T.inkFaint, fontSize: "0.9rem", lineHeight: 1, padding: 0 }}>✕</button>
                     </span>
                   ))}
                   <input
@@ -1037,19 +1037,19 @@ export default function AdminPage() {
                     onChange={e => setNewLicCat(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") addLicCategory() }}
                     placeholder="קטגוריה חדשה..."
-                    style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.85rem", width: 150 }}
+                    style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.85rem", width: 150 }}
                   />
                   <button
                     onClick={addLicCategory}
                     disabled={!newLicCat.trim()}
-                    style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: newLicCat.trim() ? "#16181D" : "#e5e7eb", color: newLicCat.trim() ? "#fff" : "#9ca3af", fontWeight: 700, fontSize: "0.82rem", cursor: newLicCat.trim() ? "pointer" : "not-allowed" }}
+                    style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: newLicCat.trim() ? T.inverseBg : T.line, color: newLicCat.trim() ? T.inverseText : T.inkFaint, fontWeight: 700, fontSize: "0.82rem", cursor: newLicCat.trim() ? "pointer" : "not-allowed" }}
                   >הוסף</button>
                 </div>
               </div>
 
               {/* Add licenses */}
-              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
-                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>➕ הוספת רישיונות</h3>
+              <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>➕ הוספת רישיונות</h3>
                 <textarea
                   rows={3}
                   value={licForm.keys}
@@ -1061,7 +1061,7 @@ export default function AdminPage() {
                   <select
                     value={licForm.category}
                     onChange={e => setLicForm(f => ({ ...f, category: e.target.value }))}
-                    style={{ ...inputStyle, background: "#f9fafb" }}
+                    style={{ ...inputStyle, background: T.fill2 }}
                   >
                     {licCategories.map(c => <option key={c}>{c}</option>)}
                   </select>
@@ -1073,24 +1073,24 @@ export default function AdminPage() {
                   <button
                     onClick={addLicenses}
                     disabled={licSaving || !licForm.keys.trim()}
-                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? "#e5e7eb" : "#16181D", color: licSaving || !licForm.keys.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: licSaving || !licForm.keys.trim() ? T.line : T.inverseBg, color: licSaving || !licForm.keys.trim() ? T.inkFaint : T.inverseText, fontWeight: 700, fontSize: "0.85rem", cursor: licSaving || !licForm.keys.trim() ? "not-allowed" : "pointer" }}
                   >
                     {licSaving ? "שומר..." : "הוסף רישיונות"}
                   </button>
                   {licMsg && (
-                    <span style={{ fontSize: "0.82rem", fontWeight: 600, color: licMsg.kind === "ok" ? "#166534" : "#b91c1c" }}>{licMsg.text}</span>
+                    <span style={{ fontSize: "0.82rem", fontWeight: 600, color: licMsg.kind === "ok" ? T.greenSFgDeep : T.redFgDeep }}>{licMsg.text}</span>
                   )}
                 </div>
               </div>
 
               {/* License list */}
-              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+              <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-                  <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>🔑 רישיונות ({filteredLicenses.length})</h3>
+                  <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: T.ink, flexShrink: 0 }}>🔑 רישיונות ({filteredLicenses.length})</h3>
                   <select
                     value={licFilter}
                     onChange={e => setLicFilter(e.target.value)}
-                    style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#f9fafb" }}
+                    style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", background: T.fill2 }}
                   >
                     <option value="">כל הקטגוריות</option>
                     {licCategories.map(c => <option key={c}>{c}</option>)}
@@ -1099,23 +1099,23 @@ export default function AdminPage() {
                     value={licSearch}
                     onChange={e => setLicSearch(e.target.value)}
                     placeholder="חיפוש לפי מפתח, משתמש, הערה..."
-                    style={{ flex: 1, minWidth: 160, padding: "6px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem" }}
+                    style={{ flex: 1, minWidth: 160, padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem" }}
                   />
                 </div>
 
                 {licMsg?.kind === "err" && (
-                  <div style={{ marginBottom: 10, padding: "8px 12px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: "0.8rem", color: "#b91c1c" }}>{licMsg.text}</div>
+                  <div style={{ marginBottom: 10, padding: "8px 12px", background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 8, fontSize: "0.8rem", color: T.redFgDeep }}>{licMsg.text}</div>
                 )}
-                {licLoading && <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>טוען...</div>}
+                {licLoading && <div style={{ fontSize: "0.85rem", color: T.inkFaint }}>טוען...</div>}
                 {!licLoading && filteredLicenses.length === 0 && (
-                  <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>אין רישיונות — הוסיפו למעלה</div>
+                  <div style={{ fontSize: "0.85rem", color: T.inkFaint }}>אין רישיונות — הוסיפו למעלה</div>
                 )}
 
                 {!licLoading && filteredLicenses.length > 0 && (
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                       <thead>
-                        <tr style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb" }}>
+                        <tr style={{ borderBottom: `2px solid ${T.line}`, background: T.fill2 }}>
                           <th style={thStyle}>מפתח רישיון</th>
                           <th style={thStyle}>קטגוריה</th>
                           <th style={thStyle}>שם משתמש</th>
@@ -1127,7 +1127,7 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {filteredLicenses.map(l => editingLic?.id === l.id ? (
-                          <tr key={l.id} style={{ borderBottom: "1px solid #f3f4f6", background: "#fffbeb" }}>
+                          <tr key={l.id} style={{ borderBottom: `1px solid ${T.line}`, background: T.amberBg }}>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, fontFamily: "monospace", minWidth: 180 }} value={editingLic.key} onChange={e => setEditingLic(p => p ? { ...p, key: e.target.value } : p)} /></td>
                             <td style={{ padding: 8 }}>
                               <select style={{ ...inputStyle, minWidth: 110 }} value={editingLic.category} onChange={e => setEditingLic(p => p ? { ...p, category: e.target.value } : p)}>
@@ -1139,47 +1139,47 @@ export default function AdminPage() {
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 140 }} value={editingLic.remark ?? ""} onChange={e => setEditingLic(p => p ? { ...p, remark: e.target.value } : p)} /></td>
                             <td style={{ padding: 8 }}></td>
                             <td style={{ padding: 8, whiteSpace: "nowrap" }}>
-                              <button onClick={saveLicEdit} disabled={licEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
+                              <button onClick={saveLicEdit} disabled={licEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: T.inverseBg, color: T.inverseText, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
                                 {licEditSaving ? "שומר..." : "שמור"}
                               </button>
-                              <button onClick={() => setEditingLic(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
+                              <button onClick={() => setEditingLic(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: T.fill, color: T.ink, fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
                             </td>
                           </tr>
                         ) : (
-                          <tr key={l.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                          <tr key={l.id} style={{ borderBottom: `1px solid ${T.line}` }}>
                             <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
-                              <span style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.8rem", color: "#111827", direction: "ltr", display: "inline-block" }}>{l.key}</span>
+                              <span style={{ fontFamily: "monospace", fontWeight: 600, fontSize: "0.8rem", color: T.text, direction: "ltr", display: "inline-block" }}>{l.key}</span>
                               <button
                                 onClick={() => { navigator.clipboard.writeText(l.key); setCopiedLicId(l.id); setTimeout(() => setCopiedLicId(null), 1500) }}
                                 title="העתק מפתח"
-                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.85rem", marginRight: 6, padding: 2, color: copiedLicId === l.id ? "#16a34a" : "#9ca3af", fontWeight: 700 }}
+                                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.85rem", marginRight: 6, padding: 2, color: copiedLicId === l.id ? T.greenSFg : T.inkFaint, fontWeight: 700 }}
                               >
                                 {copiedLicId === l.id ? "✓" : "📋"}
                               </button>
                             </td>
                             <td style={{ padding: "9px 8px" }}>
-                              <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: "#EDEFEA", color: "#16181D" }}>{l.category}</span>
+                              <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: T.codeBg, color: T.text }}>{l.category}</span>
                             </td>
-                            <td style={{ padding: "9px 8px", color: "#374151" }}>{l.username || "—"}</td>
+                            <td style={{ padding: "9px 8px", color: T.ink }}>{l.username || "—"}</td>
                             <td style={{ padding: "9px 8px" }}>
                               {l.password ? (
                                 <span
                                   onClick={() => setShowPw(p => ({ ...p, [l.id]: !p[l.id] }))}
                                   title={showPw[l.id] ? "הסתר" : "הצג"}
-                                  style={{ cursor: "pointer", fontFamily: "monospace", fontSize: "0.8rem", color: showPw[l.id] ? "#111827" : "#9ca3af", direction: "ltr", display: "inline-block" }}
+                                  style={{ cursor: "pointer", fontFamily: "monospace", fontSize: "0.8rem", color: showPw[l.id] ? T.text : T.inkFaint, direction: "ltr", display: "inline-block" }}
                                 >
                                   {showPw[l.id] ? l.password : "••••••"}
                                 </span>
                               ) : "—"}
                             </td>
-                            <td style={{ padding: "9px 8px", color: "#6b7280", fontSize: "0.8rem", maxWidth: 220 }}>{l.remark || "—"}</td>
-                            <td style={{ padding: "9px 8px", color: "#9ca3af", fontSize: "0.75rem", whiteSpace: "nowrap" }}>{new Date(l.createdAt).toLocaleDateString("he-IL")}</td>
+                            <td style={{ padding: "9px 8px", color: T.inkMuted, fontSize: "0.8rem", maxWidth: 220 }}>{l.remark || "—"}</td>
+                            <td style={{ padding: "9px 8px", color: T.inkFaint, fontSize: "0.75rem", whiteSpace: "nowrap" }}>{new Date(l.createdAt).toLocaleDateString("he-IL")}</td>
                             <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
                               <button onClick={() => { setEditingLic({ ...l }); setLicDeleteConfirm(null) }} title="עריכה" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", marginLeft: 4 }}>✏️</button>
                               {licDeleteConfirm === l.id ? (
                                 <>
-                                  <button onClick={() => deleteLicense(l.id)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontWeight: 700, fontSize: "0.75rem", cursor: "pointer", marginLeft: 4 }}>בטוח?</button>
-                                  <button onClick={() => setLicDeleteConfirm(null)} style={{ padding: "4px 8px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.75rem", cursor: "pointer" }}>ביטול</button>
+                                  <button onClick={() => deleteLicense(l.id)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: T.redFg, color: T.inverseText, fontWeight: 700, fontSize: "0.75rem", cursor: "pointer", marginLeft: 4 }}>בטוח?</button>
+                                  <button onClick={() => setLicDeleteConfirm(null)} style={{ padding: "4px 8px", borderRadius: 8, border: "none", background: T.fill, color: T.ink, fontWeight: 600, fontSize: "0.75rem", cursor: "pointer" }}>ביטול</button>
                                 </>
                               ) : (
                                 <button onClick={() => setLicDeleteConfirm(l.id)} title="מחק" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑</button>
@@ -1202,19 +1202,19 @@ export default function AdminPage() {
           const q = printerSearch.trim().toLowerCase()
           const filtered = printers.filter(p => !q || [p.name, p.maker, p.model, p.supplier, p.ipv4, p.hostname, p.inkToner, p.supplierSerial]
             .some(v => (v ?? "").toLowerCase().includes(q)))
-          const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.85rem", boxSizing: "border-box", width: "100%" }
-          const thStyle: React.CSSProperties = { padding: "8px", textAlign: "right", fontSize: "0.72rem", color: "#6b7280", fontWeight: 700, whiteSpace: "nowrap" }
-          const tdStyle: React.CSSProperties = { padding: "9px 8px", color: "#374151", whiteSpace: "nowrap" }
+          const inputStyle: React.CSSProperties = { padding: "8px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.85rem", boxSizing: "border-box", width: "100%" }
+          const thStyle: React.CSSProperties = { padding: "8px", textAlign: "right", fontSize: "0.72rem", color: T.inkMuted, fontWeight: 700, whiteSpace: "nowrap" }
+          const tdStyle: React.CSSProperties = { padding: "9px 8px", color: T.ink, whiteSpace: "nowrap" }
           const fmtBytes = (n: number) => n >= 1048576 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`
 
           const tonerBar = (level: number | null | undefined) => {
-            if (level == null) return <span style={{ color: "#9ca3af", fontSize: "0.78rem" }}>—</span>
+            if (level == null) return <span style={{ color: T.inkFaint, fontSize: "0.78rem" }}>—</span>
             const pct = Math.max(0, Math.min(100, level))
-            const color = pct > 50 ? "#16a34a" : pct > 20 ? "#d97706" : "#dc2626"
+            const color = pct > 50 ? T.greenSFg : pct > 20 ? T.amberFg : T.redFg
             return (
-              <div style={{ position: "relative", minWidth: 90, height: 18, borderRadius: 4, background: "#e5e7eb", overflow: "hidden" }}>
+              <div style={{ position: "relative", minWidth: 90, height: 18, borderRadius: 4, background: T.line, overflow: "hidden" }}>
                 <div style={{ position: "absolute", inset: 0, width: `${pct}%`, background: color, borderRadius: 4, transition: "width 0.3s" }} />
-                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: pct > 30 ? "#fff" : color, lineHeight: 1 }}>{pct}%</span>
+                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: pct > 30 ? T.inverseText : color, lineHeight: 1 }}>{pct}%</span>
               </div>
             )
           }
@@ -1223,18 +1223,18 @@ export default function AdminPage() {
           const driversCell = (p: Printer) => (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               {p.drivers.map(d => (
-                <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: "#EDEFEA", border: "1px solid #E7E9E6", fontSize: "0.75rem", fontWeight: 600 }}>
-                  <a href={`/api/admin/printers/drivers/${d.id}`} title={`${d.filename} · ${fmtBytes(d.size)}`} style={{ color: "#16181D", textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span key={d.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 20, background: T.codeBg, border: `1px solid ${T.border}`, fontSize: "0.75rem", fontWeight: 600 }}>
+                  <a href={`/api/admin/printers/drivers/${d.id}`} title={`${d.filename} · ${fmtBytes(d.size)}`} style={{ color: T.text, textDecoration: "none", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     ⬇ {d.filename}
                   </a>
                   {manage && (
-                    <button onClick={() => deleteDriver(d.id)} title="מחק דרייבר" style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem", lineHeight: 1, padding: 0 }}>✕</button>
+                    <button onClick={() => deleteDriver(d.id)} title="מחק דרייבר" style={{ background: "none", border: "none", cursor: "pointer", color: T.inkFaint, fontSize: "0.85rem", lineHeight: 1, padding: 0 }}>✕</button>
                   )}
                 </span>
               ))}
               {p.drivers.length === 0 && !manage && null}
               {manage && (
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: driverUploadingId === p.id ? "#e5e7eb" : "#f0fdf4", border: "1px solid #bbf7d0", color: driverUploadingId === p.id ? "#9ca3af" : "#15803d", fontSize: "0.75rem", fontWeight: 700, cursor: driverUploadingId === p.id ? "default" : "pointer" }}>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: driverUploadingId === p.id ? T.line : T.greenSBg, border: `1px solid ${T.greenSBorder}`, color: driverUploadingId === p.id ? T.inkFaint : T.greenSFgDeep, fontSize: "0.75rem", fontWeight: 700, cursor: driverUploadingId === p.id ? "default" : "pointer" }}>
                   {driverUploadingId === p.id ? "מעלה..." : "➕ דרייבר"}
                   <input type="file" hidden disabled={driverUploadingId === p.id}
                     onChange={e => { const f = e.target.files?.[0]; if (f) uploadDriver(p.id, f); e.target.value = "" }} />
@@ -1248,12 +1248,12 @@ export default function AdminPage() {
 
               {/* Mode toggle + search */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
                   {([{ label: "👁 צפייה", val: "view" }, { label: "⚙ ניהול", val: "manage" }] as const).map(opt => (
                     <button key={opt.val} onClick={() => { setPrinterMode(opt.val); setEditingPrinter(null); setPrinterDeleteConfirm(null) }}
                       style={{ padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem",
-                        background: printerMode === opt.val ? "#16181D" : "transparent",
-                        color:      printerMode === opt.val ? "#fff"    : "#6b7280" }}
+                        background: printerMode === opt.val ? T.inverseBg : "transparent",
+                        color:      printerMode === opt.val ? T.inverseText    : T.inkMuted }}
                     >{opt.label}</button>
                   ))}
                 </div>
@@ -1261,32 +1261,32 @@ export default function AdminPage() {
                   value={printerSearch}
                   onChange={e => setPrinterSearch(e.target.value)}
                   placeholder="חיפוש לפי שם, יצרן, ספק, IP..."
-                  style={{ flex: 1, minWidth: 180, padding: "8px 12px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.85rem", background: "#fff" }}
+                  style={{ flex: 1, minWidth: 180, padding: "8px 12px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.85rem", background: T.card }}
                 />
-                <button onClick={loadPrinters} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#16181D", background: "#EDEFEA", border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <button onClick={loadPrinters} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: T.text, background: T.codeBg, border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   רענן
                 </button>
-                <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{filtered.length} מדפסות</span>
+                <span style={{ fontSize: "0.78rem", color: T.inkFaint }}>{filtered.length} מדפסות</span>
               </div>
 
               {printerMsg && (
                 <div style={{ padding: "8px 14px", borderRadius: 10, fontSize: "0.83rem", fontWeight: 600,
-                  background: printerMsg.kind === "ok" ? "#f0fdf4" : "#fef2f2",
-                  border: `1px solid ${printerMsg.kind === "ok" ? "#bbf7d0" : "#fecaca"}`,
-                  color: printerMsg.kind === "ok" ? "#166534" : "#b91c1c" }}>
+                  background: printerMsg.kind === "ok" ? T.greenSBg : T.redBg,
+                  border: `1px solid ${printerMsg.kind === "ok" ? "${T.greenSBorder}" : "${T.redBorder}"}`,
+                  color: printerMsg.kind === "ok" ? T.greenSFgDeep : T.redFgDeep }}>
                   {printerMsg.text}
                 </div>
               )}
 
               {/* Add printer — manage mode only */}
               {manage && (
-                <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
+                <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
                   {/* Datalists for autocomplete */}
                   <datalist id="dl-maker">{[...new Set(printers.map(p => p.maker).filter(Boolean))].map(v => <option key={v!} value={v!} />)}</datalist>
                   <datalist id="dl-model">{[...new Set(printers.map(p => p.model).filter(Boolean))].map(v => <option key={v!} value={v!} />)}</datalist>
 
-                  <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>➕ הוספת מדפסת</h3>
+                  <h3 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>➕ הוספת מדפסת</h3>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
                     <input style={inputStyle} value={printerForm.name}           onChange={e => setPrinterForm(f => ({ ...f, name: e.target.value }))}           placeholder="שם מדפסת *" />
                     <input style={inputStyle} value={printerForm.maker}          onChange={e => setPrinterForm(f => ({ ...f, maker: e.target.value }))}          placeholder="יצרן" list="dl-maker" />
@@ -1301,19 +1301,19 @@ export default function AdminPage() {
                   <button
                     onClick={addPrinter}
                     disabled={printerSaving || !printerForm.name.trim()}
-                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: printerSaving || !printerForm.name.trim() ? "#e5e7eb" : "#16181D", color: printerSaving || !printerForm.name.trim() ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: printerSaving || !printerForm.name.trim() ? "not-allowed" : "pointer" }}
+                    style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: printerSaving || !printerForm.name.trim() ? T.line : T.inverseBg, color: printerSaving || !printerForm.name.trim() ? T.inkFaint : T.inverseText, fontWeight: 700, fontSize: "0.85rem", cursor: printerSaving || !printerForm.name.trim() ? "not-allowed" : "pointer" }}
                   >
                     {printerSaving ? "שומר..." : "הוסף מדפסת"}
                   </button>
-                  <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: "#9ca3af" }}>דרייברים נוספים לאחר יצירת המדפסת — דרך כפתור &quot;➕ דרייבר&quot; בשורת המדפסת.</p>
+                  <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: T.inkFaint }}>דרייברים נוספים לאחר יצירת המדפסת — דרך כפתור &quot;➕ דרייבר&quot; בשורת המדפסת.</p>
                 </div>
               )}
 
               {/* Printer list */}
-              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 20 }}>
-                {printersLoading && <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>טוען...</div>}
+              <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 20 }}>
+                {printersLoading && <div style={{ fontSize: "0.85rem", color: T.inkFaint }}>טוען...</div>}
                 {!printersLoading && filtered.length === 0 && (
-                  <div style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                  <div style={{ fontSize: "0.85rem", color: T.inkFaint }}>
                     {printers.length === 0 ? "אין מדפסות עדיין — עברו למצב ניהול כדי להוסיף." : "לא נמצאו מדפסות התואמות לחיפוש."}
                   </div>
                 )}
@@ -1321,7 +1321,7 @@ export default function AdminPage() {
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                       <thead>
-                        <tr style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb" }}>
+                        <tr style={{ borderBottom: `2px solid ${T.line}`, background: T.fill2 }}>
                           <th style={thStyle}>שם</th>
                           <th style={thStyle}>יצרן</th>
                           <th style={thStyle}>דגם</th>
@@ -1337,7 +1337,7 @@ export default function AdminPage() {
                       </thead>
                       <tbody>
                         {filtered.map(p => editingPrinter?.id === p.id ? (
-                          <tr key={p.id} style={{ borderBottom: "1px solid #f3f4f6", background: "#fffbeb" }}>
+                          <tr key={p.id} style={{ borderBottom: `1px solid ${T.line}`, background: T.amberBg }}>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 120 }} value={editingPrinter.name} onChange={e => setEditingPrinter(v => v ? { ...v, name: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.maker ?? ""} list="dl-maker" onChange={e => setEditingPrinter(v => v ? { ...v, maker: e.target.value } : v)} /></td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 90 }} value={editingPrinter.model ?? ""} list="dl-model" onChange={e => setEditingPrinter(v => v ? { ...v, model: e.target.value } : v)} /></td>
@@ -1360,15 +1360,15 @@ export default function AdminPage() {
                             </td>
                             <td style={{ padding: "9px 8px" }}>{driversCell(p)}</td>
                             <td style={{ padding: "9px 8px", whiteSpace: "nowrap" }}>
-                              <button onClick={savePrinterEdit} disabled={printerEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
+                              <button onClick={savePrinterEdit} disabled={printerEditSaving} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: T.inverseBg, color: T.inverseText, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", marginLeft: 6 }}>
                                 {printerEditSaving ? "שומר..." : "שמור"}
                               </button>
-                              <button onClick={() => setEditingPrinter(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
+                              <button onClick={() => setEditingPrinter(null)} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: T.fill, color: T.ink, fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>ביטול</button>
                             </td>
                           </tr>
                         ) : (
-                          <tr key={p.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                            <td style={{ ...tdStyle, fontWeight: 700, color: "#111827" }}>{p.name}</td>
+                          <tr key={p.id} style={{ borderBottom: `1px solid ${T.line}` }}>
+                            <td style={{ ...tdStyle, fontWeight: 700, color: T.text }}>{p.name}</td>
                             <td style={tdStyle}>{p.maker || "—"}</td>
                             <td style={tdStyle}>{p.model || "—"}</td>
                             <td style={tdStyle}>{p.supplier || "—"}</td>
@@ -1383,8 +1383,8 @@ export default function AdminPage() {
                                 <button onClick={() => { setEditingPrinter({ ...p }); setPrinterDeleteConfirm(null) }} title="עריכה" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", marginLeft: 4 }}>✏️</button>
                                 {printerDeleteConfirm === p.id ? (
                                   <>
-                                    <button onClick={() => deletePrinter(p.id)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontWeight: 700, fontSize: "0.75rem", cursor: "pointer", marginLeft: 4 }}>בטוח?</button>
-                                    <button onClick={() => setPrinterDeleteConfirm(null)} style={{ padding: "4px 8px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.75rem", cursor: "pointer" }}>ביטול</button>
+                                    <button onClick={() => deletePrinter(p.id)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: T.redFg, color: T.inverseText, fontWeight: 700, fontSize: "0.75rem", cursor: "pointer", marginLeft: 4 }}>בטוח?</button>
+                                    <button onClick={() => setPrinterDeleteConfirm(null)} style={{ padding: "4px 8px", borderRadius: 8, border: "none", background: T.fill, color: T.ink, fontWeight: 600, fontSize: "0.75rem", cursor: "pointer" }}>ביטול</button>
                                   </>
                                 ) : (
                                   <button onClick={() => setPrinterDeleteConfirm(p.id)} title="מחק מדפסת" style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑</button>
@@ -1411,9 +1411,9 @@ export default function AdminPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               {/* Summary + actions */}
-              <div style={{ background: "#fff", borderRadius: 14, border: `1px solid ${T.border}`, padding: 20, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.border}`, padding: 20, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <h3 style={{ margin: "0 0 4px", fontSize: "0.95rem", fontWeight: 700, color: "#374151" }}>📦 ציוד שטרם התקבל</h3>
+                  <h3 style={{ margin: "0 0 4px", fontSize: "0.95rem", fontWeight: 700, color: T.ink }}>📦 ציוד שטרם התקבל</h3>
                   <p style={{ margin: 0, fontSize: "0.8rem", color: T.text3 }}>
                     {shortageLoading
                       ? "טוען..."
@@ -1434,7 +1434,7 @@ export default function AdminPage() {
 
                 <button
                   onClick={() => loadShortage()}
-                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#16181D", background: "#EDEFEA", border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: T.text, background: T.codeBg, border: "none", cursor: "pointer", padding: "8px 14px", borderRadius: 8, fontWeight: 600 }}
                 >רענן</button>
 
                 <button
@@ -1442,18 +1442,18 @@ export default function AdminPage() {
                   disabled={totalUnits === 0}
                   title="העתקת הרשימה לשליחה לספק"
                   style={{ padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: "0.82rem",
-                    background: totalUnits === 0 ? "#e5e7eb" : T.dark,
-                    color:      totalUnits === 0 ? "#9ca3af" : "#fff",
+                    background: totalUnits === 0 ? T.line : T.inverseBg,
+                    color:      totalUnits === 0 ? T.inkFaint : T.inverseText,
                     cursor:     totalUnits === 0 ? "not-allowed" : "pointer" }}
                 >{shortageCopied ? "✓ הועתק" : "📋 העתק רשימה לספק"}</button>
               </div>
 
               {/* Empty state */}
               {!shortageLoading && shortage.length === 0 && (
-                <div style={{ textAlign: "center", padding: "60px 24px", background: "#fff", borderRadius: 16, border: "1px solid #f3f4f6" }}>
+                <div style={{ textAlign: "center", padding: "60px 24px", background: T.card, borderRadius: 16, border: `1px solid ${T.line}` }}>
                   <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>✓</div>
-                  <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>אין ציוד חסר</p>
-                  <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>כל הפריטים שהתבקשו סומנו כהתקבלו</p>
+                  <p style={{ margin: "0 0 4px", fontWeight: 700, color: T.ink }}>אין ציוד חסר</p>
+                  <p style={{ margin: 0, fontSize: "0.82rem", color: T.inkFaint }}>כל הפריטים שהתבקשו סומנו כהתקבלו</p>
                 </div>
               )}
 
@@ -1461,37 +1461,37 @@ export default function AdminPage() {
               {shortage.map(item => {
                 const open = shortageExpanded === item.label
                 return (
-                  <div key={item.label} style={{ background: "#fff", borderRadius: 12, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+                  <div key={item.label} style={{ background: T.card, borderRadius: 12, border: `1px solid ${T.border}`, overflow: "hidden" }}>
                     <button
                       onClick={() => setShortageExpanded(open ? null : item.label)}
                       style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", textAlign: "right" }}
                     >
-                      <span style={{ fontSize: "1.15rem", fontWeight: 800, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 9, padding: "3px 12px", flexShrink: 0 }}>
+                      <span style={{ fontSize: "1.15rem", fontWeight: 800, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 9, padding: "3px 12px", flexShrink: 0 }}>
                         {item.outstanding}
                       </span>
-                      <span style={{ fontWeight: 700, fontSize: "0.92rem", color: "#111827", flex: 1, minWidth: 0 }}>{item.label}</span>
+                      <span style={{ fontWeight: 700, fontSize: "0.92rem", color: T.text, flex: 1, minWidth: 0 }}>{item.label}</span>
                       <span style={{ fontSize: "0.75rem", color: T.text3, whiteSpace: "nowrap" }}>
                         התקבלו {item.received} מתוך {item.requested} · {item.tickets.length} פניות
                       </span>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transform: open ? "rotate(-90deg)" : "rotate(0)", transition: "transform 0.2s" }}>
-                        <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
 
                     {open && (
-                      <div style={{ borderTop: "1px solid #f3f4f6", padding: "10px 18px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ borderTop: `1px solid ${T.line}`, padding: "10px 18px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
                         {item.tickets.map(t => (
                           <a
                             key={t.ticketNumber}
                             href={`/tickets/HDTC-${t.ticketNumber}`}
-                            style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", fontSize: "0.82rem", color: "#374151", padding: "5px 0" }}
+                            style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", fontSize: "0.82rem", color: T.ink, padding: "5px 0" }}
                           >
-                            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+                            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
                               HDTC-{t.ticketNumber}
                             </span>
                             <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
                             <span style={{ ...badge, ...(STATUS_STYLES[t.status] ?? {}) }}>{t.status}</span>
-                            <span style={{ fontWeight: 700, color: "#c2410c", flexShrink: 0 }}>חסר {t.outstanding}</span>
+                            <span style={{ fontWeight: 700, color: T.orangeFgDeep, flexShrink: 0 }}>חסר {t.outstanding}</span>
                           </a>
                         ))}
                       </div>
@@ -1502,9 +1502,9 @@ export default function AdminPage() {
 
               {/* The exact text the copy button puts on the clipboard */}
               {shortage.length > 0 && (
-                <div style={{ background: "#fff", borderRadius: 12, border: `1px solid ${T.border}`, padding: 18 }}>
-                  <h4 style={{ margin: "0 0 10px", fontSize: "0.82rem", fontWeight: 700, color: "#374151" }}>הרשימה לשליחה לספק</h4>
-                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: "0.84rem", color: "#374151", background: "#f9fafb", borderRadius: 8, padding: "12px 14px", lineHeight: 1.7 }}>
+                <div style={{ background: T.card, borderRadius: 12, border: `1px solid ${T.border}`, padding: 18 }}>
+                  <h4 style={{ margin: "0 0 10px", fontSize: "0.82rem", fontWeight: 700, color: T.ink }}>הרשימה לשליחה לספק</h4>
+                  <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: "0.84rem", color: T.ink, background: T.fill2, borderRadius: 8, padding: "12px 14px", lineHeight: 1.7 }}>
                     {shortageText}
                   </pre>
                 </div>
@@ -1519,7 +1519,7 @@ export default function AdminPage() {
         {!loading && (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: isMobile ? "8px" : "10px" }}>
             {[
-              { label: "בתור (פתוח)", count: openTickets.length,                                         color: T.dark,    bg: T.codeBg,    filterKey: "queue" },
+              { label: "בתור (פתוח)", count: openTickets.length,                                         color: T.text,    bg: T.codeBg,    filterKey: "queue" },
               { label: "דחוף",        count: urgentCount,                                               color: URGENCY["דחוף"].fg, bg: URGENCY["דחוף"].bg, filterKey: "urgent" },
               { label: "גבוה",        count: highCount,                                                 color: URGENCY["גבוה"].fg, bg: URGENCY["גבוה"].bg, filterKey: "high" },
               { label: "בטיפול",      count: openTickets.filter(t => t.status === "בטיפול").length,    color: STATUS["בטיפול"].fg, bg: STATUS["בטיפול"].bg, filterKey: "inprog" },
@@ -1531,7 +1531,7 @@ export default function AdminPage() {
                 <button
                   key={label}
                   onClick={() => setStatFilter(f => f === filterKey ? null : filterKey)}
-                  style={{ backgroundColor: isActive ? bg : "#fff", borderRadius: "12px", padding: "10px 11px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", border: isActive ? `2px solid ${color}` : `1px solid ${T.border}`, cursor: "pointer", textAlign: "right", width: "100%" }}
+                  style={{ backgroundColor: isActive ? bg : T.card, borderRadius: "12px", padding: "10px 11px", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", border: isActive ? `2px solid ${color}` : `1px solid ${T.border}`, cursor: "pointer", textAlign: "right", width: "100%" }}
                 >
                   <span style={{ fontSize: "0.72rem", color: isActive ? color : T.text3, fontWeight: isActive ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
                   <span style={{ fontSize: "1.05rem", fontWeight: 800, color, flexShrink: 0 }}>{count}</span>
@@ -1547,15 +1547,15 @@ export default function AdminPage() {
             value={ticketSearch}
             onChange={e => setTicketSearch(e.target.value)}
             placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
-            style={{ flex: 1, minWidth: 200, padding: "8px 13px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.85rem", background: "#fff" }}
+            style={{ flex: 1, minWidth: 200, padding: "8px 13px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.85rem", background: T.card }}
           />
           {/* Open / All toggle */}
-          <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
             {[{ label: "פתוחות", val: false }, { label: "הכל", val: true }].map(opt => (
               <button key={String(opt.val)} onClick={() => setShowAll(opt.val)}
                 style={{ padding: "7px 16px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem",
-                  background: showAll === opt.val ? "#16181D" : "transparent",
-                  color:      showAll === opt.val ? "#fff"    : "#6b7280",
+                  background: showAll === opt.val ? T.inverseBg : "transparent",
+                  color:      showAll === opt.val ? T.inverseText    : T.inkMuted,
                   transition: "all 0.15s" }}
               >{opt.label}</button>
             ))}
@@ -1571,8 +1571,8 @@ export default function AdminPage() {
             ] as const).map(col => (
               <button key={col.key} onClick={() => handleSort(col.key)}
                 style={{ display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-                  background: sortKey === col.key ? "#EDEFEA" : "#f3f4f6",
-                  color:      sortKey === col.key ? "#16181D" : "#9ca3af" }}
+                  background: sortKey === col.key ? T.codeBg : T.fill,
+                  color:      sortKey === col.key ? T.text : T.inkFaint }}
               >
                 {col.label}
                 <span style={{ fontSize: "0.6rem" }}>
@@ -1582,19 +1582,19 @@ export default function AdminPage() {
             ))}
           </div>
           <button onClick={loadTickets}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "#16181D", background: "#EDEFEA", border: "none", cursor: "pointer", padding: "7px 14px", borderRadius: 8, fontWeight: 600 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: T.text, background: T.codeBg, border: "none", cursor: "pointer", padding: "7px 14px", borderRadius: 8, fontWeight: 600 }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             רענן
           </button>
-          <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{displayTickets.length} פניות</span>
+          <span style={{ fontSize: "0.78rem", color: T.inkFaint }}>{displayTickets.length} פניות</span>
         </div>
 
         {/* Active stat filter indicator */}
         {statFilter && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#EDEFEA", border: "1px solid #c4b5fd", borderRadius: 10, fontSize: "0.82rem", color: "#16181D" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: T.codeBg, border: `1px solid ${T.purpleBorder}`, borderRadius: 10, fontSize: "0.82rem", color: T.text }}>
             <span>מסנן: {statFilter === "queue" ? "בתור (פתוח)" : statFilter === "urgent" ? "דחוף" : statFilter === "high" ? "גבוה" : statFilter === "inprog" ? "בטיפול" : "סגורות"}</span>
-            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16181D", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
+            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
           </div>
         )}
 
@@ -1602,12 +1602,12 @@ export default function AdminPage() {
         {numberSuggestion && (
           <a
             href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
               HDTC-{numberSuggestion.ticketNumber}
             </span>
-            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+            <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
             </span>
             <span style={{ ...badge, ...(STATUS_STYLES[numberSuggestion.status] ?? {}) }}>{numberSuggestion.status}</span>
@@ -1617,11 +1617,11 @@ export default function AdminPage() {
 
         {/* Title */}
         <div>
-          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "#1f2937" }}>
+          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>
             {showAll ? "כל הפניות" : "תור פניות פתוחות"}
           </h2>
           {!loading && !sortKey && (
-            <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "#9ca3af" }}>
+            <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: T.inkFaint }}>
               {showAll ? "ממוין לפי תאריך עדכון אחרון" : "ממוין לפי דחיפות, אחר כך לפי זמן פתיחה"}
             </p>
           )}
@@ -1629,15 +1629,15 @@ export default function AdminPage() {
 
         {/* Ticket list */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTopColor: "#16181D", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ textAlign: "center", padding: "60px 0", color: T.inkFaint }}>
+            <div style={{ width: "36px", height: "36px", border: `3px solid ${T.line}`, borderTopColor: T.text, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען...</p>
           </div>
         ) : displayTickets.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "70px 24px", backgroundColor: "#fff", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+          <div style={{ textAlign: "center", padding: "70px 24px", backgroundColor: T.card, borderRadius: "16px", border: `1px solid ${T.line}`, boxShadow: `0 1px 4px ${T.shadow1}` }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>{openTickets.length === 0 && !showAll ? "✓" : "🔍"}</div>
-            <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>{openTickets.length === 0 && !showAll ? "כל הפניות טופלו!" : "לא נמצאו פניות"}</p>
-            <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>{openTickets.length === 0 && !showAll ? "אין פניות פתוחות כרגע" : "נסו לשנות את החיפוש או הסינון"}</p>
+            <p style={{ margin: "0 0 4px", fontWeight: 700, color: T.ink }}>{openTickets.length === 0 && !showAll ? "כל הפניות טופלו!" : "לא נמצאו פניות"}</p>
+            <p style={{ margin: 0, fontSize: "0.82rem", color: T.inkFaint }}>{openTickets.length === 0 && !showAll ? "אין פניות פתוחות כרגע" : "נסו לשנות את החיפוש או הסינון"}</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1654,11 +1654,11 @@ export default function AdminPage() {
                 onMouseEnter={() => setHoverId(ticket.id)}
                 onMouseLeave={() => setHoverId(null)}
                 style={{
-                  backgroundColor: isOnHold ? "#f9fafb" : isStale ? "#fff8f2" : "#fff",
+                  backgroundColor: isOnHold ? T.fill2 : isStale ? T.orangeBg : T.card,
                   borderRadius: "12px",
-                  border: isStale ? "1px solid #fed7aa" : isOnHold ? "1px solid #e5e7eb" : "1px solid #f3f4f6",
-                  borderRight: `4px solid ${isStale ? "#f97316" : isClosed ? "#d1d5db" : isOnHold ? "#9ca3af" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
-                  boxShadow: hoverId === ticket.id ? "0 4px 16px rgba(0,0,0,0.09)" : "0 1px 3px rgba(0,0,0,0.05)",
+                  border: isStale ? `1px solid ${T.orangeBorder}` : isOnHold ? `1px solid ${T.line}` : `1px solid ${T.line}`,
+                  borderRight: `4px solid ${isStale ? "${T.orangeFg}" : isClosed ? "${T.lineStrong}" : isOnHold ? "${T.inkFaint}" : (URGENCY_BORDER[ticket.urgency] ?? "${T.line}")}`,
+                  boxShadow: hoverId === ticket.id ? `0 4px 16px ${T.shadow2}` : `0 1px 3px ${T.shadow1}`,
                   overflow: "hidden",
                   transition: "box-shadow 0.15s",
                   opacity: isClosed ? 0.72 : isOnHold ? 0.82 : 1,
@@ -1685,21 +1685,21 @@ export default function AdminPage() {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
-                        <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transition: "transform 0.2s", transform: expanded === ticket.id ? "rotate(-90deg)" : "rotate(0)" }}>
-                        <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}), padding: "2px 8px" }}>{ticket.urgency}</span>
                       <span style={{ ...badge, ...(STATUS_STYLES[ticket.status] ?? {}), padding: "2px 8px" }}>{ticket.status}</span>
-                      <span style={{ fontSize: "0.68rem", color: isStale ? "#c2410c" : "#9ca3af", fontWeight: isStale ? 700 : 400 }}>
+                      <span style={{ fontSize: "0.68rem", color: isStale ? T.orangeFgDeep : T.inkFaint, fontWeight: isStale ? 700 : 400 }}>
                         {new Date(ticket.createdAt).toLocaleDateString("he-IL")} · {formatWorkdays(wdOpen)}
                       </span>
                       {isStale && (
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px" }}>⏰ מוזנח</span>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 5px" }}>⏰ מוזנח</span>
                       )}
                     </div>
                   </div>
@@ -1724,8 +1724,8 @@ export default function AdminPage() {
                   {/* Queue position */}
                   <div style={{
                     width: "26px", height: "26px", borderRadius: "50%",
-                    backgroundColor: i === 0 && !showAll && !sortKey ? "#fef3c7" : "#f3f4f6",
-                    color: i === 0 && !showAll && !sortKey ? "#92400e" : "#9ca3af",
+                    backgroundColor: i === 0 && !showAll && !sortKey ? T.amberBg : T.fill,
+                    color: i === 0 && !showAll && !sortKey ? T.amberFgDeep : T.inkFaint,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: "0.7rem", fontWeight: 800, flexShrink: 0,
                   }}>
@@ -1735,14 +1735,14 @@ export default function AdminPage() {
                   {/* Subject + user info */}
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
-                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                         HDTC-{ticket.ticketNumber}
                       </span>
-                      <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontWeight: 600, color: T.text, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {ticket.subject}
                       </span>
                     </div>
-                    <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "2px" }}>
+                    <div style={{ fontSize: "0.75rem", color: T.inkFaint, marginTop: "2px" }}>
                       {ticket.user?.name ?? ticket.user?.email} · {ticket.phone} · {ticket.computerName} · {ticket.category} · {ticket.platform}
                     </div>
                   </div>
@@ -1756,54 +1756,54 @@ export default function AdminPage() {
                   {/* Assignee */}
                   <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}
                     title={ticket.assignedTo}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: ticket.assignedTo === session?.user?.email ? "#16181D" : "#64748b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.62rem", fontWeight: 700 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: ticket.assignedTo === session?.user?.email ? T.inverseBg : T.inkMuted, color: T.inverseText, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.62rem", fontWeight: 700 }}>
                       {staffDisplay(ticket.assignedTo).slice(0, 2).toUpperCase()}
                     </div>
-                    <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>{staffDisplay(ticket.assignedTo)}</span>
+                    <span style={{ fontSize: "0.72rem", color: T.inkMuted, fontWeight: 500, whiteSpace: "nowrap" }}>{staffDisplay(ticket.assignedTo)}</span>
                   </div>
 
                   {/* Time + workdays */}
-                  <div style={{ fontSize: "0.72rem", color: isStale ? "#c2410c" : "#9ca3af", textAlign: "left", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                  <div style={{ fontSize: "0.72rem", color: isStale ? T.orangeFgDeep : T.inkFaint, textAlign: "left", whiteSpace: "nowrap", lineHeight: 1.5 }}>
                     <div>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</div>
-                    <div style={{ color: isStale ? "#c2410c" : isClosed ? "#16a34a" : "#6b7280", fontWeight: 600 }}>
+                    <div style={{ color: isStale ? T.orangeFgDeep : isClosed ? T.greenSFg : T.inkMuted, fontWeight: 600 }}>
                       {isStale ? "⏰ " : ""}{isClosed ? `נסגר ${formatWorkdays(wdOpen)}` : formatWorkdays(wdOpen)}
                     </div>
                   </div>
 
                   {/* Expand chevron */}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transition: "transform 0.2s", transform: expanded === ticket.id ? "rotate(-90deg)" : "rotate(0)" }}>
-                    <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 )}
 
                 {/* Expanded panel */}
                 {expanded === ticket.id && (
-                  <div style={{ borderTop: "1px solid #f3f4f6", padding: "16px 20px", backgroundColor: "#fafbfc" }}>
+                  <div style={{ borderTop: `1px solid ${T.line}`, padding: "16px 20px", backgroundColor: T.fill2 }}>
                     {editingTicketId === ticket.id ? (
                       /* ── Edit mode ── */
                       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                           <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>נושא</div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>נושא</div>
                             <input value={editForm.subject} onChange={e => setEditForm(f => ({ ...f, subject: e.target.value }))}
-                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                           </div>
                           <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>טלפון</div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>טלפון</div>
                             <input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
-                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>שם מחשב</div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>שם מחשב</div>
                           <input value={editForm.computerName} onChange={e => setEditForm(f => ({ ...f, computerName: e.target.value }))}
-                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                         </div>
                         <div>
-                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>תיאור</div>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>תיאור</div>
                           <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={4}
-                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", resize: "vertical", boxSizing: "border-box" }} />
+                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", resize: "vertical", boxSizing: "border-box" }} />
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                           {([
@@ -1813,9 +1813,9 @@ export default function AdminPage() {
                             { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
                           ]).map(({ label, key, opts }) => (
                             <div key={key}>
-                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>{label}</div>
+                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>{label}</div>
                               <select value={editForm[key as keyof typeof editForm]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", background: "#fff" }}>
+                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", background: T.card }}>
                                 {opts.map(o => <option key={o}>{o}</option>)}
                               </select>
                             </div>
@@ -1823,19 +1823,19 @@ export default function AdminPage() {
                         </div>
                         {editForm.status === "בהמתנה" && (
                           <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>סיבת ההמתנה</div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>סיבת ההמתנה</div>
                             <input value={editForm.holdReason} onChange={e => setEditForm(f => ({ ...f, holdReason: e.target.value }))}
                               placeholder="למשל: ממתין לחלק חלף, ממתין לאישור ספק..."
-                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                           </div>
                         )}
                         <div style={{ display: "flex", gap: 8 }}>
                           <button onClick={e => { e.stopPropagation(); saveEdit() }} disabled={editSaving}
-                            style={{ background: "linear-gradient(135deg,#16181D,#16181D)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
+                            style={{ background: `linear-gradient(135deg,${T.inverseBg},${T.inverseBg})`, color: T.inverseText, fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
                             {editSaving ? "שומר..." : "שמור"}
                           </button>
                           <button onClick={e => { e.stopPropagation(); setEditingTicketId(null) }}
-                            style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                            style={{ background: T.fill, color: T.ink, fontWeight: 600, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
                             ביטול
                           </button>
                         </div>
@@ -1844,14 +1844,14 @@ export default function AdminPage() {
                       /* ── View mode ── */
                       <>
                         {/* Assignment row */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-                          <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>👤 מוקצה ל:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 14px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
+                          <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, flexShrink: 0 }}>👤 מוקצה ל:</span>
                           <select
                             value={ticket.assignedTo}
                             disabled={assigning === ticket.id}
                             onClick={e => e.stopPropagation()}
                             onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
-                            style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#16181D", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                            style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", background: T.card, fontWeight: 600, color: T.text, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                           >
                             {staffMembers.map(m => (
                               <option key={m.email} value={m.email}>{m.display}</option>
@@ -1861,56 +1861,56 @@ export default function AdminPage() {
                             <button
                               onClick={e => { e.stopPropagation(); assignTicket(ticket.id, session?.user?.email ?? "") }}
                               disabled={assigning === ticket.id || !session?.user?.email}
-                              style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                              style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: T.inverseBg, color: T.inverseText, fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                             >
                               הקצה לעצמי
                             </button>
                           )}
-                          {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
+                          {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>שומר...</span>}
                         </div>
 
-                        <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
+                        <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: T.ink, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: holdForId === ticket.id ? 6 : 14 }}>
-                          <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
+                          <span style={{ fontSize: "0.78rem", color: T.inkMuted, fontWeight: 600 }}>שנה סטטוס:</span>
                           {["פתוח", "בטיפול", "בהמתנה", "סגור"].map(s => (
                             <button key={s} disabled={updating === ticket.id || ticket.status === s}
                               onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
-                              style={{ padding: "5px 14px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLES[s] : { backgroundColor: "#f3f4f6", color: "#374151" }) }}>
+                              style={{ padding: "5px 14px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLES[s] : { backgroundColor: T.fill, color: T.ink }) }}>
                               {s}
                             </button>
                           ))}
                           <button
-                            style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#EDEFEA", color: "#16181D" }}
+                            style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: T.codeBg, color: T.text }}
                             onClick={e => { e.stopPropagation(); setEditingTicketId(ticket.id); setEditForm({ subject: ticket.subject, description: ticket.description, phone: ticket.phone, computerName: ticket.computerName, urgency: ticket.urgency, category: ticket.category, platform: ticket.platform, status: ticket.status, holdReason: ticket.holdReason ?? "" }) }}>
                             ✏️ עריכה
                           </button>
                           <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
-                            style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, textDecoration: "none", background: "#f0fdf4", color: "#15803d" }}>
+                            style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, textDecoration: "none", background: T.greenSBg, color: T.greenSFgDeep }}>
                             🔍 פתח פנייה מלאה
                           </a>
                         </div>
 
                         {/* ── Hold reason input (shown after clicking "בהמתנה") ── */}
                         {holdForId === ticket.id && (
-                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14, padding: "10px 12px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14, padding: "10px 12px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#4b5563", marginBottom: 4 }}>סיבת ההמתנה (אופציונלי)</div>
+                              <div style={{ fontSize: "0.75rem", fontWeight: 700, color: T.ink, marginBottom: 4 }}>סיבת ההמתנה (אופציונלי)</div>
                               <input
                                 autoFocus
                                 value={holdInput}
                                 onChange={e => setHoldInput(e.target.value)}
                                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); confirmHold(ticket.id) } if (e.key === "Escape") setHoldForId(null) }}
                                 placeholder="למשל: ממתין לחלק חלף, ממתין לאישור ספק..."
-                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", boxSizing: "border-box" }}
+                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", boxSizing: "border-box" }}
                               />
                             </div>
                             <div style={{ display: "flex", gap: 6, alignItems: "center", paddingTop: 22 }}>
                               <button onClick={e => { e.stopPropagation(); confirmHold(ticket.id) }}
-                                style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#4b5563", color: "#fff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
+                                style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: T.inverseBg, color: T.inverseText, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
                                 אשר
                               </button>
                               <button onClick={e => { e.stopPropagation(); setHoldForId(null) }}
-                                style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>
+                                style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: T.fill, color: T.ink, fontWeight: 600, fontSize: "0.78rem", cursor: "pointer" }}>
                                 ביטול
                               </button>
                             </div>
@@ -1919,30 +1919,30 @@ export default function AdminPage() {
 
                         {/* ── Current hold reason (shown when ticket is on hold) ── */}
                         {ticket.status === "בהמתנה" && ticket.holdReason && (
-                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14, padding: "10px 14px", background: "#f3f4f6", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 14, padding: "10px 14px", background: T.fill, borderRadius: 10, border: `1px solid ${T.line}` }}>
                             <span style={{ fontSize: "0.9rem" }}>⏸</span>
                             <div>
-                              <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", marginBottom: 2 }}>סיבת ההמתנה</div>
-                              <div style={{ fontSize: "0.83rem", color: "#374151" }}>{ticket.holdReason}</div>
+                              <div style={{ fontSize: "0.72rem", fontWeight: 700, color: T.inkMuted, marginBottom: 2 }}>סיבת ההמתנה</div>
+                              <div style={{ fontSize: "0.83rem", color: T.ink }}>{ticket.holdReason}</div>
                             </div>
                           </div>
                         )}
 
                         {/* ── Conversation with user ── */}
-                        <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginBottom: 14 }}>
-                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>💬 שיחה עם המגיש</div>
+                        <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14, marginBottom: 14 }}>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>💬 שיחה עם המגיש</div>
                           {(expandedMessages[ticket.id] ?? []).length === 0
-                            ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הודעות עדיין</div>
+                            ? <div style={{ fontSize: "0.78rem", color: T.inkFaint, marginBottom: 10 }}>אין הודעות עדיין</div>
                             : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (
                                 <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: msg.authorRole === "staff" ? "row-reverse" : "row", alignItems: "flex-start" }}>
-                                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#16181D" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
+                                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? T.inverseBg : T.cyanFg, color: T.inverseText, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
                                     {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                                   </div>
                                   <div style={{ maxWidth: "70%" }}>
-                                    <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
+                                    <div style={{ fontSize: "0.68rem", color: T.inkFaint, marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
                                       {msg.authorName} · {new Date(msg.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
                                     </div>
-                                    <div style={{ background: msg.authorRole === "staff" ? "#EDEFEA" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                                    <div style={{ background: msg.authorRole === "staff" ? T.codeBg : T.blueBg, borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: T.text, whiteSpace: "pre-wrap" }}>{msg.content}</div>
                                   </div>
                                 </div>
                               ))
@@ -1954,7 +1954,7 @@ export default function AdminPage() {
                               value={replyText[ticket.id] ?? ""}
                               onClick={e => e.stopPropagation()}
                               onChange={e => setReplyText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                              style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
+                              style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
                             />
                             <button
                               onClick={async e => {
@@ -1976,7 +1976,7 @@ export default function AdminPage() {
                                 } finally { setReplySaving(null) }
                               }}
                               disabled={replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim()}
-                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#16181D", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? T.line : T.inverseBg, color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? T.inkFaint : T.inverseText, cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                             >
                               {replySaving === ticket.id ? "..." : "שלח"}
                             </button>
@@ -1984,17 +1984,17 @@ export default function AdminPage() {
                         </div>
 
                         {/* ── Notes ── */}
-                        <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14 }}>
-                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>📝 הערות טכנאי</div>
+                        <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>📝 הערות טכנאי</div>
                           {(expandedNotes[ticket.id] ?? []).length === 0
-                            ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הערות עדיין</div>
+                            ? <div style={{ fontSize: "0.78rem", color: T.inkFaint, marginBottom: 10 }}>אין הערות עדיין</div>
                             : (expandedNotes[ticket.id] ?? []).map((note: TicketNote) => (
-                                <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 10, marginBottom: 10 }}>
+                                <div key={note.id} style={{ borderRight: `3px solid ${T.purpleFg}`, paddingRight: 10, marginBottom: 10 }}>
                                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D" }}>{note.authorName}</span>
-                                    <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
+                                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: T.text }}>{note.authorName}</span>
+                                    <span style={{ fontSize: "0.7rem", color: T.inkFaint }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
                                   </div>
-                                  <div style={{ fontSize: "0.82rem", color: "#374151", whiteSpace: "pre-wrap" }}>{note.content}</div>
+                                  <div style={{ fontSize: "0.82rem", color: T.ink, whiteSpace: "pre-wrap" }}>{note.content}</div>
                                 </div>
                               ))
                           }
@@ -2004,14 +2004,14 @@ export default function AdminPage() {
                             value={noteText[ticket.id] ?? ""}
                             onClick={e => e.stopPropagation()}
                             onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box", marginBottom: 4 }}
+                            style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", resize: "none", boxSizing: "border-box", marginBottom: 4 }}
                           />
                           <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
-                            <span style={{ fontSize: "0.68rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
+                            <span style={{ fontSize: "0.68rem", color: T.inkFaint, alignSelf: "center" }}>הזכר:</span>
                             {staffMembers.map(m => (
                               <button key={m.handle} type="button"
                                 onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
-                                style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #E7E9E6", background: "#EDEFEA", color: "#16181D", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
+                                style={{ padding: "1px 8px", borderRadius: 20, border: `1px solid ${T.border}`, background: T.codeBg, color: T.text, fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                               >@{m.handle}</button>
                             ))}
                           </div>
@@ -2052,7 +2052,7 @@ export default function AdminPage() {
                               } finally { setNoteSaving(null) }
                             }}
                             disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}
-                            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#16181D", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? T.line : T.inverseBg, color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? T.inkFaint : T.inverseText, cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                           >
                             {noteSaving === ticket.id ? "..." : "הוסף"}
                           </button>

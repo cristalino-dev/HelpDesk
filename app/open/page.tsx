@@ -15,10 +15,10 @@ import { HDR, T } from "@/lib/theme"
 
 // ── Urgency colours ──────────────────────────────────────────────────────────
 const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string; label: string; hint: string }> = {
-  "נמוך":   { bg: "#f0fdf4", text: "#16a34a", border: "#86efac", label: "נמוך",   hint: "שאלה, בקשה כללית, לא חוסמת עבודה" },
-  "בינוני": { bg: "#fffbeb", text: "#d97706", border: "#fcd34d", label: "בינוני", hint: "מגבלה חלקית — אפשר להמשיך לעבוד" },
-  "גבוה":   { bg: "#fff7ed", text: "#ea580c", border: "#fdba74", label: "גבוה",   hint: "פגיעה משמעותית בעבודה" },
-  "דחוף":   { bg: "#fef2f2", text: "#dc2626", border: "#fca5a5", label: "דחוף",   hint: "תקלה קריטית — לא ניתן לעבוד כלל" },
+  "נמוך":   { bg: T.greenSBg, text: T.greenSFg, border: T.greenSBorder, label: "נמוך",   hint: "שאלה, בקשה כללית, לא חוסמת עבודה" },
+  "בינוני": { bg: T.amberBg, text: T.amberFg, border: T.amberBorder, label: "בינוני", hint: "מגבלה חלקית — אפשר להמשיך לעבוד" },
+  "גבוה":   { bg: T.orangeBg, text: T.orangeFg, border: T.orangeBorder, label: "גבוה",   hint: "פגיעה משמעותית בעבודה" },
+  "דחוף":   { bg: T.redBg, text: T.redFg, border: T.redBorder, label: "דחוף",   hint: "תקלה קריטית — לא ניתן לעבוד כלל" },
 }
 
 // ── Walkthrough steps shown before the form ──────────────────────────────────
@@ -54,10 +54,10 @@ function FieldLabel({ label, hint, required }: { label: string; hint?: string; r
   return (
     <div style={{ marginBottom: 5 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#374151" }}>{label}</span>
-        {required && <span style={{ fontSize: "0.7rem", color: "#ef4444", fontWeight: 700 }}>*</span>}
+        <span style={{ fontSize: "0.82rem", fontWeight: 700, color: T.ink }}>{label}</span>
+        {required && <span style={{ fontSize: "0.7rem", color: T.redFg, fontWeight: 700 }}>*</span>}
       </div>
-      {hint && <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginTop: 1 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: "0.72rem", color: T.inkFaint, marginTop: 1 }}>{hint}</div>}
     </div>
   )
 }
@@ -197,8 +197,8 @@ export default function OpenTicketPage() {
   // ── Shared input style ───────────────────────────────────────────────────────
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "10px 13px", borderRadius: 10,
-    border: "1.5px solid #e5e7eb", fontSize: "0.88rem",
-    background: "#fafafa", boxSizing: "border-box",
+    border: `1.5px solid ${T.line}`, fontSize: "0.88rem",
+    background: T.fill2, boxSizing: "border-box",
     outline: "none", transition: "border-color 0.15s",
     fontFamily: "inherit",
   }
@@ -206,21 +206,21 @@ export default function OpenTicketPage() {
   /** Label style handed to NewEmployeeFields so it matches FieldLabel above. */
   const neLabelStyle: React.CSSProperties = {
     display: "block", marginBottom: 5,
-    fontSize: "0.82rem", fontWeight: 700, color: "#374151",
+    fontSize: "0.82rem", fontWeight: 700, color: T.ink,
   }
 
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (status === "loading") return null
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F2F3F1" }}>
+    <div style={{ minHeight: "100vh", background: T.bg }}>
 
       <AppHeader wordmark="helpdesk" subtitle="פנייה חדשה">
         {session?.user && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg }}>
               <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{session.user.name}</span>
-              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#23262D", border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: "#74C53A" }}>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: HDR.avatarBg, border: `1px solid ${HDR.pillBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
                 {(session.user.name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
               </div>
             </div>
@@ -233,15 +233,15 @@ export default function OpenTicketPage() {
 
         {/* ── Hero ── */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ width: 64, height: 64, borderRadius: 18, background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 24px rgba(22,24,29,0.30)" }}>
+          <div style={{ width: 64, height: 64, borderRadius: 18, background: T.inverseBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 8px 24px ${T.shadow4}` }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M12 11v4M10 13h4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M12 11v4M10 13h4" stroke={T.inverseText} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 style={{ margin: "0 0 8px", fontSize: "1.55rem", fontWeight: 800, color: "#16181D", letterSpacing: "-0.02em" }}>
+          <h1 style={{ margin: "0 0 8px", fontSize: "1.55rem", fontWeight: 800, color: T.text, letterSpacing: "-0.02em" }}>
             פתיחת פנייה לתמיכה טכנית
           </h1>
-          <p style={{ margin: "0 auto", fontSize: "0.93rem", color: "#6b7280", lineHeight: 1.6, maxWidth: 520 }}>
+          <p style={{ margin: "0 auto", fontSize: "0.93rem", color: T.inkMuted, lineHeight: 1.6, maxWidth: 520 }}>
             יש בעיה טכנית? תקלה במחשב, תוכנה, רשת או מדפסת? מלאו את הטופס — הצוות יחזור אליך בהקדם.
           </p>
         </div>
@@ -249,30 +249,30 @@ export default function OpenTicketPage() {
         {/* ── Guide steps ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 32 }}>
           {GUIDE_STEPS.map(step => (
-            <div key={step.num} style={{ background: "#fff", borderRadius: 14, padding: "16px", border: "1px solid #e5e7eb", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+            <div key={step.num} style={{ background: T.card, borderRadius: 14, padding: "16px", border: `1px solid ${T.line}`, boxShadow: `0 1px 4px ${T.shadow1}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 26, height: 26, borderRadius: 8, background: "#E9F4E2", color: "#16181D", fontSize: "0.7rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ width: 26, height: 26, borderRadius: 8, background: T.greenBg, color: T.text, fontSize: "0.7rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {step.num}
                 </div>
                 <span style={{ fontSize: "1.1rem" }}>{step.icon}</span>
-                <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1f2937" }}>{step.title}</span>
+                <span style={{ fontSize: "0.82rem", fontWeight: 700, color: T.text }}>{step.title}</span>
               </div>
-              <p style={{ margin: 0, fontSize: "0.75rem", color: "#6b7280", lineHeight: 1.6 }}>{step.body}</p>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: T.inkMuted, lineHeight: 1.6 }}>{step.body}</p>
             </div>
           ))}
         </div>
 
         {/* ── Not logged in ── */}
         {status === "unauthenticated" && (
-          <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e5e7eb", boxShadow: "0 4px 20px rgba(0,0,0,0.07)", padding: "40px 32px", textAlign: "center" }}>
+          <div style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.line}`, boxShadow: `0 4px 20px ${T.shadow2}`, padding: "40px 32px", textAlign: "center" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>🔑</div>
-            <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 700, color: "#1f2937" }}>יש להתחבר כדי לפתוח פנייה</h2>
-            <p style={{ margin: "0 0 24px", fontSize: "0.88rem", color: "#6b7280" }}>
+            <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 700, color: T.text }}>יש להתחבר כדי לפתוח פנייה</h2>
+            <p style={{ margin: "0 0 24px", fontSize: "0.88rem", color: T.inkMuted }}>
               השתמשו בחשבון Google הארגוני שלכם (@cristalino.co.il)
             </p>
             <button
               onClick={() => signIn("google", { callbackUrl: "/open" })}
-              style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "#fff", border: "1.5px solid #d1d5db", borderRadius: 10, padding: "11px 24px", fontSize: "0.9rem", fontWeight: 600, color: "#374151", cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 10, background: T.card, border: `1.5px solid ${T.lineStrong}`, borderRadius: 10, padding: "11px 24px", fontSize: "0.9rem", fontWeight: 600, color: T.ink, cursor: "pointer", boxShadow: `0 2px 8px ${T.shadow2}` }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -287,7 +287,7 @@ export default function OpenTicketPage() {
 
         {/* ── Submission success ── */}
         {submitted && (
-          <div style={{ background: "#fff", borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: "0 4px 20px rgba(20,22,26,0.08)", padding: "36px 28px" }}>
+          <div style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.border}`, boxShadow: `0 4px 20px ${T.shadow2}`, padding: "36px 28px" }}>
             {/* The same card the dashboard shows in a modal — one place for the
                 number, the copy buttons and the wording. Inline here, because
                 on this page the confirmation IS the page. */}
@@ -296,7 +296,7 @@ export default function OpenTicketPage() {
               קיבלת גם אישור במייל עם מספר הפנייה. הצוות יפנה אליך בהקדם.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <a href="/dashboard" style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: "#16181D", color: "#fff", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", textDecoration: "none" }}>
+              <a href="/dashboard" style={{ padding: "10px 22px", borderRadius: 10, border: "none", background: T.inverseBg, color: T.inverseText, fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", textDecoration: "none" }}>
                 לוח הבקרה שלי
               </a>
               {/* Stay on /open with a fresh form — personal fields stay pre-filled */}
@@ -309,7 +309,7 @@ export default function OpenTicketPage() {
                   setEquipmentOpen(false)
                   setNewEmployee(EMPTY_NEW_EMPLOYEE)
                 }}
-                style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer" }}
+                style={{ padding: "10px 20px", borderRadius: 10, border: `1.5px solid ${T.lineStrong}`, background: T.card, color: T.ink, fontWeight: 600, fontSize: "0.88rem", cursor: "pointer" }}
               >
                 + פתח פנייה נוספת
               </button>
@@ -320,18 +320,18 @@ export default function OpenTicketPage() {
 
         {/* ── The form ── */}
         {status === "authenticated" && !submitted && (
-          <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #e5e7eb", boxShadow: "0 4px 24px rgba(0,0,0,0.07)", overflow: "hidden" }}>
+          <div style={{ background: T.card, borderRadius: 20, border: `1px solid ${T.line}`, boxShadow: `0 4px 24px ${T.shadow2}`, overflow: "hidden" }}>
 
             {/* Form header */}
-            <div style={{ padding: "20px 28px", borderBottom: "1px solid #f3f4f6", background: "linear-gradient(135deg, #E9F4E2, #f5f3ff)", display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <div style={{ padding: "20px 28px", borderBottom: `1px solid ${T.line}`, background: `linear-gradient(135deg, ${T.greenBg}, ${T.purpleBg})`, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: T.inverseBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.2" strokeLinecap="round"/>
+                  <path d="M12 5v14M5 12h14" stroke={T.inverseText} strokeWidth="2.2" strokeLinecap="round"/>
                 </svg>
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1f2937" }}>טופס פתיחת פנייה</div>
-                <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>שדות עם * הם חובה</div>
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", color: T.text }}>טופס פתיחת פנייה</div>
+                <div style={{ fontSize: "0.75rem", color: T.inkMuted }}>שדות עם * הם חובה</div>
               </div>
             </div>
 
@@ -378,25 +378,25 @@ export default function OpenTicketPage() {
                 <div>
                   <div style={{ marginBottom: 5 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
-                      <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#374151" }}>שם מחשב</span>
+                      <span style={{ fontSize: "0.82rem", fontWeight: 700, color: T.ink }}>שם מחשב</span>
                       <div style={{ position: "relative" }}>
                         <button type="button"
                           onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)}
                           onFocus={() => setShowTooltip(true)} onBlur={() => setShowTooltip(false)}
-                          style={{ width: 17, height: 17, borderRadius: "50%", background: "#EDF0F4", color: "#16181D", border: "none", cursor: "pointer", fontSize: "0.65rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                          style={{ width: 17, height: 17, borderRadius: "50%", background: T.pillBlueBg, color: T.text, border: "none", cursor: "pointer", fontSize: "0.65rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
                         >?</button>
                         {showTooltip && (
-                          <div style={{ position: "absolute", bottom: "calc(100% + 8px)", right: 0, background: "#1f2937", color: "#f9fafb", borderRadius: 10, padding: "12px 14px", fontSize: "0.76rem", lineHeight: 1.65, width: 230, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", zIndex: 20 }}>
+                          <div style={{ position: "absolute", bottom: "calc(100% + 8px)", right: 0, background: T.inverseBg, color: T.inverseText, borderRadius: 10, padding: "12px 14px", fontSize: "0.76rem", lineHeight: 1.65, width: 230, boxShadow: `0 8px 24px ${T.shadow4}`, zIndex: 20 }}>
                             <div style={{ fontWeight: 700, marginBottom: 6 }}>כיצד למצוא שם מחשב?</div>
                             <div>לחץ <strong>Start</strong> ← הקלד <strong>cmd</strong> ← Enter</div>
                             <div style={{ margin: "4px 0" }}>הקלד <strong>hostname</strong> ← Enter</div>
-                            <div style={{ color: "#9ca3af" }}>השם שמופיע הוא שם המחשב</div>
-                            <div style={{ position: "absolute", bottom: -5, right: 8, width: 10, height: 10, background: "#1f2937", transform: "rotate(45deg)" }} />
+                            <div style={{ color: T.inkFaint }}>השם שמופיע הוא שם המחשב</div>
+                            <div style={{ position: "absolute", bottom: -5, right: 8, width: 10, height: 10, background: T.inverseBg, transform: "rotate(45deg)" }} />
                           </div>
                         )}
                       </div>
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "#9ca3af" }}>מאפשר לצוות להתחבר מרחוק לתחנה שלך</div>
+                    <div style={{ fontSize: "0.72rem", color: T.inkFaint }}>מאפשר לצוות להתחבר מרחוק לתחנה שלך</div>
                   </div>
                   <input
                     value={form.computerName}
@@ -422,14 +422,14 @@ export default function OpenTicketPage() {
                 <div>
                   <FieldLabel label="פלטפורמה" hint="באיזה מערכת / מכשיר?" />
                   <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
-                    style={{ ...inputStyle, background: "#fafafa", cursor: "pointer" }}>
+                    style={{ ...inputStyle, background: T.fill2, cursor: "pointer" }}>
                     {platforms.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
                   <FieldLabel label="קטגוריה" hint="סוג התקלה" />
                   <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                    style={{ ...inputStyle, background: "#fafafa", cursor: "pointer" }}>
+                    style={{ ...inputStyle, background: T.fill2, cursor: "pointer" }}>
                     {categories.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
@@ -443,13 +443,13 @@ export default function OpenTicketPage() {
               </div>
 
               {/* Urgency guide */}
-              <div style={{ background: "#f8fafc", borderRadius: 12, padding: "14px 16px", border: "1px solid #e5e7eb" }}>
-                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#374151", marginBottom: 8 }}>מדריך דחיפות:</div>
+              <div style={{ background: T.fill2, borderRadius: 12, padding: "14px 16px", border: `1px solid ${T.line}` }}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: T.ink, marginBottom: 8 }}>מדריך דחיפות:</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
                   {Object.entries(URGENCY_COLORS).map(([k, v]) => (
                     <div key={k} style={{ display: "flex", alignItems: "center", gap: 7 }}>
                       <span style={{ padding: "1px 8px", borderRadius: 999, fontSize: "0.68rem", fontWeight: 700, background: v.bg, color: v.text, border: `1px solid ${v.border}`, whiteSpace: "nowrap" }}>{v.label}</span>
-                      <span style={{ fontSize: "0.72rem", color: "#6b7280" }}>{v.hint}</span>
+                      <span style={{ fontSize: "0.72rem", color: T.inkMuted }}>{v.hint}</span>
                     </div>
                   ))}
                 </div>
@@ -487,7 +487,7 @@ export default function OpenTicketPage() {
                 <button
                   type="button"
                   onClick={() => setEquipmentOpen(true)}
-                  style={{ alignSelf: "flex-start", padding: "8px 15px", borderRadius: 10, border: `1px dashed ${T.border}`, background: "#fff", color: T.text2, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
+                  style={{ alignSelf: "flex-start", padding: "8px 15px", borderRadius: 10, border: `1px dashed ${T.border}`, background: T.card, color: T.text2, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}
                 >
                   + אני צריך גם ציוד
                 </button>
@@ -513,19 +513,19 @@ export default function OpenTicketPage() {
 
               {/* Error */}
               {error && (
-                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "12px 16px", fontSize: "0.85rem", color: "#dc2626", fontWeight: 600 }}>
+                <div style={{ background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 10, padding: "12px 16px", fontSize: "0.85rem", color: T.redFg, fontWeight: 600 }}>
                   {error}
                 </div>
               )}
 
               {/* Submit */}
               <button type="submit" disabled={submitting}
-                style={{ padding: "14px", borderRadius: 12, border: "none", background: submitting ? "#A2A8A2" : "#16181D", color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: submitting ? "not-allowed" : "pointer", boxShadow: submitting ? "none" : "0 6px 16px rgba(22,24,29,0.35)", letterSpacing: "0.01em", transition: "all 0.15s" }}
+                style={{ padding: "14px", borderRadius: 12, border: "none", background: submitting ? T.muted2 : T.inverseBg, color: T.inverseText, fontWeight: 700, fontSize: "0.95rem", cursor: submitting ? "not-allowed" : "pointer", boxShadow: submitting ? "none" : `0 6px 16px ${T.overlay}`, letterSpacing: "0.01em", transition: "all 0.15s" }}
               >
                 {submitting ? "שולח..." : "שלח פנייה ←"}
               </button>
 
-              <p style={{ margin: 0, textAlign: "center", fontSize: "0.75rem", color: "#9ca3af" }}>
+              <p style={{ margin: 0, textAlign: "center", fontSize: "0.75rem", color: T.inkFaint }}>
                 לאחר השליחה תקבל אישור במייל עם מספר הפנייה
               </p>
             </form>

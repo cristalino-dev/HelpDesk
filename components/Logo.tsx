@@ -15,7 +15,7 @@
  */
 
 import Image from "next/image"
-import { T } from "@/lib/theme"
+import { T, HDR } from "@/lib/theme"
 
 export default function Logo({
   size = 36,
@@ -30,7 +30,7 @@ export default function Logo({
   color?: string
   onDark?: boolean
 }) {
-  const wordmarkColor = color ?? (onDark ? "#FFFFFF" : T.dark)
+  const wordmarkColor = color ?? (onDark ? HDR.linkStrong : T.text)
   const img = (
     <Image
       src="/logo.jpeg"
@@ -46,7 +46,7 @@ export default function Logo({
       {onDark ? (
         // White chip so the white-background JPEG blends into the dark bar
         <span style={{
-          background: "#fff", borderRadius: 10, padding: 3, display: "flex",
+          background: T.logoChip, borderRadius: 10, padding: 3, display: "flex",
           alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}>
           {img}
@@ -57,8 +57,8 @@ export default function Logo({
           {wordmark}
           {subtitle !== false && (
             <>
-              <span style={{ color: onDark ? "rgba(255,255,255,0.28)" : "#B4BAB6", fontWeight: 500 }}> · </span>
-              <span style={{ color: onDark ? "#A9AEA8" : T.text2, fontWeight: 600 }}>{subtitle}</span>
+              <span style={{ color: onDark ? HDR.linkFaint : T.muted2, fontWeight: 500 }}> · </span>
+              <span style={{ color: onDark ? HDR.link : T.text2, fontWeight: 600 }}>{subtitle}</span>
             </>
           )}
         </span>

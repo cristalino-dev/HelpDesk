@@ -16,12 +16,13 @@
 
 import React from "react"
 import VERSION from "@/lib/version"
+import { T } from "@/lib/theme"
 
 export default function AdminGuide() {
   return (
     <>
             <Section icon="📋" title='דף "כל הפניות" — /tickets'>
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 הדף המרכזי לניהול שוטף של כל הפניות במערכת. נגיש לצוות התמיכה בלבד.
               </p>
               <FeatureList items={[
@@ -39,7 +40,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="🔎" title="מסך פנייה מלאה — /tickets/[id]">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 מסך מפורט לפנייה בודדת. כולל את כל המידע, הערות הצוות ותמונות מצורפות.
               </p>
               <FeatureList items={[
@@ -62,7 +63,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="📝" title="הערות טכנאי">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 הערות הצוות נראות לצוות בלבד — המשתמש אינו רואה אותן.
               </p>
               <FeatureList items={[
@@ -80,13 +81,13 @@ export default function AdminGuide() {
             <Section icon="🔄" title="שינוי סטטוס">
               <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 {[
-                  { label: "פתוח",   bg: "#EDF0F4", color: "#3D5A7D", desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
-                  { label: "בטיפול", bg: "#fef3c7", color: "#92400e", desc: "הצוות עובד על הפנייה — מגיש מקבל מייל עדכון" },
-                  { label: "סגור",   bg: "#dcfce7", color: "#166534", desc: "הפנייה טופלה — מגיש מקבל מייל עם קישור לדירוג השירות" },
+                  { label: "פתוח",   bg: T.pillBlueBg, color: T.pillBlueFg, desc: "פנייה חדשה שטרם טופלה — אין מייל למגיש" },
+                  { label: "בטיפול", bg: T.amberBg, color: T.amberFgDeep, desc: "הצוות עובד על הפנייה — מגיש מקבל מייל עדכון" },
+                  { label: "סגור",   bg: T.greenSBg, color: T.greenSFgDeep, desc: "הפנייה טופלה — מגיש מקבל מייל עם קישור לדירוג השירות" },
                 ].map(s => (
-                  <div key={s.label} style={{ flex: 1, minWidth: 140, padding: "12px 14px", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+                  <div key={s.label} style={{ flex: 1, minWidth: 140, padding: "12px 14px", borderRadius: 10, border: `1px solid ${T.line}` }}>
                     <span style={{ display: "inline-block", padding: "3px 12px", borderRadius: 999, fontSize: "0.78rem", fontWeight: 700, background: s.bg, color: s.color, marginBottom: 6 }}>{s.label}</span>
-                    <div style={{ fontSize: "0.75rem", color: "#6b7280", lineHeight: 1.5 }}>{s.desc}</div>
+                    <div style={{ fontSize: "0.75rem", color: T.inkMuted, lineHeight: 1.5 }}>{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -101,7 +102,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="📅" title="ימי עסקים">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 כל תצוגות הזמן במערכת מוצגות ב<strong>ימי עסקים</strong> — שישי ושבת אינם נספרים.
                 ימי עסקים בישראל: ראשון–חמישי.
               </p>
@@ -119,7 +120,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="📜" title="היסטוריית שינויים (ציר זמן)">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 כל פנייה שומרת ציר זמן מלא של כל השינויים שבוצעו בה — מי שינה, מה שונה ומתי.
               </p>
               <FeatureList items={[
@@ -148,7 +149,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="📊" title="דוחות — /admin/reports">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 כמה פניות נפתחו ונסגרו, מתי, ומאיזה סוג. כל הבקרות בדף משנות את התצוגה מיד — הנתונים נטענים פעם אחת ומחושבים בדפדפן.
               </p>
               <FeatureList items={[
@@ -165,7 +166,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="⭐" title="ביקורות שירות — /admin/reviews">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 לאחר סגירת כל פנייה, המגיש מקבל מייל עם בקשת דירוג. הדירוגים מרוכזים בדשבורד הביקורות.
               </p>
               <FeatureList items={[
@@ -182,7 +183,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="🔄" title="פתיחה מחדש של פנייה">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 פניות סגורות ניתן לפתוח מחדש — הן על-ידי המגיש והן על-ידי המנהל.
               </p>
               <FeatureList items={[
@@ -197,7 +198,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="🛠️" title="פאנל ניהול — /admin">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 נגיש לבעלי הרשאת מנהל מלאה בלבד.
               </p>
               <FeatureList items={[
@@ -214,7 +215,7 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="🏠" title='לוח בקרה אישי — /dashboard'>
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 זמין לכל עובד (כולל צוות התמיכה). מציג את הפניות האישיות של המשתמש המחובר.
               </p>
               <FeatureList items={[
@@ -227,40 +228,40 @@ export default function AdminGuide() {
             </Section>
 
             <Section icon="⚠️" title="לוח מעקב שגיאות — /admin/logs">
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.875rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: 14 }}>
                 מסך ייעודי לניטור יציבות המערכת. מאפשר לזהות תקלות רוחביות או נקודתיות בזמן אמת.
               </p>
 
               {/* Dashboard Mockup */}
-              <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", marginBottom: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                <div style={{ padding: "12px 16px", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
+              <div style={{ borderRadius: "12px", overflow: "hidden", border: `1px solid ${T.line}`, backgroundColor: T.fill2, marginBottom: "20px", boxShadow: `0 4px 12px ${T.shadow1}` }}>
+                <div style={{ padding: "12px 16px", background: T.inverseBg, color: T.inverseText, fontSize: "0.75rem", fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
                   <span>Dashboard: Error Monitoring</span>
                   <span style={{ opacity: 0.6 }}>v{VERSION}-ADMIN</span>
                 </div>
                 <div style={{ padding: "16px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "16px" }}>
                     {[
-                      { l: "אירועים", v: "152", c: "#334155" },
-                      { l: "שגיאות", v: "14", c: "#ef4444" },
-                      { l: "אזהרות", v: "8", c: "#f59e0b" },
+                      { l: "אירועים", v: "152", c: T.ink },
+                      { l: "שגיאות", v: "14", c: T.redFg },
+                      { l: "אזהרות", v: "8", c: T.amberFg },
                     ].map(s => (
-                      <div key={s.l} style={{ background: "#fff", borderRadius: "8px", padding: "10px", border: "1px solid #e2e8f0" }}>
-                        <div style={{ fontSize: "0.6rem", fontWeight: 700, color: "#64748b", marginBottom: "2px" }}>{s.l}</div>
+                      <div key={s.l} style={{ background: T.card, borderRadius: "8px", padding: "10px", border: `1px solid ${T.line}` }}>
+                        <div style={{ fontSize: "0.6rem", fontWeight: 700, color: T.inkMuted, marginBottom: "2px" }}>{s.l}</div>
                         <div style={{ fontSize: "1rem", fontWeight: 800, color: s.c }}>{s.v}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ background: "#fff", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "0.7rem", overflow: "hidden" }}>
-                    <div style={{ padding: "6px 10px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontWeight: 700, color: "#475569" }}>LATEST LOGS</div>
-                    <div style={{ padding: "8px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#ef4444", fontWeight: 800 }}>[ERROR]</span>
-                      <span style={{ flex: 1, marginRight: "8px", color: "#16181D" }}>Failed to fetch tickets: Network Timeout</span>
-                      <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
+                  <div style={{ background: T.card, borderRadius: "8px", border: `1px solid ${T.line}`, fontSize: "0.7rem", overflow: "hidden" }}>
+                    <div style={{ padding: "6px 10px", background: T.fill2, borderBottom: `1px solid ${T.line}`, fontWeight: 700, color: T.ink }}>LATEST LOGS</div>
+                    <div style={{ padding: "8px 10px", borderBottom: `1px solid ${T.line}`, display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: T.redFg, fontWeight: 800 }}>[ERROR]</span>
+                      <span style={{ flex: 1, marginRight: "8px", color: T.text }}>Failed to fetch tickets: Network Timeout</span>
+                      <span style={{ background: T.fill2, padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
                     </div>
                     <div style={{ padding: "8px 10px", display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "#f59e0b", fontWeight: 800 }}>[WARN]</span>
-                      <span style={{ flex: 1, marginRight: "8px", color: "#16181D" }}>Email delivery delayed (SMTP_RETRY)</span>
-                      <span style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
+                      <span style={{ color: T.amberFg, fontWeight: 800 }}>[WARN]</span>
+                      <span style={{ flex: 1, marginRight: "8px", color: T.text }}>Email delivery delayed (SMTP_RETRY)</span>
+                      <span style={{ background: T.fill2, padding: "2px 6px", borderRadius: "4px" }}>📋 Copy</span>
                     </div>
                   </div>
                 </div>
@@ -280,19 +281,19 @@ export default function AdminGuide() {
             <Section icon="👥" title="הרשאות גישה">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  { role: "עובד רגיל",    color: "#0891b2", bg: "#ecfeff", perms: "פתיחת פניות, מעקב אחר הפניות שלו, סגירת פנייה עצמית, פתיחה מחדש עד 4 שבועות, דירוג שירות, עדכון פרופיל" },
-                  { role: "צוות תמיכה",  color: "#16181D", bg: "#EDEFEA", perms: "כל הפניות, עריכה, שינוי סטטוס, הערות, הדף /tickets, צפייה בביקורות" },
-                  { role: "מנהל מערכת",  color: "#7c3aed", bg: "#f5f3ff", perms: "כל האמור + פאנל /admin, ניהול משתמשים, יומן שגיאות, לוח ביקורות" },
+                  { role: "עובד רגיל",    color: T.cyanFg, bg: T.cyanBg, perms: "פתיחת פניות, מעקב אחר הפניות שלו, סגירת פנייה עצמית, פתיחה מחדש עד 4 שבועות, דירוג שירות, עדכון פרופיל" },
+                  { role: "צוות תמיכה",  color: T.text, bg: T.codeBg, perms: "כל הפניות, עריכה, שינוי סטטוס, הערות, הדף /tickets, צפייה בביקורות" },
+                  { role: "מנהל מערכת",  color: T.purpleFg, bg: T.purpleBg, perms: "כל האמור + פאנל /admin, ניהול משתמשים, יומן שגיאות, לוח ביקורות" },
                 ].map(r => (
-                  <div key={r.role} style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "12px 16px", borderRadius: 10, border: "1px solid #f3f4f6" }}>
+                  <div key={r.role} style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "12px 16px", borderRadius: 10, border: `1px solid ${T.line}` }}>
                     <span style={{ padding: "3px 12px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 700, background: r.bg, color: r.color, flexShrink: 0 }}>{r.role}</span>
-                    <span style={{ fontSize: "0.82rem", color: "#6b7280", lineHeight: 1.5 }}>{r.perms}</span>
+                    <span style={{ fontSize: "0.82rem", color: T.inkMuted, lineHeight: 1.5 }}>{r.perms}</span>
                   </div>
                 ))}
               </div>
             </Section>
 
-            <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "14px 18px", fontSize: "0.82rem", color: "#166534", lineHeight: 1.6 }}>
+            <div style={{ background: T.greenSBg, border: `1px solid ${T.greenSBorder}`, borderRadius: 10, padding: "14px 18px", fontSize: "0.82rem", color: T.greenSFgDeep, lineHeight: 1.6 }}>
               <strong>צוות התמיכה:</strong> alon@cristalino.co.il · dev@cristalino.co.il · helpdesk@cristalino.co.il · daniel.l@cristalino.co.il
             </div>
     </>
@@ -302,8 +303,8 @@ export default function AdminGuide() {
 function Section({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: "#16181D", marginBottom: 14, paddingBottom: 8, borderBottom: "2px solid #EDEFEA" }}>
-        <span style={{ width: 30, height: 30, background: "#EDEFEA", borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "1rem", fontWeight: 700, color: T.text, marginBottom: 14, paddingBottom: 8, borderBottom: `2px solid ${T.codeBg}` }}>
+        <span style={{ width: 30, height: 30, background: T.codeBg, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>{icon}</span>
         {title}
       </div>
       {children}
@@ -315,9 +316,9 @@ function Steps({ items }: { items: React.ReactNode[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {items.map((item, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#f9fafb", borderRadius: 10, padding: "12px 16px" }}>
-          <span style={{ width: 24, height: 24, background: "#16181D", color: "#fff", borderRadius: "50%", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
-          <span style={{ fontSize: "0.875rem", lineHeight: 1.6, color: "#374151" }}>{item}</span>
+        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: T.fill2, borderRadius: 10, padding: "12px 16px" }}>
+          <span style={{ width: 24, height: 24, background: T.inverseBg, color: T.inverseText, borderRadius: "50%", fontSize: "0.72rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+          <span style={{ fontSize: "0.875rem", lineHeight: 1.6, color: T.ink }}>{item}</span>
         </div>
       ))}
     </div>
@@ -328,8 +329,8 @@ function FeatureList({ items }: { items: string[] }) {
   return (
     <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
       {items.map((item, i) => (
-        <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: "0.875rem", color: "#374151", lineHeight: 1.6 }}>
-          <span style={{ color: "#16181D", fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</span>
+        <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: "0.875rem", color: T.ink, lineHeight: 1.6 }}>
+          <span style={{ color: T.text, fontWeight: 700, flexShrink: 0, marginTop: 2 }}>✓</span>
           {item}
         </li>
       ))}
@@ -339,7 +340,7 @@ function FeatureList({ items }: { items: string[] }) {
 
 function Note({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 10, padding: "14px 18px", fontSize: "0.82rem", color: "#713f12", lineHeight: 1.6, marginTop: 12 }}>
+    <div style={{ background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 10, padding: "14px 18px", fontSize: "0.82rem", color: T.amberFgDeep, lineHeight: 1.6, marginTop: 12 }}>
       {children}
     </div>
   )

@@ -14,7 +14,7 @@
  *     is asserted rather than assumed.
  *   • Hebrew mail renders left-to-right unless `dir="rtl"` is on the content
  *     elements themselves — Gmail drops it from <html>/<body>.
- *   • Colours are asserted against `lib/theme.ts` rather than hardcoded hexes,
+ *   • Colours are asserted against `lib/palette.ts` rather than hardcoded hexes,
  *     so re-branding the app cannot leave the mail behind.
  *
  * Nothing here touches the database or sends anything.
@@ -29,7 +29,8 @@ import {
   mailDailyDigest,
   ticketUrl,
 } from "@/lib/mail"
-import { T, URGENCY } from "@/lib/theme"
+import { LIGHT } from "@/lib/palette"
+import { URGENCY_TOKENS } from "@/lib/theme"
 
 const ticket = (overrides: Partial<Parameters<typeof mailTicketOpenedStaff>[0]> = {}) => ({
   id: "clx0000000000000000000000",
@@ -59,7 +60,7 @@ describe("the ticket number is in the mail", () => {
   it("puts it in the header chip, so it is visible above the fold in both", () => {
     // The chip is the run that carries the brand green; the body mentions the
     // number too, so a bare toContain would pass without the chip.
-    const chip = new RegExp(`${T.green.replace("#", "#")}[^<]*">HDTC-528<`, "i")
+    const chip = new RegExp(`${LIGHT.green}[^<]*">HDTC-528<`, "i")
     expect(mailTicketOpenedStaff(ticket())).toMatch(chip)
     expect(mailTicketOpenedUser(ticket())).toMatch(chip)
   })
@@ -109,16 +110,16 @@ describe("empty optional fields", () => {
 })
 
 describe("brand and direction", () => {
-  it("uses the Cristalino dark bar and green accent from lib/theme.ts", () => {
+  it("uses the Cristalino dark bar and green accent from the light palette", () => {
     const html = mailTicketOpenedStaff(ticket())
-    expect(html).toContain(T.dark)
-    expect(html).toContain(T.green)
+    expect(html).toContain(LIGHT.inverseBg)
+    expect(html).toContain(LIGHT.green)
   })
 
   it("colours the urgency pill from the app's own urgency map", () => {
     const html = mailTicketOpenedStaff(ticket({ urgency: "דחוף" }))
-    expect(html).toContain(`background:${URGENCY["דחוף"].bg}`)
-    expect(html).toContain(`color:${URGENCY["דחוף"].fg}`)
+    expect(html).toContain(`background:${LIGHT[URGENCY_TOKENS["דחוף"].bg]}`)
+    expect(html).toContain(`color:${LIGHT[URGENCY_TOKENS["דחוף"].fg]}`)
   })
 
   it("marks the content right-to-left on the elements, not only on <html>", () => {
@@ -129,7 +130,7 @@ describe("brand and direction", () => {
   })
 
   it("frames the content in a bordered card", () => {
-    expect(mailTicketOpenedStaff(ticket())).toContain(`border:1px solid ${T.border}`)
+    expect(mailTicketOpenedStaff(ticket())).toContain(`border:1px solid ${LIGHT.border}`)
   })
 })
 
@@ -150,8 +151,8 @@ describe("every template wears the same face", () => {
   ] as const
 
   it.each(samples())("%s carries the brand dark and green", (_name, html) => {
-    expect(html).toContain(T.dark)
-    expect(html).toContain(T.green)
+    expect(html).toContain(LIGHT.inverseBg)
+    expect(html).toContain(LIGHT.green)
   })
 
   it.each(samples())("%s has no leftover Tailwind grey or blue", (_name, html) => {

@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-07 · v3.78
+> Version 2.0 · Last updated 2026-09-09 · v3.80
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -99,14 +99,14 @@ Two categories carry extra behaviour:
 | Framework | Next.js | 16.2.2 | App Router, Turbopack dev server |
 | Language | TypeScript | 5.x | Strict mode |
 | UI | React | 19.2.4 | Client components wherever there is interaction |
-| Styling | Inline React styles | — | No Tailwind in components; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind resets |
+| Styling | Inline React styles | — | No Tailwind in components; design tokens in `lib/theme.ts`, emitted as CSS custom properties from `lib/palette.ts` so light/dark can switch inside an inline style. Only `globals.css` uses Tailwind resets |
 | Auth | NextAuth | 5.0.0-beta.30 | Google OAuth, JWT sessions |
 | ORM | Prisma | 5.22.0 | Type-safe DB client |
 | Database | PostgreSQL | — | AWS RDS (managed) |
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **850 tests across 49 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,028 tests across 52 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
 
@@ -468,7 +468,12 @@ components/
 lib/
 ├── db.ts                   Prisma singleton (prevents dev connection-pool exhaustion)
 ├── version.ts              VERSION constant — the single source of version truth
-├── theme.ts                Design tokens: T, STATUS, URGENCY maps
+├── theme.ts                Design tokens: T, HDR, STATUS, URGENCY — all `var(--c-…)`
+├── palette.ts              The two palettes (LIGHT/DARK) + themeCss(); the only
+│                           place a colour literal is allowed to be typed
+├── themeBoot.ts            Theme attribute, storage, and the pre-paint script
+│                           (NOT a client module — the server layout calls it)
+├── useTheme.ts             Client hook over the <html> attribute
 │
 ├── users.ts                Case-insensitive User lookup / create (v3.65) — the
 │                           ONLY way to resolve a User from an email, auth.ts
@@ -510,7 +515,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  49 suites, 850 tests — gate the build
+__tests__/                  52 suites, 1,028 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve

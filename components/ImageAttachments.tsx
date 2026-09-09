@@ -1,5 +1,6 @@
 "use client"
 import { useRef, useState } from "react"
+import { T, HDR } from "@/lib/theme"
 
 export interface PendingImage {
   /** Image src — a data: URL for pending (not yet uploaded) images, or an
@@ -55,13 +56,13 @@ export default function ImageAttachments({ images, onChange, readonly }: Props) 
           onDragOver={e => e.preventDefault()}
           onClick={() => inputRef.current?.click()}
           style={{
-            border: "2px dashed #d1d5db", borderRadius: 10, padding: "14px 16px",
-            textAlign: "center", cursor: "pointer", fontSize: "0.82rem", color: "#9ca3af",
-            background: "#fafafa", marginBottom: images.length ? 10 : 0,
+            border: `2px dashed ${T.lineStrong}`, borderRadius: 10, padding: "14px 16px",
+            textAlign: "center", cursor: "pointer", fontSize: "0.82rem", color: T.inkFaint,
+            background: T.fill2, marginBottom: images.length ? 10 : 0,
             transition: "border-color 0.15s",
           }}
-          onMouseOver={e => (e.currentTarget.style.borderColor = "#6366f1")}
-          onMouseOut={e => (e.currentTarget.style.borderColor = "#d1d5db")}
+          onMouseOver={e => (e.currentTarget.style.borderColor = T.purpleFg)}
+          onMouseOut={e => (e.currentTarget.style.borderColor = T.lineStrong)}
           tabIndex={0}
           onKeyDown={e => e.key === "Enter" && inputRef.current?.click()}
         >
@@ -79,13 +80,13 @@ export default function ImageAttachments({ images, onChange, readonly }: Props) 
                 src={img.dataUrl}
                 alt={img.filename ?? `תמונה ${i + 1}`}
                 onClick={() => setLightbox(img.dataUrl)}
-                style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, border: "1px solid #e5e7eb", objectFit: "cover", cursor: "zoom-in", display: "block" }}
+                style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, border: `1px solid ${T.line}`, objectFit: "cover", cursor: "zoom-in", display: "block" }}
               />
               {!readonly && (
                 <button onClick={() => remove(i)} style={{
                   position: "absolute", top: -6, right: -6,
                   width: 20, height: 20, borderRadius: "50%", border: "none",
-                  background: "#ef4444", color: "#fff", fontSize: "0.65rem",
+                  background: T.redFg, color: T.inverseText, fontSize: "0.65rem",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700,
                 }}>×</button>
               )}
@@ -100,7 +101,7 @@ export default function ImageAttachments({ images, onChange, readonly }: Props) 
           onClick={() => setLightbox(null)}
           style={{
             position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.85)",
+            background: T.overlay,
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "zoom-out",
           }}
@@ -108,11 +109,11 @@ export default function ImageAttachments({ images, onChange, readonly }: Props) 
           <img
             src={lightbox}
             alt="תמונה מוגדלת"
-            style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 10, boxShadow: "0 8px 40px rgba(0,0,0,0.6)", objectFit: "contain" }}
+            style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 10, boxShadow: `0 8px 40px ${T.overlay}`, objectFit: "contain" }}
           />
           <button
             onClick={() => setLightbox(null)}
-            style={{ position: "absolute", top: 20, left: 20, background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: "50%", width: 38, height: 38, fontSize: "1.2rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ position: "absolute", top: 20, left: 20, background: HDR.pillBg, border: "none", color: T.inverseText, borderRadius: "50%", width: 38, height: 38, fontSize: "1.2rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
           >×</button>
         </div>
       )}

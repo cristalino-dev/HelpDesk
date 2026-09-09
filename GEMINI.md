@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.78** · Updated 2026-09-07
+> **Current version: 3.80** · Updated 2026-09-09
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -74,8 +74,8 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Language:** TypeScript 5, React 19.2.4.
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
-- **Styling:** inline React styles; design tokens in `lib/theme.ts`. Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **850 tests across 49 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
+- **Tests:** Jest 30 + React Testing Library 16 — **1,028 tests across 52 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -140,7 +140,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 ## 4. Important Rules & Conventions
 
 1. **Server-side build only** — Turbopack embeds absolute paths. NEVER build locally and copy `.next`.
-2. **Inline styles only** — no Tailwind component classes. Only `globals.css` uses Tailwind resets. Colors come from `lib/theme.ts`.
+2. **Inline styles only** — no Tailwind component classes. Only `globals.css` uses Tailwind resets. Colors come from `lib/theme.ts`, never typed as literals: an inline style cannot be re-targeted by a media query or a `[data-theme]` selector, so every colour is a CSS custom property with a light and a dark value in `lib/palette.ts`. `__tests__/Palette.test.ts` fails the build on a raw hex under `app/` or `components/`.
 3. **Version in `lib/version.ts` only** — format `"X.YY"`. Renders via `FooterCopyright`.
 4. **Build pipeline** — `prisma generate && jest --ci && next build`. Tests gate the deploy.
 5. **Rules of Hooks** — all hooks before any conditional `return null`.
@@ -170,6 +170,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.80 | Dark mode — a switch on the top bar that remembers the choice; light stays the default. Every colour became a CSS custom property with two values (`lib/palette.ts`), because an inline style cannot be re-themed any other way |
 | 3.78 | Closing a ticket and recording that it closed are now one transaction — they were two round trips, which is how closed tickets ended up with no closing date. `scripts/audit-close-dates.mjs` counts the existing ones by cause |
 | 3.77 | Opening a ticket now ends in a confirmation that hands over the number — copy the number or the link, and a plain statement that they will be asked for it |
 | 3.76 | Export to Excel from `/admin/reports` — everything, the selected range, or one ticket — as a real `.xlsx` written by a dependency-free zip writer |
@@ -224,4 +225,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.78 — updated 2026-09-07.*
+*Production build v3.80 — updated 2026-09-09.*

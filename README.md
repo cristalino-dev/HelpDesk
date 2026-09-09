@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.78**
+**Version 3.80**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -83,9 +83,9 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Auth | NextAuth v5 (beta) with Google provider |
 | ORM | Prisma 5.22.0 |
 | Database | PostgreSQL (AWS RDS) |
-| Styling | Inline React styles; tokens in `lib/theme.ts` |
+| Styling | Inline React styles; tokens in `lib/theme.ts` (CSS custom properties, two palettes in `lib/palette.ts`) |
 | Mail | nodemailer v7 (outbound) · imapflow + mailparser (inbound) |
-| Tests | Jest 30 + React Testing Library 16 — 850 tests, 49 suites |
+| Tests | Jest 30 + React Testing Library 16 — 1,028 tests, 52 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
 | Deployment | SSH + SCP — `deploy.sh` (bash) or `deploy.ps1` (Windows); build runs on server; also runnable from GitHub Actions |
@@ -119,6 +119,7 @@ helpdesk/
 │                                             #   ErrorBoundary, ClientErrorHandler, …
 ├── lib/                                      # Pure logic + storage + mail
 │   ├── db.ts  version.ts  theme.ts           # Prisma singleton, version, design tokens
+│   ├── palette.ts  themeBoot.ts  useTheme.ts  # light+dark palettes, theme switch
 │   ├── users.ts  staffEmails.ts              # User lookup, role lists, @mentions
 │   ├── staffMembers.ts                       # DB-driven staff roster
 │   ├── ticketApi.ts  ticketSearch.ts         # Client mutations, HDTC-number search
@@ -133,7 +134,7 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 850 tests across 49 suites
+├── __tests__/                                # 1,028 tests across 52 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── deploy.ps1                                # The same, for Windows PowerShell
@@ -290,7 +291,7 @@ The build goes into `.next-staging` while the old build keeps serving, then the 
 
 ## Notes
 
-- **Inline styles** — no Tailwind CSS in page components; only `globals.css` uses Tailwind resets. Design tokens live in `lib/theme.ts`
+- **Inline styles** — no Tailwind CSS in page components; only `globals.css` uses Tailwind resets. Design tokens live in `lib/theme.ts`, and are CSS custom properties so that light/dark can switch inside an inline style. Never type a colour literal in `app/` or `components/` — add a token to `lib/palette.ts`; a test enforces this
 - **Build on server** — Turbopack embeds absolute paths; never build locally and copy `.next`
 - **Tests gate the build** — `npm run build` is `prisma generate && jest --ci && next build`
 - **Hooks before early returns** — all React hooks must come before any conditional `return null`

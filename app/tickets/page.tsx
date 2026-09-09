@@ -341,48 +341,48 @@ export default function TicketsPage() {
 
         {/* ── Stats view toggle ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden", boxShadow: `0 1px 3px ${T.shadow1}` }}>
             {([{ key: "week" as const, label: "שבוע אחרון" }, { key: "total" as const, label: "סה״כ" }]).map(opt => (
               <button key={opt.key}
                 onClick={() => { setStatsView(opt.key); setStatFilter(null) }}
                 style={{ padding: "7px 20px", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.82rem",
-                  background: statsView === opt.key ? "#16181D" : "transparent",
-                  color:      statsView === opt.key ? "#fff"    : "#6b7280",
+                  background: statsView === opt.key ? T.inverseBg : "transparent",
+                  color:      statsView === opt.key ? T.inverseText    : T.inkMuted,
                   transition: "all 0.15s" }}
               >{opt.label}</button>
             ))}
           </div>
           {statsView === "week" && (
-            <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>7 ימים אחרונים</span>
+            <span style={{ fontSize: "0.75rem", color: T.inkFaint }}>7 ימים אחרונים</span>
           )}
         </div>
 
         {/* ── Stats grid ── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
           {(statsView === "week" ? [
-            { label: "פניות השבוע",  value: stats.weekTotal,       color: "#6366f1", bg: "#EDEFEA", filterKey: "weekAll"     as string | null },
-            { label: "פתוחות",       value: stats.weekOpen,         color: "#16181D", bg: "#EDEFEA", filterKey: "weekOpen"    as string | null },
-            { label: "בטיפול",       value: stats.weekInProgress,   color: "#d97706", bg: "#fffbeb", filterKey: "weekInprog"  as string | null },
-            { label: "נסגרו השבוע",  value: stats.weekClosed,       color: "#16a34a", bg: "#f0fdf4", filterKey: "weekClosed"  as string | null },
-            { label: "נפתחו היום",   value: stats.openedToday,      color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
-            { label: "נסגרו היום",   value: stats.closedToday,      color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" as string | null },
+            { label: "פניות השבוע",  value: stats.weekTotal,       color: T.purpleFg, bg: T.codeBg, filterKey: "weekAll"     as string | null },
+            { label: "פתוחות",       value: stats.weekOpen,         color: T.text, bg: T.codeBg, filterKey: "weekOpen"    as string | null },
+            { label: "בטיפול",       value: stats.weekInProgress,   color: T.amberFg, bg: T.amberBg, filterKey: "weekInprog"  as string | null },
+            { label: "נסגרו השבוע",  value: stats.weekClosed,       color: T.greenSFg, bg: T.greenSBg, filterKey: "weekClosed"  as string | null },
+            { label: "נפתחו היום",   value: stats.openedToday,      color: T.cyanFg, bg: T.cyanBg, filterKey: "openedToday" as string | null },
+            { label: "נסגרו היום",   value: stats.closedToday,      color: T.purpleFg, bg: T.purpleBg, filterKey: "closedToday" as string | null },
           ] : [
-            { label: "סה״כ פניות",  value: stats.total,            color: "#6366f1", bg: "#EDEFEA", filterKey: null                           },
-            { label: "פתוחות",       value: stats.open,              color: "#16181D", bg: "#EDEFEA", filterKey: "open"        as string | null },
-            { label: "בטיפול",       value: stats.inProgress,        color: "#d97706", bg: "#fffbeb", filterKey: "inprog"      as string | null },
-            { label: "סגורות",       value: stats.closedCount,       color: "#16a34a", bg: "#f0fdf4", filterKey: "closed"      as string | null },
-            { label: "נפתחו היום",   value: stats.openedToday,       color: "#0891b2", bg: "#ecfeff", filterKey: "openedToday" as string | null },
-            { label: "נסגרו היום",   value: stats.closedToday,       color: "#7c3aed", bg: "#f5f3ff", filterKey: "closedToday" as string | null },
+            { label: "סה״כ פניות",  value: stats.total,            color: T.purpleFg, bg: T.codeBg, filterKey: null                           },
+            { label: "פתוחות",       value: stats.open,              color: T.text, bg: T.codeBg, filterKey: "open"        as string | null },
+            { label: "בטיפול",       value: stats.inProgress,        color: T.amberFg, bg: T.amberBg, filterKey: "inprog"      as string | null },
+            { label: "סגורות",       value: stats.closedCount,       color: T.greenSFg, bg: T.greenSBg, filterKey: "closed"      as string | null },
+            { label: "נפתחו היום",   value: stats.openedToday,       color: T.cyanFg, bg: T.cyanBg, filterKey: "openedToday" as string | null },
+            { label: "נסגרו היום",   value: stats.closedToday,       color: T.purpleFg, bg: T.purpleBg, filterKey: "closedToday" as string | null },
           ]).map(s => {
             const isActive = statFilter === s.filterKey && s.filterKey !== null
             return (
               <button
                 key={s.label}
                 onClick={() => setStatFilter(f => (s.filterKey === null || f === s.filterKey) ? null : s.filterKey)}
-                style={{ background: isActive ? s.bg : "#fff", borderRadius: 14, padding: "16px 20px", border: isActive ? `2px solid ${s.color}` : "1px solid #f3f4f6", boxShadow: isActive ? `0 0 0 1px ${s.color}22` : "0 1px 4px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "right", width: "100%" }}
+                style={{ background: isActive ? s.bg : T.card, borderRadius: 14, padding: "16px 20px", border: isActive ? `2px solid ${s.color}` : `1px solid ${T.line}`, boxShadow: isActive ? `0 0 0 1px ${s.color}22` : `0 1px 4px ${T.shadow1}`, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "right", width: "100%" }}
               >
-                <div style={{ width: 40, height: 40, borderRadius: 11, background: isActive ? "#fff" : s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.15rem", fontWeight: 800, color: s.color, flexShrink: 0 }}>{s.value}</div>
-                <span style={{ fontSize: "0.8rem", color: isActive ? s.color : "#6b7280", fontWeight: isActive ? 700 : 500, flex: 1 }}>{s.label}</span>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: isActive ? T.card : s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.15rem", fontWeight: 800, color: s.color, flexShrink: 0 }}>{s.value}</div>
+                <span style={{ fontSize: "0.8rem", color: isActive ? s.color : T.inkMuted, fontWeight: isActive ? 700 : 500, flex: 1 }}>{s.label}</span>
                 {isActive && <span style={{ fontSize: "0.7rem", color: s.color, fontWeight: 700 }}>✕</span>}
               </button>
             )
@@ -393,12 +393,12 @@ export default function TicketsPage() {
         {(statsView === "week" ? stats.weekClosed : stats.closedCount) > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
             {[
-              { label: "זמן סגירה ממוצע",    value: formatDuration(statsView === "week" ? stats.weekAvgClose     : stats.avgClose),      color: "#059669", bg: "#ecfdf5" },
-              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: "#16181D", bg: "#EDEFEA" },
-              { label: "סגירה ארוכה ביותר",  value: formatDuration(statsView === "week" ? stats.weekSlowestClose : stats.slowestClose),  color: "#dc2626", bg: "#fef2f2" },
+              { label: "זמן סגירה ממוצע",    value: formatDuration(statsView === "week" ? stats.weekAvgClose     : stats.avgClose),      color: T.greenSFg, bg: T.greenSBg },
+              { label: "סגירה מהירה ביותר",  value: formatDuration(statsView === "week" ? stats.weekFastestClose : stats.fastestClose),  color: T.text, bg: T.codeBg },
+              { label: "סגירה ארוכה ביותר",  value: formatDuration(statsView === "week" ? stats.weekSlowestClose : stats.slowestClose),  color: T.redFg, bg: T.redBg },
             ].map(s => (
-              <div key={s.label} style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: `1px solid ${s.bg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                <div style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, marginBottom: 4 }}>{s.label}</div>
+              <div key={s.label} style={{ background: T.card, borderRadius: 14, padding: "16px 20px", border: `1px solid ${s.bg}`, boxShadow: `0 1px 4px ${T.shadow1}` }}>
+                <div style={{ fontSize: "0.75rem", color: T.inkFaint, fontWeight: 600, marginBottom: 4 }}>{s.label}</div>
                 <div style={{ fontSize: "1rem", fontWeight: 700, color: s.color }}>{s.value}</div>
               </div>
             ))}
@@ -411,10 +411,10 @@ export default function TicketsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
-            style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: "0.88rem", background: "#fff" }}
+            style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.88rem", background: T.card }}
           />
 
-          <div style={{ display: "flex", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
             {[
               { label: "פתוחות", val: false },
               { label: "הכל",    val: true  },
@@ -424,32 +424,32 @@ export default function TicketsPage() {
                 onClick={() => setShowAll(opt.val)}
                 style={{
                   padding: "8px 18px", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.82rem",
-                  background: showAll === opt.val ? "#16181D" : "transparent",
-                  color:      showAll === opt.val ? "#fff"    : "#6b7280",
+                  background: showAll === opt.val ? T.inverseBg : "transparent",
+                  color:      showAll === opt.val ? T.inverseText    : T.inkMuted,
                   transition: "all 0.15s",
                 }}
               >{opt.label}</button>
             ))}
           </div>
 
-          <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: "#EDEFEA", color: "#16181D", fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke="#16181D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "none", background: T.codeBg, color: T.text, fontWeight: 600, fontSize: "0.82rem", cursor: "pointer" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114.93-2M20 15a8 8 0 01-14.93 2" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             רענן
           </button>
 
-          <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>{filtered.length} פניות</span>
+          <span style={{ fontSize: "0.78rem", color: T.inkFaint }}>{filtered.length} פניות</span>
         </div>
 
         {/* Active stat filter indicator */}
         {statFilter && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "#EDEFEA", border: "1px solid #bfdbfe", borderRadius: 10, fontSize: "0.82rem", color: "#3D5A7D" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: T.codeBg, border: `1px solid ${T.blueBorder}`, borderRadius: 10, fontSize: "0.82rem", color: T.pillBlueFg }}>
             <span>מסנן: {({
               open: "פתוחות", inprog: "בטיפול", closed: "סגורות",
               openedToday: "נפתחו היום", closedToday: "נסגרו היום",
               weekAll: "פניות השבוע", weekOpen: "פתוחות השבוע",
               weekInprog: "בטיפול השבוע", weekClosed: "נסגרו השבוע",
             } as Record<string, string>)[statFilter] ?? statFilter}</span>
-            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16181D", fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
+            <button onClick={() => setStatFilter(null)} style={{ background: "none", border: "none", cursor: "pointer", color: T.text, fontWeight: 700, fontSize: "0.82rem", padding: 0 }}>— לחץ לביטול ✕</button>
           </div>
         )}
 
@@ -457,12 +457,12 @@ export default function TicketsPage() {
         {numberSuggestion && (
           <a
             href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#fff", border: `1px solid ${T.border}`, borderRight: "4px solid #16181D", borderRadius: 12, textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", flexWrap: "wrap" }}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
+            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
               HDTC-{numberSuggestion.ticketNumber}
             </span>
-            <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
+            <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
             </span>
             <span style={{ fontSize: "0.7rem", fontWeight: 700, borderRadius: 6, padding: "2px 8px", ...(STATUS_STYLE[numberSuggestion.status] ?? {}) }}>{numberSuggestion.status}</span>
@@ -472,14 +472,14 @@ export default function TicketsPage() {
 
         {/* ── Ticket list ── */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
-            <div style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTopColor: "#6366f1", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ textAlign: "center", padding: "60px 0", color: T.inkFaint }}>
+            <div style={{ width: 36, height: 36, border: `3px solid ${T.line}`, borderTopColor: T.purpleFg, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 0.8s linear infinite" }} />
             <p style={{ margin: 0, fontSize: "0.875rem" }}>טוען פניות...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 24px", background: "#fff", borderRadius: 16, border: "1px solid #f3f4f6" }}>
-            <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#374151" }}>לא נמצאו פניות</p>
-            <p style={{ margin: 0, fontSize: "0.82rem", color: "#9ca3af" }}>נסו לשנות את הסינון או החיפוש</p>
+          <div style={{ textAlign: "center", padding: "60px 24px", background: T.card, borderRadius: 16, border: `1px solid ${T.line}` }}>
+            <p style={{ margin: "0 0 4px", fontWeight: 700, color: T.ink }}>לא נמצאו פניות</p>
+            <p style={{ margin: 0, fontSize: "0.82rem", color: T.inkFaint }}>נסו לשנות את הסינון או החיפוש</p>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -499,10 +499,10 @@ export default function TicketsPage() {
                       onClick={() => handleSort(col.key)}
                       style={{
                         display: "flex", alignItems: "center", gap: 3,
-                        background: sortKey === col.key ? "#EDEFEA" : "none",
+                        background: sortKey === col.key ? T.codeBg : "none",
                         border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 6,
                         fontSize: "0.72rem", fontWeight: 700,
-                        color: sortKey === col.key ? "#16181D" : "#9ca3af",
+                        color: sortKey === col.key ? T.text : T.inkFaint,
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -525,10 +525,10 @@ export default function TicketsPage() {
                     onClick={() => handleSort(col.key)}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
-                      background: sortKey === col.key ? "#EDEFEA" : "none",
+                      background: sortKey === col.key ? T.codeBg : "none",
                       border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 6,
                       fontSize: "0.72rem", fontWeight: 700,
-                      color: sortKey === col.key ? "#16181D" : "#9ca3af",
+                      color: sortKey === col.key ? T.text : T.inkFaint,
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -559,15 +559,15 @@ export default function TicketsPage() {
                   onMouseEnter={() => setHoverId(ticket.id)}
                   onMouseLeave={() => setHoverId(null)}
                   style={{
-                    background: isStale ? "#fff8f2" : "#fff",
+                    background: isStale ? T.orangeBg : T.card,
                     borderRadius: 12,
-                    border: isStale ? "1px solid #fed7aa" : "1px solid #f3f4f6",
-                    borderRight: `4px solid ${isStale ? "#f97316" : (URGENCY_BORDER[ticket.urgency] ?? "#e5e7eb")}`,
+                    border: isStale ? `1px solid ${T.orangeBorder}` : `1px solid ${T.line}`,
+                    borderRight: `4px solid ${isStale ? "${T.orangeFg}" : (URGENCY_BORDER[ticket.urgency] ?? "${T.line}")}`,
                     boxShadow: isStale
-                      ? "0 0 0 1px #fed7aa, 0 2px 8px rgba(249,115,22,0.12)"
+                      ? `0 0 0 1px ${T.orangeBorder}, 0 2px 8px ${T.staleGlow}`
                       : hoverId === ticket.id
-                        ? "0 4px 16px rgba(0,0,0,0.09)"
-                        : "0 1px 3px rgba(0,0,0,0.05)",
+                        ? `0 4px 16px ${T.shadow2}`
+                        : `0 1px 3px ${T.shadow1}`,
                     overflow: "hidden", transition: "box-shadow 0.15s",
                     opacity: isClosed ? 0.75 : 1,
                   }}
@@ -577,21 +577,21 @@ export default function TicketsPage() {
                     <div onClick={() => handleExpand(ticket.id)} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", cursor: "pointer" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
-                          {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
-                          <span style={{ fontWeight: 600, color: "#111827", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
+                          <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
-                          <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
                         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
-                        <span style={{ fontSize: "0.68rem", color: isStale ? "#c2410c" : "#9ca3af" }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
+                        <span style={{ fontSize: "0.68rem", color: isStale ? T.orangeFgDeep : T.inkFaint }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
                         {!isClosed && (
                           <button onClick={e => { e.stopPropagation(); updateStatus(ticket.id, "סגור") }} disabled={updating === ticket.id}
-                            style={{ padding: "2px 8px", borderRadius: 8, border: "none", background: updating === ticket.id ? "#e5e7eb" : "#dcfce7", color: updating === ticket.id ? "#9ca3af" : "#15803d", fontWeight: 700, fontSize: "0.7rem", cursor: updating === ticket.id ? "default" : "pointer" }}>
+                            style={{ padding: "2px 8px", borderRadius: 8, border: "none", background: updating === ticket.id ? T.line : T.greenSBg, color: updating === ticket.id ? T.inkFaint : T.greenSFgDeep, fontWeight: 700, fontSize: "0.7rem", cursor: updating === ticket.id ? "default" : "pointer" }}>
                             {updating === ticket.id ? "..." : "✓ סגור"}
                           </button>
                         )}
@@ -603,25 +603,25 @@ export default function TicketsPage() {
                     style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
                     {/* Position */}
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? "#fef3c7" : "#f3f4f6", color: i === 0 && !showAll ? "#92400e" : "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? T.amberBg : T.fill, color: i === 0 && !showAll ? T.amberFgDeep : T.inkFaint, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
 
                     {/* Subject + meta */}
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#16181D", background: "#EDEFEA", borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
                           HDTC-{ticket.ticketNumber}
                         </span>
                         {isStale && (
-                          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px", flexShrink: 0, whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 7px", flexShrink: 0, whiteSpace: "nowrap" }}>
                             ⏰ {formatWorkdays(ageDays)}
                           </span>
                         )}
-                        <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: "#111827", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
+                        <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
                           onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
                           onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
                         >{ticket.subject}</a>
                       </div>
-                      <div style={{ fontSize: "0.73rem", color: "#9ca3af", marginTop: 2 }}>
+                      <div style={{ fontSize: "0.73rem", color: T.inkFaint, marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
                         {ticket.assignedTo && <> · 👤 {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo.split("@")[0]}</>}
                       </div>
@@ -634,30 +634,30 @@ export default function TicketsPage() {
                     <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
 
                     {/* Date opened */}
-                    <div style={{ fontSize: "0.72rem", color: isStale ? "#c2410c" : "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
-                      <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>נפתח</div>
+                    <div style={{ fontSize: "0.72rem", color: isStale ? T.orangeFgDeep : T.inkFaint, textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: "0.68rem", color: T.inkFainter, marginBottom: 1 }}>נפתח</div>
                       {new Date(ticket.createdAt).toLocaleDateString("he-IL")}<br />
                       {new Date(ticket.createdAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
                     </div>
 
                     {/* Date updated */}
-                    <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
-                      <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>עודכן</div>
+                    <div style={{ fontSize: "0.72rem", color: T.inkFaint, textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: "0.68rem", color: T.inkFainter, marginBottom: 1 }}>עודכן</div>
                       {new Date(ticket.updatedAt).toLocaleDateString("he-IL")}<br />
                       {new Date(ticket.updatedAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
                     </div>
 
                     {/* Date closed + workday resolve time (closed only) */}
                     {isClosed ? (
-                      <div style={{ fontSize: "0.72rem", color: "#16a34a", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
-                        <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>נסגר</div>
+                      <div style={{ fontSize: "0.72rem", color: T.greenSFg, textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "0.68rem", color: T.inkFainter, marginBottom: 1 }}>נסגר</div>
                         {new Date(ticket.updatedAt).toLocaleDateString("he-IL")}<br />
-                        <span style={{ color: "#059669", fontWeight: 600 }}>{formatWorkdays(wdOpen)}</span>
+                        <span style={{ color: T.greenSFg, fontWeight: 600 }}>{formatWorkdays(wdOpen)}</span>
                       </div>
                     ) : (
-                      <div style={{ fontSize: "0.72rem", color: "#9ca3af", textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
-                        <div style={{ fontSize: "0.68rem", color: "#d1d5db", marginBottom: 1 }}>פתוח</div>
-                        <span style={{ color: isStale ? "#c2410c" : "#6b7280", fontWeight: 600 }}>{formatWorkdays(wdOpen)}</span>
+                      <div style={{ fontSize: "0.72rem", color: T.inkFaint, textAlign: "left", lineHeight: 1.5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: "0.68rem", color: T.inkFainter, marginBottom: 1 }}>פתוח</div>
+                        <span style={{ color: isStale ? T.orangeFgDeep : T.inkMuted, fontWeight: 600 }}>{formatWorkdays(wdOpen)}</span>
                       </div>
                     )}
 
@@ -667,7 +667,7 @@ export default function TicketsPage() {
                         onClick={e => { e.stopPropagation(); updateStatus(ticket.id, "סגור") }}
                         disabled={updating === ticket.id}
                         title="סגור פנייה"
-                        style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: updating === ticket.id ? "#e5e7eb" : "#dcfce7", color: updating === ticket.id ? "#9ca3af" : "#15803d", fontWeight: 700, fontSize: "0.72rem", cursor: updating === ticket.id ? "default" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                        style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: updating === ticket.id ? T.line : T.greenSBg, color: updating === ticket.id ? T.inkFaint : T.greenSFgDeep, fontWeight: 700, fontSize: "0.72rem", cursor: updating === ticket.id ? "default" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
                       >
                         {updating === ticket.id ? "..." : "✓ סגור"}
                       </button>
@@ -677,38 +677,38 @@ export default function TicketsPage() {
 
                     {/* Expand chevron */}
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
-                      <path d="M6 9l6 6 6-6" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6 9l6 6 6-6" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   )}
 
                   {/* Expanded panel */}
                   {isExpanded && (
-                    <div style={{ borderTop: "1px solid #f3f4f6", padding: "14px 18px", background: "#fafbfc" }}>
+                    <div style={{ borderTop: `1px solid ${T.line}`, padding: "14px 18px", background: T.fill2 }}>
                       {editingId === ticket.id ? (
                         /* ── Edit mode ── */
                         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                             <div>
-                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>נושא</div>
+                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>נושא</div>
                               <input value={editForm.subject} onChange={e => setEditForm(f => ({ ...f, subject: e.target.value }))}
-                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                             </div>
                             <div>
-                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>טלפון</div>
+                              <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>טלפון</div>
                               <input value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
-                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                                style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                             </div>
                           </div>
                           <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>שם מחשב</div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>שם מחשב</div>
                             <input value={editForm.computerName} onChange={e => setEditForm(f => ({ ...f, computerName: e.target.value }))}
-                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", boxSizing: "border-box" }} />
                           </div>
                           <div>
-                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>תיאור</div>
+                            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>תיאור</div>
                             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={4}
-                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", resize: "vertical", boxSizing: "border-box" }} />
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", resize: "vertical", boxSizing: "border-box" }} />
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                             {([
@@ -718,9 +718,9 @@ export default function TicketsPage() {
                               { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
                             ]).map(({ label, key, opts }) => (
                               <div key={key}>
-                                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginBottom: 4 }}>{label}</div>
+                                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>{label}</div>
                                 <select value={editForm[key as keyof typeof editForm]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                                  style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.875rem", background: "#fff" }}>
+                                  style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", background: T.card }}>
                                   {opts.map(o => <option key={o}>{o}</option>)}
                                 </select>
                               </div>
@@ -728,11 +728,11 @@ export default function TicketsPage() {
                           </div>
                           <div style={{ display: "flex", gap: 8 }}>
                             <button onClick={e => { e.stopPropagation(); saveEdit() }} disabled={editSaving}
-                              style={{ background: "linear-gradient(135deg,#16181D,#16181D)", color: "#fff", fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
+                              style={{ background: `linear-gradient(135deg,${T.inverseBg},${T.inverseBg})`, color: T.inverseText, fontWeight: 700, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem", opacity: editSaving ? 0.6 : 1 }}>
                               {editSaving ? "שומר..." : "שמור"}
                             </button>
                             <button onClick={e => { e.stopPropagation(); setEditingId(null) }}
-                              style={{ background: "#f3f4f6", color: "#374151", fontWeight: 600, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                              style={{ background: T.fill, color: T.ink, fontWeight: 600, padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
                               ביטול
                             </button>
                           </div>
@@ -740,20 +740,20 @@ export default function TicketsPage() {
                       ) : (
                         /* ── View mode ── */
                         <>
-                          <p style={{ margin: "0 0 14px", fontSize: "0.875rem", color: "#374151", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
+                          <p style={{ margin: "0 0 14px", fontSize: "0.875rem", color: T.ink, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
                           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                            <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>📞 {ticket.phone}</span>
-                            <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>💬 {ticket.user?.email}</span>
+                            <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>📞 {ticket.phone}</span>
+                            <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>💬 {ticket.user?.email}</span>
                           </div>
                           {/* Assignment */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "8px 12px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-                            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>👤 מוקצה ל:</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "8px 12px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
+                            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, flexShrink: 0 }}>👤 מוקצה ל:</span>
                             <select
                               value={ticket.assignedTo}
                               disabled={assigning === ticket.id}
                               onClick={e => e.stopPropagation()}
                               onChange={e => { e.stopPropagation(); assignTicket(ticket.id, e.target.value) }}
-                              style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#16181D", cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                              style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", background: T.card, fontWeight: 600, color: T.text, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                             >
                               {staffMembers.map(m => (
                                 <option key={m.email} value={m.email}>{m.display}</option>
@@ -763,48 +763,48 @@ export default function TicketsPage() {
                               <button
                                 onClick={e => { e.stopPropagation(); assignTicket(ticket.id, session?.user?.email ?? "") }}
                                 disabled={assigning === ticket.id || !session?.user?.email}
-                                style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
+                                style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: T.inverseBg, color: T.inverseText, fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning === ticket.id ? 0.5 : 1 }}
                               >
                                 הקצה לעצמי
                               </button>
                             )}
-                            {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
+                            {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>שומר...</span>}
                           </div>
 
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-                            <span style={{ fontSize: "0.78rem", color: "#6b7280", fontWeight: 600 }}>שנה סטטוס:</span>
+                            <span style={{ fontSize: "0.78rem", color: T.inkMuted, fontWeight: 600 }}>שנה סטטוס:</span>
                             {["פתוח", "בטיפול", "סגור"].map(s => (
                               <button key={s} disabled={updating === ticket.id || ticket.status === s}
                                 onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
-                                style={{ padding: "5px 14px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLE[s] : { background: "#f3f4f6", color: "#374151" }) }}>
+                                style={{ padding: "5px 14px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLE[s] : { background: T.fill, color: T.ink }) }}>
                                 {s}
                               </button>
                             ))}
                             <button onClick={e => { e.stopPropagation(); startEdit(ticket) }}
-                              style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#EDEFEA", color: "#16181D" }}>
+                              style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: T.codeBg, color: T.text }}>
                               ✏️ עריכה
                             </button>
                             <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
-                              style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: "#f0fdf4", color: "#15803d", textDecoration: "none" }}>
+                              style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: T.greenSBg, color: T.greenSFgDeep, textDecoration: "none" }}>
                               🔍 פתח פנייה מלאה
                             </a>
                           </div>
 
                           {/* ── Conversation with user ── */}
-                          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14, marginBottom: 14 }}>
-                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>💬 שיחה עם המגיש</div>
+                          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14, marginBottom: 14 }}>
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>💬 שיחה עם המגיש</div>
                             {(expandedMessages[ticket.id] ?? []).length === 0
-                              ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הודעות עדיין</div>
+                              ? <div style={{ fontSize: "0.78rem", color: T.inkFaint, marginBottom: 10 }}>אין הודעות עדיין</div>
                               : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (
                                   <div key={msg.id} style={{ display: "flex", gap: 8, marginBottom: 10, flexDirection: msg.authorRole === "staff" ? "row-reverse" : "row", alignItems: "flex-start" }}>
-                                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? "#16181D" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
+                                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: msg.authorRole === "staff" ? T.inverseBg : T.cyanFg, color: T.inverseText, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, flexShrink: 0 }}>
                                       {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                                     </div>
                                     <div style={{ maxWidth: "70%" }}>
-                                      <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
+                                      <div style={{ fontSize: "0.68rem", color: T.inkFaint, marginBottom: 2, textAlign: msg.authorRole === "staff" ? "left" : "right" }}>
                                         {msg.authorName} · {new Date(msg.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}
                                       </div>
-                                      <div style={{ background: msg.authorRole === "staff" ? "#EDEFEA" : "#f0f9ff", borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: "#1f2937", whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                                      <div style={{ background: msg.authorRole === "staff" ? T.codeBg : T.blueBg, borderRadius: 8, padding: "7px 11px", fontSize: "0.82rem", color: T.text, whiteSpace: "pre-wrap" }}>{msg.content}</div>
                                     </div>
                                   </div>
                                 ))
@@ -816,12 +816,12 @@ export default function TicketsPage() {
                                 value={replyText[ticket.id] ?? ""}
                                 onClick={e => e.stopPropagation()}
                                 onChange={e => setReplyText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                                style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
+                                style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }}
                               />
                               <button
                                 onClick={e => { e.stopPropagation(); sendReply(ticket.id) }}
                                 disabled={replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim()}
-                                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#e5e7eb" : "#16181D", color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? T.line : T.inverseBg, color: replySaving === ticket.id || !(replyText[ticket.id] ?? "").trim() ? T.inkFaint : T.inverseText, cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                               >
                                 {replySaving === ticket.id ? "..." : "שלח"}
                               </button>
@@ -829,17 +829,17 @@ export default function TicketsPage() {
                           </div>
 
                           {/* ── Notes section ── */}
-                          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 14 }}>
-                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", marginBottom: 10 }}>📝 הערות טכנאי</div>
+                          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>📝 הערות טכנאי</div>
                             {(expandedNotes[ticket.id] ?? []).length === 0
-                              ? <div style={{ fontSize: "0.78rem", color: "#9ca3af", marginBottom: 10 }}>אין הערות עדיין</div>
+                              ? <div style={{ fontSize: "0.78rem", color: T.inkFaint, marginBottom: 10 }}>אין הערות עדיין</div>
                               : (expandedNotes[ticket.id] ?? []).map((note: TicketNote) => (
-                                  <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 10, marginBottom: 10 }}>
+                                  <div key={note.id} style={{ borderRight: `3px solid ${T.purpleFg}`, paddingRight: 10, marginBottom: 10 }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#16181D" }}>{note.authorName}</span>
-                                      <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
+                                      <span style={{ fontSize: "0.72rem", fontWeight: 700, color: T.text }}>{note.authorName}</span>
+                                      <span style={{ fontSize: "0.7rem", color: T.inkFaint }}>{new Date(note.createdAt).toLocaleString("he-IL", { dateStyle: "short", timeStyle: "short" })}</span>
                                     </div>
-                                    <div style={{ fontSize: "0.82rem", color: "#374151", whiteSpace: "pre-wrap" }}>{note.content}</div>
+                                    <div style={{ fontSize: "0.82rem", color: T.ink, whiteSpace: "pre-wrap" }}>{note.content}</div>
                                   </div>
                                 ))
                             }
@@ -850,14 +850,14 @@ export default function TicketsPage() {
                               onClick={e => e.stopPropagation()}
                               onChange={e => setNoteText(prev => ({ ...prev, [ticket.id]: e.target.value }))}
                               onPaste={e => handleImagePaste(e, img => setNoteImages(prev => ({ ...prev, [ticket.id]: [...(prev[ticket.id] ?? []), img] })))}
-                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", resize: "none", boxSizing: "border-box", marginBottom: 4 }}
+                              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", resize: "none", boxSizing: "border-box", marginBottom: 4 }}
                             />
                             <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
-                              <span style={{ fontSize: "0.68rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
+                              <span style={{ fontSize: "0.68rem", color: T.inkFaint, alignSelf: "center" }}>הזכר:</span>
                               {staffMembers.map(m => (
                                 <button key={m.handle} type="button"
                                   onClick={e => { e.stopPropagation(); setNoteText(prev => { const cur = prev[ticket.id] ?? ""; return { ...prev, [ticket.id]: cur ? `${cur} @${m.handle}` : `@${m.handle}` } }) }}
-                                  style={{ padding: "1px 8px", borderRadius: 20, border: "1px solid #EDEFEA", background: "#EDEFEA", color: "#16181D", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
+                                  style={{ padding: "1px 8px", borderRadius: 20, border: `1px solid ${T.codeBg}`, background: T.codeBg, color: T.text, fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}
                                 >@{m.handle}</button>
                               ))}
                             </div>
@@ -870,7 +870,7 @@ export default function TicketsPage() {
                             <button
                               onClick={e => { e.stopPropagation(); addNote(ticket.id) }}
                               disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}
-                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#e5e7eb" : "#16181D", color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? "#9ca3af" : "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
+                              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? T.line : T.inverseBg, color: noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length) ? T.inkFaint : T.inverseText, cursor: "pointer", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}
                             >
                               {noteSaving === ticket.id ? "..." : "הוסף"}
                             </button>

@@ -442,9 +442,9 @@ export default function TicketDetailPage() {
   const closeBlockers = leaving ? offboardingBlockers(ticket.equipment ?? []) : []
   const closeBlocked  = closeBlockers.length > 0
 
-  const labelStyle: React.CSSProperties = { fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4, display: "block" }
-  const valueStyle: React.CSSProperties = { fontSize: "0.9rem", color: "#1f2937" }
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", boxSizing: "border-box" }
+  const labelStyle: React.CSSProperties = { fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4, display: "block" }
+  const valueStyle: React.CSSProperties = { fontSize: "0.9rem", color: T.text }
+  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.88rem", boxSizing: "border-box" }
 
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: T.bg }}>
@@ -454,7 +454,7 @@ export default function TicketDetailPage() {
       <div style={{ background: HDR.bg, borderBottom: `1px solid ${HDR.border}`, padding: isMobile ? "10px 12px" : "0 24px", minHeight: isMobile ? 0 : 64, display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, flexWrap: isMobile ? "wrap" : "nowrap" }}>
         <button
           onClick={() => { if (window.history.length > 1) { router.back() } else { router.push("/tickets") } }}
-          style={{ padding: isMobile ? "6px 10px" : "8px 14px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link, display: "flex", alignItems: "center", gap: 6, fontWeight: 500, flexShrink: 0 }}
+          style={{ padding: isMobile ? "6px 10px" : "8px 14px", borderRadius: 9, border: `1px solid ${HDR.pillBorder}`, background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link, display: "flex", alignItems: "center", gap: 6, fontWeight: 500, flexShrink: 0 }}
         >
           ← חזרה
         </button>
@@ -467,7 +467,7 @@ export default function TicketDetailPage() {
         {isStaff && !editing && (
           <button
             onClick={() => setEditing(true)}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: HDR.pillBg, cursor: "pointer", fontSize: "0.85rem", color: HDR.linkStrong, fontWeight: 600 }}
+            style={{ padding: "6px 16px", borderRadius: 8, border: `1px solid ${HDR.pillBorder}`, background: HDR.pillBg, cursor: "pointer", fontSize: "0.85rem", color: HDR.linkStrong, fontWeight: 600 }}
           >
             עריכה
           </button>
@@ -477,14 +477,14 @@ export default function TicketDetailPage() {
             onClick={adminCloseTicket}
             disabled={closing || closeBlocked}
             title={closeBlocked ? blockerMessage(closeBlockers) : undefined}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: (closing || closeBlocked) ? "rgba(255,255,255,0.10)" : T.green, color: (closing || closeBlocked) ? HDR.muted : T.dark, fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
+            style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: (closing || closeBlocked) ? HDR.pillBg : T.green, color: (closing || closeBlocked) ? HDR.muted : T.onGreen, fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
           >
             {closing ? "סוגר..." : closeBlocked ? "🔒 סגור פנייה" : "✓ סגור פנייה"}
           </button>
         )}
         <button
           onClick={copyLink}
-          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: copied ? HDR.greenPillBg : "transparent", color: copied ? HDR.greenPillFg : HDR.link, fontSize: "0.82rem", cursor: "pointer", fontWeight: 600, transition: "all 0.15s" }}
+          style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${HDR.pillBorder}`, background: copied ? HDR.greenPillBg : "transparent", color: copied ? HDR.greenPillFg : HDR.link, fontSize: "0.82rem", cursor: "pointer", fontWeight: 600, transition: "all 0.15s" }}
         >
           {copied ? "✓ הועתק" : "העתק קישור"}
         </button>
@@ -493,7 +493,7 @@ export default function TicketDetailPage() {
             onClick={closeTicket}
             disabled={closing || closeBlocked}
             title={closeBlocked ? blockerMessage(closeBlockers) : undefined}
-            style={{ padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(217,83,79,0.5)", background: (closing || closeBlocked) ? "rgba(255,255,255,0.10)" : "rgba(217,83,79,0.16)", color: (closing || closeBlocked) ? HDR.muted : "#E88B87", fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
+            style={{ padding: "6px 16px", borderRadius: 8, border: `1px solid ${T.redBorder}`, background: (closing || closeBlocked) ? HDR.pillBg : T.redBg, color: (closing || closeBlocked) ? HDR.muted : T.redFg, fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
           >
             {closing ? "סוגר..." : closeBlocked ? "🔒 סגור פנייה" : "סגור פנייה"}
           </button>
@@ -502,15 +502,15 @@ export default function TicketDetailPage() {
           <button
             onClick={() => { setDeleteError(""); setConfirmDelete(true) }}
             title="מחיקת הפנייה לצמיתות"
-            style={{ padding: "5px 11px", borderRadius: 8, border: "1px solid rgba(217,83,79,0.45)", background: "transparent", color: "#E88B87", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+            style={{ padding: "5px 11px", borderRadius: 8, border: `1px solid ${T.redBorder}`, background: "transparent", color: T.redFg, fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
           >
             🗑 מחק
           </button>
         )}
         {isStaff && editing && (
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={cancelEdit} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.16)", background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
-            <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: T.green, color: T.dark, cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
+            <button onClick={cancelEdit} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${HDR.pillBorder}`, background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link }}>ביטול</button>
+            <button onClick={saveEdit} disabled={editSaving} style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: T.green, color: T.onGreen, cursor: editSaving ? "not-allowed" : "pointer", fontSize: "0.85rem", fontWeight: 700 }}>
               {editSaving ? "שומר..." : "שמור"}
             </button>
           </div>
@@ -527,24 +527,24 @@ export default function TicketDetailPage() {
           aria-modal="true"
           aria-label="אישור מחיקת פנייה"
           onClick={() => { if (!deleting) setConfirmDelete(false) }}
-          style={{ position: "fixed", inset: 0, background: "rgba(15,17,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 }}
+          style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.28)" }}
+            style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24, maxWidth: 420, width: "100%", boxShadow: `0 20px 50px ${T.shadow4}` }}
           >
-            <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: "#991b1b" }}>
+            <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: T.redFgDeep }}>
               מחיקת פנייה HDTC-{ticket.ticketNumber}
             </h2>
-            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: "#374151", lineHeight: 1.7 }}>
+            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: T.ink, lineHeight: 1.7 }}>
               הפנייה <strong>{ticket.subject}</strong> תימחק לצמיתות, יחד עם ההיסטוריה, ההערות, ההודעות, הקבצים המצורפים ובקשות הציוד שלה.
             </p>
-            <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: "#9ca3af" }}>
+            <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: T.inkFaint }}>
               לא ניתן לשחזר פנייה שנמחקה. לסגירת פנייה שטופלה השתמשו ב&quot;סגור פנייה&quot;.
             </p>
 
             {deleteError && (
-              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "9px 12px", fontSize: "0.82rem", color: "#dc2626", marginBottom: 14 }}>
+              <div style={{ background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "9px 12px", fontSize: "0.82rem", color: T.redFg, marginBottom: 14 }}>
                 {deleteError}
               </div>
             )}
@@ -553,14 +553,14 @@ export default function TicketDetailPage() {
               <button
                 onClick={deleteTicket}
                 disabled={deleting}
-                style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: deleting ? "#e5e7eb" : "#dc2626", color: deleting ? "#9ca3af" : "#fff", fontWeight: 700, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
+                style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: deleting ? T.line : T.redFg, color: deleting ? T.inkFaint : T.inverseText, fontWeight: 700, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
               >
                 {deleting ? "מוחק..." : "מחק לצמיתות"}
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
+                style={{ padding: "9px 18px", borderRadius: 9, border: `1px solid ${T.lineStrong}`, background: T.card, color: T.ink, fontWeight: 600, fontSize: "0.85rem", cursor: deleting ? "not-allowed" : "pointer" }}
               >
                 ביטול
               </button>
@@ -581,32 +581,32 @@ export default function TicketDetailPage() {
           aria-modal="true"
           aria-label="אישור העברת פנייה"
           onClick={() => setOwnerConfirm(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(15,17,21,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 }}
+          style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 100 }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.28)" }}
+            style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24, maxWidth: 420, width: "100%", boxShadow: `0 20px 50px ${T.shadow4}` }}
           >
-            <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: "#16181D" }}>
+            <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: T.text }}>
               העברת פנייה HDTC-{ticket.ticketNumber}
             </h2>
-            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: "#374151", lineHeight: 1.7 }}>
+            <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: T.ink, lineHeight: 1.7 }}>
               המגיש ישונה מ<strong>{userLabel(editForm.ownerEmail)}</strong> ל<strong>{userLabel(ownerConfirm)}</strong>.
             </p>
-            <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: "#9ca3af" }}>
+            <p style={{ margin: "0 0 18px", fontSize: "0.82rem", color: T.inkFaint }}>
               הפנייה תעבור לרשימת הפניות של {userLabel(ownerConfirm)}, והעדכונים עליה — כולל בקשת הדירוג בסגירה — יישלחו אליו. השינוי ייכתב ליומן הפנייה ויישמר בלחיצה על &quot;שמור&quot;.
             </p>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-start" }}>
               <button
                 onClick={() => { setEditForm(f => ({ ...f, ownerEmail: ownerConfirm })); setOwnerConfirm(null) }}
-                style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: T.green, color: T.dark, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
+                style={{ padding: "9px 18px", borderRadius: 9, border: "none", background: T.green, color: T.onGreen, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}
               >
                 אישור
               </button>
               <button
                 onClick={() => setOwnerConfirm(null)}
-                style={{ padding: "9px 18px", borderRadius: 9, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
+                style={{ padding: "9px 18px", borderRadius: 9, border: `1px solid ${T.lineStrong}`, background: T.card, color: T.ink, fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
               >
                 ביטול
               </button>
@@ -618,7 +618,7 @@ export default function TicketDetailPage() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
         {/* Main info card */}
-        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+        <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
 
           {/* Subject */}
           <div style={{ marginBottom: 20 }}>
@@ -674,18 +674,18 @@ export default function TicketDetailPage() {
               own (a non-admin sending ownerEmail, or an address no longer on
               the roster). */}
           {editError && (
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "9px 12px", fontSize: "0.82rem", color: "#dc2626", marginBottom: 16 }}>
+            <div style={{ background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 8, padding: "9px 12px", fontSize: "0.82rem", color: T.redFg, marginBottom: 16 }}>
               {editError}
             </div>
           )}
 
           {/* Hold reason banner */}
           {ticket.status === "בהמתנה" && ticket.holdReason && (
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 14px", marginBottom: 16, background: "#f3f4f6", borderRadius: 10, border: "1px solid #e5e7eb" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 14px", marginBottom: 16, background: T.fill, borderRadius: 10, border: `1px solid ${T.line}` }}>
               <span style={{ fontSize: "1rem" }}>⏸</span>
               <div>
-                <div style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", marginBottom: 2 }}>סיבת ההמתנה</div>
-                <div style={{ fontSize: "0.85rem", color: "#374151" }}>{ticket.holdReason}</div>
+                <div style={{ fontSize: "0.72rem", fontWeight: 700, color: T.inkMuted, marginBottom: 2 }}>סיבת ההמתנה</div>
+                <div style={{ fontSize: "0.85rem", color: T.ink }}>{ticket.holdReason}</div>
               </div>
             </div>
           )}
@@ -734,12 +734,12 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>נפתח</span>
               <span style={valueStyle}>{formatDate(ticket.createdAt)}</span>
               {ticket.status !== "סגור" && (
-                <span style={{ marginTop: 4, display: "block", fontSize: "0.75rem", color: "#6b7280" }}>
+                <span style={{ marginTop: 4, display: "block", fontSize: "0.75rem", color: T.inkMuted }}>
                   {formatWorkdays(workdaysBetween(ticket.createdAt))} פתוח
                 </span>
               )}
               {ticket.status === "סגור" && (
-                <span style={{ marginTop: 4, display: "block", fontSize: "0.75rem", color: "#6b7280" }}>
+                <span style={{ marginTop: 4, display: "block", fontSize: "0.75rem", color: T.inkMuted }}>
                   נסגר לאחר {formatWorkdays(workdaysBetween(ticket.createdAt, ticket.updatedAt))}
                 </span>
               )}
@@ -747,15 +747,15 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Assignment row — staff can change, users see read-only */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 10, border: "1px solid #e2e8f0" }}>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#374151", flexShrink: 0 }}>👤 מוקצה ל:</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
+            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, flexShrink: 0 }}>👤 מוקצה ל:</span>
             {isStaff ? (
               <>
                 <select
                   value={ticket.assignedTo}
                   disabled={assigning}
                   onChange={e => assignTicket(e.target.value)}
-                  style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.82rem", background: "#fff", fontWeight: 600, color: "#16181D", cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
+                  style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", background: T.card, fontWeight: 600, color: T.text, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
                 >
                   {staffMembers.map(m => (
                     <option key={m.email} value={m.email}>{m.display}</option>
@@ -765,15 +765,15 @@ export default function TicketDetailPage() {
                   <button
                     onClick={() => assignTicket(session?.user?.email ?? "")}
                     disabled={assigning || !session?.user?.email}
-                    style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#16181D", color: "#fff", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
+                    style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: T.inverseBg, color: T.inverseText, fontSize: "0.75rem", fontWeight: 700, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
                   >
                     הקצה לעצמי
                   </button>
                 )}
-                {assigning && <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>שומר...</span>}
+                {assigning && <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>שומר...</span>}
               </>
             ) : (
-              <span style={{ fontSize: "0.88rem", fontWeight: 600, color: "#16181D" }}>
+              <span style={{ fontSize: "0.88rem", fontWeight: 600, color: T.text }}>
                 {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo}
               </span>
             )}
@@ -785,15 +785,15 @@ export default function TicketDetailPage() {
               same four facts are not printed twice. Editing shows the raw text,
               block included, so staff can correct a typo in place. */}
           {!editing && newHire && (
-            <div style={{ border: "1px solid #e2e8f0", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "8px 14px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", fontSize: "0.78rem", fontWeight: 800, color: "#374151" }}>
+            <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "8px 14px", background: T.fill2, borderBottom: `1px solid ${T.line}`, fontSize: "0.78rem", fontWeight: 800, color: T.ink }}>
                 🧑‍💼 פרטי העובד החדש
               </div>
               <div style={{ padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 16px" }}>
                 {NEW_EMPLOYEE_FIELDS.map(f => (
                   <div key={f.key}>
-                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af" }}>{f.label}</span>
-                    <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#16181D" }}>{newHire[f.key] || "—"}</div>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: T.inkFaint }}>{f.label}</span>
+                    <div style={{ fontSize: "0.88rem", fontWeight: 600, color: T.text }}>{newHire[f.key] || "—"}</div>
                   </div>
                 ))}
               </div>
@@ -810,7 +810,7 @@ export default function TicketDetailPage() {
                   value={editForm.description}
                   onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                 />
-              : <div style={{ ...valueStyle, whiteSpace: "pre-wrap", background: "#f9fafb", borderRadius: 8, padding: "10px 14px", lineHeight: 1.6 }}>{stripNewEmployeeBlock(ticket.description)}</div>
+              : <div style={{ ...valueStyle, whiteSpace: "pre-wrap", background: T.fill2, borderRadius: 8, padding: "10px 14px", lineHeight: 1.6 }}>{stripNewEmployeeBlock(ticket.description)}</div>
             }
           </div>
         </div>
@@ -829,9 +829,9 @@ export default function TicketDetailPage() {
           if (lines.length === 0 && !canAdd && ticket.category !== NEW_EMPLOYEE_CATEGORY && !leaving) return null
           const progress = equipmentProgress(lines)
           return (
-            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+            <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-                <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>
+                <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>
                   {leaving
                     ? "📤 החזרת ציוד וסגירת חשבונות"
                     : `📦 ${ticket.category === NEW_EMPLOYEE_CATEGORY ? "ציוד לעובד חדש" : "ציוד מבוקש"}`}
@@ -839,8 +839,8 @@ export default function TicketDetailPage() {
                 {lines.length > 0 && (
                   <span style={{
                     fontSize: "0.72rem", fontWeight: 700, borderRadius: 999, padding: "3px 10px",
-                    background: progress.complete ? T.greenBg : "#fff7ed",
-                    color:      progress.complete ? T.greenInk : "#c2410c",
+                    background: progress.complete ? T.greenBg : T.orangeBg,
+                    color:      progress.complete ? T.greenInk : T.orangeFgDeep,
                   }}>
                     {leaving
                       ? (progress.complete
@@ -859,9 +859,9 @@ export default function TicketDetailPage() {
               {leaving && (
                 <div style={{
                   marginBottom: 14, padding: "10px 14px", borderRadius: 10, fontSize: "0.82rem", lineHeight: 1.6,
-                  background: closeBlocked ? "#fff7ed" : T.greenBg,
-                  border: `1px solid ${closeBlocked ? "#fdba74" : T.green}`,
-                  color: closeBlocked ? "#9a3412" : T.greenInk,
+                  background: closeBlocked ? T.orangeBg : T.greenBg,
+                  border: `1px solid ${closeBlocked ? "${T.orangeBorder}" : T.green}`,
+                  color: closeBlocked ? T.orangeFgDeep : T.greenInk,
                 }}>
                   {closeBlocked
                     ? <>🔒 <strong>לא ניתן לסגור את הפנייה</strong> עד שכל הפריטים יסומנו. סמנו כל פריט שהוחזר או שהחשבון נסגר, והסירו פריטים שאינם רלוונטיים לעובד זה.</>
@@ -870,7 +870,7 @@ export default function TicketDetailPage() {
               )}
 
               {lines.length === 0 && (
-                <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: T.inkFaint }}>
                   {leaving
                     ? "רשימת ההחזרה ריקה — לא נותר דבר להחזיר או לסגור."
                     : canAdd ? "לא נבחר ציוד בפנייה זו. ניתן להוסיף פריטים למטה." : "לא נבחר ציוד בפנייה זו."}
@@ -886,8 +886,8 @@ export default function TicketDetailPage() {
                     <div key={line.id} style={{
                       display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
                       padding: "9px 12px", borderRadius: 10,
-                      background: done ? T.greenBg : "#f9fafb",
-                      border: `1px solid ${done ? T.green : "#e5e7eb"}`,
+                      background: done ? T.greenBg : T.fill2,
+                      border: `1px solid ${done ? T.green : "${T.line}"}`,
                       opacity: busy ? 0.55 : 1, transition: "opacity 0.12s",
                     }}>
                       {/* The V — staff only */}
@@ -899,9 +899,9 @@ export default function TicketDetailPage() {
                           title={done ? "בטל סימון" : leaving ? "סמן כהוחזר / נסגר" : "סמן כהתקבל"}
                           style={{
                             width: 24, height: 24, borderRadius: 7, flexShrink: 0,
-                            border: done ? "none" : "1.5px solid #cbd5e1",
-                            background: done ? T.green : "#fff",
-                            color: "#fff", cursor: busy ? "default" : "pointer",
+                            border: done ? "none" : `1.5px solid ${T.lineStrong}`,
+                            background: done ? T.green : T.card,
+                            color: T.inverseText, cursor: busy ? "default" : "pointer",
                             fontSize: "0.8rem", fontWeight: 800, lineHeight: 1,
                             display: "flex", alignItems: "center", justifyContent: "center",
                           }}
@@ -909,15 +909,15 @@ export default function TicketDetailPage() {
                       ) : (
                         <span aria-hidden style={{
                           width: 24, height: 24, borderRadius: 7, flexShrink: 0,
-                          background: done ? T.green : "#fff", border: done ? "none" : "1.5px solid #e5e7eb",
-                          color: "#fff", fontSize: "0.8rem", fontWeight: 800,
+                          background: done ? T.green : T.card, border: done ? "none" : `1.5px solid ${T.line}`,
+                          color: T.inverseText, fontSize: "0.8rem", fontWeight: 800,
                           display: "flex", alignItems: "center", justifyContent: "center",
                         }}>{done ? "✓" : ""}</span>
                       )}
 
                       <span style={{
                         fontSize: "0.86rem", fontWeight: 600, minWidth: 0, flex: 1,
-                        color: done ? T.greenInk : "#111827",
+                        color: done ? T.greenInk : T.text,
                         textDecoration: done ? "line-through" : "none",
                       }}>
                         {line.label}
@@ -935,13 +935,13 @@ export default function TicketDetailPage() {
                             value={line.receivedQty}
                             disabled={busy}
                             onChange={e => setReceivedQty(line, Number(e.target.value))}
-                            style={{ width: 52, padding: "3px 6px", borderRadius: 7, border: "1px solid #e5e7eb", fontSize: "0.78rem", textAlign: "center" }}
+                            style={{ width: 52, padding: "3px 6px", borderRadius: 7, border: `1px solid ${T.line}`, fontSize: "0.78rem", textAlign: "center" }}
                           />
                         </label>
                       )}
 
                       {!done && (
-                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#c2410c", background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 6, padding: "1px 7px" }}>
+                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 7px" }}>
                           {leaving ? "טרם טופל" : `חסר ${missing}`}
                         </span>
                       )}
@@ -962,7 +962,7 @@ export default function TicketDetailPage() {
 
               {/* Add an item that was forgotten when the ticket was filed */}
               {canAdd && (
-                <div style={{ marginTop: lines.length ? 14 : 0, borderTop: lines.length ? "1px solid #f3f4f6" : "none", paddingTop: lines.length ? 14 : 0 }}>
+                <div style={{ marginTop: lines.length ? 14 : 0, borderTop: lines.length ? `1px solid ${T.line}` : "none", paddingTop: lines.length ? 14 : 0 }}>
                   {equipAdding ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       <EquipmentPicker
@@ -975,18 +975,18 @@ export default function TicketDetailPage() {
                         <button
                           onClick={addEquipment}
                           disabled={equipSaving === "add"}
-                          style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: T.dark, color: "#fff", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                          style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: T.inverseBg, color: T.inverseText, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
                         >{equipSaving === "add" ? "שומר..." : "הוסף לרשימה"}</button>
                         <button
                           onClick={() => { setEquipAdding(false); setEquipDraft({}) }}
-                          style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: "#f3f4f6", color: "#374151", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                          style={{ padding: "7px 16px", borderRadius: 9, border: "none", background: T.fill, color: T.ink, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
                         >ביטול</button>
                       </div>
                     </div>
                   ) : (
                     <button
                       onClick={() => setEquipAdding(true)}
-                      style={{ padding: "7px 14px", borderRadius: 9, border: `1px dashed ${T.border}`, background: "#fff", color: T.text2, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                      style={{ padding: "7px 14px", borderRadius: 9, border: `1px dashed ${T.border}`, background: T.card, color: T.text2, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
                     >+ הוספת פריט</button>
                   )}
                 </div>
@@ -997,8 +997,8 @@ export default function TicketDetailPage() {
 
         {/* Attachments */}
         {ticket.attachments.length > 0 && (
-          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
-            <h2 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📎 תמונות מצורפות</h2>
+          <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
+            <h2 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>📎 תמונות מצורפות</h2>
             <ImageAttachments
               images={ticket.attachments.map(a => ({ dataUrl: `/api/attachments/${a.id}`, filename: a.filename ?? undefined }))}
               onChange={() => {}}
@@ -1008,11 +1008,11 @@ export default function TicketDetailPage() {
         )}
 
         {/* Conversation — visible to everyone */}
-        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
-          <h2 style={{ margin: "0 0 16px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>💬 שיחה עם הצוות</h2>
+        <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
+          <h2 style={{ margin: "0 0 16px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>💬 שיחה עם הצוות</h2>
 
           {ticket.messages.length === 0 && (
-            <div style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: 16 }}>אין הודעות עדיין</div>
+            <div style={{ fontSize: "0.85rem", color: T.inkFaint, marginBottom: 16 }}>אין הודעות עדיין</div>
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
@@ -1025,29 +1025,29 @@ export default function TicketDetailPage() {
               const isLastMsg = msg.id === lastMsgId
               return (
                 <div key={msg.id} id={`msg-${msg.id}`} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start", scrollMarginTop: 80 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? "#16181D" : "#0891b2", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: "50%", background: byStaff ? T.inverseBg : T.cyanFg, color: T.inverseText, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, flexShrink: 0 }}>
                     {msg.authorName.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
                   </div>
                   <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "baseline", marginBottom: 4, flexDirection: isMe ? "row-reverse" : "row" }}>
-                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: byStaff ? "#16181D" : "#0891b2" }}>{msg.authorName}</span>
-                      {byStaff && <span style={{ fontSize: "0.65rem", background: "#EDEFEA", color: "#16181D", borderRadius: 10, padding: "1px 7px", fontWeight: 600 }}>צוות</span>}
-                      <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{formatDate(msg.createdAt)}</span>
+                      <span style={{ fontSize: "0.78rem", fontWeight: 700, color: byStaff ? T.text : T.cyanFg }}>{msg.authorName}</span>
+                      {byStaff && <span style={{ fontSize: "0.65rem", background: T.codeBg, color: T.text, borderRadius: 10, padding: "1px 7px", fontWeight: 600 }}>צוות</span>}
+                      <span style={{ fontSize: "0.7rem", color: T.inkFaint }}>{formatDate(msg.createdAt)}</span>
                     </div>
-                    <div style={{ background: isReplying ? "#fffbeb" : byStaff ? "#EDEFEA" : "#f0f9ff", border: isReplying ? "1px solid #fbbf24" : "none", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div style={{ background: isReplying ? T.amberBg : byStaff ? T.codeBg : T.blueBg, border: isReplying ? `1px solid ${T.amberBorder}` : "none", borderRadius: isMe ? "12px 2px 12px 12px" : "2px 12px 12px 12px", padding: "10px 14px", fontSize: "0.88rem", color: T.text, whiteSpace: "pre-wrap", lineHeight: 1.6, boxShadow: `0 1px 3px ${T.shadow2}` }}>
                       {msg.content}
                     </div>
                     {!isMe && (
                       <button
                         onClick={() => { setReplyTo({ email: msg.authorEmail, name: msg.authorName, msgId: msg.id }); document.getElementById("msg-input")?.focus() }}
-                        style={{ marginTop: 4, fontSize: "0.7rem", color: "#6b7280", background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4 }}
+                        style={{ marginTop: 4, fontSize: "0.7rem", color: T.inkMuted, background: "none", border: "none", cursor: "pointer", padding: "2px 4px", borderRadius: 4 }}
                       >↩ ענה</button>
                     )}
                     {isMe && isLastMsg && (
                       <button
                         onClick={() => deleteMessage(msg.id)}
                         disabled={deletingMsgId === msg.id}
-                        style={{ marginTop: 4, fontSize: "0.7rem", color: "#dc2626", background: "none", border: "none", cursor: deletingMsgId === msg.id ? "not-allowed" : "pointer", padding: "2px 4px", borderRadius: 4, opacity: deletingMsgId === msg.id ? 0.5 : 1 }}
+                        style={{ marginTop: 4, fontSize: "0.7rem", color: T.redFg, background: "none", border: "none", cursor: deletingMsgId === msg.id ? "not-allowed" : "pointer", padding: "2px 4px", borderRadius: 4, opacity: deletingMsgId === msg.id ? 0.5 : 1 }}
                       >
                         {deletingMsgId === msg.id ? "מוחק..." : "🗑 מחק"}
                       </button>
@@ -1060,11 +1060,11 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Reply input */}
-          <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 16 }}>
+          <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 16 }}>
             {replyTo && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "6px 12px", background: "#fffbeb", border: "1px solid #fbbf24", borderRadius: 8, fontSize: "0.8rem", color: "#92400e" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "6px 12px", background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 8, fontSize: "0.8rem", color: T.amberFgDeep }}>
                 <span>↩ מגיב ל: <strong>{replyTo.name}</strong></span>
-                <button onClick={() => setReplyTo(null)} style={{ marginRight: "auto", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: "0.85rem", lineHeight: 1 }}>✕</button>
+                <button onClick={() => setReplyTo(null)} style={{ marginRight: "auto", background: "none", border: "none", cursor: "pointer", color: T.inkFaint, fontSize: "0.85rem", lineHeight: 1 }}>✕</button>
               </div>
             )}
             <textarea
@@ -1074,14 +1074,14 @@ export default function TicketDetailPage() {
               value={msgText}
               onChange={e => setMsgText(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendMessage() }}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 8 }}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 8 }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>Ctrl+Enter לשליחה</span>
+              <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>Ctrl+Enter לשליחה</span>
               <button
                 onClick={sendMessage}
                 disabled={msgSaving || !msgText.trim()}
-                style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: msgSaving || !msgText.trim() ? "#e5e7eb" : "#16181D", color: msgSaving || !msgText.trim() ? "#9ca3af" : "#fff", cursor: msgSaving || !msgText.trim() ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
+                style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: msgSaving || !msgText.trim() ? T.line : T.inverseBg, color: msgSaving || !msgText.trim() ? T.inkFaint : T.inverseText, cursor: msgSaving || !msgText.trim() ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
               >
                 {msgSaving ? "שולח..." : "שלח הודעה"}
               </button>
@@ -1091,54 +1091,54 @@ export default function TicketDetailPage() {
 
         {/* Notes — staff only */}
         {isStaff && (
-          <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
+          <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-            <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📝 הערות טכנאי</h2>
-            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#7c3aed", background: "#EDEFEA", borderRadius: 20, padding: "2px 10px", letterSpacing: "0.01em" }}>גלוי לצוות התמיכה בלבד</span>
+            <h2 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>📝 הערות טכנאי</h2>
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: T.purpleFg, background: T.codeBg, borderRadius: 20, padding: "2px 10px", letterSpacing: "0.01em" }}>גלוי לצוות התמיכה בלבד</span>
           </div>
 
             {ticket.notes.length === 0 && (
-              <div style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: 16 }}>אין הערות עדיין</div>
+              <div style={{ fontSize: "0.85rem", color: T.inkFaint, marginBottom: 16 }}>אין הערות עדיין</div>
             )}
 
             {ticket.notes.map((note: TicketNote) => (
-              <div key={note.id} style={{ borderRight: "3px solid #6366f1", paddingRight: 14, marginBottom: 14 }}>
+              <div key={note.id} style={{ borderRight: `3px solid ${T.purpleFg}`, paddingRight: 14, marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#16181D" }}>{note.authorName}</span>
-                  <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{formatDate(note.createdAt)}</span>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.text }}>{note.authorName}</span>
+                  <span style={{ fontSize: "0.75rem", color: T.inkFaint }}>{formatDate(note.createdAt)}</span>
                 </div>
-                <div style={{ fontSize: "0.88rem", color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{note.content}</div>
+                <div style={{ fontSize: "0.88rem", color: T.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{note.content}</div>
               </div>
             ))}
 
             {/* Add note */}
-            <div style={{ borderTop: ticket.notes.length ? "1px solid #f3f4f6" : "none", paddingTop: ticket.notes.length ? 16 : 0 }}>
+            <div style={{ borderTop: ticket.notes.length ? `1px solid ${T.line}` : "none", paddingTop: ticket.notes.length ? 16 : 0 }}>
               <textarea
                 rows={3}
                 placeholder="הוסף הערה... לחצו על שם למטה להזכרת איש צוות (ניתן להדביק תמונה)"
                 value={noteText}
                 onChange={e => setNoteText(e.target.value)}
                 onPaste={e => handleImagePaste(e, img => setNoteImages(prev => [...prev, img]))}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 6 }}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.88rem", resize: "none", boxSizing: "border-box", marginBottom: 6 }}
               />
               {/* @mention chips */}
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                <span style={{ fontSize: "0.72rem", color: "#9ca3af", alignSelf: "center" }}>הזכר:</span>
+                <span style={{ fontSize: "0.72rem", color: T.inkFaint, alignSelf: "center" }}>הזכר:</span>
                 {staffMembers.map(m => (
                   <button key={m.handle} type="button"
                     onClick={() => setNoteText(t => t ? `${t} @${m.handle}` : `@${m.handle}`)}
-                    style={{ padding: "2px 10px", borderRadius: 20, border: "1px solid #EDEFEA", background: "#EDEFEA", color: "#16181D", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
+                    style={{ padding: "2px 10px", borderRadius: 20, border: `1px solid ${T.codeBg}`, background: T.codeBg, color: T.text, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}
                   >@{m.handle}</button>
                 ))}
               </div>
               <div style={{ marginBottom: 10 }}>
                 <ImageAttachments images={noteImages} onChange={setNoteImages} />
               </div>
-              {noteError && <div style={{ fontSize: "0.8rem", color: "#dc2626", marginBottom: 8 }}>{noteError}</div>}
+              {noteError && <div style={{ fontSize: "0.8rem", color: T.redFg, marginBottom: 8 }}>{noteError}</div>}
               <button
                 onClick={addNote}
                 disabled={noteSaving || (!noteText.trim() && noteImages.length === 0)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#e5e7eb" : "#16181D", color: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "#9ca3af" : "#fff", cursor: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
+                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: noteSaving || (!noteText.trim() && noteImages.length === 0) ? T.line : T.inverseBg, color: noteSaving || (!noteText.trim() && noteImages.length === 0) ? T.inkFaint : T.inverseText, cursor: noteSaving || (!noteText.trim() && noteImages.length === 0) ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.85rem" }}
               >
                 {noteSaving ? "שומר..." : "הוסף הערה"}
               </button>
@@ -1147,11 +1147,11 @@ export default function TicketDetailPage() {
         )}
 
         {/* ── History / Audit Timeline — staff only ────────────────────────── */}
-        {isStaff && <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: 24 }}>
-          <h2 style={{ margin: "0 0 20px", fontSize: "0.9rem", fontWeight: 700, color: "#374151" }}>📋 היסטוריית שינויים</h2>
+        {isStaff && <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
+          <h2 style={{ margin: "0 0 20px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>📋 היסטוריית שינויים</h2>
           <div style={{ position: "relative" }}>
             {/* Vertical line */}
-            <div style={{ position: "absolute", right: 11, top: 0, bottom: 0, width: 2, background: "#e5e7eb", zIndex: 0 }} />
+            <div style={{ position: "absolute", right: 11, top: 0, bottom: 0, width: 2, background: T.line, zIndex: 0 }} />
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {history.map((entry, i) => {
                 const isLast = i === history.length - 1
@@ -1160,12 +1160,12 @@ export default function TicketDetailPage() {
                 return (
                   <div key={entry.id} style={{ display: "flex", alignItems: "flex-start", gap: 14, paddingBottom: isLast ? 0 : 20, position: "relative", zIndex: 1 }}>
                     {/* Dot */}
-                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: historyDotColor(entry.field), display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", flexShrink: 0, boxShadow: "0 0 0 3px #fff" }}>
+                    <div style={{ width: 24, height: 24, borderRadius: "50%", background: historyDotColor(entry.field), display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", flexShrink: 0, boxShadow: `0 0 0 3px ${T.card}` }}>
                       {icon}
                     </div>
                     <div style={{ flex: 1, paddingTop: 2 }}>
-                      <div style={{ fontSize: "0.85rem", color: "#1f2937", fontWeight: 500 }}>{label}</div>
-                      <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginTop: 2 }}>
+                      <div style={{ fontSize: "0.85rem", color: T.text, fontWeight: 500 }}>{label}</div>
+                      <div style={{ fontSize: "0.72rem", color: T.inkFaint, marginTop: 2 }}>
                         {entry.actorName} · {formatDate(entry.changedAt)}
                       </div>
                     </div>
@@ -1197,13 +1197,13 @@ function historyIcon(field: string): string {
 
 function historyDotColor(field: string): string {
   switch (field) {
-    case "created":    return "#dcfce7"
-    case "status":     return "#EDF0F4"
-    case "urgency":    return "#fef3c7"
-    case "assignedTo": return "#EDEFEA"
-    case "owner":      return "#e0e7ff"
-    case "edited":     return "#f3f4f6"
-    default:           return "#f3f4f6"
+    case "created":    return T.greenSBg
+    case "status":     return T.pillBlueBg
+    case "urgency":    return T.amberBg
+    case "assignedTo": return T.codeBg
+    case "owner":      return T.purpleBg
+    case "edited":     return T.fill
+    default:           return T.fill
   }
 }
 

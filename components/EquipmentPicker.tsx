@@ -62,7 +62,7 @@ export default function EquipmentPicker({
                 display: "flex", alignItems: "center", gap: 6,
                 borderRadius: 999,
                 border: selected ? `1.5px solid ${T.green}` : `1px solid ${T.border}`,
-                background: selected ? T.greenBg : "#fff",
+                background: selected ? T.greenBg : T.card,
                 padding: selected ? "3px 6px 3px 12px" : "6px 12px",
                 transition: "all 0.12s",
               }}
@@ -87,7 +87,7 @@ export default function EquipmentPicker({
 
               {/* Quantity stepper — only once the item is actually requested */}
               {selected && (
-                <span style={{ display: "flex", alignItems: "center", gap: 2, background: "#fff", borderRadius: 999, padding: "1px 3px", border: `1px solid ${T.border}` }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 2, background: T.card, borderRadius: 999, padding: "1px 3px", border: `1px solid ${T.border}` }}>
                   <button
                     type="button"
                     onClick={() => (qty <= 1 ? toggle(label) : setQty(label, qty - 1))}
@@ -127,7 +127,7 @@ export default function EquipmentPicker({
 
 const stepBtn: React.CSSProperties = {
   width: 20, height: 20, borderRadius: "50%",
-  border: "none", background: "#f3f4f6", color: "#374151",
+  border: "none", background: T.fill, color: T.ink,
   cursor: "pointer", fontSize: "0.85rem", fontWeight: 700, lineHeight: 1,
   display: "flex", alignItems: "center", justifyContent: "center",
 }

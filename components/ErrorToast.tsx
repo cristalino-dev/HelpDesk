@@ -19,6 +19,7 @@
 
 "use client"
 import { useEffect } from "react"
+import { T } from "@/lib/theme"
 
 export default function ErrorToast({
   message,
@@ -44,16 +45,16 @@ export default function ErrorToast({
         position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
         zIndex: 120, maxWidth: 520, width: "calc(100% - 32px)",
         display: "flex", alignItems: "flex-start", gap: 10,
-        background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12,
-        padding: "12px 16px", boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
-        fontSize: "0.85rem", color: "#991b1b", lineHeight: 1.6,
+        background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 12,
+        padding: "12px 16px", boxShadow: `0 12px 30px ${T.shadow3}`,
+        fontSize: "0.85rem", color: T.redFgDeep, lineHeight: 1.6,
       }}
     >
       <span style={{ flex: 1, minWidth: 0 }}>{message}</span>
       <button
         onClick={onClose}
         aria-label="סגור הודעה"
-        style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b", fontSize: "1rem", lineHeight: 1, padding: 0, flexShrink: 0 }}
+        style={{ background: "none", border: "none", cursor: "pointer", color: T.redFgDeep, fontSize: "1rem", lineHeight: 1, padding: 0, flexShrink: 0 }}
       >
         ✕
       </button>

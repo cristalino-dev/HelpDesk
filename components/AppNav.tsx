@@ -31,6 +31,7 @@ import { usePathname } from "next/navigation"
 import { T, HDR } from "@/lib/theme"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
+import ThemeToggle from "@/components/ThemeToggle"
 
 /** Below this width the links fold into ☰ — nine of them stop fitting. */
 export const COMPACT_PX = 1180
@@ -153,7 +154,7 @@ export default function AppNav() {
       style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", padding: "5px 7px 5px 12px", borderRadius: 999, background: HDR.pillBg }}
     >
       {!isMobile && <span style={{ fontSize: "0.81rem", color: HDR.linkStrong, fontWeight: 500 }}>{user?.name}</span>}
-      <div style={{ width: 26, height: 26, borderRadius: "50%", background: T.darkSoft, border: "1px solid rgba(255,255,255,0.14)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
+      <div style={{ width: 26, height: 26, borderRadius: "50%", background: HDR.avatarBg, border: `1px solid ${HDR.pillBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: T.green }}>
         {initials(user?.name)}
       </div>
     </Link>
@@ -179,6 +180,11 @@ export default function AppNav() {
 
         {copyButton}
 
+        {/* Always in the row, at every width: it is icon-sized, and folding it
+            into ☰ would hide the one control people go looking for. One switch
+            only — a second copy would be a second thing to keep in step. */}
+        <ThemeToggle compact={isMobile || compact} />
+
         {rolePill && !isMobile && (
           <span style={{ padding: "5px 12px", borderRadius: 999, background: HDR.greenPillBg, color: HDR.greenPillFg, fontSize: "0.7rem", fontWeight: 700, letterSpacing: ".04em", margin: "0 4px" }}>{rolePill}</span>
         )}
@@ -197,7 +203,7 @@ export default function AppNav() {
 
       {/* Same links, same order — the menu is a reflow, not a second nav. */}
       {compact && menuOpen && (
-        <div style={{ position: "absolute", top: isMobile ? 58 : 64, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: "0 8px 24px rgba(20,22,26,0.12)", borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "absolute", top: isMobile ? 58 : 64, right: 0, left: 0, zIndex: 100, background: T.card, boxShadow: `0 8px 24px ${T.shadow3}`, borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
           {links.map(l => (
             <Link
               key={l.href} href={l.href} onClick={() => setMenuOpen(false)}
@@ -208,7 +214,7 @@ export default function AppNav() {
             href="/profile" onClick={() => setMenuOpen(false)}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", color: T.text, textDecoration: "none", fontSize: "0.9rem", fontWeight: 500, borderBottom: `1px solid ${T.border}` }}
           >
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: T.green }}>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", background: HDR.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: T.green }}>
               {initials(user?.name)}
             </div>
             {user?.name}

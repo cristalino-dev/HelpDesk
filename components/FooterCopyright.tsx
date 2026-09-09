@@ -39,13 +39,14 @@
  *   lightColor {boolean}  When true, text is rendered in
  *                         rgba(255,255,255,0.35) — semi-transparent white,
  *                         suitable for dark/gradient backgrounds.
- *                         Default: false (renders as #d1d5db — light grey,
+ *                         Default: false (renders as T.inkFainter — light grey,
  *                         suitable for white/light page backgrounds).
  */
 
 "use client"
 import { useState } from "react"
 import { VERSION as APP_VERSION } from "@/lib/version"
+import { T, HDR } from "@/lib/theme"
 
 interface Props {
   /** Renders as fixed-position overlay at viewport bottom. For login page. */
@@ -81,7 +82,7 @@ export default function FooterCopyright({ fixed = false, lightColor = false }: P
         transform: "translateX(-50%)",
         margin: 0,
         fontSize: "0.72rem",
-        color: "rgba(255,255,255,0.35)",
+        color: HDR.link,
         whiteSpace: "nowrap",
       }
     : {
@@ -89,7 +90,7 @@ export default function FooterCopyright({ fixed = false, lightColor = false }: P
         textAlign: "center",
         padding: "24px 0 32px",
         fontSize: "0.72rem",
-        color: lightColor ? "rgba(255,255,255,0.35)" : "#d1d5db",
+        color: lightColor ? HDR.link : T.inkFainter,
       }
 
   // Use <p> for fixed (inline, no block semantics needed) and <footer> for flow

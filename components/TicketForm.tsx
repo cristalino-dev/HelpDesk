@@ -92,10 +92,10 @@ import { T } from "@/lib/theme"
  * the user instant visual feedback on the severity they've chosen.
  */
 const URGENCY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "נמוך":   { bg: "#f0fdf4", text: "#16a34a", border: "#86efac" }, // green
-  "בינוני": { bg: "#fffbeb", text: "#d97706", border: "#fcd34d" }, // yellow
-  "גבוה":   { bg: "#fff7ed", text: "#ea580c", border: "#fdba74" }, // orange
-  "דחוף":   { bg: "#fef2f2", text: "#dc2626", border: "#fca5a5" }, // red
+  "נמוך":   { bg: T.greenSBg, text: T.greenSFg, border: T.greenSBorder }, // green
+  "בינוני": { bg: T.amberBg, text: T.amberFg, border: T.amberBorder }, // yellow
+  "גבוה":   { bg: T.orangeBg, text: T.orangeFg, border: T.orangeBorder }, // orange
+  "דחוף":   { bg: T.redBg, text: T.redFg, border: T.redBorder }, // red
 }
 
 /** Sentinel value for the "add a brand-new user" option in the behalf picker. */
@@ -352,15 +352,15 @@ export default function TicketForm({
 
   return (
     <form onSubmit={handleSubmit} style={{
-      backgroundColor: "#fff",
+      backgroundColor: T.card,
       borderRadius: "16px",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-      border: "1px solid #f0f2f5",
+      boxShadow: `0 4px 20px ${T.shadow2}`,
+      border: `1px solid ${T.line}`,
       overflow: "hidden",
     }}>
       {/* ── Form Header ── */}
-      <div style={{ padding: "18px 24px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "10px" }}>
-        <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: T.dark, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ padding: "18px 24px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: T.inverseBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M12 5v14M5 12h14" stroke={T.green} strokeWidth="2.2" strokeLinecap="round"/>
           </svg>
@@ -453,7 +453,7 @@ export default function TicketForm({
               role="status"
               style={{
                 marginTop: 9, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                background: T.greenBg, border: `1px solid rgba(116,197,58,0.45)`,
+                background: T.greenBg, border: `1px solid ${T.greenBorder}`,
                 borderRadius: 10, padding: "10px 12px",
               }}
             >
@@ -465,7 +465,7 @@ export default function TicketForm({
                 type="button"
                 onClick={() => setForm(f => ({ ...f, category: LEAVING_EMPLOYEE_CATEGORY }))}
                 style={{
-                  background: T.dark, color: "#FFFFFF", border: "none", borderRadius: 8,
+                  background: T.inverseBg, color: T.inverseText, border: "none", borderRadius: 8,
                   padding: "7px 14px", fontSize: "0.82rem", fontWeight: 700, cursor: "pointer",
                   whiteSpace: "nowrap",
                 }}
@@ -504,13 +504,13 @@ export default function TicketForm({
                   ?
                 </button>
                 {showTooltip && (
-                  <div style={{ position: "absolute", bottom: "calc(100% + 8px)", right: 0, backgroundColor: "#1f2937", color: "#f9fafb", borderRadius: "10px", padding: "12px 14px", fontSize: "0.78rem", lineHeight: 1.65, width: "220px", boxShadow: "0 8px 24px rgba(0,0,0,0.2)", zIndex: 10 }}>
+                  <div style={{ position: "absolute", bottom: "calc(100% + 8px)", right: 0, backgroundColor: T.inverseBg, color: T.inverseText, borderRadius: "10px", padding: "12px 14px", fontSize: "0.78rem", lineHeight: 1.65, width: "220px", boxShadow: `0 8px 24px ${T.shadow4}`, zIndex: 10 }}>
                     <div style={{ fontWeight: 700, marginBottom: "6px" }}>כיצד למצוא שם מחשב?</div>
                     <div>לחצו <strong>Start</strong> ← הקלידו <strong>cmd</strong> ← Enter</div>
                     <div style={{ margin: "4px 0" }}>הקלידו <strong>hostname</strong> ← Enter</div>
                     <div>השם שמופיע הוא שם המחשב.</div>
                     {/* Tooltip arrow (CSS triangle trick) */}
-                    <div style={{ position: "absolute", bottom: "-5px", right: "7px", width: "10px", height: "10px", backgroundColor: "#1f2937", transform: "rotate(45deg)" }} />
+                    <div style={{ position: "absolute", bottom: "-5px", right: "7px", width: "10px", height: "10px", backgroundColor: T.inverseBg, transform: "rotate(45deg)" }} />
                   </div>
                 )}
               </div>
@@ -601,7 +601,7 @@ export default function TicketForm({
           <button
             type="button"
             onClick={() => setEquipmentOpen(true)}
-            style={{ alignSelf: "flex-start", padding: "7px 14px", borderRadius: 9, border: `1px dashed ${T.border}`, background: "#fff", color: T.text2, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+            style={{ alignSelf: "flex-start", padding: "7px 14px", borderRadius: 9, border: `1px dashed ${T.border}`, background: T.card, color: T.text2, fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
           >
             + אני צריך גם ציוד
           </button>
@@ -630,7 +630,7 @@ export default function TicketForm({
 
         {/* ── Error message (shown on submit failure) ── */}
         {error && (
-          <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: "#dc2626" }}>
+          <div style={{ backgroundColor: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: "8px", padding: "10px 14px", fontSize: "0.85rem", color: T.redFg }}>
             {error}
           </div>
         )}
@@ -640,8 +640,8 @@ export default function TicketForm({
           type="submit"
           disabled={loading}
           style={{
-            background: loading ? "#9AA09C" : T.dark,
-            color: "#fff",
+            background: loading ? T.disabled : T.inverseBg,
+            color: T.inverseText,
             fontWeight: 600,
             padding: "13px 0",
             borderRadius: "11px",

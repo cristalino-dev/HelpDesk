@@ -87,8 +87,8 @@ const btn = (primary: boolean): React.CSSProperties => ({
   padding: "9px 16px", borderRadius: 10, fontSize: "0.84rem", fontWeight: 700,
   cursor: "pointer", whiteSpace: "nowrap",
   border: primary ? "none" : `1px solid ${T.borderStrong}`,
-  background: primary ? T.dark : T.card,
-  color: primary ? "#FFFFFF" : T.text2,
+  background: primary ? T.inverseBg : T.card,
+  color: primary ? T.inverseText : T.text2,
 })
 
 function CopyButton({ label, text, primary, targetRef }: {
@@ -109,7 +109,7 @@ function CopyButton({ label, text, primary, targetRef }: {
       aria-label={label}
       style={{
         ...btn(!!primary),
-        ...(state === "copied" ? { background: T.greenBg, color: T.greenInk, border: `1px solid rgba(116,197,58,0.5)` } : {}),
+        ...(state === "copied" ? { background: T.greenBg, color: T.greenInk, border: `1px solid ${T.greenBorder}` } : {}),
       }}
     >
       {state === "copied"
@@ -137,7 +137,7 @@ export function TicketCreatedCard({ ticketNumber, subject, children }: Props) {
       <div
         ref={codeRef}
         style={{
-          display: "inline-block", background: T.greenBg, border: "1px solid rgba(116,197,58,0.45)",
+          display: "inline-block", background: T.greenBg, border: `1px solid ${T.greenBorder}`,
           borderRadius: 12, padding: "12px 26px", margin: "6px 0 12px",
           fontSize: "1.5rem", fontWeight: 800, color: T.greenInk,
           fontFamily: "'Courier New', Courier, monospace", letterSpacing: "0.04em",
@@ -181,7 +181,7 @@ export function TicketCreatedDialog({
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, zIndex: 200, background: "rgba(20,22,26,0.45)",
+        position: "fixed", inset: 0, zIndex: 200, background: T.overlay,
         display: "flex", alignItems: "center", justifyContent: "center", padding: 18,
       }}
     >
@@ -190,7 +190,7 @@ export function TicketCreatedDialog({
         onClick={e => e.stopPropagation()}
         style={{
           background: T.card, borderRadius: 18, border: `1px solid ${T.border}`,
-          boxShadow: "0 24px 60px rgba(20,22,26,0.28)", padding: "30px 26px 26px",
+          boxShadow: `0 24px 60px ${T.shadow4}`, padding: "30px 26px 26px",
           width: "100%", maxWidth: 460, position: "relative",
         }}
       >

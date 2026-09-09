@@ -33,7 +33,7 @@ export default function BreakdownBars({ rows, colors }: { rows: Slice[]; colors?
                 // Growing right→left inside the RTL page: the rounded data-end
                 // is the LEFT edge, square against the baseline on the right.
                 borderRadius: "4px 0 0 4px",
-                background: colors?.[r.label]?.fg ?? "#2a78d6",
+                background: colors?.[r.label]?.fg ?? T.blueFg,
               }}
             />
           </div>

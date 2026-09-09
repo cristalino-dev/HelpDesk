@@ -38,6 +38,7 @@
 "use client"
 import { Component, ReactNode } from "react"
 import { isChunkLoadError, recoverFromStaleChunk } from "@/lib/chunkError"
+import { T } from "@/lib/theme"
 
 interface Props {
   children: ReactNode
@@ -115,19 +116,19 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div style={{
           minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-          backgroundColor: "#F2F3F1", direction: "rtl",
+          backgroundColor: T.bg, direction: "rtl",
         }}>
-          <div style={{ textAlign: "center", color: "#5B6260" }}>
+          <div style={{ textAlign: "center", color: T.text3 }}>
             <div style={{
-              width: 36, height: 36, border: "3px solid #E7E9E6", borderTopColor: "#74C53A",
+              width: 36, height: 36, border: `3px solid ${T.border}`, borderTopColor: T.green,
               borderRadius: "50%", margin: "0 auto 14px", animation: "spin 0.8s linear infinite",
             }} />
-            <p style={{ margin: "0 0 4px", fontWeight: 700, color: "#16181D" }}>גרסה חדשה זמינה</p>
+            <p style={{ margin: "0 0 4px", fontWeight: 700, color: T.text }}>גרסה חדשה זמינה</p>
             <p style={{ margin: "0 0 18px", fontSize: "0.85rem" }}>הדף מתעדכן אוטומטית...</p>
             <button
               onClick={() => window.location.reload()}
               style={{
-                background: "#16181D", color: "#fff", padding: "8px 22px", borderRadius: 10,
+                background: T.inverseBg, color: T.inverseText, padding: "8px 22px", borderRadius: 10,
                 border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem",
               }}
             >
@@ -149,23 +150,23 @@ export default class ErrorBoundary extends Component<Props, State> {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#f0f2f5",
+          backgroundColor: T.fill2,
           direction: "rtl",
         }}>
           <div style={{
-            backgroundColor: "#fff",
+            backgroundColor: T.card,
             borderRadius: "16px",
             padding: "40px 48px",
             maxWidth: "480px",
             textAlign: "center",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-            border: "1px solid #f3f4f6",
+            boxShadow: `0 4px 20px ${T.shadow2}`,
+            border: `1px solid ${T.line}`,
           }}>
             <div style={{ fontSize: "2.8rem", marginBottom: "16px" }}>⚠️</div>
-            <h2 style={{ margin: "0 0 10px", color: "#1f2937", fontWeight: 800, fontSize: "1.2rem" }}>
+            <h2 style={{ margin: "0 0 10px", color: T.text, fontWeight: 800, fontSize: "1.2rem" }}>
               אירעה שגיאה בלתי צפויה
             </h2>
-            <p style={{ margin: "0 0 24px", color: "#6b7280", fontSize: "0.88rem", lineHeight: 1.6 }}>
+            <p style={{ margin: "0 0 24px", color: T.inkMuted, fontSize: "0.88rem", lineHeight: 1.6 }}>
               השגיאה נרשמה אוטומטית ותטופל בהקדם.<br />אנא רעננו את הדף.
             </p>
             <button
@@ -176,8 +177,8 @@ export default class ErrorBoundary extends Component<Props, State> {
                 window.location.reload()
               }}
               style={{
-                background: "#16181D",
-                color: "#fff",
+                background: T.inverseBg,
+                color: T.inverseText,
                 padding: "10px 28px",
                 borderRadius: "10px",
                 border: "none",

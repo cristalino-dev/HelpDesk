@@ -20,7 +20,7 @@ import AdminGuide from "@/components/AdminGuide"
 import FooterCopyright from "@/components/FooterCopyright"
 import VERSION from "@/lib/version"
 import AppHeader from "@/components/AppHeader"
-import { HDR } from "@/lib/theme"
+import { T, HDR } from "@/lib/theme"
 
 const badge = (bg: string, color: string, text: string) => (
   <span style={{ backgroundColor: bg, color, padding: "3px 12px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 700, display: "inline-block" }}>{text}</span>
@@ -32,7 +32,7 @@ export default async function HelpPage() {
   const canSeeAdminGuide = !!session?.user?.isAdmin || STAFF_EMAILS.includes(email)
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F2F3F1", direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: T.bg, direction: "rtl" }}>
 
       <AppHeader wordmark="helpdesk" subtitle="מדריך למשתמש" logoHref="/dashboard">
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -47,28 +47,28 @@ export default async function HelpPage() {
             reach when they are already stuck. */}
         <Link
           href="/dashboard"
-          style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.85rem", fontWeight: 600, color: "#3E7A24", background: "#E9F4E2", border: "1px solid rgba(116,197,58,0.45)", borderRadius: 999, padding: "7px 15px", textDecoration: "none" }}
+          style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.85rem", fontWeight: 600, color: T.greenInk, background: T.greenBg, border: `1px solid ${T.greenBorder}`, borderRadius: 999, padding: "7px 15px", textDecoration: "none" }}
         >← חזרה למסך הראשי</Link>
 
         {/* Hero */}
         <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: "#1f2937" }}>{`מדריך שימוש במערכת helpdesk ${VERSION}`}</h1>
-          <p style={{ margin: 0, color: "#6b7280", fontSize: "0.95rem" }}>כל מה שצריך לדעת כדי לפתוח פנייה, לעקוב אחריה ולדרג את השירות שקיבלתם</p>
+          <h1 style={{ margin: "0 0 10px", fontSize: "1.7rem", fontWeight: 800, color: T.text }}>{`מדריך שימוש במערכת helpdesk ${VERSION}`}</h1>
+          <p style={{ margin: 0, color: T.inkMuted, fontSize: "0.95rem" }}>כל מה שצריך לדעת כדי לפתוח פנייה, לעקוב אחריה ולדרג את השירות שקיבלתם</p>
         </div>
 
         {/* TOC */}
-        <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "24px 28px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
-          <p style={{ margin: "0 0 14px", fontWeight: 700, color: "#374151", fontSize: "0.9rem" }}>תוכן עניינים</p>
-          <ol style={{ margin: 0, padding: "0 20px", display: "flex", flexDirection: "column", gap: "8px", color: "#16181D", fontSize: "0.9rem" }}>
-            <li><a href="#login"           style={{ color: "#16181D" }}>כניסה למערכת</a></li>
-            <li><a href="#dashboard"       style={{ color: "#16181D" }}>לוח הבקרה — הפניות שלי</a></li>
-            <li><a href="#new-ticket"      style={{ color: "#16181D" }}>פתיחת פנייה חדשה</a></li>
-            <li><a href="#notes-attachments" style={{ color: "#16181D" }}>הערות ותמונות מצורפות</a></li>
-            <li><a href="#messaging"       style={{ color: "#16181D" }}>שיחה עם צוות התמיכה</a></li>
-            <li><a href="#statuses"        style={{ color: "#16181D" }}>מצבי פנייה</a></li>
-            <li><a href="#urgency"         style={{ color: "#16181D" }}>רמות דחיפות</a></li>
-            <li><a href="#review"          style={{ color: "#16181D" }}>דירוג השירות לאחר סגירה</a></li>
-            <li><a href="#contact"         style={{ color: "#16181D" }}>צרו קשר עם תמיכת המערכת</a></li>
+        <div style={{ backgroundColor: T.card, borderRadius: "16px", padding: "24px 28px", boxShadow: `0 1px 4px ${T.shadow2}`, border: `1px solid ${T.line}` }}>
+          <p style={{ margin: "0 0 14px", fontWeight: 700, color: T.ink, fontSize: "0.9rem" }}>תוכן עניינים</p>
+          <ol style={{ margin: 0, padding: "0 20px", display: "flex", flexDirection: "column", gap: "8px", color: T.text, fontSize: "0.9rem" }}>
+            <li><a href="#login"           style={{ color: T.text }}>כניסה למערכת</a></li>
+            <li><a href="#dashboard"       style={{ color: T.text }}>לוח הבקרה — הפניות שלי</a></li>
+            <li><a href="#new-ticket"      style={{ color: T.text }}>פתיחת פנייה חדשה</a></li>
+            <li><a href="#notes-attachments" style={{ color: T.text }}>הערות ותמונות מצורפות</a></li>
+            <li><a href="#messaging"       style={{ color: T.text }}>שיחה עם צוות התמיכה</a></li>
+            <li><a href="#statuses"        style={{ color: T.text }}>מצבי פנייה</a></li>
+            <li><a href="#urgency"         style={{ color: T.text }}>רמות דחיפות</a></li>
+            <li><a href="#review"          style={{ color: T.text }}>דירוג השירות לאחר סגירה</a></li>
+            <li><a href="#contact"         style={{ color: T.text }}>צרו קשר עם תמיכת המערכת</a></li>
           </ol>
         </div>
 
@@ -76,19 +76,19 @@ export default async function HelpPage() {
         <section id="login" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="1" title="כניסה למערכת" />
 
-          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
-            <div style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 50%, #3D5A7D 100%)", padding: "40px 24px", display: "flex", justifyContent: "center" }}>
-              <div style={{ backgroundColor: "#fff", borderRadius: "20px", padding: "36px 32px", width: "300px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}` }}>
+            <div style={{ background: `linear-gradient(135deg, ${T.inverseBg} 0%, ${T.inverseBg} 50%, ${T.pillBlueFg} 100%)`, padding: "40px 24px", display: "flex", justifyContent: "center" }}>
+              <div style={{ backgroundColor: T.card, borderRadius: "20px", padding: "36px 32px", width: "300px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", boxShadow: `0 20px 50px ${T.shadow4}` }}>
                 <Image src="/logo.jpeg" alt="Cristalino Group" width={90} height={90} loading="eager" style={{ objectFit: "contain" }} />
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontWeight: 800, fontSize: "1.2rem", color: "#111827", marginBottom: "6px" }}>מערכת helpdesk</div>
-                  <div style={{ fontSize: "0.8rem", color: "#6b7280" }}>התחברו עם חשבון Google שלכם</div>
+                  <div style={{ fontWeight: 800, fontSize: "1.2rem", color: T.text, marginBottom: "6px" }}>מערכת helpdesk</div>
+                  <div style={{ fontSize: "0.8rem", color: T.inkMuted }}>התחברו עם חשבון Google שלכם</div>
                 </div>
-                <div style={{ width: "100%", border: "1.5px solid #e5e7eb", borderRadius: "10px", padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", color: "#374151", fontSize: "0.88rem", fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>
+                <div style={{ width: "100%", border: `1.5px solid ${T.line}`, borderRadius: "10px", padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", color: T.ink, fontSize: "0.88rem", fontWeight: 600, boxShadow: `0 2px 6px ${T.shadow2}` }}>
                   <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                   התחברות עם Google
                 </div>
-                <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>כניסה מורשית לעובדי קריסטלינו בלבד</div>
+                <div style={{ fontSize: "0.7rem", color: T.inkFaint }}>כניסה מורשית לעובדי קריסטלינו בלבד</div>
               </div>
             </div>
           </div>
@@ -108,65 +108,65 @@ export default async function HelpPage() {
         <section id="dashboard" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="2" title='לוח הבקרה — "הפניות שלי"' />
 
-          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
-            <div style={{ background: "linear-gradient(135deg, #16181D 0%, #16181D 100%)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}` }}>
+            <div style={{ background: `linear-gradient(135deg, ${T.inverseBg} 0%, ${T.inverseBg} 100%)`, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Image src="/logo.jpeg" alt="" width={32} height={32} style={{ objectFit: "contain", borderRadius: "4px" }} />
-                <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem" }}>מערכת helpdesk</span>
+                <span style={{ color: T.inverseText, fontWeight: 700, fontSize: "0.9rem" }}>מערכת helpdesk</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 {["עזרה", "צרו קשר"].map(t => (
-                  <span key={t} style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.85)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.25)", backgroundColor: "rgba(255,255,255,0.1)", fontWeight: 500 }}>{t}</span>
+                  <span key={t} style={{ fontSize: "0.68rem", color: HDR.linkStrong, padding: "4px 8px", borderRadius: "6px", border: `1px solid ${HDR.pillBorder}`, backgroundColor: HDR.pillBg, fontWeight: 500 }}>{t}</span>
                 ))}
               </div>
             </div>
-            <div style={{ backgroundColor: "#f0f2f5", padding: "16px" }}>
+            <div style={{ backgroundColor: T.fill2, padding: "16px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
                 {[
-                  { label: "פתוחות", count: 2, color: "#16181D", bg: "#E9F4E2" },
-                  { label: "בטיפול", count: 1, color: "#d97706", bg: "#fffbeb" },
-                  { label: "סגורות", count: 5, color: "#16a34a", bg: "#f0fdf4" },
+                  { label: "פתוחות", count: 2, color: T.text, bg: T.greenBg },
+                  { label: "בטיפול", count: 1, color: T.amberFg, bg: T.amberBg },
+                  { label: "סגורות", count: 5, color: T.greenSFg, bg: T.greenSBg },
                 ].map(s => (
-                  <div key={s.label} style={{ backgroundColor: "#fff", borderRadius: "10px", padding: "12px 14px", display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div key={s.label} style={{ backgroundColor: T.card, borderRadius: "10px", padding: "12px 14px", display: "flex", alignItems: "center", gap: "10px" }}>
                     <div style={{ width: "30px", height: "30px", borderRadius: "8px", backgroundColor: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: s.color, fontSize: "0.95rem" }}>{s.count}</div>
-                    <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>{s.label}</span>
+                    <span style={{ fontSize: "0.75rem", color: T.inkMuted }}>{s.label}</span>
                   </div>
                 ))}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "#1f2937" }}>הפניות שלי</span>
-                <div style={{ backgroundColor: "#16181D", color: "#fff", fontSize: "0.78rem", fontWeight: 600, padding: "6px 14px", borderRadius: "8px" }}>+ פנייה חדשה</div>
+                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: T.text }}>הפניות שלי</span>
+                <div style={{ backgroundColor: T.inverseBg, color: T.inverseText, fontSize: "0.78rem", fontWeight: 600, padding: "6px 14px", borderRadius: "8px" }}>+ פנייה חדשה</div>
               </div>
               {/* Active ticket */}
-              <div style={{ backgroundColor: "#fff", borderRadius: "10px", borderRight: "4px solid #f97316", padding: "10px 14px 10px 12px", marginBottom: "6px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px" }}>
+              <div style={{ backgroundColor: T.card, borderRadius: "10px", borderRight: `4px solid ${T.orangeFg}`, padding: "10px 14px 10px 12px", marginBottom: "6px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px" }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#111827" }}>המדפסת לא מדפיסה</div>
-                  <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>PC-ALON-01 · מדפסת · מחשב אישי</div>
+                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: T.text }}>המדפסת לא מדפיסה</div>
+                  <div style={{ fontSize: "0.68rem", color: T.inkFaint, marginTop: "2px" }}>PC-ALON-01 · מדפסת · מחשב אישי</div>
                 </div>
-                <span style={{ backgroundColor: "#ffedd5", color: "#9a3412", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>גבוה</span>
-                <span style={{ backgroundColor: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>בטיפול</span>
-                <span style={{ fontSize: "0.6rem", color: "#9ca3af", opacity: 0.5 }}>‹</span>
+                <span style={{ backgroundColor: T.orangeBg, color: T.orangeFgDeep, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>גבוה</span>
+                <span style={{ backgroundColor: T.amberBg, color: T.amberFgDeep, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>בטיפול</span>
+                <span style={{ fontSize: "0.6rem", color: T.inkFaint, opacity: 0.5 }}>‹</span>
               </div>
               {/* Divider */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 6px", padding: "0 2px" }}>
-                <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#9ca3af", whiteSpace: "nowrap" }}>פניות סגורות (1)</span>
-                <div style={{ flex: 1, height: 1, backgroundColor: "#e5e7eb" }} />
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, color: T.inkFaint, whiteSpace: "nowrap" }}>פניות סגורות (1)</span>
+                <div style={{ flex: 1, height: 1, backgroundColor: T.line }} />
               </div>
               {/* Closed ticket — grayed out */}
-              <div style={{ backgroundColor: "#f9fafb", borderRadius: "10px", borderRight: "4px solid #d1d5db", padding: "10px 14px 10px 12px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px", opacity: 0.52 }}>
+              <div style={{ backgroundColor: T.fill2, borderRadius: "10px", borderRight: `4px solid ${T.lineStrong}`, padding: "10px 14px 10px 12px", display: "grid", gridTemplateColumns: "1fr auto auto auto", alignItems: "center", gap: "10px", opacity: 0.52 }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: "#6b7280" }}>שגיאה בהתחברות לרשת</div>
-                  <div style={{ fontSize: "0.68rem", color: "#9ca3af", marginTop: "2px" }}>PC-SARA-02 · רשת · מחשב אישי</div>
+                  <div style={{ fontWeight: 600, fontSize: "0.82rem", color: T.inkMuted }}>שגיאה בהתחברות לרשת</div>
+                  <div style={{ fontSize: "0.68rem", color: T.inkFaint, marginTop: "2px" }}>PC-SARA-02 · רשת · מחשב אישי</div>
                 </div>
-                <span style={{ backgroundColor: "#f3f4f6", color: "#9ca3af", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>נמוך</span>
-                <span style={{ backgroundColor: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>סגור</span>
-                <span style={{ fontSize: "0.6rem", color: "#9ca3af", opacity: 0.5 }}>‹</span>
+                <span style={{ backgroundColor: T.fill, color: T.inkFaint, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>נמוך</span>
+                <span style={{ backgroundColor: T.greenSBg, color: T.greenSFgDeep, padding: "2px 8px", borderRadius: "999px", fontSize: "0.65rem", fontWeight: 700 }}>סגור</span>
+                <span style={{ fontSize: "0.6rem", color: T.inkFaint, opacity: 0.5 }}>‹</span>
               </div>
             </div>
           </div>
 
           <Card>
-            <p style={{ margin: "0 0 16px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
+            <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
               לאחר הכניסה, תגיעו ללוח הבקרה שם תוכלו לראות את כל הפניות שלכם ולפתוח פנייה חדשה.
             </p>
             <FieldList items={[
@@ -186,12 +186,12 @@ export default async function HelpPage() {
         <section id="new-ticket" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="3" title="פתיחת פנייה חדשה" />
 
-          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}`, backgroundColor: T.card }}>
+            <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: T.inverseBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={T.inverseText} strokeWidth="2.4" strokeLinecap="round"/></svg>
               </div>
-              <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>פתיחת פנייה חדשה</span>
+              <span style={{ fontWeight: 700, fontSize: "0.88rem", color: T.text }}>פתיחת פנייה חדשה</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
               <MockField label="נושא הפנייה *" placeholder="תאר בקצרה את הבעיה" />
@@ -205,12 +205,12 @@ export default async function HelpPage() {
                 <MockSelect label="דחיפות" value="בינוני" colored />
               </div>
               <MockTextarea label="תיאור מפורט *" />
-              <div style={{ background: "#16181D", color: "#fff", fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
+              <div style={{ background: T.inverseBg, color: T.inverseText, fontWeight: 700, padding: "11px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.88rem" }}>שלח פנייה</div>
             </div>
           </div>
 
           <Card>
-            <p style={{ margin: "0 0 18px", fontWeight: 700, color: "#1f2937", fontSize: "0.95rem" }}>מה למלא בכל שדה</p>
+            <p style={{ margin: "0 0 18px", fontWeight: 700, color: T.text, fontSize: "0.95rem" }}>מה למלא בכל שדה</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <FieldGuideItem label="נושא הפנייה" required desc="תיאור קצר ותמציתי של הבעיה. לדוגמה: המדפסת לא מדפיסה, אין חיבור לאינטרנט, שגיאה בפתיחת Outlook." />
               <FieldGuideItem label="שם מחשב" required desc={<>שם הזיהוי של המחשב שלכם ברשת. לחצו על סמל <Strong>?</Strong> שליד השדה לקבלת הסבר כיצד למצוא אותו (Start → cmd → hostname).</>} />
@@ -227,7 +227,7 @@ export default async function HelpPage() {
           </Card>
 
           <Card>
-            <p style={{ margin: "0 0 12px", fontWeight: 700, color: "#1f2937", fontSize: "0.95rem" }}>מה קורה אחרי שמגישים פנייה?</p>
+            <p style={{ margin: "0 0 12px", fontWeight: 700, color: T.text, fontSize: "0.95rem" }}>מה קורה אחרי שמגישים פנייה?</p>
             <Steps steps={[
               { n: 1, text: <span>הפנייה נשמרת במערכת ומופיעה מיד תחת &quot;הפניות שלי&quot;</span> },
               { n: 2, text: <span>צוות התמיכה רואה את הפנייה בתור הניהול, ממוינת לפי דחיפות</span> },
@@ -241,20 +241,20 @@ export default async function HelpPage() {
         <section id="notes-attachments" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="4" title="הערות ותמונות מצורפות" />
           <Card>
-            <p style={{ margin: "0 0 16px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
+            <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
               מעבר לפרטי הפנייה הבסיסיים, המערכת מאפשרת להוסיף הערות לטכנאים ולצרף תמונות של תקלות.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📎 העלאת תמונות</span>
-                <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📎 העלאת תמונות</span>
+                <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
                   גררו תמונות לאזור המסומן בתחתית הטופס, לחצו לבחירת קבצים, או <Strong>הדביקו (Ctrl+V)</Strong> ישירות מה-Clipboard. ניתן לצרף מספר תמונות לאותה פנייה.
                 </p>
               </div>
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות ותיוג</span>
-                <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות ותיוג</span>
+                <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
                   בתוך מסך הפנייה ניתן לכתוב הערות. טכנאים יכולים לתייג אנשי צוות אחרים באמצעות <Strong>@</Strong> (לדוגמה: @alon) ולצרף תמונות ישירות להערה.
                 </p>
               </div>
@@ -267,20 +267,20 @@ export default async function HelpPage() {
         <section id="messaging" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="5" title="שיחה עם צוות התמיכה" />
           <Card>
-            <p style={{ fontSize: "0.95rem", color: "#6b7280", lineHeight: 1.7, marginBottom: "20px" }}>
+            <p style={{ fontSize: "0.95rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: "20px" }}>
               ניתן לנהל שיחה ישירה עם צוות התמיכה בתוך כל פנייה.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>💬 צ׳אט אינטראקטיבי</span>
-                <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>💬 צ׳אט אינטראקטיבי</span>
+                <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
                   בתוך מסך הפנייה תמצאו את החלק &quot;שיחה עם הצוות&quot;. כתבו הודעות ישירות לטכנאי המטפל.
                 </p>
               </div>
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
               <div>
-                <span style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📧 התראות מייל</span>
-                <p style={{ margin: 0, color: "#4b5563", fontSize: "0.85rem", lineHeight: 1.6 }}>
+                <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📧 התראות מייל</span>
+                <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
                   כאשר איש צוות מגיב לפנייתכם, תקבלו מייל עדכון אוטומטי עם תוכן ההודעה וקישור ישיר למענה.
                 </p>
               </div>
@@ -293,11 +293,11 @@ export default async function HelpPage() {
           <SectionTitle number="6" title="מצבי פנייה" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <StatusRow badge={badge("#EDF0F4", "#3D5A7D", "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <StatusRow badge={badge("#fef3c7", "#92400e", "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. תקבלו מייל עדכון. ייתכן שיצרו איתכם קשר בקרוב." />
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <StatusRow badge={badge("#dcfce7", "#166534", "סגור")}   title="סגור"   desc="הבעיה טופלה וסגורה. תקבלו מייל עם קישור לדירוג השירות." />
+              <StatusRow badge={badge(T.pillBlueBg, T.pillBlueFg, "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
+              <StatusRow badge={badge(T.amberBg, T.amberFgDeep, "בטיפול")} title="בטיפול" desc="טכנאי החל לעבוד על הפנייה. תקבלו מייל עדכון. ייתכן שיצרו איתכם קשר בקרוב." />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
+              <StatusRow badge={badge(T.greenSBg, T.greenSFgDeep, "סגור")}   title="סגור"   desc="הבעיה טופלה וסגורה. תקבלו מייל עם קישור לדירוג השירות." />
             </div>
             <Note text='פנייה סגורה ניתנת לפתיחה מחדש תוך 4 שבועות מרגע הסגירה — לחצו על כפתור "↩ פתח מחדש" בטבלת הפניות שלכם. לאחר 4 שבועות יש לפתוח פנייה חדשה.' />
           </Card>
@@ -308,13 +308,13 @@ export default async function HelpPage() {
           <SectionTitle number="7" title="רמות דחיפות — מתי לבחור מה?" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <UrgencyRow badge={badge("#fee2e2", "#991b1b", "דחוף")}   title="דחוף"   desc="המחשב לא עולה כלל, אין גישה למערכות קריטיות, הבעיה מונעת עבודה לחלוטין." />
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <UrgencyRow badge={badge("#ffedd5", "#9a3412", "גבוה")}   title="גבוה"   desc="קושי משמעותי בעבודה השוטפת, בעיה שפוגעת בפרודוקטיביות אך ניתן לעבוד בחלקה." />
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <UrgencyRow badge={badge("#fef3c7", "#92400e", "בינוני")} title="בינוני" desc="בעיה שיש לטפל בה אך אינה מונעת עבודה. ברירת המחדל לרוב הפניות." />
-              <div style={{ height: "1px", backgroundColor: "#f3f4f6" }} />
-              <UrgencyRow badge={badge("#dcfce7", "#166534", "נמוך")}   title="נמוך"   desc="בקשה שאינה דחופה: שדרוג, התקנת תוכנה, שאלה כללית." />
+              <UrgencyRow badge={badge(T.redBg, T.redFgDeep, "דחוף")}   title="דחוף"   desc="המחשב לא עולה כלל, אין גישה למערכות קריטיות, הבעיה מונעת עבודה לחלוטין." />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
+              <UrgencyRow badge={badge(T.orangeBg, T.orangeFgDeep, "גבוה")}   title="גבוה"   desc="קושי משמעותי בעבודה השוטפת, בעיה שפוגעת בפרודוקטיביות אך ניתן לעבוד בחלקה." />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
+              <UrgencyRow badge={badge(T.amberBg, T.amberFgDeep, "בינוני")} title="בינוני" desc="בעיה שיש לטפל בה אך אינה מונעת עבודה. ברירת המחדל לרוב הפניות." />
+              <div style={{ height: "1px", backgroundColor: T.fill }} />
+              <UrgencyRow badge={badge(T.greenSBg, T.greenSFgDeep, "נמוך")}   title="נמוך"   desc="בקשה שאינה דחופה: שדרוג, התקנת תוכנה, שאלה כללית." />
             </div>
             <Note text="אנא בחרו את רמת הדחיפות בצורה מדויקת. דחיפות גבוהה מדי עלולה לדחות פניות אחרות שצריכות טיפול מיידי." />
           </Card>
@@ -325,25 +325,25 @@ export default async function HelpPage() {
           <SectionTitle number="8" title="דירוג השירות לאחר סגירה" />
 
           {/* Review page mockup */}
-          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb" }}>
-            <div style={{ background: "linear-gradient(135deg, #f0f9ff, #e0f2fe, #f0fdf4)", padding: "32px 24px", display: "flex", justifyContent: "center" }}>
-              <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "28px 28px 24px", width: "340px", textAlign: "center", boxShadow: "0 8px 30px rgba(0,0,0,0.10)", border: "1px solid #e5e7eb" }}>
-                <div style={{ display: "inline-block", backgroundColor: "#E9F4E2", color: "#3D5A7D", borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
-                <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "#1f2937", marginBottom: 4 }}>איך היה השירות?</div>
-                <div style={{ fontSize: "0.82rem", color: "#374151", marginBottom: 4 }}>מוראל לוי סגירת יוזר קומקס</div>
-                <div style={{ fontSize: "0.72rem", color: "#9ca3af", marginBottom: 20 }}>שניה מזמנכם תעזור לנו להשתפר</div>
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}` }}>
+            <div style={{ background: `linear-gradient(135deg, ${T.blueBg}, ${T.blueBorder}, ${T.greenSBg})`, padding: "32px 24px", display: "flex", justifyContent: "center" }}>
+              <div style={{ backgroundColor: T.card, borderRadius: "16px", padding: "28px 28px 24px", width: "340px", textAlign: "center", boxShadow: `0 8px 30px ${T.shadow2}`, border: `1px solid ${T.line}` }}>
+                <div style={{ display: "inline-block", backgroundColor: T.greenBg, color: T.pillBlueFg, borderRadius: 6, padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700, marginBottom: 12 }}>HDTC-29</div>
+                <div style={{ fontWeight: 800, fontSize: "1.1rem", color: T.text, marginBottom: 4 }}>איך היה השירות?</div>
+                <div style={{ fontSize: "0.82rem", color: T.ink, marginBottom: 4 }}>מוראל לוי סגירת יוזר קומקס</div>
+                <div style={{ fontSize: "0.72rem", color: T.inkFaint, marginBottom: 20 }}>שניה מזמנכם תעזור לנו להשתפר</div>
                 <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 8 }}>
                   {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: n <= 4 ? "1.8rem" : "1.4rem", filter: n <= 4 ? "none" : "grayscale(1) opacity(0.3)" }}>⭐</span>)}
                 </div>
-                <div style={{ height: 18, fontSize: "0.78rem", fontWeight: 600, color: "#16a34a", marginBottom: 12 }}>טוב</div>
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 10px", fontSize: "0.75rem", color: "#9ca3af", textAlign: "right", marginBottom: 12 }}>הוסיפו הערה (לא חובה)...</div>
-                <div style={{ background: "#16a34a", color: "#fff", padding: "10px", borderRadius: 8, fontWeight: 700, fontSize: "0.82rem" }}>שלחו ביקורת</div>
+                <div style={{ height: 18, fontSize: "0.78rem", fontWeight: 600, color: T.greenSFg, marginBottom: 12 }}>טוב</div>
+                <div style={{ border: `1px solid ${T.line}`, borderRadius: 8, padding: "8px 10px", fontSize: "0.75rem", color: T.inkFaint, textAlign: "right", marginBottom: 12 }}>הוסיפו הערה (לא חובה)...</div>
+                <div style={{ background: T.greenSFg, color: T.inverseText, padding: "10px", borderRadius: 8, fontWeight: 700, fontSize: "0.82rem" }}>שלחו ביקורת</div>
               </div>
             </div>
           </div>
 
           <Card>
-            <p style={{ margin: "0 0 16px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
+            <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
               כאשר פנייה נסגרת, תקבלו מייל אוטומטי עם קישור לדירוג השירות. הדירוג עוזר לצוות התמיכה להשתפר.
             </p>
             <FieldList items={[
@@ -360,21 +360,21 @@ export default async function HelpPage() {
         <section id="contact" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <SectionTitle number="9" title="צרו קשר עם תמיכת המערכת" />
 
-          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", border: "1px solid #e5e7eb", backgroundColor: "#fff" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}`, backgroundColor: T.card }}>
+            <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: T.inverseBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke={T.inverseText} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1f2937" }}>צרו קשר עם תמיכת HelpDesk</span>
+              <span style={{ fontWeight: 700, fontSize: "0.88rem", color: T.text }}>צרו קשר עם תמיכת HelpDesk</span>
             </div>
             <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: "#9ca3af" }}>תארו את הבעיה שנתקלתם בה...</div>
-              <div style={{ background: "#16181D", color: "#fff", fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
+              <div style={{ border: `1px solid ${T.line}`, borderRadius: "8px", padding: "10px 14px", minHeight: "80px", fontSize: "0.8rem", color: T.inkFaint }}>תארו את הבעיה שנתקלתם בה...</div>
+              <div style={{ background: T.inverseBg, color: T.inverseText, fontWeight: 700, padding: "10px 0", borderRadius: "10px", textAlign: "center", fontSize: "0.82rem" }}>שלח הודעה</div>
             </div>
           </div>
 
           <Card>
-            <p style={{ margin: "0 0 14px", color: "#374151", fontSize: "0.9rem", lineHeight: 1.7 }}>
+            <p style={{ margin: "0 0 14px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
               דף זה מיועד לדיווח על בעיות <Strong>במערכת ה-HelpDesk עצמה</Strong> — לא לבקשות תמיכה רגילות.
             </p>
             <FieldList items={[
@@ -389,14 +389,14 @@ export default async function HelpPage() {
         {canSeeAdminGuide && (
           <section id="admin" style={{ scrollMarginTop: 80 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "8px 0 20px" }}>
-              <span style={{ height: 1, flex: 1, background: "#DEE1DC" }} />
-              <span style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: ".08em", color: "#3E7A24", background: "#E9F4E2", border: "1px solid rgba(116,197,58,0.45)", borderRadius: 999, padding: "5px 14px" }}>
+              <span style={{ height: 1, flex: 1, background: T.borderStrong }} />
+              <span style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: ".08em", color: T.greenInk, background: T.greenBg, border: `1px solid ${T.greenBorder}`, borderRadius: 999, padding: "5px 14px" }}>
                 לצוות התמיכה בלבד
               </span>
-              <span style={{ height: 1, flex: 1, background: "#DEE1DC" }} />
+              <span style={{ height: 1, flex: 1, background: T.borderStrong }} />
             </div>
-            <h2 style={{ margin: "0 0 6px", fontSize: "1.35rem", fontWeight: 800, color: "#16181D", textAlign: "center" }}>מדריך מנהל</h2>
-            <p style={{ margin: "0 0 26px", textAlign: "center", color: "#6A7068", fontSize: "0.9rem" }}>
+            <h2 style={{ margin: "0 0 6px", fontSize: "1.35rem", fontWeight: 800, color: T.text, textAlign: "center" }}>מדריך מנהל</h2>
+            <p style={{ margin: "0 0 26px", textAlign: "center", color: T.text3, fontSize: "0.9rem" }}>
               ניהול התור, עריכת פניות, דוחות, הרשאות ותחזוקת המערכת
             </p>
             <AdminGuide />
@@ -405,7 +405,7 @@ export default async function HelpPage() {
 
         <Link
           href="/dashboard"
-          style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.9rem", fontWeight: 700, color: "#FFFFFF", background: "#16181D", borderRadius: 10, padding: "11px 22px", textDecoration: "none" }}
+          style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.9rem", fontWeight: 700, color: T.inverseText, background: T.inverseBg, borderRadius: 10, padding: "11px 22px", textDecoration: "none" }}
         >← חזרה למסך הראשי</Link>
 
       </main>
@@ -420,15 +420,15 @@ export default async function HelpPage() {
 function SectionTitle({ number, title }: { number: string; title: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>{number}</div>
-      <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: "#1f2937" }}>{title}</h2>
+      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: T.inverseBg, display: "flex", alignItems: "center", justifyContent: "center", color: T.inverseText, fontWeight: 800, fontSize: "1rem", flexShrink: 0 }}>{number}</div>
+      <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 800, color: T.text }}>{title}</h2>
     </div>
   )
 }
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ backgroundColor: "#fff", borderRadius: "16px", padding: "24px 28px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #f3f4f6" }}>
+    <div style={{ backgroundColor: T.card, borderRadius: "16px", padding: "24px 28px", boxShadow: `0 1px 4px ${T.shadow2}`, border: `1px solid ${T.line}` }}>
       {children}
     </div>
   )
@@ -439,8 +439,8 @@ function Steps({ steps }: { steps: { n: number; text: React.ReactNode }[] }) {
     <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "12px" }}>
       {steps.map(s => (
         <li key={s.n} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-          <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: "#E9F4E2", color: "#16181D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, flexShrink: 0, marginTop: "1px" }}>{s.n}</div>
-          <span style={{ color: "#374151", fontSize: "0.9rem", lineHeight: 1.6 }}>{s.text}</span>
+          <div style={{ width: "24px", height: "24px", borderRadius: "50%", backgroundColor: T.greenBg, color: T.text, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 800, flexShrink: 0, marginTop: "1px" }}>{s.n}</div>
+          <span style={{ color: T.ink, fontSize: "0.9rem", lineHeight: 1.6 }}>{s.text}</span>
         </li>
       ))}
     </ol>
@@ -449,7 +449,7 @@ function Steps({ steps }: { steps: { n: number; text: React.ReactNode }[] }) {
 
 function Note({ text }: { text: string }) {
   return (
-    <div style={{ marginTop: "16px", backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "10px 14px", fontSize: "0.82rem", color: "#92400e", display: "flex", gap: "8px", alignItems: "flex-start" }}>
+    <div style={{ marginTop: "16px", backgroundColor: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: "10px", padding: "10px 14px", fontSize: "0.82rem", color: T.amberFgDeep, display: "flex", gap: "8px", alignItems: "flex-start" }}>
       <span style={{ flexShrink: 0 }}>⚠</span>
       <span>{text}</span>
     </div>
@@ -457,7 +457,7 @@ function Note({ text }: { text: string }) {
 }
 
 function Strong({ children }: { children: React.ReactNode }) {
-  return <strong style={{ color: "#1f2937" }}>{children}</strong>
+  return <strong style={{ color: T.text }}>{children}</strong>
 }
 
 function FieldList({ items }: { items: { label: string; desc: string }[] }) {
@@ -465,8 +465,8 @@ function FieldList({ items }: { items: { label: string; desc: string }[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
       {items.map(i => (
         <div key={i.label} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
-          <div style={{ backgroundColor: "#E9F4E2", color: "#16181D", padding: "2px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0, marginTop: "1px" }}>{i.label}</div>
-          <span style={{ color: "#4b5563", fontSize: "0.88rem", lineHeight: 1.6 }}>{i.desc}</span>
+          <div style={{ backgroundColor: T.greenBg, color: T.text, padding: "2px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0, marginTop: "1px" }}>{i.label}</div>
+          <span style={{ color: T.ink, fontSize: "0.88rem", lineHeight: 1.6 }}>{i.desc}</span>
         </div>
       ))}
     </div>
@@ -476,10 +476,10 @@ function FieldList({ items }: { items: { label: string; desc: string }[] }) {
 function FieldGuideItem({ label, required, desc }: { label: string; required?: boolean; desc: React.ReactNode }) {
   return (
     <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
-      <div style={{ minWidth: "100px", backgroundColor: required ? "#E9F4E2" : "#f9fafb", color: required ? "#16181D" : "#374151", padding: "3px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, textAlign: "center", flexShrink: 0, border: `1px solid ${required ? "#bfdbfe" : "#e5e7eb"}` }}>
-        {label}{required && <span style={{ color: "#ef4444" }}> *</span>}
+      <div style={{ minWidth: "100px", backgroundColor: required ? T.greenBg : T.fill2, color: required ? T.text : T.ink, padding: "3px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, textAlign: "center", flexShrink: 0, border: `1px solid ${required ? "${T.blueBorder}" : "${T.line}"}` }}>
+        {label}{required && <span style={{ color: T.redFg }}> *</span>}
       </div>
-      <span style={{ color: "#4b5563", fontSize: "0.88rem", lineHeight: 1.65 }}>{desc}</span>
+      <span style={{ color: T.ink, fontSize: "0.88rem", lineHeight: 1.65 }}>{desc}</span>
     </div>
   )
 }
@@ -489,8 +489,8 @@ function StatusRow({ badge, title, desc }: { badge: React.ReactNode; title: stri
     <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
       <div style={{ flexShrink: 0, paddingTop: "2px" }}>{badge}</div>
       <div>
-        <div style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", marginBottom: "3px" }}>{title}</div>
-        <div style={{ color: "#6b7280", fontSize: "0.85rem", lineHeight: 1.6 }}>{desc}</div>
+        <div style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", marginBottom: "3px" }}>{title}</div>
+        <div style={{ color: T.inkMuted, fontSize: "0.85rem", lineHeight: 1.6 }}>{desc}</div>
       </div>
     </div>
   )
@@ -501,8 +501,8 @@ function UrgencyRow({ badge, title, desc }: { badge: React.ReactNode; title: str
     <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
       <div style={{ flexShrink: 0, paddingTop: "2px" }}>{badge}</div>
       <div>
-        <div style={{ fontWeight: 700, color: "#1f2937", fontSize: "0.9rem", marginBottom: "3px" }}>{title}</div>
-        <div style={{ color: "#6b7280", fontSize: "0.85rem", lineHeight: 1.6 }}>{desc}</div>
+        <div style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", marginBottom: "3px" }}>{title}</div>
+        <div style={{ color: T.inkMuted, fontSize: "0.85rem", lineHeight: 1.6 }}>{desc}</div>
       </div>
     </div>
   )
@@ -512,10 +512,10 @@ function MockField({ label, placeholder, hint }: { label: string; placeholder: s
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "5px" }}>
-        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#374151" }}>{label}</label>
-        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: "#EDF0F4", color: "#16181D", fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
+        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: T.ink }}>{label}</label>
+        {hint && <div style={{ width: "14px", height: "14px", borderRadius: "50%", backgroundColor: T.pillBlueBg, color: T.text, fontSize: "0.68rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>?</div>}
       </div>
-      <div style={{ border: "1px solid #d1d5db", borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: "#9ca3af", backgroundColor: "#fff" }}>{placeholder}</div>
+      <div style={{ border: `1px solid ${T.lineStrong}`, borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: T.inkFaint, backgroundColor: T.card }}>{placeholder}</div>
     </div>
   )
 }
@@ -523,10 +523,10 @@ function MockField({ label, placeholder, hint }: { label: string; placeholder: s
 function MockSelect({ label, value, colored }: { label: string; value: string; colored?: boolean }) {
   return (
     <div>
-      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>{label}</label>
-      <div style={{ border: `1px solid ${colored ? "#fcd34d" : "#d1d5db"}`, borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: colored ? "#d97706" : "#374151", backgroundColor: colored ? "#fffbeb" : "#fff", display: "flex", justifyContent: "space-between" }}>
+      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: T.ink, marginBottom: "5px" }}>{label}</label>
+      <div style={{ border: `1px solid ${colored ? "${T.amberBorder}" : "${T.lineStrong}"}`, borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: colored ? T.amberFg : T.ink, backgroundColor: colored ? T.amberBg : T.card, display: "flex", justifyContent: "space-between" }}>
         <span>{value}</span>
-        <span style={{ color: "#9ca3af" }}>▾</span>
+        <span style={{ color: T.inkFaint }}>▾</span>
       </div>
     </div>
   )
@@ -535,8 +535,8 @@ function MockSelect({ label, value, colored }: { label: string; value: string; c
 function MockTextarea({ label }: { label: string }) {
   return (
     <div>
-      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#374151", marginBottom: "5px" }}>{label}</label>
-      <div style={{ border: "1px solid #d1d5db", borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: "#9ca3af", backgroundColor: "#fff", height: "60px" }}>פרט את הבעיה בצורה מלאה...</div>
+      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: T.ink, marginBottom: "5px" }}>{label}</label>
+      <div style={{ border: `1px solid ${T.lineStrong}`, borderRadius: "7px", padding: "7px 10px", fontSize: "0.78rem", color: T.inkFaint, backgroundColor: T.card, height: "60px" }}>פרט את הבעיה בצורה מלאה...</div>
     </div>
   )
 }
