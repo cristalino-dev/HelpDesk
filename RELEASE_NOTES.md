@@ -5,6 +5,81 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.81 — משויכות אליי: הפניות שבטיפולכם, בלוח האישי
+
+**Staff see the tickets assigned to them on the dashboard again — in a section
+of their own, apart from the tickets they opened.**
+
+Reported from production: *"I can't see open tickets that are assigned to me"*
+on `/dashboard`. Checked read-only against the database: **22 open tickets
+assigned to `alon@` — 5 פתוח, 11 בטיפול, 6 בהמתנה — none of them opened by
+him, and none on his dashboard.**
+
+The cause is v3.72. It made `GET /api/tickets` answer "mine" —
+`where: { userId }` — for every role, which was right: an admin's לוח אישי had
+been an unlabelled copy of the entire queue. But before that change, the only
+reason a technician saw the tickets *assigned* to them there was that they saw
+*every* ticket. Removing the flood removed the signal with it. v3.72's commit
+message never mentions assigned tickets; this was an oversight, not a decision.
+
+### What changed for users
+
+- **Staff get "משויכות אליי" at the top of their dashboard** — every ticket
+  assigned to them that is not closed, on-hold included, each card naming whose
+  ticket it is, with a link through to כל הפניות. "Staff" means admins and
+  `STAFF_EMAILS`, the same rule as everywhere else. When nothing is assigned the
+  section is not drawn.
+- **A divider separates the two lists** — a line with the brand's lime dot at
+  its centre, between the tickets you are handling and the tickets you opened.
+  A plain hairline would not have done it: every card on the page already has
+  one, so the break between two lists has to be a different kind of line.
+- **Employees see no change**, and their browser never asks for the list.
+- **The new cards have no close or reopen button.** On the dashboard those
+  buttons are the *owner's* — close anytime, reopen within four weeks. A ticket
+  you are handling is worked from its own page, where closing it assigns and
+  compound-closes as staff.
+
+### What changed for developers
+
+- **New `GET /api/tickets/assigned`** — staff only (403 for employees *and*
+  viewers, unlike `/api/tickets/all`: nobody assigns work to a read-only
+  observer), `assignedTo` equal to the caller case-insensitively, `status` not
+  סגור, owner included.
+- **A route of its own, not an `OR` in `/api/tickets`.** The two lists take
+  different actions, and `/api/tickets` keeps the v3.72 guarantee its tests
+  assert — every call scoped by owner. Those tests are untouched.
+- **The stat cards, search and HDTC-number suggestion still cover only the
+  caller's own tickets.** They count *your requests*; folding in *your work*
+  would make "פתוחות: 27" mean nothing in particular.
+- **The docs were wrong about this endpoint before this release.** ARCHITECTURE's
+  route table and authorization matrix still said `GET /api/tickets` returns
+  every ticket to an admin — false since v3.72. Corrected, and the new route
+  added to the table, the matrix and the diagram.
+- **New `__tests__/AssignedTicketsAPI.test.ts`** (12 tests) — who may ask, and
+  exactly what comes back. **New `__tests__/DashboardAssigned.test.tsx`**
+  (9 tests) drives the real page: the reported case, the divider and its
+  position between the two lists, the owner's name on each card, no close button on assigned cards while your own ticket keeps its one,
+  no request at all from an employee, and a failed request — the maintenance
+  page mid-deploy — leaving the rest of the page intact.
+- **`/` no longer crashes when auth is misconfigured.** `app/page.tsx` checked
+  `if (!session)` and then read `session.user.isAdmin`. With `AUTH_SECRET`
+  missing, `auth()` returns a truthy object with no `user`, so the root page
+  threw *"Cannot read properties of undefined (reading 'isAdmin')"* instead of
+  sending the visitor to /login. It now checks `session?.user`. Found on a dev
+  server started in a git worktree, which has no `.env` / `.env.local` — both
+  are gitignored. New `__tests__/RootRedirect.test.ts` (5 tests).
+- **The other errors reported with it were the same failure, seen from other
+  places.** NextAuth's `MissingSecret` / `assertConfig` and the browser's
+  `ClientFetchError` are the missing `AUTH_SECRET` itself. React's *"Encountered
+  a script tag while rendering React component"*, pointing at the v3.80 theme
+  script in `app/layout.tsx`, is downstream too: it fires only because the
+  server render had already failed and React rebuilt the whole tree on the
+  client. With the secret in place a fresh tab's console is empty. The layout
+  was not changed.
+- No migration.
+
+---
+
 ## v3.80 — מצב כהה, עם מתג שזוכר
 
 **The app now has a dark theme and a switch on the top bar. Light stays the

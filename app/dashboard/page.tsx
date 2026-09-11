@@ -11,6 +11,10 @@
  *   On mount (status === "authenticated"):
  *     1. GET /api/tickets       → loads the user's ticket list
  *     2. GET /api/profile       → loads saved phone + station for TicketForm pre-fill
+ *     3. GET /api/tickets/assigned → STAFF ONLY (v3.81): the open tickets
+ *        assigned to them, shown as "משויכות אליי" above their own tickets.
+ *        A separate list because it takes separate actions — see the note on
+ *        that section below.
  *
  *   User opens "+ פנייה חדשה":
  *     — TicketForm is shown (slide-down by toggling showForm state)
@@ -45,13 +49,14 @@ import Link from "next/link"
 import TicketForm from "@/components/TicketForm"
 import { TicketCreatedDialog } from "@/components/TicketCreated"
 import TicketTable from "@/components/TicketTable"
-import type { Ticket } from "@/types/ticket"
+import type { Ticket, TicketWithUser } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, setTicketStatusOrError } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { T, HDR } from "@/lib/theme"
+import { STAFF_EMAILS } from "@/lib/staffEmails"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 
@@ -68,6 +73,11 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("")
   /** Server refusal of a close (e.g. an unfinished offboarding checklist). */
   const [statusError, setStatusError] = useState<string | null>(null)
+  /** Open tickets assigned to the caller — staff only. See /api/tickets/assigned. */
+  const [assigned, setAssigned] = useState<TicketWithUser[]>([])
+
+  // Rule 26: admin implies staff. Derived from the session, not stored.
+  const isStaff = !!session?.user?.isAdmin || STAFF_EMAILS.includes(session?.user?.email ?? "")
 
 
   useEffect(() => {
@@ -106,6 +116,20 @@ export default function DashboardPage() {
       fetch("/api/profile").then(r => r.json()).then(d => setProfile({ phone: d.phone ?? "", station: d.station ?? "" }))
     }
   }, [status])
+
+  // The tickets this staff member is handling (v3.81). Before v3.72 an admin
+  // saw them here only because they saw every ticket; scoping /api/tickets to
+  // "opened by me" removed them along with the flood. Employees never ask:
+  // the endpoint would refuse them, and there is nothing to show.
+  useEffect(() => {
+    if (status !== "authenticated" || !isStaff) return
+    let cancelled = false
+    fetch("/api/tickets/assigned")
+      .then(r => (r.ok ? r.json() : []))   // rule 18: the maintenance page is not JSON
+      .then(d => { if (!cancelled) setAssigned(Array.isArray(d) ? d : []) })
+      .catch(() => { if (!cancelled) setAssigned([]) })
+    return () => { cancelled = true }
+  }, [status, isStaff])
 
   const isMobile = useIsMobile()
 
@@ -148,6 +172,43 @@ export default function DashboardPage() {
 
       {/* ── Main ───────────────────────────────────────────────────────────── */}
       <main style={{ maxWidth: "920px", margin: "0 auto", padding: isMobile ? "16px 12px" : "32px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+
+        {/* ── Assigned to me (staff) ───────────────────────────────────────
+            Its own list, above the caller's own tickets, and deliberately
+            WITHOUT onClose / onReopen: on this page those are the OWNER's
+            actions, and the stat cards and search below count the owner's
+            tickets. A ticket you are handling is worked from its own page. */}
+        {isStaff && assigned.length > 0 && (
+          <>
+          <section aria-label="משויכות אליי" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px" }}>
+              <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.text, letterSpacing: "-0.01em" }}>
+                משויכות אליי
+                <span style={{ marginRight: 8, fontSize: "0.8rem", fontWeight: 600, color: T.muted }}>{assigned.length}</span>
+              </h2>
+              <Link href="/tickets" style={{ fontSize: "0.8rem", color: T.greenInk, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+                לכל הפניות ←
+              </Link>
+            </div>
+            <TicketTable tickets={assigned} />
+          </section>
+
+          {/* The break between the two lists: what you are HANDLING above, what
+              you ASKED FOR below. Not a plain hairline — every card on the page
+              already has one, and the line between two lists has to read as a
+              different kind of line from the edge of a card. The lime dot is
+              the brand's own mark, as on the logo and the "פנייה חדשה" button. */}
+          <div
+            role="separator"
+            aria-label="סוף הפניות המשויכות"
+            style={{ display: "flex", alignItems: "center", gap: "12px", margin: "10px 0" }}
+          >
+            <span style={{ flex: 1, height: 1, background: T.borderStrong }} />
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green, flexShrink: 0 }} />
+            <span style={{ flex: 1, height: 1, background: T.borderStrong }} />
+          </div>
+          </>
+        )}
 
         {/* Stats row — clickable to filter the list.
             MOBILE: 2×2 grid — 4 cards in one row overflow narrow screens. */}

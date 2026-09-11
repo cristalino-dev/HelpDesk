@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-09 · v3.80
+> Version 2.0 · Last updated 2026-09-10 · v3.81
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **1,028 tests across 52 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,055 tests across 55 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
 
@@ -139,7 +139,8 @@ under `serverExternalPackages` — they are Node-only and must not be bundled.
 │  ├────────────────────────────────────────────────────────────────────────┤ │
 │  │                            API ROUTES                                  │ │
 │  │  /api/auth/[...nextauth]   OAuth callbacks (NextAuth)                  │ │
-│  │  /api/tickets   /api/tickets/all   /api/tickets/[id]/*                 │ │
+│  │  /api/tickets   /api/tickets/all   /api/tickets/assigned               │ │
+│  │  /api/tickets/[id]/*                                                   │ │
 │  │  /api/profile   /api/users   /api/staff   /api/reviews   /api/contact  │ │
 │  │  /api/attachments/[id]     /api/logs (write-only telemetry)            │ │
 │  │  /api/admin/{logs, digest, sweep, ingest-mail, equipment,              │ │
@@ -515,7 +516,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  52 suites, 1,028 tests — gate the build
+__tests__/                  55 suites, 1,055 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -835,10 +836,11 @@ Indexed on `date` and `timestamp`. Rows older than 30 days are deleted on write.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/tickets` | User | Own tickets; **all** tickets with nested `user` if admin |
+| GET | `/api/tickets` | User | The caller's **own** tickets — the ones they opened — whatever their role. (Until v3.72 an admin got every ticket here; the queue is `/api/tickets/all`.) |
 | POST | `/api/tickets` | User | Create a ticket. Accepts `equipment[]` on any category, `newEmployee{}` (mandatory for `עובד חדש`, else 400), and `onBehalfOfEmail` / `onBehalfOfName` (**admin only**, 403 otherwise) → 201 |
 | PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }` |
 | GET | `/api/tickets/all` | Staff / Viewer | All tickets — the read-only viewer list |
+| GET | `/api/tickets/assigned` | **Staff** | Non-closed tickets assigned to the caller (case-insensitive), with the owner — "משויכות אליי" on the dashboard. 403 for employees and viewers (v3.81) |
 | GET | `/api/tickets/[id]` | Owner/Staff | Full detail: messages, notes, attachment metadata, equipment |
 | DELETE | `/api/tickets/[id]` | **Admin** | Permanently erase a ticket. No undo, no soft-delete. Child rows cascade; attachment bytes are unlinked first; the deletion itself is written to `Log` |
 | GET | `/api/tickets/[id]/history` | Owner/Staff | Audit timeline |
@@ -935,11 +937,12 @@ GET /review/[ticketId]      │ ✓ (no login)    │ ✓           │ ✓     
 ```
 Endpoint                          │ Unauth │ Employee   │ Viewer │ Staff │ Admin
 ──────────────────────────────────┼────────┼────────────┼────────┼───────┼──────
-GET   /api/tickets                │ 401    │ Own only   │ Own    │ Own   │ All
+GET   /api/tickets                │ 401    │ Own only   │ Own    │ Own   │ Own
 POST  /api/tickets                │ 401    │ ✓          │ ✓      │ ✓     │ ✓ +onBehalfOf
 PATCH /api/tickets                │ 401    │ Own close/ │ 403    │ ✓     │ ✓ +ownerEmail
                                   │        │ reopen ≤4w │        │       │
 GET   /api/tickets/all            │ 401    │ 403        │ ✓      │ ✓     │ ✓
+GET   /api/tickets/assigned       │ 401    │ 403        │ 403    │ ✓     │ ✓
 GET   /api/tickets/[id]           │ 401    │ Own only   │ ✓      │ ✓     │ ✓
 DELETE/api/tickets/[id]           │ 401    │ 403        │ 403    │ 403   │ ✓
 POST  /api/tickets/[id]/notes     │ 401    │ 403        │ 403    │ ✓     │ ✓

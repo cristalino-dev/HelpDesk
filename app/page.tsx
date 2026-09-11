@@ -9,7 +9,7 @@
  *
  * REDIRECT LOGIC:
  * ────────────────
- *   No session  → /login     (user must authenticate first)
+ *   No session, or a session with no user on it → /login
  *   Admin user  → /admin     (admins start at the ticket management queue)
  *   Regular user → /dashboard (employees start at their ticket list)
  *
@@ -33,7 +33,11 @@ export default async function Home() {
   // Returns null if no valid session exists.
   const session = await auth()
 
-  if (!session) redirect("/login")              // Not logged in
+  // `session?.user`, not `session`. When auth is misconfigured — a dev server
+  // started without .env.local, so no AUTH_SECRET — auth() hands back a truthy
+  // object with no `user` on it, and reading `session.user.isAdmin` crashed
+  // this page with a TypeError instead of sending the visitor to /login.
+  if (!session?.user) redirect("/login")        // Not logged in (or auth is broken)
   if (session.user.isAdmin) redirect("/admin")  // Admin: go to ticket queue
   redirect("/dashboard")                         // Regular user: go to their tickets
 }
