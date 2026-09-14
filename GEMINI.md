@@ -2,6 +2,12 @@
 
 > **Current version: 3.82** · Updated 2026-09-14
 
+> ⚠️ **IN PROGRESS (handed over 2026-09-14) — branch `wip/v3.83-replies-v3.84-attachments`.**
+> **v3.83** (a reply to a notification joins its ticket instead of opening a new one) is written and tested but
+> not released or deployed. **v3.84** (attachments: 10 MB, files as well as images, mail attachments, the SVG
+> fix) is half-built — the helpers exist, nothing uses them yet. Before doing anything, read
+> **HANDOFF.md → "▶ RESUME HERE"** in the repository root (git-ignored). Remove this banner when both have shipped.
+
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
 

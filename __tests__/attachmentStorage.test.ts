@@ -57,7 +57,9 @@ describe("extensionForMime", () => {
     expect(extensionForMime("image/png")).toBe("png")
     expect(extensionForMime("image/jpeg")).toBe("jpg")
     expect(extensionForMime("image/webp")).toBe("webp")
-    expect(extensionForMime("image/svg+xml")).toBe("svg")
+    // SVG is no longer on the list (v3.83): it can carry script, and served
+    // from this origin it was a stored-XSS hole. Unlisted types get "bin".
+    expect(extensionForMime("image/svg+xml")).toBe("bin")
   })
 
   it("is case-insensitive and falls back to bin", () => {
