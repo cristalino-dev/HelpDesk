@@ -30,7 +30,12 @@ USER="${DEPLOY_USER:-ubuntu}"
 KEY="${DEPLOY_KEY:-$LOCAL/../CrisRouter/alon.pem}"
 PORT="${DEPLOY_PORT:-3100}"
 
-: "${DEV_DATABASE_URL:?set DEV_DATABASE_URL to the dev database connection string}"
+# DEV_DATABASE_URL: from the environment, or from .env.dev, where
+# scripts/create-dev-db.py writes it — so the secret never has to be typed.
+if [ -z "$DEV_DATABASE_URL" ] && [ -f "$LOCAL/.env.dev" ]; then
+  DEV_DATABASE_URL=$(sed -n 's/^DEV_DATABASE_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$LOCAL/.env.dev" | head -1)
+fi
+: "${DEV_DATABASE_URL:?set DEV_DATABASE_URL to the dev database connection string (or run scripts/create-dev-db.py)}"
 : "${MAIL_REDIRECT_TO:?set MAIL_REDIRECT_TO to the one address the dev copy may mail}"
 case "$DEV_DATABASE_URL" in
   */helpdesk_dev|*/helpdesk_dev\?*) ;;
