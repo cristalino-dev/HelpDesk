@@ -1,2 +1,2 @@
-export const VERSION = "3.81"
+export const VERSION = "3.82"
 export default VERSION

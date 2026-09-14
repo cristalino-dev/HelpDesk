@@ -6,8 +6,11 @@
  * Covers:
  *   - hasTicketKeyword: case-insensitive subject matching, default + custom keyword
  *   - stripTicketKeyword: keyword removal + whitespace/separator tidy-up
- *   - buildIngestedTicket: urgent default, description from body, reporter
- *     resolution, and all the fallback paths
+ *   - buildIngestedTicket: urgency (the keyword still means urgent), the
+ *     description from the body, reporter resolution, and the fallback paths
+ *
+ * Which mail becomes a ticket at all — every mail since v3.82, minus our own,
+ * bounces and auto-replies — is covered in __tests__/mailIngestRules.test.ts.
  */
 
 import {
@@ -16,7 +19,7 @@ import {
   buildIngestedTicket,
   fixCharsetLabels,
   DEFAULT_TICKET_KEYWORD,
-  INGEST_DEFAULTS,
+  KEYWORD_URGENCY,
   INGEST_FALLBACK_EMAIL,
 } from "@/lib/mailIngest"
 
@@ -75,7 +78,7 @@ describe("stripTicketKeyword", () => {
 })
 
 describe("buildIngestedTicket", () => {
-  it("creates an URGENT ticket with default category/platform and empty phone/computer", () => {
+  it("makes a keyword ticket URGENT, with default category/platform and empty phone/computer", () => {
     const t = buildIngestedTicket({
       subject: "Ticket: VPN not connecting",
       text: "I cannot connect to the VPN since this morning.",
@@ -85,7 +88,7 @@ describe("buildIngestedTicket", () => {
     expect(t.subject).toBe("VPN not connecting")
     expect(t.description).toBe("I cannot connect to the VPN since this morning.")
     expect(t.urgency).toBe("דחוף")
-    expect(t.urgency).toBe(INGEST_DEFAULTS.urgency)
+    expect(t.urgency).toBe(KEYWORD_URGENCY)
     expect(t.category).toBe("אחר")
     expect(t.platform).toBe("מחשב אישי")
     expect(t.phone).toBe("")

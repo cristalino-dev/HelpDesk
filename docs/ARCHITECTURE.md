@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-10 · v3.81
+> Version 2.0 · Last updated 2026-09-14 · v3.82
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **1,055 tests across 55 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,113 tests across 57 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
 
@@ -308,7 +308,7 @@ cron (*/2 min)         POST /api/admin/ingest-mail      Gmail IMAP     PostgreSQ
        │                     │                              │              │
        │                     │  connect imapflow TLS :993 ─>│              │
        │                     │  search { seen:false,        │              │
-       │                     │           subject: keyword } │              │
+       │                     │           since: cutoff }    │              │
        │                     │  <── matching messages ──────│              │
        │                     │                              │              │
        │                     │  fixCharsetLabels()          │              │
@@ -516,7 +516,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  55 suites, 1,055 tests — gate the build
+__tests__/                  57 suites, 1,113 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -906,7 +906,7 @@ emailed link is unguessable, so only the recipient can reach the URL.
 | POST | `/api/automation/close` | Key | Close a ticket by `ticketNumber`. `Authorization: Bearer <AUTOMATION_API_KEY>` or `X-Api-Key`. Optional `message`, `note`, `actorName`, `actorEmail`, `fields{}`. Idempotent — an already-closed ticket returns `{ ok: true, alreadyClosed: true }`. 503 if the key is unset |
 | POST | `/api/admin/digest` | Secret | `x-digest-secret` → `DIGEST_SECRET`. Daily open-ticket summary to staff |
 | POST | `/api/admin/sweep` | Secret | `x-sweep-secret` → `SWEEP_SECRET`, falling back to `DIGEST_SECRET`. Repairs closed tickets whose urgency is not `נמוך` |
-| POST | `/api/admin/ingest-mail` | Secret | `x-ingest-secret` → `INGEST_SECRET`, falling back to `DIGEST_SECRET`. Polls IMAP and creates tickets. Returns `{ ok, created, tickets[] }`; 503 if the mailbox is unconfigured |
+| POST | `/api/admin/ingest-mail` | Secret | `x-ingest-secret` → `INGEST_SECRET`, falling back to `DIGEST_SECRET`. Polls IMAP and opens a ticket for every inbound mail bar our own, bounces, auto-replies and pre-cutoff mail (v3.82). Returns `{ ok, created, tickets[], skipped }`; 503 if the mailbox is unconfigured |
 
 ---
 
@@ -1030,9 +1030,9 @@ authenticating to `localhost:3000` with a shared secret read from
 
 | Schedule | Script | Endpoint | Purpose |
 |---|---|---|---|
-| `0 9 * * *` (09:00 Israel) | `send-digest.sh` | `POST /api/admin/digest` | Daily summary of open tickets to every `isAdmin` user |
+| `0 6,7 * * *` (UTC; runs only at 09:00 Israel time) (09:00 Israel) | `send-digest.sh` | `POST /api/admin/digest` | Daily summary of open tickets to every `isAdmin` user |
 | `*/5 * * * *` | `run-sweep.sh` | `POST /api/admin/sweep` | Repair any closed ticket whose urgency drifted off `נמוך` |
-| `*/2 * * * *` | `run-ingest.sh` | `POST /api/admin/ingest-mail` | Poll IMAP; turn matching emails into urgent tickets |
+| `*/2 * * * *` | `run-ingest.sh` | `POST /api/admin/ingest-mail` | Poll IMAP; turn inbound mail into tickets (the subject keyword makes them urgent) |
 
 `run-ingest.sh` is **`flock`-guarded** — a slow IMAP scan must not let the next
 tick start a second overlapping run. Each script appends to
@@ -1040,28 +1040,53 @@ tick start a second overlapping run. Each script appends to
 
 ### Email-to-ticket rules
 
-An inbound message to `helpdesk@cristalino.co.il` becomes a ticket only if the
-**subject contains the keyword** (`TICKET_MAIL_KEYWORD`, default `ticket`,
-case-insensitive substring). The IMAP search is server-side filtered
-(`{ seen: false, subject: keyword }`) so the whole mailbox is never scanned.
+Since v3.82 **every** inbound message to `helpdesk@cristalino.co.il` becomes a
+ticket, except mail that is machinery rather than a person (`skipReason()` in
+`lib/mailIngest.ts`):
+
+| Skipped | Why |
+|---|---|
+| received before `INGEST_START` (override `INGEST_SINCE`) | the inbox held 929 unread messages when this shipped — no cutoff means 929 tickets and 929 replies |
+| from one of our own addresses (`SMTP_USER`, `SMTP_FROM`, helpdesk@, and their `@finegold.co.il` twins) | the app mails helpdesk@ itself; ingesting that opens a ticket whose confirmation comes back as another — a loop, every 2 minutes |
+| a bounce, or an auto-reply (`Auto-Submitted` other than `no`, `X-Autoreply`, `Precedence: auto_reply`) | an out-of-office answering our confirmation is the same loop |
+
+One exception to "our own": mail from our address with a person in `Reply-To`
+— the "צרו קשר" form — is someone writing in, and is ingested as them.
+
+The IMAP search is `{ seen: false, since: cutoff }`, so the backlog is never
+fetched, and at most `MAX_PER_RUN` (25) tickets open per run — the rest wait for
+the next. The subject keyword (`TICKET_MAIL_KEYWORD`, default `ticket`) no
+longer gates anything; it makes the ticket urgent.
 
 | Ticket field | Source |
 |---|---|
-| `subject` | Email subject with the keyword removed and separators tidied. Fallback `"פנייה מהמייל"` |
+| `subject` | Email subject, with the keyword (if present) removed and separators tidied. Fallback `"פנייה מהמייל"` |
 | `description` | Plain-text body. Fallback `"(לא צורף תוכן להודעה)"` |
-| `urgency` | Always `"דחוף"` |
+| `urgency` | `"דחוף"` when the subject carries the keyword, otherwise `"בינוני"` — the web-form default |
 | `category` / `platform` | Defaults (`"אחר"` / `"מחשב אישי"`) |
 | `phone` / `computerName` | Empty strings |
-| owner | `resolveUserByEmail()` on the `From` address; display name from the header, fallbacks: address, then `"שולח לא ידוע"`; address fallback `mail-ingest@cristalino.co.il` |
+| owner | `resolveUserByEmail()` on the `From` address (the `Reply-To`, for mail relayed on someone's behalf); display name from the header, fallbacks: address, then `"שולח לא ידוע"`; address fallback `mail-ingest@cristalino.co.il` |
 | `sourceMessageId` | The email's `Message-ID` — `@unique`, the idempotency key |
 
 Hebrew bodies labelled `iso-8859-8-i` / `-e` are relabelled to `windows-1255`
 by `fixCharsetLabels()` before parsing, or `mailparser` mangles them.
 
-On success the route writes a `created` history row, emails staff and the
-sender, and flags the message `\Seen`. Non-matching mail is left unread and
-untouched. **Prerequisite:** IMAP must be enabled for the mailbox in Gmail
-(Settings → Forwarding and POP/IMAP).
+On success the route writes a `created` history row, flags the message
+`\Seen`, and — in `after()`, not a bare `void` — emails staff and, unless
+`mayAutoRespond()` says otherwise, the sender. The automatic reply is stricter
+than ingestion: never to lists or bulk mail, no-reply addresses, or senders
+asking for none (`X-Auto-Response-Suppress`), and at most 3 per sender in 10
+minutes — the circuit breaker for an auto-responder that does not label itself.
+Skipped mail is flagged `\Seen` too, and counted in the response.
+
+Outgoing mail is sent as `SMTP_FROM` (default `noreply_helpdesk@cristalino.co.il`)
+and marked `Auto-Submitted: auto-generated`, so replies stay out of the intake
+inbox and our own mail is recognised by two independent signals.
+
+**Prerequisites:** IMAP enabled for the mailbox in Gmail (Settings → Forwarding
+and POP/IMAP); the cron daemon running on the server; and, for the no-reply
+sender to take effect, that address set up as a verified "Send mail as" on
+`SMTP_USER`'s account — until then Gmail sends as `SMTP_USER`.
 
 ---
 
@@ -1142,9 +1167,10 @@ the one-time setup and `setup-server.sh` the one-time machine provisioning.
 | `NEXT_PUBLIC_APP_URL` | ✗ | Base URL used to build links inside emails. Defaults to `https://helpdesk.cristalino.co.il` |
 | `SMTP_USER` | ✗ | Google Workspace mailbox (`helpdesk@cristalino.co.il`). Doubles as the IMAP username |
 | `SMTP_PASS` | ✗ | Google **App Password** (16 chars, no spaces). Doubles as the IMAP password |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | ✗ | Overrides for non-Workspace SMTP. `SMTP_FROM` defaults to `SMTP_USER` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | ✗ | Overrides for non-Workspace SMTP. `SMTP_FROM` is the sender address: notifications default to `noreply_helpdesk@cristalino.co.il` (v3.82); the contact form falls back to `SMTP_USER` |
 | `IMAP_HOST` | ✗ | IMAP server. Default `imap.gmail.com` |
-| `TICKET_MAIL_KEYWORD` | ✗ | Subject keyword that triggers ingestion. Default `ticket` |
+| `TICKET_MAIL_KEYWORD` | ✗ | Subject keyword that makes an ingested ticket urgent — no longer a gate (v3.82). Default `ticket` |
+| `INGEST_SINCE` | ✗ | ISO date-time; mail received before it is never ingested. Default `INGEST_START` in `lib/mailIngest.ts` (2026-09-14) |
 | `DIGEST_SECRET` | ✗ | `x-digest-secret` for the digest cron; also the fallback for the other two |
 | `SWEEP_SECRET` | ✗ | `x-sweep-secret`. Falls back to `DIGEST_SECRET` |
 | `INGEST_SECRET` | ✗ | `x-ingest-secret`. Falls back to `DIGEST_SECRET` |

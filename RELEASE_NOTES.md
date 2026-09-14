@@ -5,6 +5,88 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.82 — כל מייל ל-helpdesk@ פותח פנייה
+
+**Every email that reaches helpdesk@ now opens a ticket — not only those with
+"ticket" in the subject. Getting there meant finding out why nothing had ever
+become a ticket, and what the keyword had quietly been protecting against.**
+
+### What we found first
+
+- **The keyword was the only loop guard.** The app mails helpdesk@ itself —
+  every status change on a ticket assigned to helpdesk@, the default assignee —
+  and Gmail files self-sent mail in the inbox. Without the keyword, that mail
+  opens a ticket "from" helpdesk@ whose confirmation goes back to helpdesk@ and
+  opens another: every two minutes, with no end. 7 such mails in 30 days.
+- **The inbox held 929 unread messages.** "Every unseen mail" as it stood would
+  have opened 929 urgent tickets and sent about 4,600 emails on the first run.
+- **Ingestion had never run in production.** Zero tickets had ever come from
+  mail, for three separate reasons: IMAP is disabled on helpdesk@; the server's
+  cron daemon has been stopped since 2026-08-29; and the crontab was empty (see
+  below). The daily digest and the urgency sweep have not run either.
+
+### What changed for users
+
+- **Any email to helpdesk@ opens a ticket**, from anyone. "ticket" in the
+  subject still makes it urgent; any other email opens at בינוני, the web-form
+  default — otherwise a one-word "thanks" would top the queue.
+- **The "צרו קשר" form opens tickets too** — it mails helpdesk@ on the
+  employee's behalf, and the ticket is theirs.
+- **Notifications are sent from noreply_helpdesk@cristalino.co.il** (once that
+  address is set up), so a reply to one no longer lands in the intake inbox as
+  a second ticket.
+
+### What does not open a ticket
+
+Mail received before 2026-09-14 (the backlog is left exactly as it is); mail
+from our own addresses — helpdesk@, the no-reply sender, and their
+@finegold.co.il twins; bounces; and auto-replies (RFC 3834 `Auto-Submitted`,
+`X-Autoreply`, `Precedence: auto_reply`).
+
+The automatic reply is stricter still: never to mailing lists or bulk mail,
+no-reply addresses, or senders asking for none, and at most 3 per sender in 10
+minutes — the circuit breaker for an auto-responder that does not label itself.
+
+### What changed for developers
+
+- **`lib/mailIngest.ts`** holds the rules as pure functions — `skipReason()`,
+  `isRelayed()`, `mayAutoRespond()`, `ingestSince()`, `ownAddresses()`.
+- **The route** searches `{ seen: false, since: cutoff }` instead of
+  `{ subject: keyword }`, opens at most 25 tickets per run, reports
+  `skipped: { reason: count }`, and sends its mail in `after()` — it was still
+  using the bare `void` that rule 41 forbids.
+- **`lib/mail.ts`** finally reads `SMTP_FROM` (documented, never read), default
+  `noreply_helpdesk@cristalino.co.il`, and marks every mail
+  `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All`: other
+  people's auto-responders stay quiet, and our ingestion recognises our own
+  mail by a second, independent signal.
+- **`scripts/deploy-remote.sh` had been installing an empty crontab.** Under
+  `set -e`, a `grep -v` with nothing to print exits 1 and killed the install
+  subshell before its `echo` lines; `crontab -` installed nothing, and the
+  script printed "installed". Once empty, every deploy rewrote it empty. Fixed
+  with a load-bearing `|| true`; the script now verifies the entries and warns
+  when the cron daemon is not running.
+- **The digest line was never a job**: cron reads `TZ=Asia/Jerusalem 0 9 * * *`
+  as an environment assignment. The server is on UTC and its cron has no
+  `CRON_TZ`, so the digest fires at 06:00 and 07:00 UTC and runs at whichever
+  is 09:00 in Israel.
+- **Tests:** new `__tests__/mailIngestRules.test.ts` (40) and
+  `__tests__/IngestMailRoute.test.ts` (18) — the route had none. The route test
+  replays the loop over two runs: an employee is answered, and that answer
+  arriving back in the inbox opens nothing. 1,113 tests / 57 suites.
+- No migration.
+
+### Still to do — outside the code
+
+1. **Enable IMAP on helpdesk@** (Gmail → Settings → Forwarding and POP/IMAP).
+2. **Start cron on the server:** `sudo systemctl start cron`. This also starts
+   the daily digest and the urgency sweep, which have never run.
+3. **Create noreply_helpdesk@cristalino.co.il** and add it to helpdesk@ as a
+   verified "Send mail as". Until then Gmail sends as helpdesk@ — harmless,
+   and still recognised as ours.
+
+---
+
 ## v3.81 — משויכות אליי: הפניות שבטיפולכם, בלוח האישי
 
 **Staff see the tickets assigned to them on the dashboard again — in a section

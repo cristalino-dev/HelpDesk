@@ -82,6 +82,10 @@
   # Write wrapper script that reads the secret at runtime
   cat > /home/ubuntu/helpdesk/send-digest.sh << 'CRONSCRIPT'
 #!/bin/bash
+# This box's cron runs on UTC and has no per-crontab timezone (no CRON_TZ in
+# crontab(5)), so the entry fires at 06:00 AND 07:00 UTC and this lets exactly
+# one of them through: whichever is 09:00 in Israel, on either side of DST.
+[ "$(TZ=Asia/Jerusalem date +%H)" = "09" ] || exit 0
 # Read DIGEST_SECRET from the deployed .env.local at runtime
 SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
@@ -144,12 +148,39 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/in
 INGESTSCRIPT
   chmod +x /home/ubuntu/helpdesk/run-ingest.sh
 
-  # Install cron entries (idempotent — removes old entries then re-adds)
-  (crontab -l 2>/dev/null | grep -v "send-digest.sh" | grep -v "run-sweep.sh" | grep -v "run-ingest.sh"; \
-   echo "TZ=Asia/Jerusalem 0 9 * * * /home/ubuntu/helpdesk/send-digest.sh"; \
-   echo "*/5 * * * * /home/ubuntu/helpdesk/run-sweep.sh"; \
-   echo "*/2 * * * * /home/ubuntu/helpdesk/run-ingest.sh") | crontab -
-  echo "Digest, Sweep & Ingest crons installed"
+  # Install cron entries (idempotent — removes old entries then re-adds).
+  #
+  # The `|| true` is load-bearing. This script runs under `set -e`, which the
+  # ( … ) subshell inherits. On an EMPTY crontab the grep has nothing to print
+  # and exits 1; set -e then killed the subshell before its echo lines ran, and
+  # `crontab -` installed an empty crontab — while the pipeline's own status
+  # (crontab's 0) let the script carry on and announce success. Once empty,
+  # every deploy wrote it empty again: until v3.82 no digest, sweep or ingest
+  # had run on this server at all.
+  #
+  # The digest line used to read "TZ=Asia/Jerusalem 0 9 * * * …", which cron
+  # parses as an environment assignment, not a job. See send-digest.sh above.
+  ( { crontab -l 2>/dev/null | grep -v -e "send-digest.sh" -e "run-sweep.sh" -e "run-ingest.sh" || true; }
+    echo "0 6,7 * * * /home/ubuntu/helpdesk/send-digest.sh"
+    echo "*/5 * * * * /home/ubuntu/helpdesk/run-sweep.sh"
+    echo "*/2 * * * * /home/ubuntu/helpdesk/run-ingest.sh" ) | crontab -
+
+  # Verify rather than announce — announcing is what hid this for months. A
+  # missing entry is reported loudly but does not fail the deploy: the app has
+  # already been swapped in and is serving.
+  CRON_OK=1
+  for job in send-digest.sh run-sweep.sh run-ingest.sh; do
+    crontab -l 2>/dev/null | grep -q "$job" || { echo "ERROR: cron entry for $job is missing after install" >&2; CRON_OK=0; }
+  done
+  [ "$CRON_OK" = 1 ] && echo "Digest, Sweep & Ingest crons installed (verified)"
+
+  # Entries do nothing without the daemon, and it was found stopped (dead since
+  # a restart on 2026-08-29). Starting a system service is not this script's
+  # decision to make, so it says so instead of guessing.
+  if ! systemctl is-active --quiet cron; then
+    echo "WARNING: the cron daemon is NOT running — digest, sweep and ingest will not fire."
+    echo "         Start it with:  sudo systemctl start cron"
+  fi
 
   # ── Health check: wait for the app to actually answer ───────────────────
   echo ""

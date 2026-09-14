@@ -7,6 +7,14 @@
  * Required env vars (add to .env.local and to the server):
  *   SMTP_USER   helpdesk@cristalino.co.il
  *   SMTP_PASS   <Google App Password — 16 chars, no spaces>
+ *
+ * Optional:
+ *   SMTP_FROM   the address mail is SENT AS. Default, since v3.82:
+ *               noreply_helpdesk@cristalino.co.il. Gmail honours it only when
+ *               it is a verified "Send mail as" address on SMTP_USER's account;
+ *               otherwise Gmail quietly rewrites From back to SMTP_USER. So an
+ *               address that is not set up yet degrades to the old sender — it
+ *               never stops mail from going out.
  */
 
 import nodemailer from "nodemailer"
@@ -15,8 +23,31 @@ import { BOT_EMAIL } from "@/lib/staffEmails"
 import { LIGHT } from "@/lib/palette"
 import { STATUS_TOKENS, URGENCY_TOKENS } from "@/lib/theme"
 
-const FROM    = '"מערכת הפניות" <helpdesk@cristalino.co.il>'
+/**
+ * Who notifications come FROM — deliberately not the helpdesk mailbox. Since
+ * v3.82 every mail that reaches helpdesk@ opens a ticket, so a reply to a
+ * notification sent from helpdesk@ would open a second ticket about the first.
+ * A no-reply sender keeps replies out of the intake inbox; the body of every
+ * mail already says not to reply and links to the ticket instead.
+ *
+ * Exported because lib/mailIngest.ts must recognise mail from this address as
+ * ours and never ingest it.
+ */
+export const MAIL_FROM_ADDRESS = (process.env.SMTP_FROM || "noreply_helpdesk@cristalino.co.il").trim()
+const FROM    = `"מערכת הפניות" <${MAIL_FROM_ADDRESS}>`
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://helpdesk.cristalino.co.il"
+
+/**
+ * RFC 3834: this is automated mail, and it says so. That does two jobs. Other
+ * people's out-of-office responders see it and stay quiet instead of answering
+ * us; and our own ingestion refuses anything Auto-Submitted — a second guard,
+ * independent of the From: check, against the app ingesting its own mail and
+ * looping. X-Auto-Response-Suppress is Exchange's spelling of the same request.
+ */
+export const AUTOMATED_HEADERS = {
+  "Auto-Submitted": "auto-generated",
+  "X-Auto-Response-Suppress": "All",
+} as const
 
 /**
  * Brand tokens, read from the same palette the app renders with, so a change
@@ -135,7 +166,7 @@ export async function sendMail({ to, subject, html }: MailOptions) {
   // temporary; give up immediately on the ones it calls permanent.
   for (let attempt = 1; attempt <= MAIL_ATTEMPTS; attempt++) {
     try {
-      await transporter.sendMail({ from: FROM, to: recipients, subject, html })
+      await transporter.sendMail({ from: FROM, to: recipients, subject, html, headers: AUTOMATED_HEADERS })
       console.log(`[mail] sent "${subject}" → ${recipients.join(", ")}`)
       return
     } catch (err) {
