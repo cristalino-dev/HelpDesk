@@ -82,6 +82,7 @@ import {
 import { planMailAttachments, droppedAttachmentsNote, type MailAttachmentPlan } from "@/lib/mailAttachments"
 import { storeAttachment } from "@/lib/storeAttachment"
 import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
+import { isDevSite } from "@/lib/appEnv"
 import { NextRequest, NextResponse, after } from "next/server"
 
 /** The first address in a mailparser address field, whichever shape it came in. */
@@ -113,6 +114,13 @@ export async function POST(req: NextRequest) {
   const expected = process.env.INGEST_SECRET || process.env.DIGEST_SECRET
   if (!expected || secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // The dev copy (lib/appEnv.ts) shares the mailbox credentials. Anything it
+  // read would be marked \Seen and never reach production's intake, so it does
+  // not read at all — unless INGEST_ENABLED=1 says it has a mailbox of its own.
+  if (isDevSite() && process.env.INGEST_ENABLED !== "1") {
+    return NextResponse.json({ error: "Mail ingestion is disabled on the dev site" }, { status: 503 })
   }
 
   const user = process.env.SMTP_USER

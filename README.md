@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.85**
+**Version 3.86**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -85,7 +85,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Database | PostgreSQL (AWS RDS) |
 | Styling | Inline React styles; tokens in `lib/theme.ts` (CSS custom properties, two palettes in `lib/palette.ts`) |
 | Mail | nodemailer v7 (outbound) · imapflow + mailparser (inbound) |
-| Tests | Jest 30 + React Testing Library 16 — 1,264 tests, 68 suites |
+| Tests | Jest 30 + React Testing Library 16 — 1,282 tests, 69 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
 | Deployment | SSH + SCP — `deploy.sh` (bash) or `deploy.ps1` (Windows); build runs on server; also runnable from GitHub Actions |
@@ -134,7 +134,7 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 1,264 tests across 68 suites
+├── __tests__/                                # 1,282 tests across 69 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── deploy.ps1                                # The same, for Windows PowerShell
@@ -262,6 +262,19 @@ way):
 ```bash
 DEPLOY_KEY=/c/Users/you/alon.pem ./deploy.sh
 ```
+
+**The dev copy (v3.86)** — the same code on the same server, at
+`dev-helpdesk.cristalino.co.il`, with its own database (a copy of
+production's) and env files that are never shipped from a laptop. It never
+reads the helpdesk mailbox and mails only `MAIL_REDIRECT_TO`.
+
+```bash
+bash deploy.sh dev                    # or: .\deploy.ps1 -Target dev
+python scripts/refresh-dev-db.py      # copy production's data into it
+```
+
+One-time setup: `scripts/create-dev-db.py`, then `scripts/setup-dev.sh`, then
+Certbot for the dev domain — see docs/ARCHITECTURE.md §11.
 
 **Or deploy from GitHub Actions** — Actions → **Deploy** → *Run workflow*. It
 runs this same script from a runner, gated on `jest --ci` and `tsc --noEmit`, so

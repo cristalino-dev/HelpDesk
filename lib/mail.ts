@@ -20,6 +20,7 @@
 import nodemailer from "nodemailer"
 import { logError } from "@/lib/logError"
 import { BOT_EMAIL } from "@/lib/staffEmails"
+import { isDevSite } from "@/lib/appEnv"
 import { LIGHT } from "@/lib/palette"
 import { STATUS_TOKENS, URGENCY_TOKENS } from "@/lib/theme"
 
@@ -147,7 +148,27 @@ export function isTransientMailError(err: unknown): boolean {
   return typeof e.code === "string" && NETWORK.includes(e.code)
 }
 
-export async function sendMail({ to, subject, html }: MailOptions) {
+/**
+ * Where a mail really goes. On production: where it was addressed, unchanged.
+ * On the dev copy (lib/appEnv.ts) — which runs on a copy of production's data,
+ * so every ticket carries a real employee's address — to MAIL_REDIRECT_TO
+ * alone, marked [DEV] and naming who it would have reached; and null, meaning
+ * send nothing at all, when MAIL_REDIRECT_TO is not set (v3.86).
+ */
+export function devRedirect(
+  recipients: string[], subject: string, html: string,
+): { recipients: string[]; subject: string; html: string } | null {
+  if (!isDevSite()) return { recipients, subject, html }
+  const redirect = (process.env.MAIL_REDIRECT_TO ?? "").trim()
+  if (!redirect) return null
+  const notice =
+    `<div dir="rtl" style="background:${C.panel};border:2px dashed ${C.border};padding:10px 14px;` +
+    `margin:0 0 12px;font:13px Arial,sans-serif;color:${C.text}">` +
+    `🧪 סביבת פיתוח — המייל הזה היה נשלח אל: ${esc(recipients.join(", "))}</div>`
+  return { recipients: [redirect], subject: `[DEV] ${subject}`, html: notice + html }
+}
+
+export async function sendMail({ to, subject: requestedSubject, html: requestedHtml }: MailOptions) {
   const transporter = createTransporter()
   if (!transporter) {
     console.warn("[mail] SMTP_USER / SMTP_PASS not set — skipping email")
@@ -157,8 +178,17 @@ export async function sendMail({ to, subject, html }: MailOptions) {
   // The automation bot is a virtual assignee, not a real mailbox — never mail
   // it (e.g. status-change emails go to the ticket's assignee, which may be the
   // bot). Filtering here covers every send path centrally.
-  const recipients = (Array.isArray(to) ? to : [to]).filter(addr => addr !== BOT_EMAIL)
-  if (recipients.length === 0) return
+  const intended = (Array.isArray(to) ? to : [to]).filter(addr => addr !== BOT_EMAIL)
+  if (intended.length === 0) return
+
+  // Every send path passes through here, so this is where the dev copy is kept
+  // from mailing real people.
+  const routed = devRedirect(intended, requestedSubject, requestedHtml)
+  if (!routed) {
+    console.warn(`[mail] dev site without MAIL_REDIRECT_TO — not sending "${requestedSubject}"`)
+    return
+  }
+  const { recipients, subject, html } = routed
 
   // Gmail answers "421-4.4.5 Server busy, try again later" under load, and a
   // single attempt turned that into a silently lost notification — the ticket

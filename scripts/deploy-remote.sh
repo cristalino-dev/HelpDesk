@@ -7,17 +7,32 @@
 # into .next-staging while the old app keeps serving, then stop, migrate, swap
 # and restart. A failed build leaves the live site untouched.
 #
-# Not run directly — it assumes it is executing on the server, in the app dir.
+# Not run directly — it assumes it is executing on the server.
 
   set -e
-  cd /home/ubuntu/helpdesk
+
+  # ── Which copy (v3.86) ──────────────────────────────────────────────────
+  # deploy.sh / deploy.ps1 put these assignments in front of this script. The
+  # defaults are production, as it has always been; the dev copy lives in its
+  # own directory, under its own pm2 name and port, with its own env files —
+  # and so its own database.
+  APP_DIR="${APP_DIR:-/home/ubuntu/helpdesk}"
+  APP_NAME="${APP_NAME:-helpdesk}"
+  APP_PORT="${APP_PORT:-3000}"
+  APP_DOMAIN="${APP_DOMAIN:-helpdesk.cristalino.co.il}"
+  DEPLOY_TARGET="${DEPLOY_TARGET:-prod}"
+  export APP_NAME APP_PORT   # read by ecosystem.config.js at `pm2 start`
+  cd "$APP_DIR"
 
   # ── Refresh source (runtime only reads .next/node_modules/public) ──────────
   # Removing app/, components/ etc. under a running `next start` is safe —
   # they are build-time inputs. .next is NOT touched here.
   rm -rf app components lib types scripts prisma
-  tar -xzf /tmp/helpdesk-src.tar.gz -C /home/ubuntu/helpdesk
-  rm /tmp/helpdesk-src.tar.gz
+  tar -xzf "/tmp/$APP_NAME-src.tar.gz" -C "$APP_DIR"
+  rm "/tmp/$APP_NAME-src.tar.gz"
+
+  # The cron wrappers below find this copy's port here.
+  echo "$APP_PORT" > .app-port
 
   # ── Dependencies: skip npm install when package-lock.json is unchanged ──────
   echo "Checking dependencies..."
@@ -47,15 +62,15 @@
 
   # ── SWAP WINDOW — everything below is the only downtime ─────────────────────
   echo "Build OK — swapping (downtime starts now)..."
-  pm2 stop helpdesk 2>/dev/null || true
+  pm2 stop "$APP_NAME" 2>/dev/null || true
 
-  # Free port 3000 (orphaned maintenance server from a failed deploy, etc.)
-  fuser -k 3000/tcp 2>/dev/null || true
+  # Free this copy's port (orphaned maintenance server from a failed deploy, etc.)
+  fuser -k "$APP_PORT/tcp" 2>/dev/null || true
 
   # Maintenance page for the few seconds of migration + swap
   MAINT_PID=""
   if [ -f maintenance-server.js ]; then
-    node maintenance-server.js &
+    PORT="$APP_PORT" node maintenance-server.js &
     MAINT_PID=$!
   fi
 
@@ -75,80 +90,90 @@
   pm2 save
   echo "Swap done — downtime over."
 
-  # ── Daily digest cron (09:00 Israel time) ────────────────────────────────
-  echo "Setting up daily digest cron..."
-  mkdir -p /home/ubuntu/helpdesk/logs
+  # ── Cron wrappers ─────────────────────────────────────────────────────────
+  # Each wrapper finds its own directory from $0 and its port in .app-port, so
+  # the same three files serve production and the dev copy.
+  mkdir -p "$APP_DIR/logs"
 
-  # Write wrapper script that reads the secret at runtime
-  cat > /home/ubuntu/helpdesk/send-digest.sh << 'CRONSCRIPT'
+  # ── Daily digest (09:00 Israel time) ─────────────────────────────────────
+  echo "Writing cron wrappers..."
+  cat > "$APP_DIR/send-digest.sh" << 'CRONSCRIPT'
 #!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT=$(cat "$DIR/.app-port" 2>/dev/null || echo 3000)
 # This box's cron runs on UTC and has no per-crontab timezone (no CRON_TZ in
 # crontab(5)), so the entry fires at 06:00 AND 07:00 UTC and this lets exactly
 # one of them through: whichever is 09:00 in Israel, on either side of DST.
 [ "$(TZ=Asia/Jerusalem date +%H)" = "09" ] || exit 0
 # Read DIGEST_SECRET from the deployed .env.local at runtime
-SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+SECRET=$(grep -E '^DIGEST_SECRET=' "$DIR/.env.local" 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
 if [ -z "$SECRET" ]; then
-  echo "[digest] DIGEST_SECRET not set — skipping" >> /home/ubuntu/helpdesk/logs/digest.log
+  echo "[digest] DIGEST_SECRET not set — skipping" >> "$DIR/logs/digest.log"
   exit 0
 fi
-RESULT=$(curl -sf -X POST "http://localhost:3000/api/admin/digest" \
+RESULT=$(curl -sf -X POST "http://localhost:$PORT/api/admin/digest" \
   -H "x-digest-secret: ${SECRET}" \
   -H "Content-Type: application/json" 2>&1)
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/digest.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> "$DIR/logs/digest.log"
 CRONSCRIPT
-  chmod +x /home/ubuntu/helpdesk/send-digest.sh
+  chmod +x "$APP_DIR/send-digest.sh"
 
-  # ── Ticket urgency sweep cron (every 5 minutes) ─────────────────────────
-  echo "Setting up ticket urgency sweep cron..."
-  cat > /home/ubuntu/helpdesk/run-sweep.sh << 'SWEEPSCRIPT'
+  # ── Ticket urgency sweep (every 5 minutes) ───────────────────────────────
+  cat > "$APP_DIR/run-sweep.sh" << 'SWEEPSCRIPT'
 #!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT=$(cat "$DIR/.app-port" 2>/dev/null || echo 3000)
 # Read SWEEP_SECRET or fall back to DIGEST_SECRET from the deployed .env.local
-SECRET=$(grep -E '^SWEEP_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+SECRET=$(grep -E '^SWEEP_SECRET=' "$DIR/.env.local" 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
 if [ -z "$SECRET" ]; then
-  SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+  SECRET=$(grep -E '^DIGEST_SECRET=' "$DIR/.env.local" 2>/dev/null \
     | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
 fi
 if [ -z "$SECRET" ]; then
-  echo "[sweep] Neither SWEEP_SECRET nor DIGEST_SECRET is set — skipping" >> /home/ubuntu/helpdesk/logs/sweep.log
+  echo "[sweep] Neither SWEEP_SECRET nor DIGEST_SECRET is set — skipping" >> "$DIR/logs/sweep.log"
   exit 0
 fi
-RESULT=$(curl -sf -X POST "http://localhost:3000/api/admin/sweep" \
+RESULT=$(curl -sf -X POST "http://localhost:$PORT/api/admin/sweep" \
   -H "x-sweep-secret: ${SECRET}" \
   -H "Content-Type: application/json" 2>&1)
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/sweep.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> "$DIR/logs/sweep.log"
 SWEEPSCRIPT
-  chmod +x /home/ubuntu/helpdesk/run-sweep.sh
+  chmod +x "$APP_DIR/run-sweep.sh"
 
-  # ── Email-to-ticket ingestion cron (every 2 minutes) ────────────────────
-  echo "Setting up email ingestion cron..."
-  cat > /home/ubuntu/helpdesk/run-ingest.sh << 'INGESTSCRIPT'
+  # ── Email-to-ticket ingestion (every 2 minutes) ──────────────────────────
+  cat > "$APP_DIR/run-ingest.sh" << 'INGESTSCRIPT'
 #!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT=$(cat "$DIR/.app-port" 2>/dev/null || echo 3000)
 # Prevent overlapping runs (a slow IMAP scan must not let the next cron tick
 # start a second concurrent ingestion — that was the v3.34 duplication cause).
-exec 9>/home/ubuntu/helpdesk/.ingest.lock
-flock -n 9 || { echo "[$(date '+%Y-%m-%d %H:%M:%S')] previous run still active — skipping" >> /home/ubuntu/helpdesk/logs/ingest.log; exit 0; }
+exec 9>"$DIR/.ingest.lock"
+flock -n 9 || { echo "[$(date '+%Y-%m-%d %H:%M:%S')] previous run still active — skipping" >> "$DIR/logs/ingest.log"; exit 0; }
 # Read INGEST_SECRET or fall back to DIGEST_SECRET from the deployed .env.local
-SECRET=$(grep -E '^INGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+SECRET=$(grep -E '^INGEST_SECRET=' "$DIR/.env.local" 2>/dev/null \
   | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
 if [ -z "$SECRET" ]; then
-  SECRET=$(grep -E '^DIGEST_SECRET=' /home/ubuntu/helpdesk/.env.local 2>/dev/null \
+  SECRET=$(grep -E '^DIGEST_SECRET=' "$DIR/.env.local" 2>/dev/null \
     | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'" | xargs)
 fi
 if [ -z "$SECRET" ]; then
-  echo "[ingest] Neither INGEST_SECRET nor DIGEST_SECRET is set — skipping" >> /home/ubuntu/helpdesk/logs/ingest.log
+  echo "[ingest] Neither INGEST_SECRET nor DIGEST_SECRET is set — skipping" >> "$DIR/logs/ingest.log"
   exit 0
 fi
-RESULT=$(curl -sf -X POST "http://localhost:3000/api/admin/ingest-mail" \
+RESULT=$(curl -sf -X POST "http://localhost:$PORT/api/admin/ingest-mail" \
   -H "x-ingest-secret: ${SECRET}" \
   -H "Content-Type: application/json" 2>&1)
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> /home/ubuntu/helpdesk/logs/ingest.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${RESULT}" >> "$DIR/logs/ingest.log"
 INGESTSCRIPT
-  chmod +x /home/ubuntu/helpdesk/run-ingest.sh
+  chmod +x "$APP_DIR/run-ingest.sh"
 
-  # Install cron entries (idempotent — removes old entries then re-adds).
+  # Install cron entries (idempotent — removes this copy's entries, re-adds them).
+  #
+  # Entries are matched by this copy's own directory: a dev deploy must never
+  # remove production's jobs, nor the other way round. (Until v3.86 they were
+  # matched by file name alone, which a second copy would have wiped.)
   #
   # The `|| true` is load-bearing. This script runs under `set -e`, which the
   # ( … ) subshell inherits. On an EMPTY crontab the grep has nothing to print
@@ -160,19 +185,25 @@ INGESTSCRIPT
   #
   # The digest line used to read "TZ=Asia/Jerusalem 0 9 * * * …", which cron
   # parses as an environment assignment, not a job. See send-digest.sh above.
-  ( { crontab -l 2>/dev/null | grep -v -e "send-digest.sh" -e "run-sweep.sh" -e "run-ingest.sh" || true; }
-    echo "0 6,7 * * * /home/ubuntu/helpdesk/send-digest.sh"
-    echo "*/5 * * * * /home/ubuntu/helpdesk/run-sweep.sh"
-    echo "*/2 * * * * /home/ubuntu/helpdesk/run-ingest.sh" ) | crontab -
+  ( { crontab -l 2>/dev/null | grep -v -e "$APP_DIR/send-digest.sh" -e "$APP_DIR/run-sweep.sh" -e "$APP_DIR/run-ingest.sh" || true; }
+    if [ "$DEPLOY_TARGET" = prod ]; then
+      echo "0 6,7 * * * $APP_DIR/send-digest.sh"
+      echo "*/5 * * * * $APP_DIR/run-sweep.sh"
+      echo "*/2 * * * * $APP_DIR/run-ingest.sh"
+    else
+      # The dev copy: the sweep only — no digest mail, and never the mailbox.
+      echo "*/5 * * * * $APP_DIR/run-sweep.sh"
+    fi ) | crontab -
 
   # Verify rather than announce — announcing is what hid this for months. A
   # missing entry is reported loudly but does not fail the deploy: the app has
   # already been swapped in and is serving.
+  if [ "$DEPLOY_TARGET" = prod ]; then JOBS="send-digest.sh run-sweep.sh run-ingest.sh"; else JOBS="run-sweep.sh"; fi
   CRON_OK=1
-  for job in send-digest.sh run-sweep.sh run-ingest.sh; do
-    crontab -l 2>/dev/null | grep -q "$job" || { echo "ERROR: cron entry for $job is missing after install" >&2; CRON_OK=0; }
+  for job in $JOBS; do
+    crontab -l 2>/dev/null | grep -q "$APP_DIR/$job" || { echo "ERROR: cron entry for $APP_DIR/$job is missing after install" >&2; CRON_OK=0; }
   done
-  [ "$CRON_OK" = 1 ] && echo "Digest, Sweep & Ingest crons installed (verified)"
+  [ "$CRON_OK" = 1 ] && echo "Cron entries installed for $APP_NAME (verified): $JOBS"
 
   # Entries do nothing without the daemon, and it was found stopped (dead since
   # a restart on 2026-08-29). Starting a system service is not this script's
@@ -183,14 +214,16 @@ INGESTSCRIPT
   fi
 
   # ── nginx body limit (v3.84) ─────────────────────────────────────────────
-  # The helpdesk site is configured by hand on the server, not from this repo,
-  # and attachments travel as base64 JSON: a 7 MB file is a ~9.4 MB request.
-  # On nginx's 1 MB default every upload over ~750 KB is refused before the app
+  # The site is configured by hand on the server, not from this repo, and
+  # attachments travel as base64 JSON: a 7 MB file is a ~9.4 MB request. On
+  # nginx's 1 MB default every upload over ~750 KB is refused before the app
   # sees it, which is what happened on 2026-08-23. Say so rather than guess.
-  NGINX_SITE=$(grep -l "server_name helpdesk.cristalino.co.il" /etc/nginx/sites-enabled/* 2>/dev/null | head -1 || true)
-  if [ -n "$NGINX_SITE" ] && ! grep -q "client_max_body_size" "$NGINX_SITE"; then
+  NGINX_SITE=$(grep -l "server_name $APP_DOMAIN" /etc/nginx/sites-enabled/* 2>/dev/null | head -1 || true)
+  if [ -z "$NGINX_SITE" ]; then
+    echo "WARNING: no nginx site names $APP_DOMAIN — the app is up on port $APP_PORT but not reachable by name."
+  elif ! grep -q "client_max_body_size" "$NGINX_SITE"; then
     echo "WARNING: $NGINX_SITE has no client_max_body_size — uploads over ~750 KB will fail."
-    echo "         Add 'client_max_body_size 10m;' to the helpdesk server block, then:"
+    echo "         Add 'client_max_body_size 10m;' to its server block, then:"
     echo "         sudo nginx -t && sudo systemctl reload nginx"
   fi
 
@@ -198,7 +231,7 @@ INGESTSCRIPT
   echo ""
   echo "Waiting for app to come up..."
   for i in $(seq 1 30); do
-    CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/login 2>/dev/null || echo 000)
+    CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$APP_PORT/login" 2>/dev/null || echo 000)
     if [ "$CODE" = "200" ]; then
       echo "Health check OK (HTTP 200 after ${i}s)"
       break

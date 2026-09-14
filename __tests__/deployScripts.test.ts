@@ -119,3 +119,76 @@ describe("the maintenance template", () => {
     expect(read("scripts/maintenance.template.html")).not.toMatch(/מעדכן לגרסה 3\.\d/)
   })
 })
+
+describe("the dev target (v3.86)", () => {
+  const sh = read("deploy.sh")
+  const ps = read("deploy.ps1")
+  const remote = read("scripts/deploy-remote.sh")
+
+  it("is known to both entry points: its directory, pm2 name, domain and switch", () => {
+    for (const value of ["/home/ubuntu/helpdesk-dev", "helpdesk-dev", "dev-helpdesk.cristalino.co.il", "DEPLOY_TARGET"]) {
+      expect(sh).toContain(value)
+      expect(ps).toContain(value)
+    }
+  })
+
+  // A laptop's .env points at the PRODUCTION database. Shipped to the dev copy
+  // it would make dev read and write production.
+  it("never ships this checkout's .env to the dev copy, in either entry point", () => {
+    expect(sh).toContain('if [ "$TARGET" = dev ]; then')
+    expect(ps).toContain("if ($Target -ne 'dev') {")
+  })
+
+  it("tells the server side which copy it is deploying, defaulting to production", () => {
+    for (const line of [
+      'APP_DIR="${APP_DIR:-/home/ubuntu/helpdesk}"',
+      'APP_NAME="${APP_NAME:-helpdesk}"',
+      'APP_PORT="${APP_PORT:-3000}"',
+    ]) expect(remote).toContain(line)
+    expect(remote).not.toMatch(/^\s*cd \/home\/ubuntu\/helpdesk\s*$/m)
+    expect(remote).toContain('pm2 stop "$APP_NAME"')
+  })
+
+  it("removes only its own copy's cron jobs, so a dev deploy cannot wipe production's", () => {
+    expect(remote).toContain('grep -v -e "$APP_DIR/send-digest.sh" -e "$APP_DIR/run-sweep.sh" -e "$APP_DIR/run-ingest.sh"')
+    expect(remote).not.toMatch(/grep -v -e "send-digest\.sh"/)
+  })
+
+  it("never schedules mail ingestion or the digest on the dev copy", () => {
+    const devJobs = remote.match(/# The dev copy: the sweep only[\s\S]*?\bfi\b/)?.[0] ?? ""
+    expect(devJobs).toContain("run-sweep.sh")
+    expect(devJobs).not.toContain("run-ingest.sh")
+    expect(devJobs).not.toContain("send-digest.sh")
+  })
+
+  it("points the pm2 app at whichever copy it is started from", () => {
+    const ecosystem = read("ecosystem.config.js")
+    expect(ecosystem).toContain("process.env.APP_NAME || 'helpdesk'")
+    expect(ecosystem).toContain("cwd: __dirname")
+  })
+
+  // Run it, not read it: a PORT declared in the wrong scope reads fine and
+  // throws the moment the deploy starts it — which is how v3.86 first had it.
+  it("starts the maintenance page on the copy's own port, 3000 by default", () => {
+    const listen = jest.fn()
+    jest.doMock("http", () => ({ createServer: jest.fn(() => ({ listen })) }))
+    const start = (port?: string) => {
+      const saved = process.env.PORT
+      if (port === undefined) delete process.env.PORT
+      else process.env.PORT = port
+      try {
+        jest.isolateModules(() => {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require("../maintenance-server.js")
+        })
+      } finally {
+        if (saved === undefined) delete process.env.PORT
+        else process.env.PORT = saved
+      }
+    }
+    start("3100")
+    start(undefined)
+    jest.dontMock("http")
+    expect(listen.mock.calls.map(c => c[0])).toEqual([3100, 3000])
+  })
+})

@@ -24,12 +24,19 @@
         Out-File -Encoding UTF8 adds one, which would corrupt the Hebrew
         maintenance page and break the shell script.
 
+    -Target dev (or $env:DEPLOY_TARGET = "dev") deploys the dev copy on the same
+    server instead (v3.86): its own directory, pm2 name, port and domain, and
+    NEVER this checkout's .env files - they point at the production database.
+
 .EXAMPLE
     .\deploy.ps1
     Uses ..\CrisRouter\alon.pem, the path deploy.sh has always defaulted to.
 
 .EXAMPLE
     .\deploy.ps1 -Key C:\Users\AlonKerem\Development\alon.pem
+
+.EXAMPLE
+    .\deploy.ps1 -Target dev
 
 .EXAMPLE
     $env:DEPLOY_KEY = "C:\Users\AlonKerem\Development\alon.pem"; .\deploy.ps1
@@ -51,16 +58,27 @@ param(
     [string] $Key,
     [string] $Server,
     [string] $User,
-    [string] $RemoteDir
+    [string] $RemoteDir,
+    # prod (default) or dev. Falls back to $env:DEPLOY_TARGET.
+    [string] $Target
 )
 
 $ErrorActionPreference = 'Stop'
+
+# -- Which copy (v3.86) --------------------------------------------------------
+if (-not $Target) { $Target = if ($env:DEPLOY_TARGET) { $env:DEPLOY_TARGET } else { 'prod' } }
+switch ($Target) {
+    'prod' { $DefaultDir = '/home/ubuntu/helpdesk';     $AppName = 'helpdesk';     $AppPort = '3000'; $AppDomain = 'helpdesk.cristalino.co.il' }
+    'dev'  { $DefaultDir = '/home/ubuntu/helpdesk-dev'; $AppName = 'helpdesk-dev'; $AppPort = '3100'; $AppDomain = 'dev-helpdesk.cristalino.co.il' }
+    default { throw "Unknown target '$Target' - use prod or dev." }
+}
+if ($env:DEPLOY_PORT) { $AppPort = $env:DEPLOY_PORT }
 
 # -- Defaults, matching deploy.sh exactly ------------------------------------
 if (-not $Key)       { $Key       = $env:DEPLOY_KEY }
 if (-not $Server)    { $Server    = if ($env:DEPLOY_HOST)       { $env:DEPLOY_HOST }       else { '18.195.248.157' } }
 if (-not $User)      { $User      = if ($env:DEPLOY_USER)       { $env:DEPLOY_USER }       else { 'ubuntu' } }
-if (-not $RemoteDir) { $RemoteDir = if ($env:DEPLOY_REMOTE_DIR) { $env:DEPLOY_REMOTE_DIR } else { '/home/ubuntu/helpdesk' } }
+if (-not $RemoteDir) { $RemoteDir = if ($env:DEPLOY_REMOTE_DIR) { $env:DEPLOY_REMOTE_DIR } else { $DefaultDir } }
 
 $Local = $PSScriptRoot
 if (-not $Key) { $Key = Join-Path $Local '..\CrisRouter\alon.pem' }
@@ -96,7 +114,7 @@ $versionFile = Join-Path $Local 'lib\version.ts'
 $match = [regex]::Match([System.IO.File]::ReadAllText($versionFile), 'export const VERSION = "([^"]*)"')
 if (-not $match.Success) { throw "Could not read VERSION from $versionFile." }
 $Version = $match.Groups[1].Value
-Write-Host "Deploying version $Version..." -ForegroundColor Cyan
+Write-Host "Deploying version $Version to $Target ($AppDomain)..." -ForegroundColor Cyan
 
 $tmpKey  = Join-Path $env:TEMP ("helpdesk-key-"   + [guid]::NewGuid().ToString('N'))
 $tmpMain = Join-Path $env:TEMP ("helpdesk-maint-" + [guid]::NewGuid().ToString('N') + '.html')
@@ -124,11 +142,16 @@ try {
     )
     # .env / .env.local are gitignored; ship them only if this checkout has them,
     # exactly as deploy.sh does. Absent, the server keeps its existing copies.
-    foreach ($envFile in '.env', '.env.local') {
-        if (Test-Path -LiteralPath (Join-Path $Local $envFile) -PathType Leaf) { $items += $envFile }
-    }
-    if ($items -notcontains '.env' -and $items -notcontains '.env.local') {
-        Write-Host "  no local .env/.env.local - the server keeps its existing ones"
+    # Never to the dev copy: this checkout's .env points at the PRODUCTION database.
+    if ($Target -ne 'dev') {
+        foreach ($envFile in '.env', '.env.local') {
+            if (Test-Path -LiteralPath (Join-Path $Local $envFile) -PathType Leaf) { $items += $envFile }
+        }
+        if ($items -notcontains '.env' -and $items -notcontains '.env.local') {
+            Write-Host "  no local .env/.env.local - the server keeps its existing ones"
+        }
+    } else {
+        Write-Host "  dev target: .env files are not shipped - the dev copy keeps its own"
     }
     $items += @('ecosystem.config.js', 'next.config.ts', 'maintenance-server.js')
 
@@ -143,15 +166,17 @@ try {
 
     # -- Upload --------------------------------------------------------------
     # ${Server}: - the braces stop PowerShell reading "$Server:" as a drive.
-    & scp -i $tmpKey -o StrictHostKeyChecking=no $tmpTar  "$User@${Server}:/tmp/helpdesk-src.tar.gz"
+    & scp -i $tmpKey -o StrictHostKeyChecking=no $tmpTar  "$User@${Server}:/tmp/${AppName}-src.tar.gz"
     Assert-ExitCode 'scp (archive)'
     & scp -i $tmpKey -o StrictHostKeyChecking=no $tmpMain "$User@${Server}:$RemoteDir/maintenance.html"
     Assert-ExitCode 'scp (maintenance page)'
 
     # -- Build on the server, then swap --------------------------------------
     Write-Host "Building on server (app keeps running)..." -ForegroundColor Cyan
+    # The lines in front tell deploy-remote.sh which copy it is deploying.
     # LF only: bash on the far end chokes on CRLF with "$'\r': command not found".
-    $remoteScript = [System.IO.File]::ReadAllText($remotePath).Replace("`r`n", "`n")
+    $header = "APP_DIR='$RemoteDir'`nAPP_NAME='$AppName'`nAPP_PORT='$AppPort'`nAPP_DOMAIN='$AppDomain'`nDEPLOY_TARGET='$Target'`n"
+    $remoteScript = $header + [System.IO.File]::ReadAllText($remotePath).Replace("`r`n", "`n")
     [System.IO.File]::WriteAllText($tmpRem, $remoteScript, $utf8NoBom)
 
     # cmd does the stdin redirect: PowerShell 5 has no "<" operator, and piping
@@ -161,7 +186,7 @@ try {
     Assert-ExitCode 'ssh (remote build)'
 
     Write-Host ""
-    Write-Host "Done! http://${Server}:3000" -ForegroundColor Green
+    Write-Host "Done! https://$AppDomain (port $AppPort on $Server)" -ForegroundColor Green
 }
 finally {
     foreach ($f in $tmpKey, $tmpMain, $tmpRem, $tmpTar) {

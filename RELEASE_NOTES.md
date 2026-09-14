@@ -5,6 +5,55 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.86 — סביבת פיתוח: עותק של המערכת, על אותו שרת
+
+**There is now a dev copy of the helpdesk: the same code on the same server,
+with its own database, its own address and its own login secrets. Its data is
+a copy of production, refreshed by one script. It can never read the helpdesk
+mailbox, and it mails nobody but one test address.**
+
+### What changed for users
+
+- **Nothing on production.** Staff get a second site,
+  dev-helpdesk.cristalino.co.il, for trying changes on real-looking data before
+  they reach everyone. Every page there carries an amber **DEV** strip, and the
+  tab title starts with "[DEV]".
+- **Mail from the dev copy reaches only the test address**, marked [DEV] and
+  naming who it would have gone to. With no test address set it sends nothing.
+
+### What changed for developers
+
+- **One switch: `NEXT_PUBLIC_APP_ENV=dev`** (`lib/appEnv.ts`). On it,
+  `devRedirect()` in `lib/mail.ts` sends to `MAIL_REDIRECT_TO` only — or to
+  nobody; `POST /api/admin/ingest-mail` answers 503 unless `INGEST_ENABLED=1`;
+  `DevBanner` and the "[DEV]" title appear (rule 65).
+- **Deploy:** `bash deploy.sh dev` / `.\deploy.ps1 -Target dev` →
+  `/home/ubuntu/helpdesk-dev`, pm2 `helpdesk-dev`, port 3100,
+  dev-helpdesk.cristalino.co.il. **A laptop's `.env` is never shipped to the dev
+  copy** — it points at the production database (rule 66). Production is still
+  the default and deploys exactly as before.
+- **`scripts/deploy-remote.sh`** takes `APP_DIR`, `APP_NAME`, `APP_PORT`,
+  `APP_DOMAIN` and `DEPLOY_TARGET` from the entry points, which put them in
+  front of it (defaults: production). The cron wrappers find their own
+  directory and port. **Crontab entries are matched by the copy's own path** —
+  matched by file name, as before, a dev deploy would have deleted production's
+  jobs. The dev copy schedules the sweep only.
+- `ecosystem.config.js` and `maintenance-server.js` take their name and port
+  from the environment. The first version declared the maintenance server's
+  PORT inside its request handler — lint caught it; a test now starts the
+  server instead of reading it.
+- **Setup, one time, with the server owner's go-ahead:**
+  `scripts/create-dev-db.py` (role and database `helpdesk_dev` on the same RDS
+  instance; the URL goes to `.env.dev`, git-ignored), `scripts/setup-dev.sh`
+  (directory, env files derived from production's with the dev copy's own
+  database, URLs and secrets, and an nginx site with the 10 MB body limit), and
+  `scripts/refresh-dev-db.py` (production → dev: read-only on production, one
+  transaction on dev, sequences moved past the copied rows).
+- Tests: `devSite` (new), `deployScripts` (+7), `IngestMailRoute` (+2).
+  69 suites / 1,282 tests.
+
+---
+
 ## v3.85 — התראות שלא הולכות לאיבוד בדרך
 
 **Most of the app's notification mail was sent with a bare `void`: started, and

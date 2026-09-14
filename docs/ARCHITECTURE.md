@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-14 · v3.85
+> Version 2.0 · Last updated 2026-09-14 · v3.86
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,9 +106,9 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **1,264 tests across 68 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,282 tests across 69 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
-| Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
+| Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner. `bash deploy.sh dev` / `-Target dev` deploys the dev copy (v3.86, §11) |
 
 `nodemailer`, `imapflow` and `mailparser` are listed in `next.config.ts`
 under `serverExternalPackages` — they are Node-only and must not be bundled.
@@ -520,7 +520,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  68 suites, 1,264 tests — gate the build
+__tests__/                  69 suites, 1,282 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -1169,6 +1169,28 @@ Ubuntu server — /home/ubuntu/helpdesk/
 SSL is terminated by nginx with a Certbot certificate; `ssl-init.sh` performs
 the one-time setup and `setup-server.sh` the one-time machine provisioning.
 
+### The dev copy (v3.86)
+
+The same code runs a second time on the same server as the **dev copy**:
+`/home/ubuntu/helpdesk-dev`, pm2 app `helpdesk-dev`, port 3100, nginx site
+`dev-helpdesk.cristalino.co.il` with its own Certbot certificate, and database
+`helpdesk_dev` on the same RDS instance, owned by its own role.
+
+| | Production | Dev copy |
+|---|---|---|
+| Deploy | `bash deploy.sh` | `bash deploy.sh dev` / `.\deploy.ps1 -Target dev` |
+| Env files | shipped from the checkout | written once on the server by `scripts/setup-dev.sh`; **never shipped** |
+| Data | the real thing | a copy: `python scripts/refresh-dev-db.py`, plus an `rsync` of `uploads/` |
+| Mail out | as addressed | only to `MAIL_REDIRECT_TO`, `[DEV]` in the subject; nothing at all if unset |
+| Mail in (IMAP) | every 2 minutes | never — the route answers 503 (`INGEST_ENABLED=1` only with a mailbox of its own) |
+| Cron | digest, sweep, ingest | sweep only |
+| Look | — | amber DEV strip on every page; `[DEV]` in the title |
+
+`scripts/deploy-remote.sh` serves both: the entry points put `APP_DIR`,
+`APP_NAME`, `APP_PORT`, `APP_DOMAIN` and `DEPLOY_TARGET` in front of it, and each
+copy's crontab entries are matched by its own path, so deploying one never
+touches the other's jobs.
+
 ---
 
 ## 12. Environment Variables Reference
@@ -1187,6 +1209,9 @@ the one-time setup and `setup-server.sh` the one-time machine provisioning.
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_FROM` | ✗ | Overrides for non-Workspace SMTP. `SMTP_FROM` is the sender address: notifications default to `noreply_helpdesk@cristalino.co.il` (v3.82); the contact form falls back to `SMTP_USER` |
 | `IMAP_HOST` | ✗ | IMAP server. Default `imap.gmail.com` |
 | `TICKET_MAIL_KEYWORD` | ✗ | Subject keyword that makes an ingested ticket urgent — no longer a gate (v3.82). Default `ticket` |
+| `NEXT_PUBLIC_APP_ENV` | ✗ | `dev` on the dev copy only (v3.86): DEV banner, mail redirect, no mailbox. Anything else is production |
+| `MAIL_REDIRECT_TO` | dev | The one address the dev copy may mail. Unset on the dev copy = no mail at all |
+| `INGEST_ENABLED` | ✗ | `1` lets the dev copy run mail ingestion — only ever with a mailbox of its own |
 | `INGEST_SINCE` | ✗ | ISO date-time; mail received before it is never ingested. Default `INGEST_START` in `lib/mailIngest.ts` (2026-09-14) |
 | `DIGEST_SECRET` | ✗ | `x-digest-secret` for the digest cron; also the fallback for the other two |
 | `SWEEP_SECRET` | ✗ | `x-sweep-secret`. Falls back to `DIGEST_SECRET` |

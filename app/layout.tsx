@@ -62,6 +62,8 @@ import "./globals.css"
 import Providers from "./providers"
 import { themeCss } from "@/lib/palette"
 import { themeBootScript } from "@/lib/themeBoot"
+import { isDevSite } from "@/lib/appEnv"
+import DevBanner from "@/components/DevBanner"
 
 /**
  * Heebo — the Cristalino brand typeface. A Hebrew-first variable font (also
@@ -79,7 +81,7 @@ const heebo = Heebo({
  * or page-level `export const metadata` declaration.
  */
 export const metadata: Metadata = {
-  title: "מערכת helpdesk",
+  title: isDevSite() ? "[DEV] מערכת helpdesk" : "מערכת helpdesk",
   description: "מערכת לניהול פניות תמיכה",
 }
 
@@ -111,6 +113,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Applies the saved choice before first paint. Must stay synchronous
             and must stay first — see THEMING above. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
+
+        {/* The dev copy says so on every page (v3.86, lib/appEnv.ts). */}
+        {isDevSite() && <DevBanner />}
 
         {/* Providers wraps all pages: SessionProvider, ErrorBoundary, ClientErrorHandler */}
         <Providers>{children}</Providers>

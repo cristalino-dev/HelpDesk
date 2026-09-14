@@ -8,7 +8,11 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["nodemailer", "imapflow", "mailparser"],
   experimental: {
     serverActions: {
-      allowedOrigins: ["helpdesk.cristalino.co.il:3000", "localhost:3000"]
+      allowedOrigins: [
+        "helpdesk.cristalino.co.il:3000", "localhost:3000",
+        // The dev copy (v3.86), with and without its port.
+        "dev-helpdesk.cristalino.co.il", "dev-helpdesk.cristalino.co.il:3100",
+      ]
     }
   }
 };

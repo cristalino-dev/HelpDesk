@@ -438,3 +438,24 @@ describe("attachments on inbound mail (v3.84)", () => {
     expect(stored()).toEqual([{ ticketId: "t597", mimeType: "image/png", filename: "screen.png" }])
   })
 })
+
+// The dev copy shares the mailbox credentials. A message it read would be
+// marked \Seen, and production's intake would never see it (v3.86).
+describe("the dev copy (v3.86)", () => {
+  it("never reads the helpdesk mailbox", async () => {
+    process.env.NEXT_PUBLIC_APP_ENV = "dev"
+    inbox({ uid: 1, from: EMPLOYEE })
+    const { status } = await run()
+    expect(status).toBe(503)
+    expect(mockImap.connect).not.toHaveBeenCalled()
+    expect(prisma.ticket.create).not.toHaveBeenCalled()
+  })
+
+  it("reads one only when INGEST_ENABLED=1 says it has a mailbox of its own", async () => {
+    process.env.NEXT_PUBLIC_APP_ENV = "dev"
+    process.env.INGEST_ENABLED = "1"
+    inbox({ uid: 1, from: EMPLOYEE })
+    const { body } = await run()
+    expect(body.created).toBe(1)
+  })
+})

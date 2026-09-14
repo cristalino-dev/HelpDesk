@@ -7,12 +7,14 @@
  * is extracted — no restart needed.
  *
  * Started by deploy.sh right after `pm2 stop`, killed right before `pm2 start`.
+ * Listens on PORT — 3000 for production, the dev copy's own port for dev (v3.86).
  */
 
 const http = require("http")
 const fs   = require("fs")
 const path = require("path")
 
+const PORT      = Number(process.env.PORT) || 3000
 const HTML_PATH = path.join(__dirname, "maintenance.html")
 const FALLBACK  = `<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>מערכת Helpdesk — עדכון</title>
@@ -29,6 +31,6 @@ http.createServer((_req, res) => {
     "Cache-Control": "no-store, no-cache",
   })
   res.end(body)
-}).listen(3000, () => {
-  process.stdout.write("[maintenance] serving port 3000\n")
+}).listen(PORT, () => {
+  process.stdout.write(`[maintenance] serving port ${PORT}\n`)
 })
