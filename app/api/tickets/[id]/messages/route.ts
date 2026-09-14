@@ -5,7 +5,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailNewMessageToUser, mailNewMessageToStaff, mailReplyNotification } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -35,11 +35,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     })
 
-    // Email notifications (non-blocking)
+    // Email notifications. The 200 reports the message row, written above; it
+    // says nothing about the mail, so the sends are awaited in after() rather
+    // than fired with a bare `void` and lost when the request ends (rule 41).
     const ticket = await prisma.ticket.findUnique({
       where: { id },
       include: { user: { select: { name: true, email: true } } },
     })
+    const mails: Promise<void>[] = []
     if (ticket) {
       const ticketInfo = {
         id: ticket.id, ticketNumber: ticket.ticketNumber,
@@ -53,34 +56,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       // If this is a direct reply to a specific person — notify them first
       if (replyToEmail && replyToEmail !== session.user.email) {
-        void sendMail({
+        mails.push(sendMail({
           to: replyToEmail,
           subject: subjects.repliedToYou(authorName, ticket.ticketNumber, ticket.subject),
           html: mailReplyNotification(ticketInfo, content.trim(), authorName, replyToName ?? replyToEmail, message.id),
-        })
+        }))
       }
 
       if (isStaff) {
         // Staff → notify ticket owner (unless they're the one being replied to — already notified above)
         if (ticket.user?.email && ticket.user.email !== replyToEmail) {
-          void sendMail({
+          mails.push(sendMail({
             to: ticket.user.email,
             subject: subjects.newMessageUser(ticket.ticketNumber, ticket.subject),
             html: mailNewMessageToUser(ticketInfo, content.trim(), authorName),
-          })
+          }))
         }
       } else {
         // User → notify all staff (excluding those already notified via reply)
         const staffRecipients = (await getStaffEmails()).filter(e => e !== replyToEmail)
         if (staffRecipients.length > 0) {
-          void sendMail({
+          mails.push(sendMail({
             to: staffRecipients,
             subject: subjects.newMessageStaff(ticket.ticketNumber, ticket.subject),
             html: mailNewMessageToStaff(ticketInfo, content.trim(), authorName),
-          })
+          }))
         }
       }
     }
+    after(async () => { await Promise.all(mails) })
 
     return NextResponse.json(message)
   } catch (err) {

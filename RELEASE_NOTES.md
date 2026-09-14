@@ -5,6 +5,43 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.85 — התראות שלא הולכות לאיבוד בדרך
+
+**Most of the app's notification mail was sent with a bare `void`: started, and
+then nobody waited for it. Once the response was out, the request could be torn
+down with the send still in flight — the ticket saved, the person never told.
+Every send now finishes inside `after()`, and a test refuses the pattern from
+now on.**
+
+### What changed for users
+
+- **The mail that says a ticket was received, that someone answered, or that
+  you were @mentioned now goes out reliably**, and so do the closure, בטיפול and
+  re-open mails that follow an edit. Nothing looks different; they simply stop
+  going missing.
+- **Every new ticket gets its "נפתחה" history row, and a ticket opened on
+  someone's behalf its "opened in the name of" note.** Both were written with a
+  call nobody waited for.
+
+### What changed for developers
+
+- **`POST /api/tickets`:** the history row and the on-behalf note are awaited;
+  the profile seed and both mails go through `after()`. **`PATCH /api/tickets`**
+  — the busiest sender: status, closure and review requests, reassignment —
+  **and the message and note routes:** `after()`. (The bulk route was fixed in
+  v3.83, mail ingestion in v3.82, the automation close in v3.62.)
+- **`__tests__/noBareVoid.test.ts`** reads every `app/api/**/route.ts` and fails on
+  `void sendMail`, `void Promise.all` or `void prisma.`: rule 41 is enforced now,
+  not remembered.
+- The `next/server` mocks in the `TicketsAPI` and `MessagesAPI` tests gained an
+  `after()` that runs its callback at once, so deferred work is still exercised.
+- The fix was first written as a "v3.64" in a worktree, against v3.63, and never
+  shipped. It survives as `archive/jolly-dubinsky-v3.64-mail-after`; this redoes
+  it on current code.
+- 68 suites / 1,264 tests.
+
+---
+
 ## v3.84 — קבצים מצורפים: יותר סוגים, קבצים גדולים יותר, ושום העלאה לא נעלמת בשקט
 
 **Attachments were broken in four ways at once: anything over about 750 KB

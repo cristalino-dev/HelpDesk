@@ -1,12 +1,12 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.84** · Updated 2026-09-14
+> **Current version: 3.85** · Updated 2026-09-14
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
-> Done: **v3.83** (mail replies join their ticket; bulk editing — live) and **v3.84** (attachments). Next: the `after()`
-> mail fix, a dev environment, a REQUEST ticket type with its own SLA, and a documented API for other programs.
-> Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root (git-ignored). Remove this
-> banner when the list is done.
+> Done: **v3.83** (mail replies join their ticket; bulk editing — live), **v3.84** (attachments) and **v3.85** (no
+> notification mail lost to a bare `void`). Next: a dev environment, a REQUEST ticket type with its own SLA, and a
+> documented API for other programs. Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the
+> repository root (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -81,7 +81,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,262 tests across 67 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,264 tests across 68 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -176,6 +176,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.85 | Notification mail no longer lost to a bare `void`: new-ticket, message, @mention and edit mail finish inside `after()`, and the creation history row and on-behalf note are awaited. `__tests__/noBareVoid.test.ts` refuses the pattern in any route |
 | 3.84 | Attachments: PDF, Word, Excel, PowerPoint and text files as well as images, up to 7 MB; big photos shrink in the browser; every failed upload is shown with its reason; mail attachments are saved onto the ticket. Files are served as downloads with `nosniff` and a CSP sandbox — an uploaded SVG could run script before. nginx's 1 MB default had refused every upload over ~750 KB (now `client_max_body_size 10m`) |
 | 3.83 | A reply to a notification is added to the ticket it answers instead of opening a new one: every ticket notification now carries `HDTC-N` in its subject, and intake threads a reply from the ticket's owner or staff. Bulk editing in the queues — tick tickets and change status, urgency, category, platform, assignee or owner (admin), or add a note to all of them (`POST /api/tickets/bulk`) |
 | 3.82 | Every mail to helpdesk@ opens a ticket — the subject keyword now only makes it urgent. Our own mail, bounces, auto-replies and the pre-existing backlog are skipped; the automatic reply has a per-sender circuit breaker. Notifications are sent as `noreply_helpdesk@` (`SMTP_FROM`). Also fixed the deploy script, which had been installing an empty crontab |
@@ -235,4 +236,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.84 — updated 2026-09-14.*
+*Production build v3.85 — updated 2026-09-14.*

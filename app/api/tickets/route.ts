@@ -27,7 +27,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
 import { isOffboarding, offboardingChecklist, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
@@ -142,7 +142,10 @@ export async function POST(req: NextRequest) {
     // the UPDATE, so there is no read-then-write race with the profile page.
     const text = (v: unknown) => (typeof v === "string" ? v.trim() : "")
     const seedPhone = text(phone), seedStation = text(computerName)
-    void Promise.all([
+    // Nothing the response reports, so it runs once the response is out — in
+    // after(), which Next.js keeps alive until it finishes; a bare `void` could
+    // be abandoned when the request ended (rule 41).
+    after(() => Promise.all([
       seedPhone
         ? prisma.user.updateMany({
             where: { id: owner.id, OR: [{ phone: null }, { phone: "" }] },
@@ -155,7 +158,7 @@ export async function POST(req: NextRequest) {
             data: { station: seedStation },
           })
         : null,
-    ]).catch(() => { /* a profile that stays empty is not worth failing a ticket over */ })
+    ]).catch(() => { /* a profile that stays empty is not worth failing a ticket over */ }))
 
     // EQUIPMENT REQUEST — allowed on ANY ticket. A new hire needs a whole kit
     // and an existing employee may just want a second screen; both end up on
@@ -186,8 +189,9 @@ export async function POST(req: NextRequest) {
 
     // Write creation history entry. The actor is always the person who clicked —
     // for an on-behalf ticket that is the admin, not the owner, so the audit
-    // trail shows who really filed it.
-    void prisma.ticketHistory.create({
+    // trail shows who really filed it. Awaited: it is part of the ticket's
+    // record, and a bare `void` could leave a ticket with no "created" row.
+    await prisma.ticketHistory.create({
       data: {
         ticketId:   ticket.id,
         field:      "created",
@@ -199,7 +203,7 @@ export async function POST(req: NextRequest) {
 
     // Staff-only note making the hand-off explicit on the ticket itself
     if (onBehalf) {
-      void prisma.ticketNote.create({
+      await prisma.ticketNote.create({
         data: {
           ticketId:    ticket.id,
           content:     `הפנייה נפתחה בשם ${owner.name ?? owner.email} על ידי ${session.user.name ?? session.user.email!}`,
@@ -209,9 +213,11 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Send emails (non-blocking — don't await sequentially in the request).
-    // The submitter shown to staff, and the confirmation recipient, are the
-    // ticket OWNER — not the admin who filed it on their behalf.
+    // Send emails. They start now and are awaited in after(): the response does
+    // not claim they were delivered, and a bare `void` was abandoned when the
+    // request ended (rule 41). The submitter shown to staff, and the
+    // confirmation recipient, are the ticket OWNER — not the admin who filed it
+    // on their behalf.
     const ticketInfo = {
       id: ticket.id, ticketNumber: ticket.ticketNumber,
       subject, description: ticketDescription, urgency, category,
@@ -220,12 +226,13 @@ export async function POST(req: NextRequest) {
       submitterEmail: owner.email,
     }
     const staffEmails = await getStaffEmails()
-    void Promise.all([
+    const mails = [
       // The ticket number leads the subject so the queue is scannable from the
       // inbox list without opening anything.
       sendMail({ to: staffEmails, subject: `פנייה חדשה HDTC-${ticket.ticketNumber}: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
       sendMail({ to: owner.email, subject: `פנייתך התקבלה — HDTC-${ticket.ticketNumber}`, html: mailTicketOpenedUser(ticketInfo) }),
-    ])
+    ]
+    after(async () => { await Promise.all(mails) })
 
     return NextResponse.json(ticket)
   } catch (err) {
@@ -451,7 +458,7 @@ export async function PATCH(req: NextRequest) {
     // kept for the history row above, which is about who it used to be.
     const owner = newOwner ?? before.user
 
-    // Send email notifications (non-blocking)
+    // Email notifications — started below, awaited in after() (rule 41)
     const ticketInfo = {
       id: ticket.id,
       ticketNumber: ticket.ticketNumber,
@@ -491,7 +498,7 @@ export async function PATCH(req: NextRequest) {
       // Staff-initiated re-open: notify the ticket owner
       mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
     }
-    void Promise.all(mails)
+    after(async () => { await Promise.all(mails) })
 
     return NextResponse.json(ticket)
   } catch (err) {

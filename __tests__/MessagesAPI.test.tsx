@@ -29,6 +29,9 @@ jest.mock("@/lib/staffMembers", () => ({
 }))
 
 jest.mock("next/server", () => ({
+  // after() runs its callback at once here, so what a route defers — mail,
+  // the profile seed — still happens inside the test (rule 41, v3.85).
+  after: (cb: () => unknown) => { void cb() },
   NextResponse: class {
     status: number; data: any
     constructor(data: any, init?: any) { this.data = data; this.status = init?.status || 200 }

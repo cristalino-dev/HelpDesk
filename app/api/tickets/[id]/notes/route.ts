@@ -5,7 +5,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getAllStaffMembers, parseMentionsFromList } from "@/lib/staffMembers"
 import { sendMail, mailNoteMention } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -53,15 +53,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           submitterEmail: ticket.user?.email ?? "",
         }
         const mentionedBy = session.user.name ?? session.user.email
-        void Promise.all(
-          mentioned.map(email =>
-            sendMail({
-              to: email,
-              subject: subjects.mentioned(ticket.ticketNumber, ticket.subject),
-              html: mailNoteMention(ticketInfo, content.trim(), mentionedBy),
-            })
-          )
+        // Started now, awaited in after() — never a bare `void` (rule 41).
+        const mails = mentioned.map(email =>
+          sendMail({
+            to: email,
+            subject: subjects.mentioned(ticket.ticketNumber, ticket.subject),
+            html: mailNoteMention(ticketInfo, content.trim(), mentionedBy),
+          })
         )
+        after(async () => { await Promise.all(mails) })
       }
     }
 
