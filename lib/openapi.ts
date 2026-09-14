@@ -302,6 +302,40 @@ export function openApiDocument() {
           responses: { "200": { description: "OpenAPI 3.1.", content: json({ type: "object" }) } },
         },
       },
+      "/api/v1/docs": {
+        get: {
+          summary: "This documentation, as a web page", operationId: "getApiDocs", security: [],
+          description: "The link to give a program's developers. Generated from this document (v3.89).",
+          responses: { "200": { description: "An HTML page.", content: { "text/html": { schema: { type: "string" } } } } },
+        },
+      },
+      "/api/v1": {
+        get: {
+          summary: "The index: where the documentation is, and every endpoint", operationId: "getApiIndex", security: [],
+          description: "A browser (`Accept: text/html`) is redirected to /api/v1/docs; anything else gets this JSON (v3.89).",
+          responses: {
+            "200": {
+              description: "The index.",
+              content: json({
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  version: { type: "string", examples: ["v1"] },
+                  appVersion: { type: "string", description: "The helpdesk's own version." },
+                  documentation: { type: "string", description: "The documentation page." },
+                  openapi: { type: "string", description: "This document." },
+                  authentication: { type: "string" },
+                  endpoints: { type: "array", items: { type: "object", properties: {
+                    method: { type: "string" }, path: { type: "string" }, summary: { type: "string" },
+                    key: { type: "string", enum: ["none", "read", "write"], description: "The key the endpoint needs." },
+                  } } },
+                },
+              }),
+            },
+            "307": { description: "To /api/v1/docs, for a browser." },
+          },
+        },
+      },
     },
   }
 }

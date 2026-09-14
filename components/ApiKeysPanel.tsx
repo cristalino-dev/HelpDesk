@@ -180,8 +180,9 @@ export default function ApiKeysPanel() {
           <li>כתובת: <code style={code}>{base || "/api/v1"}</code></li>
           <li>כותרת בכל בקשה: <code style={code}>Authorization: Bearer hdk_…</code></li>
           <li>דוגמה: <code style={code}>GET /api/v1/tickets?open=true&amp;type=request</code></li>
-          <li>התיאור המלא (OpenAPI — ל-Postman, Swagger ומחוללי קוד): <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" style={{ color: T.greenInk, fontWeight: 600 }}>/api/v1/openapi.json</a></li>
-          <li>מדריך למפתחים עם דוגמאות: <code style={code}>docs/API.md</code> במאגר הקוד</li>
+          <li>תיעוד למפתחים — זה הקישור לשלוח להם: <a href="/api/v1/docs" target="_blank" rel="noreferrer" style={{ ...code, color: T.greenInk, fontWeight: 600 }}>{base ? `${base}/docs` : "/api/v1/docs"}</a></li>
+          <li>התיאור למכונה (OpenAPI — ל-Postman, Swagger ומחוללי קוד): <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" style={{ ...code, color: T.greenInk, fontWeight: 600 }}>{base ? `${base}/openapi.json` : "/api/v1/openapi.json"}</a></li>
+          <li>את המפתח עצמו שלחו בנפרד ובערוץ מאובטח — לא באותה הודעה עם הקישורים.</li>
         </ul>
       </div>
     </div>

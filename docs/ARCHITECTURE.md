@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-14 · v3.88
+> Version 2.0 · Last updated 2026-09-14 · v3.89
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -512,6 +512,7 @@ lib/
 ├── apiRoute.ts             refWhere(), serverError() for the v1 routes (v3.88)
 ├── apiOptions.ts           The values a program may send, from FieldOption (v3.88)
 ├── openapi.ts              The OpenAPI 3.1 document for /api/v1 (v3.88)
+├── apiDocs.ts              The /api/v1 index and the /api/v1/docs page, from openapi.ts (v3.89)
 │
 ├── logError.ts             Server-side logError() → Log table
 ├── chunkError.ts           Stale-chunk detection + one-shot reload
@@ -530,7 +531,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  80 suites, 1,380 tests — gate the build
+__tests__/                  81 suites, 1,395 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -977,6 +978,8 @@ it only grows (rule 69).
 | GET | `/api/v1/attachments/[id]` | Key (read) | The file, served with `attachmentResponseHeaders()` (rule 62) |
 | GET | `/api/v1/options` | Key (read) | The allowed `status`, `type`, `urgency`, `category` and `platform` values, and the SLA per type |
 | GET | `/api/v1/openapi.json` | — | The OpenAPI 3.1 document (`lib/openapi.ts`). `__tests__/openapi.test.ts` fails when a route or method is missing from it |
+| GET | `/api/v1` | — | The index. A browser (`Accept: text/html`) → 307 to `/api/v1/docs`; anything else → JSON with the docs and OpenAPI addresses and every endpoint with the key it needs (`lib/apiDocs.ts`, v3.89) |
+| GET | `/api/v1/docs` | — | The documentation page, generated from the OpenAPI document; static HTML under `default-src 'none'` — no script (v3.89) |
 
 ---
 
@@ -1037,7 +1040,7 @@ GET   /api/reviews (list)         │ 401    │ 403        │ 403    │ ✓  
 GET   /api/reviews?ticket=        │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
 POST/PATCH /api/reviews           │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
 POST  /api/automation/close       │ Bearer AUTOMATION_API_KEY (no session)
-*     /api/v1/*                   │ an ApiKey (no session): read → GET, write → all; openapi.json open
+*     /api/v1/*                   │ an ApiKey (no session): read → GET, write → all; /api/v1, /docs, /openapi.json open
 POST  /api/admin/{digest,sweep,ingest-mail}  │ shared-secret header (no session)
 ```
 

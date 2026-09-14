@@ -1,11 +1,11 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.88** · Updated 2026-09-14
+> **Current version: 3.89** · Updated 2026-09-14
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
-> Live: **v3.83**–**v3.87** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
-> requests). Committed: **v3.88** (an API for other programs — `/api/v1`, a key per program,
-> [`docs/API.md`](docs/API.md)). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
+> Live: **v3.83**–**v3.88** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
+> requests, an API for other programs). Committed: **v3.89** (the API's documentation page, `/api/v1/docs`).
+> Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
 > (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
@@ -59,7 +59,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Email-to-ticket ingestion** — inbound mail whose subject contains "ticket" becomes an URGENT ticket via IMAP polling (see §6)
 - **Service ratings** — 1–5 stars with comment; admin review dashboard
 - **Error logging** — ErrorBoundary + ClientErrorHandler + server `logError()` → `Log` table, with stale-chunk failures filtered out
-- **API for other programs (v3.88)** — `/api/v1`: list and query tickets and requests by any field, read one in full, open one, change it, write to its owner, add a note. A key per program (read, or read and write), created and revoked in the admin console. OpenAPI at `/api/v1/openapi.json`; guide in [`docs/API.md`](docs/API.md)
+- **API for other programs (v3.88)** — `/api/v1`: list and query tickets and requests by any field, read one in full, open one, change it, write to its owner, add a note. A key per program (read, or read and write), created and revoked in the admin console. documentation page at `/api/v1/docs` (v3.89); OpenAPI at `/api/v1/openapi.json`; guide in [`docs/API.md`](docs/API.md)
 - **Automation API** — `POST /api/automation/close` closes a ticket with a Bearer key; idempotent
 - **Periodic urgency sweep** — cron every 5 min ensures closed tickets have `urgency = נמוך`
 - **Configurable dropdowns** — category / platform / urgency / equipment / licenseCategory are DB-driven, managed in שדות מערכת
@@ -82,7 +82,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,380 tests across 80 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,395 tests across 81 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -128,7 +128,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 - **Image paste:** `lib/pasteImage.ts` exports `handleImagePaste(e, onImage)` — add to any textarea.
 - **Chunk errors:** `lib/chunkError.ts` detects post-deploy stale-chunk failures and reloads once instead of logging noise.
 - **API:** NextAuth JWTs + the `isAdmin` boolean guard all privileged routes. Client-side page guards are convenience only; every one is backed server-side.
-- **API for other programs (v3.88):** routes under `app/api/v1/`, no session — `lib/apiKeys.ts` (key check, rate limit, `apiActor()`), `lib/ticketQuery.ts` (list filters), `lib/apiV1.ts` (the ticket as the API shows it; body checks), `lib/ticketChanges.ts` (`applyTicketChanges()` — the edit rules, shared with the bulk route), `lib/openapi.ts`.
+- **API for other programs (v3.88):** routes under `app/api/v1/`, no session — `lib/apiKeys.ts` (key check, rate limit, `apiActor()`), `lib/ticketQuery.ts` (list filters), `lib/apiV1.ts` (the ticket as the API shows it; body checks), `lib/ticketChanges.ts` (`applyTicketChanges()` — the edit rules, shared with the bulk route), `lib/openapi.ts`, `lib/apiDocs.ts` (the index at `/api/v1` and the page at `/api/v1/docs`, both generated from the OpenAPI document, v3.89).
 
 ### Critical business rules
 
@@ -181,6 +181,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.89 | The API's documentation page: `/api/v1` answered 404 — the address everyone is given. Now a browser there is sent to `/api/v1/docs`, a page generated from the OpenAPI document (every endpoint, parameter, body, response and a curl example), and a program gets a JSON index of every endpoint and the key it needs (`lib/apiDocs.ts`) |
 | 3.88 | An API for other programs: `/api/v1` lists and queries tickets and requests by any field, reads one in full, opens, changes, writes to the owner and adds notes, with the site's rules and mail. A key per program (read or read-write, stored as SHA-256), made and revoked in the admin console's new API tab; OpenAPI 3.1 at `/api/v1/openapi.json`, guide in `docs/API.md`. `ApiKey` (migration `20260916000000_api_keys`) |
 | 3.87 | Tickets and requests: a request is labelled REQ-N (same number sequence), is overdue after 10 workdays against a ticket's 4 (admins set both), and is listed below the tickets. `Ticket.type` and `AppSetting` (migration `20260915000000_ticket_type_and_settings`); `lib/ticketType.ts` for labels, sections and SLA |
 | 3.86 | A dev copy of the helpdesk on the same server — `bash deploy.sh dev`, its own directory, pm2 app, port, domain and database (a copy of production's, `scripts/refresh-dev-db.py`). `NEXT_PUBLIC_APP_ENV=dev` shows a DEV strip, sends all mail to `MAIL_REDIRECT_TO` only and never reads the helpdesk mailbox. Deploy scripts match cron entries by the copy's own path |
@@ -244,4 +245,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.88 — updated 2026-09-14.*
+*v3.89 — updated 2026-09-14.*

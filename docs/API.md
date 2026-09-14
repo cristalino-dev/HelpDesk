@@ -2,7 +2,10 @@
 
 Read, open and change helpdesk tickets and requests from another program.
 
-- **Base address:** `https://helpdesk.cristalino.co.il/api/v1`
+- **Documentation page:** [`https://helpdesk.cristalino.co.il/api/v1/docs`](https://helpdesk.cristalino.co.il/api/v1/docs)
+  — this contract as a web page, generated from the OpenAPI document. The link to send a developer (v3.89).
+- **Base address:** `https://helpdesk.cristalino.co.il/api/v1` — in a browser it leads to the documentation page;
+  a program gets a JSON index of every endpoint (no key needed for either)
   (for trying things out, the dev copy: `https://dev-helpdesk.cristalino.co.il/api/v1` — a copy of production's
   data with its own keys; its mail goes only to IT, never to the people on the tickets)
 - **Machine-readable description:** [`/api/v1/openapi.json`](https://helpdesk.cristalino.co.il/api/v1/openapi.json)
@@ -178,6 +181,12 @@ The ids come from a ticket's `attachments`. The response carries the file's name
 → `{ "data": { "status": […], "type": ["ticket", "request"], "urgency": […], "category": […], "platform": […],
 "sla": { "ticket": 4, "request": 10 } } }` — `sla` is the number of workdays (Sunday–Thursday) before an open
 ticket or request is overdue.
+
+### `GET /` — the index, and `GET /docs` — the documentation page (no key)
+
+`GET /api/v1` returns `{ name, version, appVersion, documentation, openapi, authentication, endpoints }`, where each
+endpoint is `{ method, path, summary, key }` and `key` is `none`, `read` or `write`. A browser (`Accept: text/html`)
+is redirected to `/api/v1/docs` instead — this document as a page.
 
 ---
 

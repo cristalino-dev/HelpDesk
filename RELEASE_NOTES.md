@@ -5,6 +5,45 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.89 — דף תיעוד ל-API
+
+**`https://helpdesk.cristalino.co.il/api/v1` answered 404. That is the one
+address the key panel and the docs hand out, and nothing was routed there. It
+now leads to a documentation page, and a program that calls it gets an index
+of every endpoint.**
+
+### What changed for users
+
+- **`/api/v1/docs` is the API's documentation, as a web page.** It covers:
+  - a quick start
+  - keys and errors
+  - every endpoint, with its parameters, body, responses and a curl example
+  - every object
+
+  It is the link to send another program's developers. They need no key and
+  no access to the code.
+- Opening `/api/v1` in a browser now leads there instead of "page not found".
+- The admin console's API tab shows the full addresses of the page and of the
+  OpenAPI document, and says to send the key itself separately.
+
+### What changed for developers
+
+- **`lib/apiDocs.ts`** builds both from `lib/openapi.ts`, so neither can drift
+  from the contract: `apiOperations()`, `apiIndex()`, `apiDocsHtml()`,
+  `wantsHtml()`.
+- **`GET /api/v1`** (no key):
+  - `Accept: text/html` gets a 307 to `/api/v1/docs`.
+  - Anything else gets `{ name, version, appVersion, documentation, openapi,
+    authentication, endpoints: [{ method, path, summary, key }] }`.
+- **`GET /api/v1/docs`** (no key): one self-contained HTML page. Its colours
+  come from `themeCss()`, it has no script, and it is served under
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'`.
+- Both routes are in the OpenAPI document, as the `openapi` test requires.
+  Nothing changed, only additions (rule 69).
+- **New test:** `apiDocs`. 81 suites / 1,395 tests.
+
+---
+
 ## v3.88 — API לתוכנות אחרות
 
 **Other programs can now read, open and change tickets and requests through a
