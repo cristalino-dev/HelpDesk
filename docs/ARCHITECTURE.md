@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-14 · v3.82
+> Version 2.0 · Last updated 2026-09-14 · v3.83
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **1,113 tests across 57 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,201 tests across 62 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
 
@@ -516,7 +516,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  57 suites, 1,113 tests — gate the build
+__tests__/                  62 suites, 1,201 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -839,6 +839,7 @@ Indexed on `date` and `timestamp`. Rows older than 30 days are deleted on write.
 | GET | `/api/tickets` | User | The caller's **own** tickets — the ones they opened — whatever their role. (Until v3.72 an admin got every ticket here; the queue is `/api/tickets/all`.) |
 | POST | `/api/tickets` | User | Create a ticket. Accepts `equipment[]` on any category, `newEmployee{}` (mandatory for `עובד חדש`, else 400), and `onBehalfOfEmail` / `onBehalfOfName` (**admin only**, 403 otherwise) → 201 |
 | PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }` |
+| POST | `/api/tickets/bulk` | **Staff** | Change many tickets at once: `{ ids, changes }` with any of `status` (+ `holdReason`), `urgency`, `category`, `platform`, `assignedTo`, `note`, and `ownerEmail` (**admin only**). The single-edit rules apply per ticket — compound close, hold reason, offboarding guard, self-assign → `בטיפול` — and a ticket that cannot take the change is reported in `errors[]` while the rest go ahead → `{ ok, total, updatedCount, errors? }` (v3.83) |
 | GET | `/api/tickets/all` | Staff / Viewer | All tickets — the read-only viewer list |
 | GET | `/api/tickets/assigned` | **Staff** | Non-closed tickets assigned to the caller (case-insensitive), with the owner — "משויכות אליי" on the dashboard. 403 for employees and viewers (v3.81) |
 | GET | `/api/tickets/[id]` | Owner/Staff | Full detail: messages, notes, attachment metadata, equipment |
@@ -906,7 +907,7 @@ emailed link is unguessable, so only the recipient can reach the URL.
 | POST | `/api/automation/close` | Key | Close a ticket by `ticketNumber`. `Authorization: Bearer <AUTOMATION_API_KEY>` or `X-Api-Key`. Optional `message`, `note`, `actorName`, `actorEmail`, `fields{}`. Idempotent — an already-closed ticket returns `{ ok: true, alreadyClosed: true }`. 503 if the key is unset |
 | POST | `/api/admin/digest` | Secret | `x-digest-secret` → `DIGEST_SECRET`. Daily open-ticket summary to staff |
 | POST | `/api/admin/sweep` | Secret | `x-sweep-secret` → `SWEEP_SECRET`, falling back to `DIGEST_SECRET`. Repairs closed tickets whose urgency is not `נמוך` |
-| POST | `/api/admin/ingest-mail` | Secret | `x-ingest-secret` → `INGEST_SECRET`, falling back to `DIGEST_SECRET`. Polls IMAP and opens a ticket for every inbound mail bar our own, bounces, auto-replies and pre-cutoff mail (v3.82). Returns `{ ok, created, tickets[], skipped }`; 503 if the mailbox is unconfigured |
+| POST | `/api/admin/ingest-mail` | Secret | `x-ingest-secret` → `INGEST_SECRET`, falling back to `DIGEST_SECRET`. Polls IMAP and opens a ticket for every inbound mail bar our own, bounces, auto-replies and pre-cutoff mail (v3.82). A reply naming `HDTC-N` from that ticket's owner or staff is added to it as a message instead (v3.83). Returns `{ ok, created, tickets[], replies[], skipped }`; 503 if the mailbox is unconfigured |
 
 ---
 
@@ -1080,8 +1081,20 @@ minutes — the circuit breaker for an auto-responder that does not label itself
 Skipped mail is flagged `\Seen` too, and counted in the response.
 
 Outgoing mail is sent as `SMTP_FROM` (default `noreply_helpdesk@cristalino.co.il`)
-and marked `Auto-Submitted: auto-generated`, so replies stay out of the intake
-inbox and our own mail is recognised by two independent signals.
+and marked `Auto-Submitted: auto-generated`, so our own mail is recognised by
+two independent signals. noreply_helpdesk@ is an alias of helpdesk@, so replies
+to notifications do land in the intake inbox — which is what the next rule is for.
+
+**Replies (v3.83).** Every notification about one ticket carries `HDTC-N` in its
+subject (`lib/mailSubjects.ts`; `__tests__/mailSubjects.test.ts` enforces it).
+After the skip rules, a mail whose subject names a ticket
+(`ticketNumberFromSubject()`, the first `HDTC-N`) and whose sender — `Reply-To`
+for relayed mail, else `From` — is that ticket's owner or staff (`STAFF_EMAILS`
+or `isAdmin`) is added to it as a `TicketMessage`, with the quoted earlier mail
+cut off by `stripQuotedReply()`. The other side is notified as for a message
+typed in the app; no ticket is opened and no automatic reply is sent. The same
+author, text and ticket within `REPLY_DEDUPE_WINDOW_MS` (10 minutes) counts as a
+repeat. Anyone else, or a number that matches no ticket, opens a new ticket.
 
 **Prerequisites:** IMAP enabled for the mailbox in Gmail (Settings → Forwarding
 and POP/IMAP); the cron daemon running on the server; and, for the no-reply

@@ -1,12 +1,12 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.82** · Updated 2026-09-14
+> **Current version: 3.83** · Updated 2026-09-14
 
-> ⚠️ **IN PROGRESS (handed over 2026-09-14) — branch `wip/v3.83-replies-v3.84-attachments`.**
-> **v3.83** (a reply to a notification joins its ticket instead of opening a new one) is written and tested but
-> not released or deployed. **v3.84** (attachments: 10 MB, files as well as images, mail attachments, the SVG
-> fix) is half-built — the helpers exist, nothing uses them yet. Before doing anything, read
-> **HANDOFF.md → "▶ RESUME HERE"** in the repository root (git-ignored). Remove this banner when both have shipped.
+> ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`)**,
+> merged into `wip/v3.83-replies-v3.84-attachments` after each stage. Done: **v3.83** (mail replies join their ticket;
+> bulk editing). Next: **v3.84** attachments (half-built), then the `after()` mail fix, a dev environment, a REQUEST
+> ticket type with its own SLA, and a documented API for other programs. Before doing anything, read
+> **HANDOFF.md → "▶ RESUME HERE"** in the repository root (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -81,7 +81,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,113 tests across 57 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,201 tests across 62 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -176,6 +176,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.83 | A reply to a notification is added to the ticket it answers instead of opening a new one: every ticket notification now carries `HDTC-N` in its subject, and intake threads a reply from the ticket's owner or staff. Bulk editing in the queues — tick tickets and change status, urgency, category, platform, assignee or owner (admin), or add a note to all of them (`POST /api/tickets/bulk`) |
 | 3.82 | Every mail to helpdesk@ opens a ticket — the subject keyword now only makes it urgent. Our own mail, bounces, auto-replies and the pre-existing backlog are skipped; the automatic reply has a per-sender circuit breaker. Notifications are sent as `noreply_helpdesk@` (`SMTP_FROM`). Also fixed the deploy script, which had been installing an empty crontab |
 | 3.81 | Staff see the tickets **assigned** to them on the dashboard again — "משויכות אליי", a section of its own above the tickets they opened, from the new staff-only `GET /api/tickets/assigned`. v3.72 had dropped them when it scoped the dashboard to tickets you opened |
 | 3.80 | Dark mode — a switch on the top bar that remembers the choice; light stays the default. Every colour became a CSS custom property with two values (`lib/palette.ts`), because an inline style cannot be re-themed any other way |
@@ -195,14 +196,14 @@ The three most recent:
 
 ## 6. Email-to-Ticket Ingestion — Operational Spec
 
-**Goal.** Anyone can email the helpdesk mailbox (`helpdesk@cristalino.co.il`); if the **subject contains the word "ticket"**, the system opens a new URGENT ticket automatically.
+**Goal.** Every email to the helpdesk mailbox (`helpdesk@cristalino.co.il`) opens a ticket (since v3.82), except our own mail, bounces, auto-replies and mail from before the cutoff; "ticket" in the subject only makes it urgent. A reply to one of our notifications that names `HDTC-N`, from that ticket's owner or staff, is added to that ticket as a message instead (v3.83).
 
 The trigger condition and the full field mapping table are in [`docs/ARCHITECTURE.md` §10](docs/ARCHITECTURE.md#10-background-jobs). What follows is the operational detail an agent needs to run, debug, or query it.
 
 ### Architecture
 
-- **`lib/mailIngest.ts`** — pure, unit-tested logic (no I/O): `hasTicketKeyword(subject, keyword)`, `stripTicketKeyword(subject, keyword)`, `buildIngestedTicket(parsedMail, keyword)`, `fixCharsetLabels(source)`, plus `INGEST_DEFAULTS` / `DEFAULT_TICKET_KEYWORD` / `INGEST_FALLBACK_EMAIL`.
-- **`app/api/admin/ingest-mail/route.ts`** — `POST` only. Validates `x-ingest-secret`, connects via `imapflow` to `${IMAP_HOST}:993` (TLS), searches `{ seen: false, subject: keyword }` (server-side subject filter — avoids scanning the whole mailbox), runs the raw source through `fixCharsetLabels` (relabels Hebrew `iso-8859-8-i/-e` → `windows-1255` so `mailparser` decodes correctly), parses with `simpleParser`, dedupes by `Ticket.sourceMessageId` (unique), resolves the sender via `resolveUserByEmail`, persists, and marks `\Seen`. Returns `{ ok, created, tickets: number[] }`.
+- **`lib/mailIngest.ts`** — pure, unit-tested logic (no I/O): the skip and auto-reply rules `skipReason()`, `isRelayed()`, `mayAutoRespond()` (v3.82); reply threading `ticketNumberFromSubject()`, `stripQuotedReply()` (v3.83); and `hasTicketKeyword(subject, keyword)`, `stripTicketKeyword(subject, keyword)`, `buildIngestedTicket(parsedMail, keyword)`, `fixCharsetLabels(source)`, plus `INGEST_DEFAULTS` / `DEFAULT_TICKET_KEYWORD` / `INGEST_FALLBACK_EMAIL`.
+- **`app/api/admin/ingest-mail/route.ts`** — `POST` only. Validates `x-ingest-secret`, connects via `imapflow` to `${IMAP_HOST}:993` (TLS), searches `{ seen: false, since: cutoff }` (the backlog before the cutoff is never fetched), runs the raw source through `fixCharsetLabels` (relabels Hebrew `iso-8859-8-i/-e` → `windows-1255` so `mailparser` decodes correctly), parses with `simpleParser`, dedupes by `Ticket.sourceMessageId` (unique), resolves the sender via `resolveUserByEmail`, persists, and marks `\Seen`. Returns `{ ok, created, tickets, replies, skipped }`.
 - **Cron:** `run-ingest.sh` (written by `deploy.sh`) curls the endpoint `*/2 * * * *`, logging to `logs/ingest.log`. **`flock`-guarded** so a slow scan cannot overlap the next tick.
 - **Bundling:** `imapflow` and `mailparser` are in `next.config.ts` `serverExternalPackages` (Node-only, like `nodemailer`).
 
@@ -233,4 +234,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.82 — updated 2026-09-14.*
+*Production build v3.83 — updated 2026-09-14.*

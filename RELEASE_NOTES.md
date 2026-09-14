@@ -5,6 +5,71 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.83 — תשובה למייל מצטרפת לפנייה, ועריכה מרוכזת
+
+**A reply to one of our notification mails is now added to the ticket it
+answers instead of opening a new one. And staff can tick several tickets in a
+queue and change them together.**
+
+### Why replies needed handling
+
+Since v3.82 notifications leave from noreply_helpdesk@, which is an alias of
+helpdesk@ — so a reply to one lands in the intake inbox, where every mail opens
+a ticket. An employee answering "thanks" or "still not working" would have
+opened a duplicate ticket and been sent an automatic "we received your ticket"
+for it. The choice made: add the reply to the ticket it is about.
+
+### What changed for users
+
+- **Reply to a notification and the answer appears on the ticket**, in its
+  conversation, and the other side is told — staff when the employee replies,
+  the employee when staff reply — exactly as if it had been typed on the site.
+  No new ticket, no automatic reply. The quoted earlier mail is cut off (Gmail
+  and Outlook, Hebrew and English).
+- This works for the ticket's owner and for staff. Anyone else, or a subject
+  whose number matches no ticket, still opens a new ticket — nothing is lost.
+- **Every notification about a ticket names it (HDTC-N) in its subject.** Eight
+  did not, among them the status update, בטיפול, new-message and @mention mails.
+- **Bulk editing in the queues** (/admin and /tickets): tick tickets, or all of
+  them, and a bar appears with a count, quick close, quick assign and an edit
+  window that changes only the fields switched on — status, urgency, category,
+  platform, assignee, an internal note, and (admins only) the מגיש. A single
+  edit's rules still hold: closing sets urgency to נמוך, בהמתנה needs a reason,
+  and a leaving-employee ticket with gear still out is skipped and reported
+  rather than closed.
+
+### What changed for developers
+
+- **`lib/mailSubjects.ts`** holds the ticket notification subjects.
+  `__tests__/mailSubjects.test.ts` reads app/ and lib/ and fails on any subject
+  about a ticket that lacks `HDTC-` — intake depends on it (rule 60).
+- **`lib/mailIngest.ts`** gains `ticketNumberFromSubject()`,
+  `stripQuotedReply()` and `REPLY_DEDUPE_WINDOW_MS`. The ingest route applies
+  the skip rules first — our own notifications name their ticket too and must
+  never be added — then turns `HDTC-N` from the owner or staff (`STAFF_EMAILS`
+  or `isAdmin`) into a `TicketMessage`. The response gains `replies[]`; the
+  25-per-run cap counts tickets and replies together.
+- **No migration.** A reply seen twice is recognised by the same ticket, author
+  and text within 10 minutes. A unique column would have meant regenerating the
+  Prisma client that the local dev server shares while it talks to production.
+- **`POST /api/tickets/bulk`** `{ ids, changes }` → `{ ok, total, updatedCount,
+  errors? }`; a ticket that cannot take the change is reported in `errors`, the
+  rest go ahead. Staff only; `ownerEmail` admin only. UI in
+  `components/BulkActionBar.tsx` and `components/BulkEditModal.tsx`;
+  `bulkUpdateTickets()` in `lib/ticketApi.ts`.
+- **Found in review before release:** an unassign turned `""` into `null` on a
+  NOT NULL column, so every bulk unassign was a 500 — it now stores `""`, as
+  PATCH does. The bulk mails were fired with a bare `void`; they go through
+  `after()` now (rule 41). `BulkTicketsAPI.test.ts` did not pass `tsc`.
+- **Shipped but not yet used: v3.84's attachment helpers** —
+  `lib/attachmentTypes.ts`, `lib/storeAttachment.ts` and a rewritten
+  `lib/attachmentStorage.ts`. Two effects on the live upload route, which still
+  goes through `parseImageDataUrl`: the server-side cap is now 7 MB of file
+  (was 3 MB of base64, about 2.25 MB), and a new SVG is stored as `.bin`. SVG is
+  still accepted and served inline, as before; v3.84 closes that.
+
+---
+
 ## v3.82 — כל מייל ל-helpdesk@ פותח פנייה
 
 **Every email that reaches helpdesk@ now opens a ticket — not only those with

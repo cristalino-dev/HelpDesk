@@ -28,7 +28,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse, after } from "next/server"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import { findUserByEmail } from "@/lib/users"
 
@@ -116,9 +116,10 @@ export async function POST(req: NextRequest) {
       if (changes.urgency !== undefined) data.urgency = changes.urgency
       if (changes.category !== undefined) data.category = changes.category
       if (changes.platform !== undefined) data.platform = changes.platform
-      if (changes.assignedTo !== undefined) {
-        data.assignedTo = changes.assignedTo === "" ? null : changes.assignedTo
-      }
+      // "" is "unassigned", stored as sent, as PATCH /api/tickets stores it.
+      // The column is NOT NULL: turning "" into null threw inside the
+      // transaction, and every bulk unassign came back 500.
+      if (changes.assignedTo !== undefined) data.assignedTo = changes.assignedTo
       if (newOwner && newOwner.id !== ticket.userId) {
         data.userId = newOwner.id
       }
@@ -308,8 +309,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // The response reports the rows, written above; it says nothing about the
+    // mail. after() keeps the invocation alive until the sends finish, where a
+    // bare `void` abandoned them at request teardown (rule 41).
     if (pendingMails.length > 0) {
-      void Promise.all(pendingMails)
+      after(async () => { await Promise.all(pendingMails) })
     }
 
     return NextResponse.json({

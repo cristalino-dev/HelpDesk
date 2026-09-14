@@ -11,8 +11,10 @@
  *   - Ticket audit history recording
  */
 
+import type { NextRequest } from "next/server"
 import { POST } from "@/app/api/tickets/bulk/route"
 import { auth } from "@/auth"
+import { sendMail } from "@/lib/mail"
 import { prisma } from "@/lib/db"
 import { findUserByEmail } from "@/lib/users"
 import { getStaffEmails } from "@/lib/staffMembers"
@@ -36,7 +38,10 @@ jest.mock("@/lib/mail", () => ({
   mailTicketStatusUser: jest.fn().mockReturnValue("<html/>"),
   mailTicketClosedWithReview: jest.fn().mockReturnValue("<html/>"),
 }))
+// Callbacks handed to `after()` — Next.js runs these once the response is out.
+const mockAfterCallbacks: (() => unknown)[] = []
 jest.mock("next/server", () => ({
+  after: (cb: () => unknown) => { mockAfterCallbacks.push(cb) },
   NextResponse: class {
     status: number
     data: unknown
@@ -51,7 +56,19 @@ jest.mock("next/server", () => ({
   },
 }))
 
-type Res = { status: number; json: () => Promise<any> }
+type BulkJson = {
+  ok: boolean
+  total: number
+  updatedCount: number
+  errors: { ticketId: string; ticketNumber?: number; error: string }[]
+}
+type Res = { status: number; json: () => Promise<BulkJson> }
+/** The transaction client the route's callback is handed. */
+type Tx = {
+  ticket: { update: jest.Mock }
+  ticketHistory: { createMany: jest.Mock }
+  ticketNote: { create: jest.Mock }
+}
 const mockAuth = auth as jest.Mock
 const mockFindUnique = prisma.ticket.findUnique as jest.Mock
 const mockTransaction = prisma.$transaction as jest.Mock
@@ -63,7 +80,7 @@ const session = (user: Record<string, unknown> | null) =>
 
 const makeRequest = (body: unknown) => ({
   json: async () => body,
-} as unknown as Request)
+} as unknown as NextRequest)
 
 const call = (body: unknown) => POST(makeRequest(body)) as unknown as Promise<Res>
 
@@ -138,9 +155,10 @@ describe("POST /api/tickets/bulk — Execution & Business Rules", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockAfterCallbacks.length = 0
     session({ email: "admin@cristalino.co.il", name: "אלון", isAdmin: true })
     mockGetStaffEmails.mockResolvedValue(["staff@cristalino.co.il", "admin@cristalino.co.il"])
-    mockTransaction.mockImplementation(async (callback: (tx: any) => Promise<any>) => {
+    mockTransaction.mockImplementation(async (callback: (tx: Tx) => Promise<unknown>) => {
       const mockTx = {
         ticket: { update: jest.fn() },
         ticketHistory: { createMany: jest.fn() },
@@ -204,5 +222,29 @@ describe("POST /api/tickets/bulk — Execution & Business Rules", () => {
     const json = await res.json()
     expect(json.updatedCount).toBe(0)
     expect(json.errors[0].error).toContain("יש להזין סיבת המתנה")
+  })
+
+  // "" means unassigned and the column is NOT NULL. The route used to turn ""
+  // into null, which threw inside the transaction: every bulk unassign was a 500.
+  it("stores an unassign as \"\" rather than null", async () => {
+    mockFindUnique.mockResolvedValueOnce(sampleTicket1)
+    const update = jest.fn()
+    mockTransaction.mockImplementationOnce(async (callback: (tx: Tx) => Promise<unknown>) =>
+      callback({ ticket: { update }, ticketHistory: { createMany: jest.fn() }, ticketNote: { create: jest.fn() } }))
+
+    const res = await call({ ids: ["t1"], changes: { assignedTo: "" } })
+    expect(res.status).toBe(200)
+    expect((await res.json()).updatedCount).toBe(1)
+    expect(update).toHaveBeenCalledWith({ where: { id: "t1" }, data: { assignedTo: "" } })
+  })
+
+  // Rule 41: the sends start at once but are awaited in after(), not abandoned.
+  it("hands its mail to after(), so a send is not lost when the response returns", async () => {
+    mockFindUnique.mockResolvedValueOnce(sampleTicket1)
+    const res = await call({ ids: ["t1"], changes: { status: "סגור" } })
+    expect(res.status).toBe(200)
+    expect(sendMail).toHaveBeenCalled()
+    expect(mockAfterCallbacks).toHaveLength(1)
+    await Promise.all(mockAfterCallbacks.splice(0).map(cb => cb()))
   })
 })
