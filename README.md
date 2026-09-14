@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.87**
+**Version 3.88**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -11,6 +11,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | How the system is built — schema, endpoints, auth rules, deployment | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Handing the project over — operations, deploy paths, where every credential lives | [`docs/GEMINI-HANDOFF.md`](docs/GEMINI-HANDOFF.md) |
 | What changed in each release | [`RELEASE_NOTES.md`](RELEASE_NOTES.md) |
+| Connecting another program — the API, keys, examples | [`docs/API.md`](docs/API.md) |
 | Instructions for AI coding agents | [`AGENTS.md`](AGENTS.md) (aliased by `CLAUDE.md`), [`GEMINI.md`](GEMINI.md) |
 
 ---
@@ -107,13 +108,13 @@ helpdesk/
 │   │   │                                     #   equipment, history timeline
 │   │   └── view/                             # Viewer role: read-only list
 │   ├── admin/                                # Queue, users, logs, שדות מערכת,
-│   │   │                                     #   רישוי, מדפסות, ציוד חסר
+│   │   │                                     #   רישוי, מדפסות, ציוד חסר, API
 │   │   ├── logs/                             # Error log viewer
 │   │   ├── reports/                          # Timeline, breakdowns, insights
 │   │   └── reviews/                          # Service review dashboard
 │   ├── help/  manual/  admin-manual/         # User manual, printable, staff manual
 │   ├── review/[ticketId]/                    # Service rating page (no login)
-│   └── api/                                  # REST API — see docs/ARCHITECTURE.md §7
+│   └── api/                                  # REST API — docs/ARCHITECTURE.md §7; /api/v1 — docs/API.md
 ├── components/                               # AppHeader, TicketForm, TicketTable,
 │                                             #   EquipmentPicker, NewEmployeeFields,
 │                                             #   OffboardingNotice, ImageAttachments,
@@ -133,9 +134,9 @@ helpdesk/
 │   ├── printerStorage.ts                     # Driver binaries on disk
 │   └── logError.ts  chunkError.ts            # Server logging, stale-chunk recovery
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
-├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
+├── prisma/schema.prisma                      # 15 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 1,312 tests across 73 suites
+├── __tests__/                                # 1,380 tests across 80 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── deploy.ps1                                # The same, for Windows PowerShell

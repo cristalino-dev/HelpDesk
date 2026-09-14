@@ -5,6 +5,60 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.88 — API לתוכנות אחרות
+
+**Other programs can now read, open and change tickets and requests through a
+documented, versioned API — `/api/v1` — each with its own key, which an admin
+creates and revokes in the admin console.**
+
+### What changed for users
+
+- **Admin console → API:** create a key for a program — read-only, or read and
+  write. It is shown once, with a copy button. The list shows when each key was
+  last used; revoking one stops it at once.
+- A change made by a program appears in the ticket's history as
+  **API: &lt;the key's name&gt;**, and sends the same mail as the same change made on the
+  site — unless the program sends `notify: false`.
+
+### What changed for developers
+
+- **`/api/v1`** (rule 69):
+  - `GET/POST /tickets` — list with filters, sorting and paging; open a ticket
+    or a request.
+  - `GET/PATCH /tickets/{ref}` — `ref` is HDTC-N, REQ-N, the number or the id.
+  - `POST /tickets/{ref}/messages` and `POST /tickets/{ref}/notes`.
+  - `GET /attachments/{id}`.
+  - `GET /options` — the allowed values, and the SLA.
+  - `GET /openapi.json` — OpenAPI 3.1, public.
+
+  Errors are always `{ error: { code, message } }`. Unknown fields and
+  parameters are errors, never silently ignored. The developer guide is
+  `docs/API.md`.
+- **Keys:** migration `20260916000000_api_keys` adds an `ApiKey` table: name,
+  prefix, SHA-256 hash, scope `read` | `write`, createdBy, lastUsedAt, revokedAt.
+  The key itself (`hdk_…`) is never stored. `lib/apiKeys.ts` `authenticateApi()`
+  returns 401 (no key, or an unknown or revoked one), 403 (a read key writing) or
+  429 (over 120 requests a minute per key, counted in memory).
+- **Admin routes and panel:** `GET/POST /api/admin/api-keys`,
+  `DELETE /api/admin/api-keys/[id]`, and `components/ApiKeysPanel.tsx`.
+- **One set of edit rules:** `lib/ticketChanges.ts` `applyTicketChanges()` holds
+  the hold reason, compound close, the offboarding guard and self-assign →
+  בטיפול, and builds the history rows and the mail to send. The bulk route and
+  the API's PATCH both use it.
+- **New helpers:**
+  - `lib/ticketQuery.ts` — turns the list's query string into a Prisma query.
+  - `lib/apiV1.ts` — the ticket as the API shows it, and the body checks.
+  - `lib/openapi.ts` — the OpenAPI document.
+- **Dev copy:** `scripts/refresh-dev-db.py` no longer copies `ApiKey`. The dev
+  copy keeps its own keys, and production's never work there.
+- `/api/automation/close` and its `AUTOMATION_API_KEY` are unchanged.
+- **New tests:** `apiKeys`, `apiKeysAdmin`, `ticketQuery`, `apiV1`,
+  `apiV1Routes`, `devRefresh`, and `openapi` — which fails when a `/api/v1`
+  route or method is missing from the OpenAPI document. 80 suites /
+  1,380 tests.
+
+---
+
 ## v3.87 — פנייה או בקשה
 
 **A ticket is now a fault or a request. A request — something wanted rather

@@ -1,11 +1,11 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.87** · Updated 2026-09-14
+> **Current version: 3.88** · Updated 2026-09-14
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
-> Live: **v3.83**–**v3.86** (mail replies, bulk editing, attachments, no lost mail, a dev copy). Committed:
-> **v3.87** (tickets and requests — REQ-N, an SLA per type, requests below the tickets). Next: a documented API for
-> other programs. Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
+> Live: **v3.83**–**v3.87** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
+> requests). Committed: **v3.88** (an API for other programs — `/api/v1`, a key per program,
+> [`docs/API.md`](docs/API.md)). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
 > (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
@@ -48,7 +48,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Employee portal (`/dashboard`)** — submit tickets, view own tickets, search, filter, re-open within 4 weeks, update profile
 - **Staff portal (`/tickets`)** — all tickets with search, sort, stat-card filters (weekly/total toggle), inline expand/edit, paste images into notes
 - **Viewer portal (`/tickets/view`)** — read-only ticket list
-- **Admin portal (`/admin`)** — seven tabs: תור פניות · ניהול משתמשים · יומן שגיאות · שדות מערכת · רישוי · מדפסות · ציוד חסר
+- **Admin portal (`/admin`)** — eight tabs: תור פניות · ניהול משתמשים · יומן שגיאות · שדות מערכת · רישוי · מדפסות · ציוד חסר · API
 - **Ticket detail (`/tickets/<cuid>`)** — notes, messages, attachments, equipment lines, audit timeline, close button, copy-link button. Polls by revision signature so it stays live without flicker
 - **Four-state lifecycle** — פתוח / בטיפול / **בהמתנה** / סגור. בהמתנה requires a `holdReason`, cleared automatically on reinstatement
 - **Ticket deletion** — admins only, two-step confirm, permanent; the deletion is written to the `Log` table because the ticket's own audit trail dies with it
@@ -59,6 +59,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Email-to-ticket ingestion** — inbound mail whose subject contains "ticket" becomes an URGENT ticket via IMAP polling (see §6)
 - **Service ratings** — 1–5 stars with comment; admin review dashboard
 - **Error logging** — ErrorBoundary + ClientErrorHandler + server `logError()` → `Log` table, with stale-chunk failures filtered out
+- **API for other programs (v3.88)** — `/api/v1`: list and query tickets and requests by any field, read one in full, open one, change it, write to its owner, add a note. A key per program (read, or read and write), created and revoked in the admin console. OpenAPI at `/api/v1/openapi.json`; guide in [`docs/API.md`](docs/API.md)
 - **Automation API** — `POST /api/automation/close` closes a ticket with a Bearer key; idempotent
 - **Periodic urgency sweep** — cron every 5 min ensures closed tickets have `urgency = נמוך`
 - **Configurable dropdowns** — category / platform / urgency / equipment / licenseCategory are DB-driven, managed in שדות מערכת
@@ -81,7 +82,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,312 tests across 73 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,380 tests across 80 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -91,7 +92,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 
 ## 3. Architecture & Data Model
 
-### Data models (Prisma) — 13 tables
+### Data models (Prisma) — 15 tables
 
 Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.md` §6](docs/ARCHITECTURE.md#6-database-schema-reference).
 
@@ -107,6 +108,8 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 - **Printer** — name, maker, model, supplier, ipv4, hostname, inkToner, tonerLevel, supplierSerial.
 - **PrinterDriver** — driver metadata; the binaries live on disk under `uploads/printer-drivers/`.
 - **FieldOption** — configurable dropdown values. `field` ∈ `category | platform | urgency | licenseCategory | equipment`. `@@unique([field, label])`. Auto-seeded with defaults on first GET.
+- **AppSetting** *(v3.87)* — key/value settings admins change from the console: `sla.ticket` / `sla.request` in workdays.
+- **ApiKey** *(v3.88)* — one per program: `name`, `prefix` (the first 12 characters, shown in the console), `hash` (SHA-256 — the key itself is never stored), `scope` (`read` | `write`), `createdBy`, `lastUsedAt`, `revokedAt`. Never copied to the dev copy.
 - **Log** — telemetry and error tracking (`level`, `message`, `source`, `stack`, `date`). 30-day auto-cleanup on write.
 
 ### Key application layers
@@ -125,6 +128,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 - **Image paste:** `lib/pasteImage.ts` exports `handleImagePaste(e, onImage)` — add to any textarea.
 - **Chunk errors:** `lib/chunkError.ts` detects post-deploy stale-chunk failures and reloads once instead of logging noise.
 - **API:** NextAuth JWTs + the `isAdmin` boolean guard all privileged routes. Client-side page guards are convenience only; every one is backed server-side.
+- **API for other programs (v3.88):** routes under `app/api/v1/`, no session — `lib/apiKeys.ts` (key check, rate limit, `apiActor()`), `lib/ticketQuery.ts` (list filters), `lib/apiV1.ts` (the ticket as the API shows it; body checks), `lib/ticketChanges.ts` (`applyTicketChanges()` — the edit rules, shared with the bulk route), `lib/openapi.ts`.
 
 ### Critical business rules
 
@@ -140,6 +144,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 10. **Email addresses are matched case-insensitively** — always via `lib/users.ts`. A bare `findUnique` on a lowercased address misses rows and turns an `upsert` into a duplicate account. Since v3.66 the database backs this up with `UNIQUE (lower(email))` on `User`, created by a raw-SQL migration because Prisma cannot express a functional index — so `prisma migrate dev` reporting it as drift is expected, not a reason to reset.
 11. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` only supplies curated handles/names for matching emails (and is the empty-DB fallback). Clients fetch `GET /api/staff`.
 12. **FieldOption deletions are guarded** — the four urgencies and the עובד חדש / עובד עוזב categories cannot be removed; business logic depends on them.
+13. **`/api/v1` is a contract — additive only** (v3.88). Other programs are built against it: within v1 never rename, remove or retype a field, a parameter or an error code — add new optional ones. A breaking change is `/api/v2`, beside v1. A new route or method goes into `lib/openapi.ts` in the same change (`__tests__/openapi.test.ts` fails otherwise).
 
 ---
 
@@ -176,6 +181,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.88 | An API for other programs: `/api/v1` lists and queries tickets and requests by any field, reads one in full, opens, changes, writes to the owner and adds notes, with the site's rules and mail. A key per program (read or read-write, stored as SHA-256), made and revoked in the admin console's new API tab; OpenAPI 3.1 at `/api/v1/openapi.json`, guide in `docs/API.md`. `ApiKey` (migration `20260916000000_api_keys`) |
 | 3.87 | Tickets and requests: a request is labelled REQ-N (same number sequence), is overdue after 10 workdays against a ticket's 4 (admins set both), and is listed below the tickets. `Ticket.type` and `AppSetting` (migration `20260915000000_ticket_type_and_settings`); `lib/ticketType.ts` for labels, sections and SLA |
 | 3.86 | A dev copy of the helpdesk on the same server — `bash deploy.sh dev`, its own directory, pm2 app, port, domain and database (a copy of production's, `scripts/refresh-dev-db.py`). `NEXT_PUBLIC_APP_ENV=dev` shows a DEV strip, sends all mail to `MAIL_REDIRECT_TO` only and never reads the helpdesk mailbox. Deploy scripts match cron entries by the copy's own path |
 | 3.85 | Notification mail no longer lost to a bare `void`: new-ticket, message, @mention and edit mail finish inside `after()`, and the creation history row and on-behalf note are awaited. `__tests__/noBareVoid.test.ts` refuses the pattern in any route |
@@ -238,4 +244,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.87 — updated 2026-09-14.*
+*v3.88 — updated 2026-09-14.*

@@ -16,6 +16,9 @@ scripts/create-dev-db.py).
   • The schema is not copied. Dev's own migrations build it (`bash deploy.sh
     dev`), so deploy dev first after any migration — the script stops if a
     table or column is missing on dev.
+  • API keys are not copied (v3.88). Dev keeps its own ApiKey rows, and
+    production's never come over: a production key — even one revoked in
+    production since — must not open the dev copy, whose data is production's.
 
 Attachments and printer drivers live on disk, not in the database. Copy them on
 the server:
@@ -33,6 +36,8 @@ from psycopg2 import sql
 
 ROOT = Path(__file__).resolve().parent.parent
 SKIP = {"_prisma_migrations"}
+# Neither emptied nor copied: the dev copy's own API keys (v3.88).
+KEEP_DEV = {"ApiKey"}
 
 
 def env_file_value(path: Path, key: str):
@@ -107,7 +112,8 @@ def main():
     dst = psycopg2.connect(dev, connect_timeout=15)
     s, t = src.cursor(), dst.cursor()
 
-    names = tables(s)
+    # `names` is both what is emptied and what is copied — KEEP_DEV is in neither.
+    names = tables(s) - KEEP_DEV
     missing = names - tables(t)
     if missing:
         sys.exit(f"Dev lacks tables {sorted(missing)} — run `bash deploy.sh dev` first, so its migrations run.")
@@ -128,6 +134,7 @@ def main():
             t.copy_expert(sql.SQL("COPY {} ({}) FROM STDIN").format(sql.Identifier(name), col_list).as_string(dst), buf)
             s.execute(sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(name)))
             print(f"  {name}: {s.fetchone()[0]} rows")
+        print(f"  kept as they were on dev, not copied: {', '.join(sorted(KEEP_DEV))}")
 
         # Move every sequence past the rows just copied (Ticket.ticketNumber among them).
         t.execute("""

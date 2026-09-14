@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-14 · v3.87
+> Version 2.0 · Last updated 2026-09-14 · v3.88
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -444,13 +444,14 @@ app/
 │                                    equipment, history timeline, polling by revision
 ├── admin/
 │   ├── page.tsx            CLIENT — Tabs: תור פניות · ניהול משתמשים · יומן שגיאות ·
-│   │                                שדות מערכת · רישוי · מדפסות · ציוד חסר
+│   │                                שדות מערכת · רישוי · מדפסות · ציוד חסר · API
 │   ├── logs/page.tsx       CLIENT — Standalone error-log viewer
 │   ├── reports/            CLIENT — Ticket analytics: page.tsx + TimelineChart.tsx
 │   │                                + BreakdownBars.tsx (hand-rolled SVG, no chart lib)
 │   └── reviews/page.tsx    CLIENT — Service-review dashboard
 │
-└── api/                    See §7 for the full route reference
+└── api/                    See §7 for the full route reference; api/v1/ is the
+                            API for other programs (v3.88)
 
 components/
 ├── AppHeader.tsx           Shared header + role badge + hamburger nav
@@ -461,6 +462,7 @@ components/
 ├── NewEmployeeFields.tsx   The four mandatory "עובד חדש" fields
 ├── OffboardingNotice.tsx   Return-checklist banner for "עובד עוזב"
 ├── ImageAttachments.tsx    Pick, drop or paste attachments; thumbnails, file chips, download links (v3.84)
+├── ApiKeysPanel.tsx        Admin → API: create a key (shown once), see last use, revoke (v3.88)
 ├── ErrorBoundary.tsx       React render-error catch + fallback UI
 ├── ClientErrorHandler.tsx  window.onerror + unhandledrejection listener
 ├── ErrorToast.tsx          Transient error banner
@@ -484,6 +486,8 @@ lib/
 ├── staffMembers.ts         Server-side resolver for the DB-driven staff roster
 │
 ├── ticketApi.ts            Client mutation helpers — closeTicket(), updateTicket()
+├── ticketChanges.ts        applyTicketChanges() — the staff edit rules, for bulk and the API (v3.88)
+├── ticketQuery.ts          /api/v1/tickets query string → Prisma where, order, paging (v3.88)
 ├── ticketSearch.ts         HDTC-number-aware search (`494`, `#494`, `HDTC-494`, …)
 ├── ticketRevision.ts       Compact signature so detail-page polling avoids re-renders
 ├── staleTicket.ts          isStaleOpen() — STALE_WORKDAYS = 4
@@ -503,6 +507,12 @@ lib/
 ├── mailAttachments.ts      Which inbound-mail attachments are kept (v3.84)
 ├── printerStorage.ts       Printer driver binaries on disk
 │
+├── apiKeys.ts              API keys: generate, SHA-256, authenticateApi(), rate limit (v3.88)
+├── apiV1.ts                The ticket as /api/v1 shows it; request-body checks (v3.88)
+├── apiRoute.ts             refWhere(), serverError() for the v1 routes (v3.88)
+├── apiOptions.ts           The values a program may send, from FieldOption (v3.88)
+├── openapi.ts              The OpenAPI 3.1 document for /api/v1 (v3.88)
+│
 ├── logError.ts             Server-side logError() → Log table
 ├── chunkError.ts           Stale-chunk detection + one-shot reload
 ├── pasteImage.ts           handleImagePaste() for any textarea
@@ -514,13 +524,13 @@ types/
 └── printer.ts              Printer + PrinterDriver interfaces
 
 prisma/
-├── schema.prisma           13 models — see §6
+├── schema.prisma           15 models — see §6
 └── migrations/             SQL migration history
 
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  73 suites, 1,312 tests — gate the build
+__tests__/                  80 suites, 1,380 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -839,6 +849,24 @@ the SLA and the place in the queue follow the type (`lib/ticketType.ts`).
 `sla.ticket` and `sla.request`, in workdays. A missing key means the default
 (4 and 10). Read and written through `lib/sla.ts`.
 
+### ApiKey (v3.88)
+
+One row per program allowed to call `/api/v1` (§7). No foreign keys.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | String (cuid) | |
+| `name` | String | The program, as an admin named it; its changes are recorded as `API: <name>` |
+| `prefix` | String, **unique** | The key's first 12 characters (`hdk_` + 8) — shown in the console to tell keys apart |
+| `hash` | String, **unique** | SHA-256 (hex) of the whole key; requests are looked up by it. **The key itself is never stored** |
+| `scope` | String, default `read` | `read` or `write` |
+| `createdBy` | String | The admin's email |
+| `createdAt` | DateTime | |
+| `lastUsedAt` | DateTime? | Written at most once a minute per key |
+| `revokedAt` | DateTime? | Set on revoke. The row stays, so old history still names the program |
+
+`scripts/refresh-dev-db.py` never copies this table: the dev copy keeps its own keys.
+
 ## 7. API Routes Reference
 
 **Auth column key** — `—` none · `User` any signed-in user ·
@@ -913,6 +941,9 @@ emailed link is unguessable, so only the recipient can reach the URL.
 | POST / DELETE | `/api/admin/printers/drivers` | Admin | Upload / remove a driver file (≤ 100 MB, extension allowlist) |
 | GET | `/api/admin/printers/drivers/[id]` | Admin | Download a driver file |
 | GET | `/api/admin/equipment?includeClosed=1` | **Staff** | Shortage report — everything still owed, aggregated by item, plus `supplierText`. Staff-gated, not admin-only: the technicians who tick items off are the ones who need it |
+| GET | `/api/admin/api-keys` | **Admin** | Every API key — name, prefix, scope, who made it, when, last used, revoked. Never the key or its hash (v3.88) |
+| POST | `/api/admin/api-keys` | **Admin** | `{ name, scope: "read" \| "write" }` → 201 `{ key, data }` — the only response that ever carries the key; only its SHA-256 is stored; logged (v3.88) |
+| DELETE | `/api/admin/api-keys/[id]` | **Admin** | Revoke: sets `revokedAt` (the row stays); refused from the next request on; logged (v3.88) |
 
 ### Machine-to-machine and cron
 
@@ -924,6 +955,28 @@ emailed link is unguessable, so only the recipient can reach the URL.
 | POST | `/api/admin/digest` | Secret | `x-digest-secret` → `DIGEST_SECRET`. Daily open-ticket summary to staff |
 | POST | `/api/admin/sweep` | Secret | `x-sweep-secret` → `SWEEP_SECRET`, falling back to `DIGEST_SECRET`. Repairs closed tickets whose urgency is not `נמוך` |
 | POST | `/api/admin/ingest-mail` | Secret | `x-ingest-secret` → `INGEST_SECRET`, falling back to `DIGEST_SECRET`. Polls IMAP and opens a ticket for every inbound mail bar our own, bounces, auto-replies and pre-cutoff mail (v3.82). A reply naming `HDTC-N` from that ticket's owner or staff is added to it as a message instead (v3.83). Returns `{ ok, created, tickets[], replies[], skipped }`; 503 if the mailbox is unconfigured |
+
+### The API for other programs — `/api/v1` (v3.88)
+
+Auth **Key** here is an `ApiKey` (§6) sent as `Authorization: Bearer hdk_…` or
+`X-Api-Key`, checked by `authenticateApi()` in `lib/apiKeys.ts`: 401 for no key or
+an unknown or revoked one; 403 for a `read` key on a write; 429 over 120 requests a
+minute per key (in memory, with `Retry-After`). No route here reads the session.
+Errors are always `{ error: { code, message } }`. The contract — every field, filter
+and example — is [`docs/API.md`](API.md) and `GET /api/v1/openapi.json`. Within v1
+it only grows (rule 69).
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/v1/tickets` | Key (read) | List. Filters `status`, `urgency`, `category`, `platform` (a comma means any of), `type`, `open`, `assignedTo`, `owner`, `number`, `q`, `createdFrom/To`, `updatedFrom/To`; `sort` (`createdAt`, `updatedAt`, `ticketNumber`), `order`, `page`, `limit` ≤ 200 → `{ data, page: { number, limit, total, pages } }`. Parsed by `lib/ticketQuery.ts`; an unknown parameter is 400 |
+| POST | `/api/v1/tickets` | Key (write) | Open a ticket or request for `ownerEmail` (a new address becomes a user). History `created` by `API: <name>`; the web form's mail unless `notify: false` → 201 |
+| GET | `/api/v1/tickets/[ref]` | Key (read) | One ticket with messages, notes, history, attachments (with download URLs) and equipment. `ref` is `HDTC-N`, `REQ-N`, `N` or the id |
+| PATCH | `/api/v1/tickets/[ref]` | Key (write) | Change fields through `applyTicketChanges()` (`lib/ticketChanges.ts`, shared with the bulk route): compound close, hold reason, the offboarding guard (409), history rows, the staff and owner mail |
+| POST | `/api/v1/tickets/[ref]/messages` | Key (write) | A staff message to the owner, who is mailed unless `notify: false` → 201 |
+| POST | `/api/v1/tickets/[ref]/notes` | Key (write) | An internal note; nobody is mailed → 201 |
+| GET | `/api/v1/attachments/[id]` | Key (read) | The file, served with `attachmentResponseHeaders()` (rule 62) |
+| GET | `/api/v1/options` | Key (read) | The allowed `status`, `type`, `urgency`, `category` and `platform` values, and the SLA per type |
+| GET | `/api/v1/openapi.json` | — | The OpenAPI 3.1 document (`lib/openapi.ts`). `__tests__/openapi.test.ts` fails when a route or method is missing from it |
 
 ---
 
@@ -976,6 +1029,7 @@ GET   /api/admin/field-options    │ 401    │ ✓          │ ✓      │ �
 POST/DELETE /api/admin/field-opts │ 403    │ 403        │ 403    │ 403   │ ✓
 *     /api/admin/licenses         │ 403    │ 403        │ 403    │ 403   │ ✓
 *     /api/admin/printers[/*]     │ 403    │ 403        │ 403    │ 403   │ ✓
+*     /api/admin/api-keys[/*]     │ 401    │ 403        │ 403    │ 403   │ ✓
 GET   /api/admin/equipment        │ 401    │ 403        │ 403    │ ✓     │ ✓
 POST  /api/contact                │ 401    │ ✓          │ ✓      │ ✓     │ ✓
 POST  /api/logs                   │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
@@ -983,6 +1037,7 @@ GET   /api/reviews (list)         │ 401    │ 403        │ 403    │ ✓  
 GET   /api/reviews?ticket=        │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
 POST/PATCH /api/reviews           │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓
 POST  /api/automation/close       │ Bearer AUTOMATION_API_KEY (no session)
+*     /api/v1/*                   │ an ApiKey (no session): read → GET, write → all; openapi.json open
 POST  /api/admin/{digest,sweep,ingest-mail}  │ shared-secret header (no session)
 ```
 
@@ -1192,7 +1247,7 @@ The same code runs a second time on the same server as the **dev copy**:
 |---|---|---|
 | Deploy | `bash deploy.sh` | `bash deploy.sh dev` / `.\deploy.ps1 -Target dev` |
 | Env files | shipped from the checkout | written once on the server by `scripts/setup-dev.sh`; **never shipped** |
-| Data | the real thing | a copy: `python scripts/refresh-dev-db.py`, plus an `rsync` of `uploads/` |
+| Data | the real thing | a copy: `python scripts/refresh-dev-db.py`, plus an `rsync` of `uploads/` — all but the API keys, which the dev copy keeps its own of (v3.88) |
 | Mail out | as addressed | only to `MAIL_REDIRECT_TO`, `[DEV]` in the subject; nothing at all if unset |
 | Mail in (IMAP) | every 2 minutes | never — the route answers 503 (`INGEST_ENABLED=1` only with a mailbox of its own) |
 | Cron | digest, sweep, ingest | sweep only |

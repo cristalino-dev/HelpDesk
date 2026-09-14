@@ -73,6 +73,23 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
+/// A key another program uses to call the public API, /api/v1 (v3.88). Only a
+/// SHA-256 of the key is stored — the key itself is shown once, to the admin
+/// who creates it. `prefix` (its first 12 characters) is what the console shows
+/// to tell keys apart. `scope` is "read" or "write". A revoked key is kept, so
+/// the history's "API: <name>" still says whose it was. See lib/apiKeys.ts.
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  prefix     String    @unique
+  hash       String    @unique
+  scope      String    @default("read")
+  createdBy  String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+}
+
 model TicketHistory {
   id         String   @id @default(cuid())
   ticketId   String

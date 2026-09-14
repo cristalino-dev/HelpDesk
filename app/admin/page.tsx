@@ -81,6 +81,7 @@ import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest 
 import { useSla } from "@/lib/useSla"
 import RequestsDivider from "@/components/RequestsDivider"
 import SlaSettings from "@/components/SlaSettings"
+import ApiKeysPanel from "@/components/ApiKeysPanel"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import BulkActionBar from "@/components/BulkActionBar"
@@ -113,7 +114,7 @@ export default function AdminPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [statFilter, setStatFilter] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment">("tickets")
+  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment" | "api">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
@@ -822,7 +823,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: `2px solid ${T.line}`, paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"]] as const).map(([key, label]) => (
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"], ["api", "API"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
               if (key === "users" && users.length === 0) loadUsers()
@@ -1492,6 +1493,9 @@ export default function AdminPage() {
             </div>
           )
         })()}
+
+        {/* ── API TAB (v3.88) — keys for other programs ── */}
+        {tab === "api" && <ApiKeysPanel />}
 
         {/* ── TICKETS TAB ── */}
         {/* ── EQUIPMENT SHORTAGE TAB ── */}

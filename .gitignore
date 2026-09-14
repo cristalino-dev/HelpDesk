@@ -40,6 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# python (scripts/*.py) — compiled caches
+__pycache__/
+*.pyc
+
 /lib/generated/prisma
 
 # Ad-hoc deployment/admin scripts that historically embedded server credentials.
