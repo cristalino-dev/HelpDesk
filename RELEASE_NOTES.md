@@ -5,6 +5,89 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.84 — קבצים מצורפים: יותר סוגים, קבצים גדולים יותר, ושום העלאה לא נעלמת בשקט
+
+**Attachments were broken in four ways at once: anything over about 750 KB
+never reached the app, every refusal was reported as a success, anything that
+was not an image vanished, and an uploaded SVG could run script in a staff
+member's session. All four are fixed. Tickets now take PDF, Word, Excel,
+PowerPoint and text files as well as images, and mail attachments are saved
+onto the ticket.**
+
+### What we found
+
+- **nginx refused every upload over ~750 KB.** The helpdesk site had no
+  `client_max_body_size`, so nginx's 1 MB default applied — and uploads travel
+  as base64 JSON, 4/3 the size of the file. A 3.8 MB photo on HDTC-470 was
+  refused twice on 2026-08-23; nginx logged it, the app never saw it. The
+  largest attachment ever stored was 670 KB. (Raised on the server on
+  2026-09-14 to `client_max_body_size 10m`.)
+- **The app's own cap was 3 MB of base64** — about 2.25 MB of image — so that
+  photo would have failed there too.
+- **Every upload site ignored the answer.** The five places that upload (a new
+  ticket, /open, and three note composers) sent the files and never read the
+  response. The person was told it had worked.
+- **Only images were accepted, and anything else vanished.** The picker offered
+  `image/*`, and a PDF dropped on it was discarded without a word.
+- **An uploaded SVG ran script.** SVG was accepted as an image and served
+  inline from our own origin with no `nosniff` and no download disposition:
+  opened in a tab, its script ran with the viewer's session. Production held no
+  SVG attachments (checked).
+
+### What changed for users
+
+- **Attach PDF, Word, Excel, PowerPoint, text and CSV files as well as images —
+  up to 7 MB each.** A file shows as a chip with its kind, name and size; on
+  the ticket it is a download link.
+- **Big photos and 4K screenshots shrink in the browser** to 2000 px before they
+  are sent, so a phone photo goes up in a few hundred KB.
+- **A file that cannot be attached says why** — wrong type, too large — right
+  under the drop zone. A file that fails to upload stays in the note composer
+  with its reason, and the new-ticket confirmation names any that did not make
+  it. Nothing is dropped silently.
+- **Mail attachments are kept.** A PDF or a screenshot sent to helpdesk@ lands
+  on the ticket — or, for a reply, on the ticket it answers. Signature logos
+  are skipped; anything that cannot be kept is named at the end of the
+  description. At most 10 per mail.
+- The help page and the admin guide say so.
+
+### What changed for developers
+
+- **`lib/attachmentTypes.ts`** is the single allow-list, and client-safe: raster
+  images (inline) and PDF/Office/txt/csv (download), `MAX_ATTACHMENT_BYTES`
+  7 MB, `mimeForFile()` (declared type, then extension — mail clients'
+  octet-stream, Windows' vnd.ms-excel for .csv), `shrinkPlan()`,
+  `describeUploadFailure()`. SVG, HTML and executables are deliberately absent
+  (rule 61).
+- **Upload** (`POST /api/tickets/[id]/attachments`): `decodeDataUrl()` +
+  `mimeForFile()`; **413** too large, **415** type not allowed, each with a
+  Hebrew `{ error }`; stored through `storeAttachment()`, shared with mail
+  ingestion, which removes the file again if the row cannot be written.
+- **Serving** (`GET /api/attachments/[id]`): `attachmentResponseHeaders()` —
+  inline only for an allowed raster image, otherwise a download under its real
+  (RFC 5987) filename; a type no longer allowed, legacy SVG included, as
+  `application/octet-stream`; always `X-Content-Type-Options: nosniff` and
+  `Content-Security-Policy: default-src 'none'; sandbox` (rule 62).
+- **Client:** `lib/prepareAttachment.ts` (type, shrink through
+  `createImageBitmap` + canvas with a fallback to the original bytes, size)
+  feeds `components/ImageAttachments.tsx` and `lib/pasteImage.ts`;
+  `uploadAttachments()` in `lib/ticketApi.ts` reads every answer and never
+  assumes a failed one is JSON — nginx's 413 is an HTML page (rule 63). A
+  multi-file drop used to keep only the last file, each FileReader appending to
+  the same stale list; it is one batch now.
+- **Mail:** `lib/mailAttachments.ts` — `planMailAttachments()` (signature images
+  under 20 KB skipped, the allow-list, 7 MB, 10 per mail) and
+  `droppedAttachmentsNote()`. The ingest route saves what is kept, and logs — never
+  fails — on an attachment that will not save.
+- **`scripts/deploy-remote.sh`** warns when the helpdesk nginx site has no
+  `client_max_body_size`: that vhost is hand-maintained on the server, and a
+  rebuilt server would silently fall back to 1 MB (rule 64).
+- Tests: `AttachmentRoutes`, `prepareAttachment`, `uploadAttachments`,
+  `ImageAttachments` and `mailAttachments` (new); `IngestMailRoute` (+5).
+  67 suites / 1,262 tests.
+
+---
+
 ## v3.83 — תשובה למייל מצטרפת לפנייה, ועריכה מרוכזת
 
 **A reply to one of our notification mails is now added to the ticket it

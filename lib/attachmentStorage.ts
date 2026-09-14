@@ -74,6 +74,21 @@ export function parseAttachmentDataUrl(dataUrl: string): { mimeType: string; buf
 }
 
 /**
+ * Splits any base64 data URL into the type it declares and its bytes — "" for
+ * the type when it declares none (FileReader writes "data:application/octet-stream"
+ * or bare "data:" for a file the OS could not type). Whether that type may be
+ * attached is the caller's decision: mimeForFile() weighs it against the
+ * filename. Null for anything that is not a non-empty base64 data URL.
+ */
+export function decodeDataUrl(dataUrl: string): { declared: string; buffer: Buffer } | null {
+  const m = /^data:([^;,]*)((?:;[^;,]*)*);base64,([A-Za-z0-9+/=\s]*)$/.exec(String(dataUrl ?? ""))
+  if (!m) return null
+  const buffer = Buffer.from(m[3], "base64")
+  if (buffer.length === 0) return null
+  return { declared: m[1].trim().toLowerCase(), buffer }
+}
+
+/**
  * Content-Disposition for serving an attachment. Raster images are inline —
  * the ticket shows them in <img>. Everything else is an attachment: the
  * browser downloads it rather than rendering it.

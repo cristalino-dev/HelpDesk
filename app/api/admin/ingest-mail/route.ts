@@ -32,6 +32,12 @@
  *      to: lists, bulk mail, no-reply senders, suppression requests, and the
  *      per-sender circuit breaker.
  *
+ * ATTACHMENTS (v3.84): what lib/mailAttachments.ts keeps is saved onto the new
+ * ticket — or onto the ticket a reply answers — through storeAttachment(), the
+ * upload route's own path. What it does not keep is named at the end of the
+ * description or message, with the reason. An attachment that fails to save
+ * is logged and skipped: it never costs the ticket.
+ *
  * \Seen is the "processed" mark and the Message-ID is the idempotency key
  * (Ticket.sourceMessageId is unique). A reply has no such column; the same
  * author writing the same words to the same ticket within
@@ -57,7 +63,7 @@
  */
 
 import { ImapFlow } from "imapflow"
-import { simpleParser, type AddressObject } from "mailparser"
+import { simpleParser, type AddressObject, type Attachment } from "mailparser"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { getStaffEmails } from "@/lib/staffMembers"
@@ -73,6 +79,8 @@ import {
   ticketNumberFromSubject, stripQuotedReply,
   MAX_PER_RUN, AUTO_RESPOND_WINDOW_MS, REPLY_DEDUPE_WINDOW_MS, type SkipReason,
 } from "@/lib/mailIngest"
+import { planMailAttachments, droppedAttachmentsNote, type MailAttachmentPlan } from "@/lib/mailAttachments"
+import { storeAttachment } from "@/lib/storeAttachment"
 import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
 import { NextRequest, NextResponse, after } from "next/server"
 
@@ -80,6 +88,23 @@ import { NextRequest, NextResponse, after } from "next/server"
 function firstAddress(field: AddressObject | AddressObject[] | undefined) {
   const obj = Array.isArray(field) ? field[0] : field
   return obj?.value?.[0]
+}
+
+/**
+ * Save what the plan keeps onto a ticket. A file that fails is logged and
+ * skipped — the ticket or reply it came with is already saved and stays so.
+ */
+async function saveMailAttachments(ticketId: string, atts: readonly Attachment[], plan: MailAttachmentPlan) {
+  for (const k of plan.keep) {
+    const a = atts[k.index]
+    try {
+      const buffer = Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content)
+      await storeAttachment(ticketId, { buffer, mimeType: k.mimeType, filename: k.filename })
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err))
+      await logError(`Mail attachment not saved (${k.filename ?? "ללא שם"}): ${e.message}`, "/api/admin/ingest-mail POST", e.stack)
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -156,6 +181,11 @@ export async function POST(req: NextRequest) {
         // Mail we relayed for someone (the contact form) is theirs, not ours.
         const sender = isRelayed(meta, own) ? replyTo : from
 
+        // What of the mail's attachments will be kept, and what named instead.
+        const attachments = parsed.attachments ?? []
+        const plan = planMailAttachments(attachments)
+        const droppedNote = droppedAttachmentsNote(plan.dropped)
+
         // ── A reply to a ticket joins that ticket (v3.83) ─────────────────
         // Notifications come from noreply_helpdesk@, an alias of this mailbox,
         // so without this every "תודה" or "still broken" sent back to one
@@ -174,7 +204,8 @@ export async function POST(req: NextRequest) {
           const isOwner = !!target && (target.user?.email ?? "").toLowerCase() === senderEmail
 
           if (target && (isOwner || isStaffSender)) {
-            const content = stripQuotedReply(parsed.text) || "(הודעה ללא תוכן)"
+            const text = stripQuotedReply(parsed.text)
+            const content = (text || (plan.keep.length > 0 ? "(קבצים מצורפים)" : "(הודעה ללא תוכן)")) + droppedNote
             const authorName = sender?.name?.trim() || senderUser?.name || senderEmail
 
             // One reply seen twice — a run that died between saving it and
@@ -194,6 +225,7 @@ export async function POST(req: NextRequest) {
               },
             })
             await markSeen(uid)
+            await saveMailAttachments(target.id, attachments, plan)
 
             const info = {
               id: target.id, ticketNumber: target.ticketNumber,
@@ -243,6 +275,7 @@ export async function POST(req: NextRequest) {
           { subject: parsed.subject ?? "", text: parsed.text ?? "", fromName: sender?.name ?? "", fromEmail: sender?.address ?? "" },
           keyword,
         )
+        const description = t.description + droppedNote
 
         // Reporter: find-or-create a User by the sender's email so the ticket
         // has an owner. Case-insensitively — an exact-match upsert against a
@@ -255,7 +288,7 @@ export async function POST(req: NextRequest) {
           ticket = await prisma.ticket.create({
             data: {
               subject:      t.subject,
-              description:  t.description,
+              description,
               phone:        t.phone,
               computerName: t.computerName,
               urgency:      t.urgency,
@@ -289,6 +322,8 @@ export async function POST(req: NextRequest) {
           },
         })
 
+        await saveMailAttachments(ticket.id, attachments, plan)
+
         // The circuit breaker's input: how many OTHER mail tickets this sender
         // opened inside the window — every one of which was offered a reply.
         const recent = await prisma.ticket.count({
@@ -302,7 +337,7 @@ export async function POST(req: NextRequest) {
 
         const ticketInfo = {
           id: ticket.id, ticketNumber: ticket.ticketNumber,
-          subject: t.subject, description: t.description,
+          subject: t.subject, description,
           urgency: t.urgency, category: t.category, platform: t.platform,
           phone: t.phone, computerName: t.computerName, status: ticket.status,
           submitterName: t.reporterName, submitterEmail: t.reporterEmail,

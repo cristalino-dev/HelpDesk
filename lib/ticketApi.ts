@@ -16,6 +16,9 @@
  *   import { closeTicket, setTicketStatus, updateTicket } from "@/lib/ticketApi"
  */
 
+import type { PendingImage } from "@/components/ImageAttachments"
+import { describeUploadFailure } from "@/lib/attachmentTypes"
+
 async function patchTicket(payload: Record<string, unknown>): Promise<Response> {
   return fetch("/api/tickets", {
     method: "PATCH",
@@ -128,5 +131,53 @@ export async function bulkUpdateTickets(ids: string[], changes: BulkChanges): Pr
     }
   }
   return res.json()
+}
+
+export interface UploadFailure {
+  /** The item that did not make it — a page keeps it so the person can retry. */
+  item: PendingImage
+  name: string
+  reason: string
+}
+
+/**
+ * Upload pending attachments to a ticket, one at a time, and report which did
+ * not make it and why (v3.84). Until then all five callers fired the POSTs and
+ * never looked at the answer, so a rejected upload was reported as a success.
+ * A failed response is not assumed to be JSON: nginx answers 413 with HTML.
+ *
+ * @returns the failures — empty when everything was attached.
+ */
+export async function uploadAttachments(ticketId: string, items: PendingImage[]): Promise<UploadFailure[]> {
+  const failures: UploadFailure[] = []
+  for (const item of items) {
+    const name = item.filename || "קובץ"
+    let res: Response
+    try {
+      res = await fetch(`/api/tickets/${ticketId}/attachments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataUrl: item.dataUrl, filename: item.filename }),
+      })
+    } catch {
+      failures.push({ item, name, reason: describeUploadFailure(null) })
+      continue
+    }
+    if (res.ok) continue
+    let serverMessage: string | null = null
+    try {
+      const body = await res.json()
+      if (typeof body?.error === "string") serverMessage = body.error
+    } catch { /* not JSON — nginx's own error page */ }
+    failures.push({ item, name, reason: describeUploadFailure(res.status, serverMessage) })
+  }
+  return failures
+}
+
+/** One line for a page to show: "הקובץ לא צורף: a.pdf — סוג הקובץ אינו נתמך". */
+export function uploadFailureMessage(failures: { name: string; reason: string }[]): string {
+  if (failures.length === 0) return ""
+  const list = failures.map(f => `${f.name} — ${f.reason}`).join("; ")
+  return failures.length === 1 ? `הקובץ לא צורף: ${list}` : `${failures.length} קבצים לא צורפו: ${list}`
 }
 

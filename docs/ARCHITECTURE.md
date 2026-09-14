@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-14 · v3.83
+> Version 2.0 · Last updated 2026-09-14 · v3.84
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -106,7 +106,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **1,201 tests across 62 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,262 tests across 67 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner |
 
@@ -460,7 +460,7 @@ components/
 ├── EquipmentPicker.tsx     Item + quantity picker for equipment requests
 ├── NewEmployeeFields.tsx   The four mandatory "עובד חדש" fields
 ├── OffboardingNotice.tsx   Return-checklist banner for "עובד עוזב"
-├── ImageAttachments.tsx    Pending/uploaded image strip
+├── ImageAttachments.tsx    Pick, drop or paste attachments; thumbnails, file chips, download links (v3.84)
 ├── ErrorBoundary.tsx       React render-error catch + fallback UI
 ├── ClientErrorHandler.tsx  window.onerror + unhandledrejection listener
 ├── ErrorToast.tsx          Transient error banner
@@ -497,6 +497,10 @@ lib/
 ├── mail.ts                 sendMail() + every outbound HTML template
 ├── mailIngest.ts           Pure inbound-email → ticket logic (no I/O)
 ├── attachmentStorage.ts    Ticket attachment bytes on disk (v3.48+)
+├── attachmentTypes.ts      What may be attached — the one allow-list, 7 MB (v3.84)
+├── storeAttachment.ts      File + row together, for uploads and mail (v3.84)
+├── prepareAttachment.ts    Browser side: type, shrink, refuse early (v3.84)
+├── mailAttachments.ts      Which inbound-mail attachments are kept (v3.84)
 ├── printerStorage.ts       Printer driver binaries on disk
 │
 ├── logError.ts             Server-side logError() → Log table
@@ -516,7 +520,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  62 suites, 1,201 tests — gate the build
+__tests__/                  67 suites, 1,262 tests — gate the build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -645,7 +649,7 @@ Indexed on `ticketId`.
 ### 6.6 TicketAttachment
 
 Since v3.48 the bytes live on the server filesystem under
-`uploads/ticket-attachments/`; the row holds only metadata.
+`uploads/ticket-attachments/`; the row holds only metadata. Since v3.84 a row may be any type on the list in `lib/attachmentTypes.ts` — images, and PDF/Office/text files — not only an image.
 
 | Column | Type | Required | Description |
 |---|---|---|---|
@@ -848,7 +852,7 @@ Indexed on `date` and `timestamp`. Rows older than 30 days are deleted on write.
 | POST | `/api/tickets/[id]/messages` | Owner/Staff | Post a conversation message. Optional `replyToEmail` / `replyToName` / `replyToMsgId` target one participant with a deep-link email and suppress the general notification |
 | DELETE | `/api/tickets/[id]/messages` | Author | Delete your own message |
 | POST | `/api/tickets/[id]/notes` | Staff | Internal note; `@handle` mentions notify by email |
-| POST | `/api/tickets/[id]/attachments` | Owner/Staff | Upload an image (data URL in, bytes to disk) |
+| POST | `/api/tickets/[id]/attachments` | Owner/Staff | Attach a file: `{ dataUrl, filename }`. Images and PDF/Office/txt/csv up to 7 MB, as `lib/attachmentTypes.ts` allows; **413** too large, **415** type not allowed, each with a Hebrew `{ error }`; stored by `storeAttachment()` (v3.84) |
 | POST | `/api/tickets/[id]/equipment` | Owner/Staff | Add/amend lines `[{ label, quantity }]`; upsert by label. Frozen for the owner once the ticket is closed |
 | PATCH | `/api/tickets/[id]/equipment` | **Staff** | Record arrivals: `{ id, receivedQty }` or `{ id, received: true }` |
 | DELETE | `/api/tickets/[id]/equipment` | Staff, or Owner | Owner only while nothing has arrived against the line |
@@ -877,7 +881,7 @@ client can replace state without a second round-trip.
 | PATCH | `/api/reviews` | — | **Public.** Change an existing rating/comment |
 | GET | `/api/admin/reports/export` | Admin | A real `.xlsx` of the tickets — `scope=all`, `scope=range&from&to`, or `scope=ticket&ticket=N`. Downloads via `Content-Disposition` |
 | GET | `/api/admin/reports` | Admin | Every ticket flattened for the reports page — opened date, resolved close date, and the five dimensions it breaks down by |
-| GET | `/api/attachments/[id]` | Owner/Staff | Serve attachment bytes (disk, or legacy `dataUrl`). Cached immutable |
+| GET | `/api/attachments/[id]` | Owner/Staff | Serve attachment bytes (disk, or legacy `dataUrl`) with `attachmentResponseHeaders()`: a raster image inline, anything else as a download under its real name, a type no longer allowed (legacy SVG) as `application/octet-stream`; always `nosniff` and `Content-Security-Policy: default-src 'none'; sandbox` (v3.84). Cached immutable |
 | POST | `/api/contact` | User | Email the dev team. 503 if SMTP is unconfigured |
 
 Review POST/PATCH are intentionally unauthenticated: the ticket CUID in the

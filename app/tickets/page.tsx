@@ -10,7 +10,7 @@ import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import { isStaleOpen, openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
-import { setTicketStatusOrError, updateTicket, bulkUpdateTickets, type BulkChanges } from "@/lib/ticketApi"
+import { setTicketStatusOrError, updateTicket, bulkUpdateTickets, uploadAttachments, uploadFailureMessage, type BulkChanges } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
@@ -73,6 +73,7 @@ export default function TicketsPage() {
   const [expandedNotes, setExpandedNotes]       = useState<Record<string, TicketNote[]>>({})
   const [noteText, setNoteText]                 = useState<Record<string, string>>({})
   const [noteImages, setNoteImages]             = useState<Record<string, PendingImage[]>>({})
+  const [noteUploadErrors, setNoteUploadErrors] = useState<Record<string, string>>({})
   const [noteSaving, setNoteSaving]             = useState<string | null>(null)
   // Messages (conversation with user) per expanded ticket
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
@@ -211,14 +212,11 @@ export default function TicketsPage() {
     const imgs = noteImages[ticketId] ?? []
     if (!content && imgs.length === 0) return
     setNoteSaving(ticketId)
+    setNoteUploadErrors(prev => ({ ...prev, [ticketId]: "" }))
     try {
-      for (const img of imgs) {
-        await fetch(`/api/tickets/${ticketId}/attachments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
-        })
-      }
+      // A file that fails stays in the composer with the reason (v3.84).
+      const failed = await uploadAttachments(ticketId, imgs)
+      if (failed.length > 0) setNoteUploadErrors(prev => ({ ...prev, [ticketId]: uploadFailureMessage(failed) }))
       if (content) {
         const res = await fetch(`/api/tickets/${ticketId}/notes`, {
           method: "POST",
@@ -231,7 +229,7 @@ export default function TicketsPage() {
         }
       }
       setNoteText(prev => ({ ...prev, [ticketId]: "" }))
-      setNoteImages(prev => ({ ...prev, [ticketId]: [] }))
+      setNoteImages(prev => ({ ...prev, [ticketId]: failed.map(f => f.item) }))
     } finally {
       setNoteSaving(null)
     }
@@ -1000,6 +998,9 @@ export default function TicketsPage() {
                                 onChange={imgs => setNoteImages(prev => ({ ...prev, [ticket.id]: imgs }))}
                               />
                             </div>
+                            {noteUploadErrors[ticket.id] && (
+                              <div role="alert" style={{ fontSize: "0.72rem", color: T.redFg, marginBottom: 6 }}>{noteUploadErrors[ticket.id]}</div>
+                            )}
                             <button
                               onClick={e => { e.stopPropagation(); addNote(ticket.id) }}
                               disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}

@@ -70,7 +70,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
-import { setTicketStatus, setTicketStatusOrError, updateTicket, bulkUpdateTickets, type BulkChanges } from "@/lib/ticketApi"
+import { setTicketStatus, setTicketStatusOrError, updateTicket, bulkUpdateTickets, uploadAttachments, uploadFailureMessage, type BulkChanges } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
@@ -128,6 +128,7 @@ export default function AdminPage() {
   const [expandedNotes, setExpandedNotes]       = useState<Record<string, TicketNote[]>>({})
   const [noteText, setNoteText]                 = useState<Record<string, string>>({})
   const [noteImages, setNoteImages]             = useState<Record<string, PendingImage[]>>({})
+  const [noteUploadErrors, setNoteUploadErrors] = useState<Record<string, string>>({})
   const [noteSaving, setNoteSaving]             = useState<string | null>(null)
   // Messages (conversation with user) per expanded ticket
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
@@ -2140,6 +2141,9 @@ export default function AdminPage() {
                               onChange={imgs => setNoteImages(prev => ({ ...prev, [ticket.id]: imgs }))}
                             />
                           </div>
+                          {noteUploadErrors[ticket.id] && (
+                            <div role="alert" style={{ fontSize: "0.72rem", color: T.redFg, marginBottom: 6 }}>{noteUploadErrors[ticket.id]}</div>
+                          )}
                           <button
                             onClick={async e => {
                               e.stopPropagation()
@@ -2147,14 +2151,11 @@ export default function AdminPage() {
                               const imgs = noteImages[ticket.id] ?? []
                               if (!content && !imgs.length) return
                               setNoteSaving(ticket.id)
+                              setNoteUploadErrors(prev => ({ ...prev, [ticket.id]: "" }))
                               try {
-                                for (const img of imgs) {
-                                  await fetch(`/api/tickets/${ticket.id}/attachments`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
-                                  })
-                                }
+                                // A file that fails stays in the composer with the reason (v3.84).
+                                const failed = await uploadAttachments(ticket.id, imgs)
+                                if (failed.length > 0) setNoteUploadErrors(prev => ({ ...prev, [ticket.id]: uploadFailureMessage(failed) }))
                                 if (content) {
                                   const res = await fetch(`/api/tickets/${ticket.id}/notes`, {
                                     method: "POST",
@@ -2167,7 +2168,7 @@ export default function AdminPage() {
                                   }
                                 }
                                 setNoteText(prev => ({ ...prev, [ticket.id]: "" }))
-                                setNoteImages(prev => ({ ...prev, [ticket.id]: [] }))
+                                setNoteImages(prev => ({ ...prev, [ticket.id]: failed.map(f => f.item) }))
                               } finally { setNoteSaving(null) }
                             }}
                             disabled={noteSaving === ticket.id || (!(noteText[ticket.id] ?? "").trim() && !(noteImages[ticket.id] ?? []).length)}

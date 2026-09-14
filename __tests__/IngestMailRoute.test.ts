@@ -16,6 +16,8 @@ import { prisma } from "@/lib/db"
 import { sendMail } from "@/lib/mail"
 import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
 import { INGEST_START, MAX_PER_RUN, AUTO_RESPOND_MAX_PER_SENDER } from "@/lib/mailIngest"
+import { storeAttachment } from "@/lib/storeAttachment"
+import { logError } from "@/lib/logError"
 
 // ── The fake mailbox ─────────────────────────────────────────────────────────
 
@@ -29,6 +31,7 @@ type Msg = {
   headers?: Record<string, string>
   receivedAt?: string
   messageId?: string
+  attachments?: { filename?: string; contentType?: string; related?: boolean; content: Buffer }[]
 }
 
 const mockImap = {
@@ -61,6 +64,7 @@ jest.mock("@/lib/staffMembers", () => ({
   getStaffEmails: jest.fn(async () => ["alon@cristalino.co.il"]),
 }))
 jest.mock("@/lib/logError", () => ({ logError: jest.fn() }))
+jest.mock("@/lib/storeAttachment", () => ({ storeAttachment: jest.fn(async () => ({ id: "a1" })) }))
 jest.mock("@/lib/mail", () => ({
   sendMail: jest.fn(async () => {}),
   mailTicketOpenedStaff: jest.fn(() => "<staff>"),
@@ -91,6 +95,7 @@ function inbox(...msgs: Msg[]) {
       subject: m.subject ?? "נושא",
       text: m.text ?? "גוף ההודעה",
       messageId: m.messageId ?? `<${m.uid}@mail>`,
+      attachments: m.attachments ?? [],
       headerLines: Object.entries(m.headers ?? {}).map(([k, v]) => ({ key: k.toLowerCase(), line: `${k}: ${v}` })),
     })
   }
@@ -377,5 +382,59 @@ describe("blast radius", () => {
     expect(body.created).toBe(MAX_PER_RUN)
     expect(seen()).toHaveLength(MAX_PER_RUN)
     expect(seen()).not.toContain(MAX_PER_RUN + 1)
+  })
+})
+
+describe("attachments on inbound mail (v3.84)", () => {
+  const file = (filename: string, contentType: string, bytes = 1000, related = false) =>
+    ({ filename, contentType, related, content: Buffer.alloc(bytes, 1) })
+  const stored = () => (storeAttachment as jest.Mock).mock.calls
+    .map(c => ({ ticketId: c[0], mimeType: c[1].mimeType, filename: c[1].filename }))
+
+  it("saves an allowed attachment onto the new ticket", async () => {
+    inbox({ uid: 1, from: EMPLOYEE, subject: "המדפסת", attachments: [file("שגיאה.pdf", "application/pdf")] })
+    const { body } = await run()
+    expect(body.created).toBe(1)
+    expect(stored()).toEqual([{ ticketId: "t901", mimeType: "application/pdf", filename: "שגיאה.pdf" }])
+  })
+
+  it("names what it could not save in the description, and saves the rest", async () => {
+    inbox({ uid: 1, from: EMPLOYEE, attachments: [
+      file("logo.svg", "image/svg+xml"),
+      file("setup.exe", "application/octet-stream"),
+      file("shot.png", "image/png", 50_000),
+    ] })
+    await run()
+    const description = created()[0].description as string
+    expect(description).toContain("קבצים מצורפים שלא נשמרו")
+    expect(description).toContain("logo.svg")
+    expect(description).toContain("setup.exe")
+    expect(stored().map(s => s.filename)).toEqual(["shot.png"])
+  })
+
+  it("skips the small inline images of a signature, without mentioning them", async () => {
+    inbox({ uid: 1, from: EMPLOYEE, attachments: [file("image001.png", "image/png", 4_000, true)] })
+    await run()
+    expect(storeAttachment).not.toHaveBeenCalled()
+    expect(created()[0].description).not.toContain("לא נשמרו")
+  })
+
+  it("opens the ticket even when saving an attachment fails", async () => {
+    ;(storeAttachment as jest.Mock).mockRejectedValueOnce(new Error("disk full"))
+    inbox({ uid: 1, from: EMPLOYEE, attachments: [file("a.pdf", "application/pdf")] })
+    const { body } = await run()
+    expect(body.created).toBe(1)
+    expect(logError).toHaveBeenCalledWith(expect.stringContaining("disk full"), expect.any(String), expect.anything())
+  })
+
+  it("adds a reply's attachment to the ticket it answers", async () => {
+    ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+      id: "t597", ticketNumber: 597, subject: "מדפסת", user: { name: "דנה", email: EMPLOYEE },
+    })
+    inbox({ uid: 1, from: EMPLOYEE, subject: "Re: עדכון על פנייתך HDTC-597 – בטיפול", text: "מצרפת צילום",
+      attachments: [file("screen.png", "image/png", 80_000)] })
+    const { body } = await run()
+    expect(body.replies).toEqual([597])
+    expect(stored()).toEqual([{ ticketId: "t597", mimeType: "image/png", filename: "screen.png" }])
   })
 })

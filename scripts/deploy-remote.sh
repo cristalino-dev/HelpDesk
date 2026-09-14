@@ -182,6 +182,18 @@ INGESTSCRIPT
     echo "         Start it with:  sudo systemctl start cron"
   fi
 
+  # ── nginx body limit (v3.84) ─────────────────────────────────────────────
+  # The helpdesk site is configured by hand on the server, not from this repo,
+  # and attachments travel as base64 JSON: a 7 MB file is a ~9.4 MB request.
+  # On nginx's 1 MB default every upload over ~750 KB is refused before the app
+  # sees it, which is what happened on 2026-08-23. Say so rather than guess.
+  NGINX_SITE=$(grep -l "server_name helpdesk.cristalino.co.il" /etc/nginx/sites-enabled/* 2>/dev/null | head -1 || true)
+  if [ -n "$NGINX_SITE" ] && ! grep -q "client_max_body_size" "$NGINX_SITE"; then
+    echo "WARNING: $NGINX_SITE has no client_max_body_size — uploads over ~750 KB will fail."
+    echo "         Add 'client_max_body_size 10m;' to the helpdesk server block, then:"
+    echo "         sudo nginx -t && sudo systemctl reload nginx"
+  fi
+
   # ── Health check: wait for the app to actually answer ───────────────────
   echo ""
   echo "Waiting for app to come up..."

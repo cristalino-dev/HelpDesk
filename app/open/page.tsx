@@ -2,6 +2,7 @@
 import { useSession, signIn } from "next-auth/react"
 import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
+import { uploadAttachments, uploadFailureMessage, type UploadFailure } from "@/lib/ticketApi"
 import AppHeader from "@/components/AppHeader"
 import EquipmentPicker from "@/components/EquipmentPicker"
 import NewEmployeeFields from "@/components/NewEmployeeFields"
@@ -96,7 +97,7 @@ export default function OpenTicketPage() {
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [submitted, setSubmitted] = useState<{ ticketNumber: number; subject: string } | null>(null)
+  const [submitted, setSubmitted] = useState<{ ticketNumber: number; subject: string; failedUploads?: UploadFailure[] } | null>(null)
   const [showTooltip, setShowTooltip] = useState(false)
 
   const urgColor = URGENCY_COLORS[form.urgency]
@@ -164,13 +165,8 @@ export default function OpenTicketPage() {
       })
       if (!res.ok) throw new Error()
       const created = await res.json()
-      for (const img of pendingImages) {
-        await fetch(`/api/tickets/${created.id}/attachments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
-        })
-      }
+      // A file that did not make it is named on the confirmation (v3.84).
+      const failedUploads = await uploadAttachments(created.id, pendingImages)
       // Save personal details to profile so they are pre-filled on the next visit
       const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ")
       try {
@@ -186,7 +182,7 @@ export default function OpenTicketPage() {
         console.error("Failed to save profile on ticket open:", profileErr)
       }
 
-      setSubmitted({ ticketNumber: created.ticketNumber, subject: form.subject })
+      setSubmitted({ ticketNumber: created.ticketNumber, subject: form.subject, ...(failedUploads.length > 0 ? { failedUploads } : {}) })
     } catch {
       setError("אירעה שגיאה בשליחת הפנייה. נסו שנית.")
     } finally {
@@ -292,6 +288,11 @@ export default function OpenTicketPage() {
                 number, the copy buttons and the wording. Inline here, because
                 on this page the confirmation IS the page. */}
             <TicketCreatedCard ticketNumber={submitted.ticketNumber} subject={submitted.subject}>
+              {submitted.failedUploads && submitted.failedUploads.length > 0 && (
+                <div role="alert" style={{ margin: "0 0 14px", padding: "10px 14px", borderRadius: 10, background: T.amberBg, border: `1px solid ${T.amberBorder}`, color: T.amberFgDeep, fontSize: "0.84rem", lineHeight: 1.6 }}>
+                  הפנייה נפתחה, אבל {uploadFailureMessage(submitted.failedUploads)}. אפשר לצרף שוב מדף הפנייה.
+                </div>
+              )}
             <p style={{ margin: "0 auto 20px", maxWidth: 380, fontSize: "0.83rem", color: T.text3, lineHeight: 1.6 }}>
               קיבלת גם אישור במייל עם מספר הפנייה. הצוות יפנה אליך בהקדם.
             </p>

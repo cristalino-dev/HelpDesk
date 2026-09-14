@@ -1,4 +1,5 @@
 import type { PendingImage } from "@/components/ImageAttachments"
+import { prepareAttachment } from "@/lib/prepareAttachment"
 
 /**
  * Call this in the onPaste handler of any textarea that should accept
@@ -6,8 +7,9 @@ import type { PendingImage } from "@/components/ImageAttachments"
  *
  * If the clipboard contains an image:
  *   - Prevents the default paste action
- *   - Converts the image to a data URL
- *   - Calls onImage with the result
+ *   - Prepares it like any other attachment (lib/prepareAttachment.ts, v3.84):
+ *     a 4K screenshot is shrunk, one still too large is refused
+ *   - Calls onImage with the result, or onError with "name — reason"
  *
  * If the clipboard contains only text, does nothing — normal text
  * pasting proceeds as usual.
@@ -15,6 +17,7 @@ import type { PendingImage } from "@/components/ImageAttachments"
 export function handleImagePaste(
   e: React.ClipboardEvent<HTMLTextAreaElement>,
   onImage: (img: PendingImage) => void,
+  onError?: (message: string) => void,
 ) {
   const items = Array.from(e.clipboardData.items)
   const imageItem = items.find(i => i.type.startsWith("image/"))
@@ -22,10 +25,9 @@ export function handleImagePaste(
   e.preventDefault()
   const file = imageItem.getAsFile()
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = ev => {
-    const dataUrl = ev.target?.result as string
-    onImage({ dataUrl, filename: file.name || "screenshot.png" })
-  }
-  reader.readAsDataURL(file)
+  void prepareAttachment(file, "screenshot.png").then(result => {
+    if (result.ok) onImage(result.item)
+    else if (onError) onError(`${result.name} — ${result.reason}`)
+    else console.warn(`[paste] ${result.name}: ${result.reason}`)
+  })
 }

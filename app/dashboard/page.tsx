@@ -52,7 +52,7 @@ import TicketTable from "@/components/TicketTable"
 import type { Ticket, TicketWithUser } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
-import { setTicketStatus, setTicketStatusOrError } from "@/lib/ticketApi"
+import { setTicketStatus, setTicketStatusOrError, uploadFailureMessage, type UploadFailure } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { T, HDR } from "@/lib/theme"
@@ -66,7 +66,7 @@ export default function DashboardPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [showForm, setShowForm] = useState(false)
   /** The ticket just created, while its confirmation is on screen. */
-  const [created, setCreated] = useState<{ id: string; ticketNumber: number; subject: string } | null>(null)
+  const [created, setCreated] = useState<{ id: string; ticketNumber: number; subject: string; failedUploads?: UploadFailure[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
@@ -363,6 +363,11 @@ export default function DashboardPage() {
             subject={created.subject}
             onClose={() => setCreated(null)}
           >
+            {created.failedUploads && created.failedUploads.length > 0 && (
+              <div role="alert" style={{ margin: "0 0 14px", padding: "10px 14px", borderRadius: 10, background: T.amberBg, border: `1px solid ${T.amberBorder}`, color: T.amberFgDeep, fontSize: "0.84rem", lineHeight: 1.6 }}>
+                הפנייה נפתחה, אבל {uploadFailureMessage(created.failedUploads)}. אפשר לצרף שוב מדף הפנייה.
+              </div>
+            )}
             <div style={{ display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" }}>
               <Link
                 href={`/tickets/HDTC-${created.ticketNumber}`}

@@ -1,12 +1,12 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.83** · Updated 2026-09-14
+> **Current version: 3.84** · Updated 2026-09-14
 
-> ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`)**,
-> merged into `wip/v3.83-replies-v3.84-attachments` after each stage. Done: **v3.83** (mail replies join their ticket;
-> bulk editing). Next: **v3.84** attachments (half-built), then the `after()` mail fix, a dev environment, a REQUEST
-> ticket type with its own SLA, and a documented API for other programs. Before doing anything, read
-> **HANDOFF.md → "▶ RESUME HERE"** in the repository root (git-ignored). Remove this banner when the list is done.
+> ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
+> Done: **v3.83** (mail replies join their ticket; bulk editing — live) and **v3.84** (attachments). Next: the `after()`
+> mail fix, a dev environment, a REQUEST ticket type with its own SLA, and a documented API for other programs.
+> Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root (git-ignored). Remove this
+> banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -62,7 +62,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Automation API** — `POST /api/automation/close` closes a ticket with a Bearer key; idempotent
 - **Periodic urgency sweep** — cron every 5 min ensures closed tickets have `urgency = נמוך`
 - **Configurable dropdowns** — category / platform / urgency / equipment / licenseCategory are DB-driven, managed in שדות מערכת
-- **Image paste** — Ctrl+V images in description and note textareas become attachments
+- **Attachments** — images, PDF, Office and text files up to 7 MB; Ctrl+V screenshots into description and note textareas; big photos shrink in the browser; a file that cannot be attached is named with the reason; mail attachments land on the ticket (v3.84)
 - **Dynamic staff roster** — assignment dropdown and @mention shortcuts show exactly the DB users with `isAdmin = true`; ex-admins drop out automatically. Served by `GET /api/staff`
 - **Automation bot** — `bot@cristalino.co.il` is an assignable virtual user, never a mail recipient; an external script picks up its tickets by `assignedTo`
 - **License inventory (רישוי)** — bulk key add, editable categories, optional masked username/password and remark per license
@@ -81,7 +81,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,201 tests across 62 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,262 tests across 67 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -100,7 +100,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 - **TicketHistory** — audit trail: `field`, `oldValue`, `newValue`, `actorName`, `actorEmail`, `changedAt`. Written on create and on every status/urgency/assignedTo/edit change.
 - **TicketMessage** — two-way user↔staff chat with email notifications. Only the author may delete their own message.
 - **TicketNote** — staff-only technician notes (hidden from the user). Supports @mentions + image paste.
-- **TicketAttachment** — image metadata. **Bytes live on disk** under `uploads/ticket-attachments/` since v3.48; `dataUrl` remains only for legacy rows and is still served as a fallback.
+- **TicketAttachment** — file metadata (images, and since v3.84 PDF/Office/text). **Bytes live on disk** under `uploads/ticket-attachments/` since v3.48; `dataUrl` remains only for legacy rows and is still served as a fallback.
 - **TicketEquipment** *(v3.58)* — `label`, `quantity`, `receivedQty`, `receivedAt`, `receivedBy`. `@@unique([ticketId, label])`. `label` is a **snapshot** of the FieldOption label at request time, so renaming an option never rewrites filed tickets. Not limited to onboarding — any ticket can carry lines.
 - **TicketReview** — 1–5 star rating + optional comment. One per ticket (`ticketId @unique`).
 - **License** — key, category (default "Office"), optional username/password, remark. `@@unique([category, key])`; bulk insert skips duplicates.
@@ -176,6 +176,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.84 | Attachments: PDF, Word, Excel, PowerPoint and text files as well as images, up to 7 MB; big photos shrink in the browser; every failed upload is shown with its reason; mail attachments are saved onto the ticket. Files are served as downloads with `nosniff` and a CSP sandbox — an uploaded SVG could run script before. nginx's 1 MB default had refused every upload over ~750 KB (now `client_max_body_size 10m`) |
 | 3.83 | A reply to a notification is added to the ticket it answers instead of opening a new one: every ticket notification now carries `HDTC-N` in its subject, and intake threads a reply from the ticket's owner or staff. Bulk editing in the queues — tick tickets and change status, urgency, category, platform, assignee or owner (admin), or add a note to all of them (`POST /api/tickets/bulk`) |
 | 3.82 | Every mail to helpdesk@ opens a ticket — the subject keyword now only makes it urgent. Our own mail, bounces, auto-replies and the pre-existing backlog are skipped; the automatic reply has a per-sender circuit breaker. Notifications are sent as `noreply_helpdesk@` (`SMTP_FROM`). Also fixed the deploy script, which had been installing an empty crontab |
 | 3.81 | Staff see the tickets **assigned** to them on the dashboard again — "משויכות אליי", a section of its own above the tickets they opened, from the new staff-only `GET /api/tickets/assigned`. v3.72 had dropped them when it scoped the dashboard to tickets you opened |
@@ -234,4 +235,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*Production build v3.83 — updated 2026-09-14.*
+*Production build v3.84 — updated 2026-09-14.*

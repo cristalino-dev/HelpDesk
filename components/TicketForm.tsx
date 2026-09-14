@@ -84,6 +84,7 @@ import { EMPTY_NEW_EMPLOYEE, missingFieldLabels, normalizeNewEmployee, type NewE
 import { isOffboarding, suggestsOffboarding, LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
+import { uploadAttachments, type UploadFailure } from "@/lib/ticketApi"
 import { T } from "@/lib/theme"
 
 /**
@@ -122,7 +123,7 @@ export default function TicketForm({
   isAdmin = false,
 }: {
   /** Callback invoked after the ticket is successfully created. */
-  onSuccess: (ticket: { id: string; ticketNumber: number; subject: string }) => void
+  onSuccess: (ticket: { id: string; ticketNumber: number; subject: string; failedUploads?: UploadFailure[] }) => void
   /** Phone number pre-filled from user profile. Empty if not saved. */
   defaultPhone?: string
   /** Workstation name pre-filled from user profile. Empty if not saved. */
@@ -311,16 +312,15 @@ export default function TicketForm({
       if (!res.ok) throw new Error()
       const created = await res.json()
 
-      // Upload any pending images
-      for (const img of pendingImages) {
-        await fetch(`/api/tickets/${created.id}/attachments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
-        })
-      }
+      // Attach the files. The ticket exists either way; a file that did not
+      // make it goes back to the parent so the person is told (v3.84) — until
+      // then the answer was never read, and a refused upload looked like success.
+      const failedUploads = await uploadAttachments(created.id, pendingImages)
 
-      onSuccess({ id: created.id, ticketNumber: created.ticketNumber, subject: form.subject })
+      onSuccess({
+        id: created.id, ticketNumber: created.ticketNumber, subject: form.subject,
+        ...(failedUploads.length > 0 ? { failedUploads } : {}),
+      })
       // Reset form, but keep the pre-filled defaults (not blank strings)
       // so the next ticket opened in the same session is also pre-filled.
       setForm({

@@ -63,7 +63,7 @@ export default async function HelpPage() {
             <li><a href="#login"           style={{ color: T.text }}>כניסה למערכת</a></li>
             <li><a href="#dashboard"       style={{ color: T.text }}>לוח הבקרה — הפניות שלי</a></li>
             <li><a href="#new-ticket"      style={{ color: T.text }}>פתיחת פנייה חדשה</a></li>
-            <li><a href="#notes-attachments" style={{ color: T.text }}>הערות ותמונות מצורפות</a></li>
+            <li><a href="#notes-attachments" style={{ color: T.text }}>הערות וקבצים מצורפים</a></li>
             <li><a href="#messaging"       style={{ color: T.text }}>שיחה עם צוות התמיכה</a></li>
             <li><a href="#statuses"        style={{ color: T.text }}>מצבי פנייה</a></li>
             <li><a href="#urgency"         style={{ color: T.text }}>רמות דחיפות</a></li>
@@ -239,27 +239,27 @@ export default async function HelpPage() {
 
         {/* ── SECTION 4: NOTES & ATTACHMENTS ── */}
         <section id="notes-attachments" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="4" title="הערות ותמונות מצורפות" />
+          <SectionTitle number="4" title="הערות וקבצים מצורפים" />
           <Card>
             <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
-              מעבר לפרטי הפנייה הבסיסיים, המערכת מאפשרת להוסיף הערות לטכנאים ולצרף תמונות של תקלות.
+              מעבר לפרטי הפנייה הבסיסיים, המערכת מאפשרת להוסיף הערות לטכנאים ולצרף תמונות וקבצים — צילומי מסך, PDF ומסמכי Office.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📎 העלאת תמונות</span>
+                <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📎 צירוף קבצים ותמונות</span>
                 <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  גררו תמונות לאזור המסומן בתחתית הטופס, לחצו לבחירת קבצים, או <Strong>הדביקו (Ctrl+V)</Strong> ישירות מה-Clipboard. ניתן לצרף מספר תמונות לאותה פנייה.
+                  גררו קבצים או תמונות לאזור המסומן בתחתית הטופס, לחצו לבחירה, או <Strong>הדביקו (Ctrl+V)</Strong> צילום מסך ישירות מה-Clipboard. ניתן לצרף כמה קבצים לאותה פנייה, וקובץ שלא ניתן לצרף מוצג עם הסיבה.
                 </p>
               </div>
               <div style={{ height: "1px", backgroundColor: T.fill }} />
               <div>
                 <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>📝 הערות ותיוג</span>
                 <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  בתוך מסך הפנייה ניתן לכתוב הערות. טכנאים יכולים לתייג אנשי צוות אחרים באמצעות <Strong>@</Strong> (לדוגמה: @alon) ולצרף תמונות ישירות להערה.
+                  בתוך מסך הפנייה ניתן לכתוב הערות. טכנאים יכולים לתייג אנשי צוות אחרים באמצעות <Strong>@</Strong> (לדוגמה: @alon) ולצרף קבצים ותמונות ישירות להערה.
                 </p>
               </div>
             </div>
-            <Note text="המערכת תומכת בתמונות בנפח של עד 3MB. מומלץ לצרף צילומי מסך של הודעות שגיאה." />
+            <Note text="אפשר לצרף תמונות, PDF, Word, Excel, PowerPoint וקובצי טקסט, עד 7MB לקובץ — תמונות גדולות מוקטנות אוטומטית. מומלץ לצרף צילומי מסך של הודעות שגיאה." />
           </Card>
         </section>
 

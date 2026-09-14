@@ -6,7 +6,7 @@ import { STAFF_EMAILS, ASSIGNABLE_FALLBACK } from "@/lib/staffEmails"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import type { TicketDetail, TicketNote, TicketMessage, TicketHistoryEntry } from "@/types/ticket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
-import { closeTicket as apiCloseTicket, updateTicket } from "@/lib/ticketApi"
+import { closeTicket as apiCloseTicket, updateTicket, uploadAttachments, uploadFailureMessage } from "@/lib/ticketApi"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import EquipmentPicker from "@/components/EquipmentPicker"
@@ -260,14 +260,12 @@ export default function TicketDetailPage() {
     setNoteSaving(true)
     setNoteError("")
     try {
-      // Upload any pasted/attached images as ticket attachments
-      for (const img of noteImages) {
-        await fetch(`/api/tickets/${ticket.id}/attachments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataUrl: img.dataUrl, filename: img.filename }),
-        })
-      }
+      // Attach the files first. One that fails stays in the composer with the
+      // reason, so it can be retried or removed (v3.84); the rest are on the
+      // ticket, and the note text is saved either way.
+      const failed = await uploadAttachments(ticket.id, noteImages)
+      setNoteImages(failed.map(f => f.item))
+      const uploadError = uploadFailureMessage(failed)
       // Save note text (if any)
       if (noteText.trim()) {
         const res = await fetch(`/api/tickets/${ticket.id}/notes`, {
@@ -275,10 +273,14 @@ export default function TicketDetailPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: noteText.trim() }),
         })
-        if (!res.ok) { setNoteError("שגיאה בשמירת הערה"); return }
+        if (!res.ok) {
+          setNoteError(["שגיאה בשמירת הערה", uploadError].filter(Boolean).join(" · "))
+          await load()
+          return
+        }
       }
       setNoteText("")
-      setNoteImages([])
+      if (uploadError) setNoteError(uploadError)
       await load()
     } finally {
       setNoteSaving(false)
@@ -998,9 +1000,9 @@ export default function TicketDetailPage() {
         {/* Attachments */}
         {ticket.attachments.length > 0 && (
           <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
-            <h2 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>📎 תמונות מצורפות</h2>
+            <h2 style={{ margin: "0 0 14px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>📎 קבצים מצורפים</h2>
             <ImageAttachments
-              images={ticket.attachments.map(a => ({ dataUrl: `/api/attachments/${a.id}`, filename: a.filename ?? undefined }))}
+              images={ticket.attachments.map(a => ({ dataUrl: `/api/attachments/${a.id}`, filename: a.filename ?? undefined, mimeType: a.mimeType ?? null, size: a.size ?? null }))}
               onChange={() => {}}
               readonly
             />
