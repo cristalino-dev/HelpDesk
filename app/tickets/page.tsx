@@ -10,7 +10,7 @@ import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
 import { isStaleOpen, openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
-import { setTicketStatusOrError, updateTicket } from "@/lib/ticketApi"
+import { setTicketStatusOrError, updateTicket, bulkUpdateTickets, type BulkChanges } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
@@ -18,6 +18,8 @@ import { handleImagePaste } from "@/lib/pasteImage"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
+import BulkActionBar from "@/components/BulkActionBar"
+import BulkEditModal from "@/components/BulkEditModal"
 
 function formatDuration(ms: number) {
   if (ms < 0) return "—"
@@ -78,6 +80,86 @@ export default function TicketsPage() {
   const [replySaving, setReplySaving]           = useState<string | null>(null)
   // Assignment
   const [assigning, setAssigning]               = useState<string | null>(null)
+
+  // Bulk actions
+  const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set())
+  const [bulkModalOpen, setBulkModalOpen]       = useState(false)
+  const [bulkLoading, setBulkLoading]           = useState(false)
+  const [registeredUsers, setRegisteredUsers]   = useState<{ name: string | null; email: string }[]>([])
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    const allFilteredSelected = filtered.length > 0 && filtered.every(t => selectedIds.has(t.id))
+    if (allFilteredSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        filtered.forEach(t => next.delete(t.id))
+        return next
+      })
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        filtered.forEach(t => next.add(t.id))
+        return next
+      })
+    }
+  }
+
+  const handleQuickClose = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`האם לסגור ${selectedIds.size} פניות שנבחרו?`)) return
+    setBulkLoading(true)
+    try {
+      const res = await bulkUpdateTickets(Array.from(selectedIds), { status: "סגור" })
+      if (res.ok) {
+        if (res.errors && res.errors.length > 0) {
+          const msgs = res.errors.map(e => `${e.ticketNumber ? `HDTC-${e.ticketNumber}: ` : ""}${e.error}`).join("\n")
+          setStatusError(`נסגרו ${res.updatedCount} פניות. שגיאות:\n${msgs}`)
+        }
+        setSelectedIds(new Set())
+        await load()
+      } else {
+        setStatusError(res.error || "שגיאה בסגירת הפניות")
+      }
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  const handleQuickAssign = async (staffEmail: string) => {
+    if (selectedIds.size === 0) return
+    setBulkLoading(true)
+    try {
+      const res = await bulkUpdateTickets(Array.from(selectedIds), { assignedTo: staffEmail })
+      if (res.ok) {
+        setSelectedIds(new Set())
+        await load()
+      } else {
+        setStatusError(res.error || "שגיאה בשיוך הפניות")
+      }
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  const handleBulkApply = async (changes: BulkChanges) => {
+    const res = await bulkUpdateTickets(Array.from(selectedIds), changes)
+    if (res.ok) {
+      if (!res.errors || res.errors.length === 0) {
+        setSelectedIds(new Set())
+      }
+      await load()
+    }
+    return res
+  }
 
   const handleExpand = async (id: string) => {
     const next = expanded === id ? null : id
@@ -209,6 +291,12 @@ export default function TicketsPage() {
         .then(r => r.ok ? r.json() : null)
         .then(list => { if (Array.isArray(list) && list.length) setStaffMembers(list) })
         .catch(() => {})
+      if (session?.user?.isAdmin) {
+        fetch("/api/users")
+          .then(r => r.ok ? r.json() : null)
+          .then(list => { if (Array.isArray(list)) setRegisteredUsers(list) })
+          .catch(() => {})
+      }
     }
   }, [status, session])
 
@@ -487,7 +575,20 @@ export default function TicketsPage() {
             {/* ── Column headers — desktop only ── */}
             {!isMobile && (
               <div style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "6px 16px" }}>
-                <div />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <input
+                    type="checkbox"
+                    aria-label="בחר הכל"
+                    checked={filtered.length > 0 && filtered.every(t => selectedIds.has(t.id))}
+                    onChange={toggleSelectAll}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      cursor: "pointer",
+                      accentColor: T.inverseBg,
+                    }}
+                  />
+                </div>
                 {/* Subject cell: two stacked sort buttons */}
                 <div style={{ display: "flex", gap: 6 }}>
                   {([
@@ -577,6 +678,19 @@ export default function TicketsPage() {
                     <div onClick={() => handleExpand(ticket.id)} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", cursor: "pointer" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(ticket.id)}
+                            onChange={() => toggleSelect(ticket.id)}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              width: 16,
+                              height: 16,
+                              cursor: "pointer",
+                              accentColor: T.inverseBg,
+                              marginLeft: 4,
+                            }}
+                          />
                           <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                           {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
                           <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
@@ -602,8 +716,27 @@ export default function TicketsPage() {
                     onClick={() => handleExpand(ticket.id)}
                     style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto auto auto", alignItems: "center", gap: 12, padding: "13px 16px", cursor: "pointer" }}
                   >
-                    {/* Position */}
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: i === 0 && !showAll ? T.amberBg : T.fill, color: i === 0 && !showAll ? T.amberFgDeep : T.inkFaint, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
+                    {/* Position / Selection checkbox */}
+                    <div
+                      onClick={e => {
+                        e.stopPropagation()
+                        toggleSelect(ticket.id)
+                      }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(ticket.id)}
+                        onChange={() => toggleSelect(ticket.id)}
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          cursor: "pointer",
+                          accentColor: T.inverseBg,
+                        }}
+                      />
+                    </div>
 
                     {/* Subject + meta */}
                     <div style={{ minWidth: 0 }}>
@@ -884,6 +1017,26 @@ export default function TicketsPage() {
             })}
           </div>
         )}
+
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onOpenBulkEdit={() => setBulkModalOpen(true)}
+          onQuickClose={handleQuickClose}
+          onQuickAssign={handleQuickAssign}
+          staffMembers={staffMembers}
+          loading={bulkLoading}
+        />
+
+        <BulkEditModal
+          isOpen={bulkModalOpen}
+          onClose={() => setBulkModalOpen(false)}
+          selectedCount={selectedIds.size}
+          onApply={handleBulkApply}
+          isAdmin={session?.user?.isAdmin ?? false}
+          staffMembers={staffMembers}
+          registeredUsers={registeredUsers}
+        />
       </main>
 
       <FooterCopyright />

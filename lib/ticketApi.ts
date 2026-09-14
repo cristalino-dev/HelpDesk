@@ -90,3 +90,43 @@ export async function updateTicket(id: string, fields: Record<string, unknown>):
   const res = await patchTicket({ id, ...fields })
   return res.ok
 }
+
+export interface BulkChanges {
+  status?: string
+  holdReason?: string
+  urgency?: string
+  category?: string
+  platform?: string
+  assignedTo?: string
+  note?: string
+  ownerEmail?: string
+}
+
+export interface BulkUpdateResult {
+  ok: boolean
+  total?: number
+  updatedCount?: number
+  errors?: { ticketId: string; ticketNumber?: number; error: string }[]
+  error?: string
+}
+
+/**
+ * Apply bulk updates to multiple tickets at once.
+ */
+export async function bulkUpdateTickets(ids: string[], changes: BulkChanges): Promise<BulkUpdateResult> {
+  const res = await fetch("/api/tickets/bulk", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, changes }),
+  })
+  if (!res.ok) {
+    try {
+      const err = await res.json()
+      return { ok: false, error: err.error || "שגיאה בביצוע עדכון מרוכז" }
+    } catch {
+      return { ok: false, error: "שגיאה בביצוע עדכון מרוכז" }
+    }
+  }
+  return res.json()
+}
+

@@ -70,7 +70,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
-import { setTicketStatus, setTicketStatusOrError, updateTicket } from "@/lib/ticketApi"
+import { setTicketStatus, setTicketStatusOrError, updateTicket, bulkUpdateTickets, type BulkChanges } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
@@ -79,6 +79,8 @@ import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOpt
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
+import BulkActionBar from "@/components/BulkActionBar"
+import BulkEditModal from "@/components/BulkEditModal"
 
 // Cristalino theme: status/urgency pill colors come from the central palette.
 const URGENCY_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
@@ -131,6 +133,86 @@ export default function AdminPage() {
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
   const [replyText, setReplyText]               = useState<Record<string, string>>({})
   const [replySaving, setReplySaving]           = useState<string | null>(null)
+
+  // Bulk actions
+  const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set())
+  const [bulkModalOpen, setBulkModalOpen]       = useState(false)
+  const [bulkLoading, setBulkLoading]           = useState(false)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    const allVisibleSelected = displayTickets.length > 0 && displayTickets.every(t => selectedIds.has(t.id))
+    if (allVisibleSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        displayTickets.forEach(t => next.delete(t.id))
+        return next
+      })
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        displayTickets.forEach(t => next.add(t.id))
+        return next
+      })
+    }
+  }
+
+  const handleQuickClose = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`האם לסגור ${selectedIds.size} פניות שנבחרו?`)) return
+    setBulkLoading(true)
+    try {
+      const res = await bulkUpdateTickets(Array.from(selectedIds), { status: "סגור" })
+      if (res.ok) {
+        if (res.errors && res.errors.length > 0) {
+          const msgs = res.errors.map(e => `${e.ticketNumber ? `HDTC-${e.ticketNumber}: ` : ""}${e.error}`).join("\n")
+          setStatusError(`נסגרו ${res.updatedCount} פניות. שגיאות:\n${msgs}`)
+        }
+        setSelectedIds(new Set())
+        await loadTickets()
+      } else {
+        setStatusError(res.error || "שגיאה בסגירת הפניות")
+      }
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  const handleQuickAssign = async (staffEmail: string) => {
+    if (selectedIds.size === 0) return
+    setBulkLoading(true)
+    try {
+      const res = await bulkUpdateTickets(Array.from(selectedIds), { assignedTo: staffEmail })
+      if (res.ok) {
+        setSelectedIds(new Set())
+        await loadTickets()
+      } else {
+        setStatusError(res.error || "שגיאה בשיוך הפניות")
+      }
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  const handleBulkApply = async (changes: BulkChanges) => {
+    const res = await bulkUpdateTickets(Array.from(selectedIds), changes)
+    if (res.ok) {
+      if (!res.errors || res.errors.length === 0) {
+        setSelectedIds(new Set())
+      }
+      await loadTickets()
+    }
+    return res
+  }
+
   // Users tab
   const [users, setUsers] = useState<UserRow[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
@@ -1615,15 +1697,28 @@ export default function AdminPage() {
           </a>
         )}
 
-        {/* Title */}
-        <div>
-          <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>
-            {showAll ? "כל הפניות" : "תור פניות פתוחות"}
-          </h2>
-          {!loading && !sortKey && (
-            <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: T.inkFaint }}>
-              {showAll ? "ממוין לפי תאריך עדכון אחרון" : "ממוין לפי דחיפות, אחר כך לפי זמן פתיחה"}
-            </p>
+        {/* Title & Bulk Select Toggle */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>
+              {showAll ? "כל הפניות" : "תור פניות פתוחות"}
+            </h2>
+            {!loading && !sortKey && (
+              <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: T.inkFaint }}>
+                {showAll ? "ממוין לפי תאריך עדכון אחרון" : "ממוין לפי דחיפות, אחר כך לפי זמן פתיחה"}
+              </p>
+            )}
+          </div>
+          {displayTickets.length > 0 && (
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", color: T.text, cursor: "pointer", fontWeight: 600 }}>
+              <input
+                type="checkbox"
+                checked={displayTickets.length > 0 && displayTickets.every(t => selectedIds.has(t.id))}
+                onChange={toggleSelectAll}
+                style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.inverseBg }}
+              />
+              <span>בחר הכל ({displayTickets.length})</span>
+            </label>
           )}
         </div>
 
@@ -1685,6 +1780,19 @@ export default function AdminPage() {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(ticket.id)}
+                          onChange={() => toggleSelect(ticket.id)}
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            width: 16,
+                            height: 16,
+                            cursor: "pointer",
+                            accentColor: T.inverseBg,
+                            marginLeft: 4,
+                          }}
+                        />
                         <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
                         <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
@@ -1721,15 +1829,26 @@ export default function AdminPage() {
                   }}
                   style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto auto auto auto", alignItems: "center", gap: "14px", padding: "14px 18px", cursor: "pointer" }}
                 >
-                  {/* Queue position */}
-                  <div style={{
-                    width: "26px", height: "26px", borderRadius: "50%",
-                    backgroundColor: i === 0 && !showAll && !sortKey ? T.amberBg : T.fill,
-                    color: i === 0 && !showAll && !sortKey ? T.amberFgDeep : T.inkFaint,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "0.7rem", fontWeight: 800, flexShrink: 0,
-                  }}>
-                    {i + 1}
+                  {/* Position / Selection Checkbox */}
+                  <div
+                    onClick={e => {
+                      e.stopPropagation()
+                      toggleSelect(ticket.id)
+                    }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(ticket.id)}
+                      onChange={() => toggleSelect(ticket.id)}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        cursor: "pointer",
+                        accentColor: T.inverseBg,
+                      }}
+                    />
                   </div>
 
                   {/* Subject + user info */}
@@ -2062,10 +2181,33 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
-            )
+              )
             })}
           </div>
         )}
+
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onOpenBulkEdit={() => {
+            if (users.length === 0) loadUsers()
+            setBulkModalOpen(true)
+          }}
+          onQuickClose={handleQuickClose}
+          onQuickAssign={handleQuickAssign}
+          staffMembers={staffMembers}
+          loading={bulkLoading}
+        />
+
+        <BulkEditModal
+          isOpen={bulkModalOpen}
+          onClose={() => setBulkModalOpen(false)}
+          selectedCount={selectedIds.size}
+          onApply={handleBulkApply}
+          isAdmin={true}
+          staffMembers={staffMembers}
+          registeredUsers={users}
+        />
         </> }
       </main>
 
