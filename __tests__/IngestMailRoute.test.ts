@@ -6,16 +6,15 @@
  * decisions, because the ways "every mail opens a ticket" can go wrong are
  * all in the I/O: which messages are searched for at all (a 929-message
  * backlog), whether the app's own confirmation comes back round as a new
- * ticket (the loop), who gets answered, and how many tickets one run opens.
- *
- * Until v3.82 this route had no test of its own.
+ * ticket (the loop), who gets answered, how many tickets one run opens — and,
+ * since v3.83, whether a reply to a ticket joins it or wrongly opens another.
  */
 
 import type { NextRequest } from "next/server"
 import { POST } from "@/app/api/admin/ingest-mail/route"
 import { prisma } from "@/lib/db"
 import { sendMail } from "@/lib/mail"
-import { resolveUserByEmail } from "@/lib/users"
+import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
 import { INGEST_START, MAX_PER_RUN, AUTO_RESPOND_MAX_PER_SENDER } from "@/lib/mailIngest"
 
 // ── The fake mailbox ─────────────────────────────────────────────────────────
@@ -25,6 +24,7 @@ type Msg = {
   from: string
   name?: string
   subject?: string
+  text?: string
   replyTo?: string
   headers?: Record<string, string>
   receivedAt?: string
@@ -50,10 +50,12 @@ jest.mock("@/lib/db", () => ({
   prisma: {
     ticket: { findUnique: jest.fn(), create: jest.fn(), count: jest.fn() },
     ticketHistory: { create: jest.fn() },
+    ticketMessage: { findFirst: jest.fn(), create: jest.fn() },
   },
 }))
 jest.mock("@/lib/users", () => ({
   resolveUserByEmail: jest.fn(async (email: string) => ({ id: `u:${email}` })),
+  findUserByEmail: jest.fn(async () => null),
 }))
 jest.mock("@/lib/staffMembers", () => ({
   getStaffEmails: jest.fn(async () => ["alon@cristalino.co.il"]),
@@ -63,6 +65,8 @@ jest.mock("@/lib/mail", () => ({
   sendMail: jest.fn(async () => {}),
   mailTicketOpenedStaff: jest.fn(() => "<staff>"),
   mailTicketOpenedUser: jest.fn(() => "<user>"),
+  mailNewMessageToUser: jest.fn(() => "<message-to-user>"),
+  mailNewMessageToStaff: jest.fn(() => "<message-to-staff>"),
   MAIL_FROM_ADDRESS: "noreply_helpdesk@cristalino.co.il",
 }))
 jest.mock("next/server", () => ({
@@ -85,14 +89,17 @@ function inbox(...msgs: Msg[]) {
       from: { value: [{ address: m.from, name: m.name ?? "" }] },
       replyTo: m.replyTo ? { value: [{ address: m.replyTo, name: "דנה לוי" }] } : undefined,
       subject: m.subject ?? "נושא",
-      text: "גוף ההודעה",
+      text: m.text ?? "גוף ההודעה",
       messageId: m.messageId ?? `<${m.uid}@mail>`,
       headerLines: Object.entries(m.headers ?? {}).map(([k, v]) => ({ key: k.toLowerCase(), line: `${k}: ${v}` })),
     })
   }
 }
 
-type Body = { ok?: boolean; created?: number; tickets?: number[]; skipped?: Record<string, number>; error?: string }
+type Body = {
+  ok?: boolean; created?: number; tickets?: number[]; replies?: number[]
+  skipped?: Record<string, number>; error?: string
+}
 const req = (secret = "s") =>
   ({ headers: { get: (k: string) => (k === "x-ingest-secret" ? secret : null) } }) as unknown as NextRequest
 async function run(secret?: string): Promise<{ status: number; body: Body }> {
@@ -101,6 +108,7 @@ async function run(secret?: string): Promise<{ status: number; body: Body }> {
 }
 
 const created  = () => (prisma.ticket.create as jest.Mock).mock.calls.map(c => c[0].data)
+const messages = () => (prisma.ticketMessage.create as jest.Mock).mock.calls.map(c => c[0].data)
 const mailedTo = () => (sendMail as jest.Mock).mock.calls.map(c => c[0].to)
 const seen     = () => mockImap.messageFlagsAdd.mock.calls.map(c => Number(c[0]))
 
@@ -119,6 +127,9 @@ beforeEach(() => {
   ;(prisma.ticket.create as jest.Mock).mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
     ({ id: `t${++n}`, ticketNumber: n, status: "פתוח", ...data }))
   ;(prisma.ticket.count as jest.Mock).mockResolvedValue(0)
+  ;(prisma.ticketMessage.findFirst as jest.Mock).mockResolvedValue(null)
+  ;(prisma.ticketMessage.create as jest.Mock).mockResolvedValue({ id: "m1" })
+  ;(findUserByEmail as jest.Mock).mockResolvedValue(null)
 })
 afterAll(() => { process.env = env })
 
@@ -200,9 +211,9 @@ describe("the loop — the app's own mail must never open a ticket", () => {
     expect(seen()).toEqual([2])
   })
 
-  // Until noreply_helpdesk@ is a verified send-as, Gmail rewrites From back to
-  // helpdesk@. That must be recognised as ours just the same.
-  it("still recognises it when Gmail has rewritten the sender back to helpdesk@", async () => {
+  // Gmail rewrote From back to helpdesk@ until noreply_helpdesk@ was a
+  // verified send-as. That must be recognised as ours just the same.
+  it("still recognises it when the sender is helpdesk@ itself", async () => {
     inbox({ uid: 3, from: "helpdesk@cristalino.co.il" })
     const { body } = await run()
     expect(prisma.ticket.create).not.toHaveBeenCalled()
@@ -273,6 +284,89 @@ describe("who gets the automatic reply", () => {
     expect(where.sourceMessageId).toEqual({ not: null })
     expect(where.id).toEqual({ not: expect.any(String) })
     expect(where.createdAt.gte).toBeInstanceOf(Date)
+  })
+})
+
+describe("replies to a ticket join it (v3.83)", () => {
+  // Notifications come from noreply_helpdesk@, an alias of the intake mailbox,
+  // so replies to them land here. The user chose: add them to their ticket.
+  const TICKET = {
+    id: "t597", ticketNumber: 597, subject: "המדפסת לא עובדת", description: "", urgency: "בינוני",
+    category: "אחר", platform: "מחשב אישי", phone: "", computerName: "", status: "פתוח",
+    user: { name: "דנה לוי", email: EMPLOYEE },
+  }
+  const QUOTED = "עדיין לא עובד\n\nOn Mon, Sep 14, 2026 at 11:08 AM Cristalino Helpdesk <noreply_helpdesk@cristalino.co.il> wrote:\n> תגובה חדשה על פנייתך"
+  const REPLY_SUBJECT = "Re: תגובה חדשה על פנייתך HDTC-597: המדפסת לא עובדת"
+  beforeEach(() => {
+    ;(prisma.ticket.findUnique as jest.Mock).mockImplementation(async ({ where }: { where: { ticketNumber?: number } }) =>
+      where.ticketNumber === 597 ? TICKET : null)
+  })
+
+  it("adds the owner's reply to the ticket's conversation, without the quoted mail", async () => {
+    inbox({ uid: 1, from: EMPLOYEE, name: "דנה לוי", subject: REPLY_SUBJECT, text: QUOTED })
+    const { body } = await run()
+    expect(body.replies).toEqual([597])
+    expect(body.created).toBe(0)
+    expect(prisma.ticket.create).not.toHaveBeenCalled()
+    expect(messages()[0]).toMatchObject({
+      ticketId: "t597", content: "עדיין לא עובד", authorEmail: EMPLOYEE, authorName: "דנה לוי", authorRole: "user",
+    })
+    expect(seen()).toEqual([1])
+  })
+
+  // As for a reply typed in the app — and no "your request was received".
+  it("tells staff, under a subject that names the ticket, and sends the owner nothing", async () => {
+    inbox({ uid: 1, from: EMPLOYEE, subject: REPLY_SUBJECT, text: QUOTED })
+    await run()
+    expect(mailedTo()).toEqual([STAFF])
+    expect((sendMail as jest.Mock).mock.calls[0][0].subject).toContain("HDTC-597")
+  })
+
+  it("adds a staff reply as staff, and tells the owner", async () => {
+    inbox({ uid: 1, from: "alon@cristalino.co.il", subject: REPLY_SUBJECT, text: "טופל, נסו עכשיו" })
+    await run()
+    expect(messages()[0]).toMatchObject({ authorRole: "staff", authorEmail: "alon@cristalino.co.il" })
+    expect(mailedTo()).toEqual([EMPLOYEE])
+  })
+
+  it("treats an admin who is not in STAFF_EMAILS as staff", async () => {
+    ;(findUserByEmail as jest.Mock).mockResolvedValue({ id: "u-aviel", name: "אביאל", isAdmin: true })
+    inbox({ uid: 1, from: "aviel.bt@cristalino.co.il", subject: REPLY_SUBJECT, text: "בדרך" })
+    await run()
+    expect(messages()[0]).toMatchObject({ authorRole: "staff", authorName: "אביאל" })
+  })
+
+  // Nobody may write into someone else's ticket by guessing its number.
+  it("opens a new ticket, not a message, when a stranger names someone else's ticket", async () => {
+    inbox({ uid: 1, from: "stranger@cristalino.co.il", subject: REPLY_SUBJECT })
+    const { body } = await run()
+    expect(prisma.ticketMessage.create).not.toHaveBeenCalled()
+    expect(body.created).toBe(1)
+  })
+
+  it("opens a new ticket when the number matches no ticket — nothing is lost", async () => {
+    inbox({ uid: 1, from: EMPLOYEE, subject: "Re: HDTC-99999" })
+    const { body } = await run()
+    expect(prisma.ticketMessage.create).not.toHaveBeenCalled()
+    expect(body.created).toBe(1)
+  })
+
+  it("does not add the same reply twice", async () => {
+    ;(prisma.ticketMessage.findFirst as jest.Mock).mockResolvedValue({ id: "m-earlier" })
+    inbox({ uid: 1, from: EMPLOYEE, subject: REPLY_SUBJECT, text: QUOTED })
+    const { body } = await run()
+    expect(prisma.ticketMessage.create).not.toHaveBeenCalled()
+    expect(body.skipped).toEqual({ duplicate: 1 })
+    expect(seen()).toEqual([1])
+  })
+
+  // Our own notification names its ticket too — it must still be skipped as
+  // ours, never added to the ticket as if someone had written it.
+  it("never adds one of our own notifications to the ticket it names", async () => {
+    inbox({ uid: 1, from: "noreply_helpdesk@cristalino.co.il", subject: "עדכון פנייה HDTC-597: המדפסת לא עובדת", headers: { "Auto-Submitted": "auto-generated" } })
+    const { body } = await run()
+    expect(prisma.ticketMessage.create).not.toHaveBeenCalled()
+    expect(body.skipped).toEqual({ "own-address": 1 })
   })
 })
 

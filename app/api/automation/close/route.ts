@@ -84,6 +84,7 @@ import {
   mailTicketUpdatedStaff,
   mailNewMessageToUser,
 } from "@/lib/mail"
+import { subjects } from "@/lib/mailSubjects"
 import { NextRequest, NextResponse, after } from "next/server"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 
@@ -293,7 +294,7 @@ export async function POST(req: NextRequest) {
       mails.push(
         sendMail({
           to:      staffRecipients,
-          subject: `עדכון פנייה: ${ticket.subject}`,
+          subject: subjects.updatedStaff(ticket.ticketNumber, ticket.subject),
           html:    mailTicketUpdatedStaff(ticketInfo, actorName),
         })
       )
@@ -304,7 +305,7 @@ export async function POST(req: NextRequest) {
       mails.push(
         sendMail({
           to:      before.user.email,
-          subject: `תגובה חדשה על פנייתך: ${ticket.subject}`,
+          subject: subjects.newMessageUser(ticket.ticketNumber, ticket.subject),
           html:    mailNewMessageToUser(ticketInfo, message.trim(), actorName),
         })
       )

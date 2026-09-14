@@ -26,6 +26,7 @@ import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
+import { subjects } from "@/lib/mailSubjects"
 import { NextRequest, NextResponse } from "next/server"
 import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
@@ -476,7 +477,7 @@ export async function PATCH(req: NextRequest) {
       .filter(e => e !== session.user.email)
     const mails: Promise<void>[] = []
     if (staffRecipients.length > 0) {
-      mails.push(sendMail({ to: staffRecipients, subject: `עדכון פנייה: ${ticket.subject}`, html: mailTicketUpdatedStaff(ticketInfo, changedBy) }))
+      mails.push(sendMail({ to: staffRecipients, subject: subjects.updatedStaff(ticket.ticketNumber, ticket.subject), html: mailTicketUpdatedStaff(ticketInfo, changedBy) }))
     }
     // Notify user on status change
     // Use data.status so auto-changes (e.g. auto-בטיפול on self-assign) also trigger notifications
@@ -485,7 +486,7 @@ export async function PATCH(req: NextRequest) {
       mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
     } else if (data.status === "בטיפול" && owner?.email && owner.email !== session.user.email) {
       // In-progress: only notify if a staff member (not the user) changed the status
-      mails.push(sendMail({ to: owner.email, subject: `עדכון על פנייתך – בטיפול`, html: mailTicketStatusUser(ticketInfo) }))
+      mails.push(sendMail({ to: owner.email, subject: subjects.inProgressUser(ticket.ticketNumber), html: mailTicketStatusUser(ticketInfo) }))
     } else if (data.status === "פתוח" && before.status === "סגור" && owner?.email && owner.email !== session.user.email) {
       // Staff-initiated re-open: notify the ticket owner
       mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))

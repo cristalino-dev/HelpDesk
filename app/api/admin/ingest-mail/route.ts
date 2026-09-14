@@ -9,23 +9,33 @@
  * keyword (default "ticket", override TICKET_MAIL_KEYWORD) used to be the only
  * gate; now it only makes the ticket urgent. What does NOT open one is mail
  * that is machinery rather than a person: our own mail, bounces, auto-replies,
- * and anything received before the cutoff. The rules — and why each of them
- * exists — live in lib/mailIngest.ts. This file is the I/O around them.
+ * and anything received before the cutoff — and, since v3.83, a reply to a
+ * ticket, which joins that ticket instead. The rules, and why each of them
+ * exists, live in lib/mailIngest.ts. This file is the I/O around them.
  *
  * EACH RUN:
  * ──────────
  *   1. Searches UNSEEN mail received since the cutoff (INGEST_START, or
  *      INGEST_SINCE). The 929-message backlog is never even fetched.
  *   2. Skips — and marks \Seen — whatever skipReason() refuses, counting why.
- *   3. Opens a ticket for the rest: reported by the From: address, or by the
+ *   3. A mail whose subject names a ticket (HDTC-N) — typically a reply to one
+ *      of our notifications, which come from noreply_helpdesk@, an alias of
+ *      this very mailbox — joins that ticket's conversation instead, when its
+ *      sender owns the ticket or is staff. No new ticket and no automatic
+ *      reply; the other side is told, exactly as for a reply typed in the app.
+ *      Anyone else, or a number that matches no ticket, goes on to step 4.
+ *   4. Opens a ticket for the rest: reported by the From: address, or by the
  *      Reply-To for mail we relayed on someone's behalf (the contact form).
- *      At most MAX_PER_RUN per run; the remainder stays unread for the next.
- *   4. Emails staff, and emails the sender unless mayAutoRespond() says not
+ *      At most MAX_PER_RUN tickets and replies per run; the remainder stays
+ *      unread for the next.
+ *   5. Emails staff, and emails the sender unless mayAutoRespond() says not
  *      to: lists, bulk mail, no-reply senders, suppression requests, and the
  *      per-sender circuit breaker.
  *
  * \Seen is the "processed" mark and the Message-ID is the idempotency key
- * (Ticket.sourceMessageId is unique) — both exactly as before.
+ * (Ticket.sourceMessageId is unique). A reply has no such column; the same
+ * author writing the same words to the same ticket within
+ * REPLY_DEDUPE_WINDOW_MS is treated as one reply seen twice.
  *
  * AUTHENTICATION:
  * ────────────────
@@ -40,7 +50,7 @@
  * RUNS VIA: server cron — run-ingest.sh every 2 minutes (scripts/deploy-remote.sh).
  *
  * RESPONSE:
- *   200 — { ok: true, created: N, tickets: number[], skipped: { reason: count } }
+ *   200 — { ok: true, created: N, tickets: number[], replies: number[], skipped: { reason: count } }
  *   401 — Unauthorized (bad/missing secret)
  *   503 — Mailbox not configured (SMTP_USER/SMTP_PASS missing)
  *   500 — Server error (logged)
@@ -51,13 +61,19 @@ import { simpleParser, type AddressObject } from "mailparser"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { getStaffEmails } from "@/lib/staffMembers"
-import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, MAIL_FROM_ADDRESS } from "@/lib/mail"
+import { STAFF_EMAILS } from "@/lib/staffEmails"
+import {
+  sendMail, mailTicketOpenedStaff, mailTicketOpenedUser,
+  mailNewMessageToUser, mailNewMessageToStaff, MAIL_FROM_ADDRESS,
+} from "@/lib/mail"
+import { subjects } from "@/lib/mailSubjects"
 import {
   buildIngestedTicket, fixCharsetLabels, DEFAULT_TICKET_KEYWORD,
   ingestSince, ownAddresses, inboundMeta, skipReason, isRelayed, mayAutoRespond,
-  MAX_PER_RUN, AUTO_RESPOND_WINDOW_MS, type SkipReason,
+  ticketNumberFromSubject, stripQuotedReply,
+  MAX_PER_RUN, AUTO_RESPOND_WINDOW_MS, REPLY_DEDUPE_WINDOW_MS, type SkipReason,
 } from "@/lib/mailIngest"
-import { resolveUserByEmail } from "@/lib/users"
+import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
 import { NextRequest, NextResponse, after } from "next/server"
 
 /** The first address in a mailparser address field, whichever shape it came in. */
@@ -92,13 +108,14 @@ export async function POST(req: NextRequest) {
   })
 
   const tickets: number[] = []
+  const replies: number[] = []
   const skipped: Partial<Record<SkipReason | "duplicate", number>> = {}
   const tally = (why: SkipReason | "duplicate") => { skipped[why] = (skipped[why] ?? 0) + 1 }
 
-  // Notification mail is started as each ticket is opened and awaited after
-  // the response: the response does not claim the mail was delivered, and a
-  // bare `void` is abandoned when the request context tears down (rule 41).
-  // Registered up front so it also covers a run that fails half way.
+  // Notification mail is started as each ticket or reply is saved and awaited
+  // after the response: the response does not claim the mail was delivered,
+  // and a bare `void` is abandoned when the request context tears down (rule
+  // 41). Registered up front so it also covers a run that fails half way.
   const mails: Promise<void>[] = []
   after(async () => { await Promise.allSettled(mails) })
 
@@ -121,7 +138,7 @@ export async function POST(req: NextRequest) {
       for (const uid of uids) {
         // A misconfigured cutoff throttles itself: the rest stay unread and
         // the next run, two minutes on, carries on from there.
-        if (tickets.length >= MAX_PER_RUN) break
+        if (tickets.length + replies.length >= MAX_PER_RUN) break
 
         const msg = await client.fetchOne(String(uid), { source: true, internalDate: true }, { uid: true })
         if (!msg || !msg.source) continue
@@ -136,6 +153,84 @@ export async function POST(req: NextRequest) {
         const reason = skipReason(meta, { since, own })
         if (reason) { tally(reason); await markSeen(uid); continue }
 
+        // Mail we relayed for someone (the contact form) is theirs, not ours.
+        const sender = isRelayed(meta, own) ? replyTo : from
+
+        // ── A reply to a ticket joins that ticket (v3.83) ─────────────────
+        // Notifications come from noreply_helpdesk@, an alias of this mailbox,
+        // so without this every "תודה" or "still broken" sent back to one
+        // would open a new ticket. Only the ticket's owner, or staff, may add
+        // to it: anyone else — and a number that matches no ticket — falls
+        // through to a new ticket below, so nothing is ever lost.
+        const replyNumber = ticketNumberFromSubject(parsed.subject)
+        const senderEmail = (sender?.address ?? "").trim().toLowerCase()
+        if (replyNumber !== null && senderEmail) {
+          const target = await prisma.ticket.findUnique({
+            where: { ticketNumber: replyNumber },
+            include: { user: { select: { name: true, email: true } } },
+          })
+          const senderUser = target ? await findUserByEmail(senderEmail) : null
+          const isStaffSender = STAFF_EMAILS.includes(senderEmail) || !!senderUser?.isAdmin
+          const isOwner = !!target && (target.user?.email ?? "").toLowerCase() === senderEmail
+
+          if (target && (isOwner || isStaffSender)) {
+            const content = stripQuotedReply(parsed.text) || "(הודעה ללא תוכן)"
+            const authorName = sender?.name?.trim() || senderUser?.name || senderEmail
+
+            // One reply seen twice — a run that died between saving it and
+            // marking it read — is still one reply.
+            const already = await prisma.ticketMessage.findFirst({
+              where: {
+                ticketId: target.id, authorEmail: senderEmail, content,
+                createdAt: { gte: new Date(Date.now() - REPLY_DEDUPE_WINDOW_MS) },
+              },
+            })
+            if (already) { tally("duplicate"); await markSeen(uid); continue }
+
+            await prisma.ticketMessage.create({
+              data: {
+                ticketId: target.id, content, authorName,
+                authorEmail: senderEmail, authorRole: isStaffSender ? "staff" : "user",
+              },
+            })
+            await markSeen(uid)
+
+            const info = {
+              id: target.id, ticketNumber: target.ticketNumber,
+              subject: target.subject, description: target.description,
+              urgency: target.urgency, category: target.category, platform: target.platform,
+              phone: target.phone, computerName: target.computerName, status: target.status,
+              submitterName: target.user?.name ?? target.user?.email ?? "משתמש",
+              submitterEmail: target.user?.email ?? "",
+            }
+            // The same rule as a reply typed in the app: staff write → the
+            // owner is told; the owner writes → staff are told. Never the
+            // author themselves, and no "received" reply — it is not new.
+            if (isStaffSender) {
+              const owner = target.user?.email ?? ""
+              if (owner && owner.toLowerCase() !== senderEmail) {
+                mails.push(sendMail({
+                  to: owner,
+                  subject: subjects.newMessageUser(target.ticketNumber, target.subject),
+                  html: mailNewMessageToUser(info, content, authorName),
+                }))
+              }
+            } else {
+              const staff = (await getStaffEmails()).filter(e => e.toLowerCase() !== senderEmail)
+              if (staff.length > 0) {
+                mails.push(sendMail({
+                  to: staff,
+                  subject: subjects.newMessageStaff(target.ticketNumber, target.subject),
+                  html: mailNewMessageToStaff(info, content, authorName),
+                }))
+              }
+            }
+
+            replies.push(target.ticketNumber)
+            continue
+          }
+        }
+
         // Idempotency: never create two tickets from the same email. The
         // Message-ID is unique per email; if we've already ingested it, skip.
         const messageId = parsed.messageId ?? null
@@ -144,8 +239,6 @@ export async function POST(req: NextRequest) {
           if (existing) { tally("duplicate"); await markSeen(uid); continue }
         }
 
-        // Mail we relayed for someone (the contact form) is reported by them.
-        const sender = isRelayed(meta, own) ? replyTo : from
         const t = buildIngestedTicket(
           { subject: parsed.subject ?? "", text: parsed.text ?? "", fromName: sender?.name ?? "", fromEmail: sender?.address ?? "" },
           keyword,
@@ -226,7 +319,7 @@ export async function POST(req: NextRequest) {
       lock.release()
     }
     await client.logout()
-    return NextResponse.json({ ok: true, created: tickets.length, tickets, skipped })
+    return NextResponse.json({ ok: true, created: tickets.length, tickets, replies, skipped })
   } catch (err) {
     try { await client.logout() } catch { /* already closed */ }
     const e = err instanceof Error ? err : new Error(String(err))

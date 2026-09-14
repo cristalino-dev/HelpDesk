@@ -316,3 +316,64 @@ export function buildIngestedTicket(mail: ParsedMail, keyword: string = DEFAULT_
     reporterName,
   }
 }
+
+// ── Replies to notifications (v3.83) ────────────────────────────────────────
+
+/**
+ * The ticket a mail is about, from "HDTC-597" in its subject — or null.
+ *
+ * Every notification subject carries its number (lib/mailSubjects.ts) and a
+ * reply keeps the subject ("Re: פנייתך התקבלה — HDTC-597"), so this is how a
+ * reply finds its ticket. The first number wins: a forwarded thread may name
+ * several, and the one nearest the start is the conversation being continued.
+ */
+export function ticketNumberFromSubject(subject?: string | null): number | null {
+  const m = /HDTC-(\d{1,7})/i.exec(subject ?? "")
+  return m ? Number(m[1]) : null
+}
+
+/**
+ * How long an added reply is recognised as the same one: the same author
+ * writing the same words to the same ticket inside this window is one reply
+ * seen twice (a run that died between saving it and marking it read), not two.
+ */
+export const REPLY_DEDUPE_WINDOW_MS = 10 * 60 * 1000
+
+/** Bidi marks mail clients sprinkle around Hebrew — invisible, but they defeat matching. */
+const BIDI = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g
+
+/**
+ * The new part of a reply, without the quoted conversation under it.
+ *
+ * Cuts at the first line that begins the quoted part, in the forms this
+ * company's mail clients write it:
+ *   • Gmail — "On Mon, 14 Sep 2026 at 11:08, Name <addr> wrote:" and the
+ *     Hebrew "בתאריך … מאת Name <addr>:": a line that ends with an address in
+ *     angle brackets and a colon, or with "wrote:" / "כתב:". Gmail sometimes
+ *     wraps it, leaving "wrote:" alone on the next line.
+ *   • Outlook — "-----Original Message-----", a rule of underscores, or a
+ *     "From:" / "מאת:" line directly followed by "Sent:" / "נשלח:".
+ *   • Plain quoting — lines starting with ">" are dropped.
+ *
+ * If nothing is left, the original is kept: better a message with the quote
+ * still in it than an empty one.
+ */
+export function stripQuotedReply(text?: string | null): string {
+  const raw = (text ?? "").replace(/\r\n/g, "\n")
+  const lines = raw.split("\n")
+  const kept: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].replace(BIDI, "").trim()
+    const next = (lines[i + 1] ?? "").replace(BIDI, "").trim()
+    if (/^-{2,}\s*(original message|הודעה מקורית)\s*-{2,}$/i.test(line)) break
+    if (/^_{10,}$/.test(line)) break
+    if (/^(from|מאת)\s*:/i.test(line) && /^(sent|date|נשלח|תאריך)\s*:/i.test(next)) break
+    if (/<[^<>\s@]+@[^<>\s]+>\s*:\s*$/.test(line)) break
+    if (/\bwrote:\s*$/i.test(line) || /כתב(?:ה|\/ה)?\s*:\s*$/.test(line)) break
+    if (/^on\b.*\d/i.test(line) && /^wrote:\s*$/i.test(next)) break
+    if (line.startsWith(">")) continue
+    kept.push(lines[i])
+  }
+  const result = kept.join("\n").trim()
+  return result || raw.trim()
+}

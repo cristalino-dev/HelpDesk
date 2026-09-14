@@ -4,6 +4,7 @@ import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getAllStaffMembers, parseMentionsFromList } from "@/lib/staffMembers"
 import { sendMail, mailNoteMention } from "@/lib/mail"
+import { subjects } from "@/lib/mailSubjects"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           mentioned.map(email =>
             sendMail({
               to: email,
-              subject: `הוזכרת בפנייה: ${ticket.subject}`,
+              subject: subjects.mentioned(ticket.ticketNumber, ticket.subject),
               html: mailNoteMention(ticketInfo, content.trim(), mentionedBy),
             })
           )

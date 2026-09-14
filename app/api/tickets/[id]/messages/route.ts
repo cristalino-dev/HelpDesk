@@ -4,6 +4,7 @@ import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailNewMessageToUser, mailNewMessageToStaff, mailReplyNotification } from "@/lib/mail"
+import { subjects } from "@/lib/mailSubjects"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (replyToEmail && replyToEmail !== session.user.email) {
         void sendMail({
           to: replyToEmail,
-          subject: `${authorName} ענה לך בפנייה: ${ticket.subject}`,
+          subject: subjects.repliedToYou(authorName, ticket.ticketNumber, ticket.subject),
           html: mailReplyNotification(ticketInfo, content.trim(), authorName, replyToName ?? replyToEmail, message.id),
         })
       }
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (ticket.user?.email && ticket.user.email !== replyToEmail) {
           void sendMail({
             to: ticket.user.email,
-            subject: `תגובה חדשה על פנייתך: ${ticket.subject}`,
+            subject: subjects.newMessageUser(ticket.ticketNumber, ticket.subject),
             html: mailNewMessageToUser(ticketInfo, content.trim(), authorName),
           })
         }
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (staffRecipients.length > 0) {
           void sendMail({
             to: staffRecipients,
-            subject: `תגובת משתמש על פנייה: ${ticket.subject}`,
+            subject: subjects.newMessageStaff(ticket.ticketNumber, ticket.subject),
             html: mailNewMessageToStaff(ticketInfo, content.trim(), authorName),
           })
         }
