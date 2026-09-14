@@ -5,6 +5,59 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.87 — פנייה או בקשה
+
+**A ticket is now a fault or a request. A request — something wanted rather
+than something broken — is labelled REQ-N instead of HDTC-N, has its own SLA (10
+workdays against a fault's 4, both changeable by admins), and is listed in its
+own section below the tickets.**
+
+### What changed for users
+
+- **The new-ticket form asks what this is:** תקלה — something does not work — or
+  בקשה — something is needed: equipment, a permission, an account, an
+  installation. /open asks the same.
+- **A request is numbered REQ-N**, on the same sequence as HDTC-N, and carries
+  that label everywhere: the confirmation, the queues, the ticket page, every
+  mail, the export. Search takes REQ-45 as well as HDTC-45, and a reply to a
+  request's mail still joins it.
+- **Requests sit below the tickets** in every queue — the admin console,
+  /tickets, the viewer page and the dashboard — under their own heading and
+  count.
+- **Overdue follows the type:** a ticket turns orange after 4 workdays, a request
+  after 10 — in the queues and in the morning digest. Admins change both in
+  שדות מערכת → זמני טיפול (SLA).
+- **Staff can turn a ticket into a request, or back,** from the ticket page's
+  edit form; the history records it.
+- The digest's overdue card counts what is past its SLA in workdays; it used to
+  count anything open four calendar days.
+
+### What changed for developers
+
+- **Migration `20260915000000_ticket_type_and_settings`:** `Ticket.type TEXT NOT
+  NULL DEFAULT 'ticket'` (indexed) and an `AppSetting` table (key/value).
+  Existing rows are tickets. `IF NOT EXISTS` throughout.
+- **`lib/ticketType.ts`** is the one place: `normalizeType()`, `ticketLabel()`,
+  `ticketRefWhere()` (HDTC-N, REQ-N or a CUID), `splitByType()` /
+  `withRequestsDivider()`, `DEFAULT_SLA`, `slaFor()`, `parseSlaWorkdays()`
+  (rule 67).
+- **SLA:** `lib/sla.ts` (`getSla` / `setSla` on AppSetting),
+  `GET /api/settings/sla` (signed in), `PUT /api/admin/settings/sla` (admin;
+  whole workdays 1–60; logged), `lib/useSla.ts` for the pages and
+  `components/SlaSettings.tsx` in שדות מערכת (rule 68).
+- **API:** `POST /api/tickets` takes `type`; `PATCH` lets staff change it (a
+  `type` history row); the bulk route takes `changes.type`; `/api/tickets/[id]`
+  and its equipment route resolve REQ-N.
+- **Mail:** `subjects.x(ticket, …)` label by type; `ticketUrl(n, type)`; every
+  template's chip and text use `ticketLabel()`; `mailDailyDigest(tickets, sla)`.
+  The subject guard test accepts a `ticketLabel(` subject;
+  `ticketNumberFromSubject()` reads REQ-N.
+- **Export:** a "סוג" column; "מזהה" is the label.
+- Tests: `ticketType`, `slaRoutes`, `requestLabels` and `ticketTypeApi` (new);
+  `digest` moved to the per-type, workday rule. 73 suites / 1,312 tests.
+
+---
+
 ## v3.86 — סביבת פיתוח: עותק של המערכת, על אותו שרת
 
 **There is now a dev copy of the helpdesk: the same code on the same server,

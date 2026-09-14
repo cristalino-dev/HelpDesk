@@ -77,6 +77,10 @@ import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
 import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { useSla } from "@/lib/useSla"
+import RequestsDivider from "@/components/RequestsDivider"
+import SlaSettings from "@/components/SlaSettings"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import BulkActionBar from "@/components/BulkActionBar"
@@ -129,6 +133,8 @@ export default function AdminPage() {
   const [noteText, setNoteText]                 = useState<Record<string, string>>({})
   const [noteImages, setNoteImages]             = useState<Record<string, PendingImage[]>>({})
   const [noteUploadErrors, setNoteUploadErrors] = useState<Record<string, string>>({})
+  // Overdue is per type — 4 workdays for a ticket, 10 for a request, unless admins changed it (v3.87).
+  const sla = useSla()
   const [noteSaving, setNoteSaving]             = useState<string | null>(null)
   // Messages (conversation with user) per expanded ticket
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
@@ -174,7 +180,7 @@ export default function AdminPage() {
       const res = await bulkUpdateTickets(Array.from(selectedIds), { status: "סגור" })
       if (res.ok) {
         if (res.errors && res.errors.length > 0) {
-          const msgs = res.errors.map(e => `${e.ticketNumber ? `HDTC-${e.ticketNumber}: ` : ""}${e.error}`).join("\n")
+          const msgs = res.errors.map(e => `${e.ticketNumber ? `${ticketLabel({ ticketNumber: e.ticketNumber, type: e.type })}: ` : ""}${e.error}`).join("\n")
           setStatusError(`נסגרו ${res.updatedCount} פניות. שגיאות:\n${msgs}`)
         }
         setSelectedIds(new Set())
@@ -1051,6 +1057,8 @@ export default function AdminPage() {
               </div>
             </div>
 
+            <SlaSettings />
+
             {/* Current options per field */}
             {([
               { key: "category", label: "קטגוריה" },
@@ -1566,11 +1574,11 @@ export default function AdminPage() {
                         {item.tickets.map(t => (
                           <a
                             key={t.ticketNumber}
-                            href={`/tickets/HDTC-${t.ticketNumber}`}
+                            href={`/tickets/${ticketLabel(t)}`}
                             style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", fontSize: "0.82rem", color: T.ink, padding: "5px 0" }}
                           >
                             <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
-                              HDTC-{t.ticketNumber}
+                              {ticketLabel(t)}
                             </span>
                             <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</span>
                             <span style={{ ...badge, ...(STATUS_STYLES[t.status] ?? {}) }}>{t.status}</span>
@@ -1629,7 +1637,7 @@ export default function AdminPage() {
           <input
             value={ticketSearch}
             onChange={e => setTicketSearch(e.target.value)}
-            placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 200, padding: "8px 13px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.85rem", background: T.card }}
           />
           {/* Open / All toggle */}
@@ -1684,11 +1692,11 @@ export default function AdminPage() {
         {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
         {numberSuggestion && (
           <a
-            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            href={`/tickets/${ticketLabel(numberSuggestion)}`}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
             <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
-              HDTC-{numberSuggestion.ticketNumber}
+              {ticketLabel(numberSuggestion)}
             </span>
             <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
@@ -1737,10 +1745,11 @@ export default function AdminPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {displayTickets.map((ticket, i) => {
+            {withRequestsDivider(displayTickets).map((ticket, i) => {
+              if (isRequestsDivider(ticket)) return <RequestsDivider key={ticket.id} count={displayTickets.filter(isRequest).length} />
               const isClosed = ticket.status === "סגור"
               const isOnHold = ticket.status === "בהמתנה"
-              const isStale = !isClosed && !isOnHold && isStaleOpen(ticket)
+              const isStale = !isClosed && !isOnHold && isStaleOpen(ticket, slaFor(ticket.type, sla))
               const wdOpen = isClosed
                 ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
                 : workdaysBetween(ticket.createdAt)
@@ -1794,7 +1803,7 @@ export default function AdminPage() {
                             marginLeft: 4,
                           }}
                         />
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>{ticketLabel(ticket)}</span>
                         <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.35, flexShrink: 0, transition: "transform 0.2s", transform: expanded === ticket.id ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -1856,7 +1865,7 @@ export default function AdminPage() {
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
                       <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
-                        HDTC-{ticket.ticketNumber}
+                        {ticketLabel(ticket)}
                       </span>
                       <span style={{ fontWeight: 600, color: T.text, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {ticket.subject}
@@ -2004,7 +2013,7 @@ export default function AdminPage() {
                             onClick={e => { e.stopPropagation(); setEditingTicketId(ticket.id); setEditForm({ subject: ticket.subject, description: ticket.description, phone: ticket.phone, computerName: ticket.computerName, urgency: ticket.urgency, category: ticket.category, platform: ticket.platform, status: ticket.status, holdReason: ticket.holdReason ?? "" }) }}>
                             ✏️ עריכה
                           </button>
-                          <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
+                          <a href={`/tickets/${ticketLabel(ticket)}`} onClick={e => e.stopPropagation()}
                             style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, textDecoration: "none", background: T.greenSBg, color: T.greenSFgDeep }}>
                             🔍 פתח פנייה מלאה
                           </a>

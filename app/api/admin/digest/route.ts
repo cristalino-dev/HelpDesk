@@ -24,6 +24,8 @@ import { prisma }         from "@/lib/db"
 import { sendMail, mailDailyDigest } from "@/lib/mail"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { logError }       from "@/lib/logError"
+import { getSla }         from "@/lib/sla"
+import { DEFAULT_SLA }    from "@/lib/ticketType"
 
 const URGENCY_RANK: Record<string, number> = {
   "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3,
@@ -60,7 +62,9 @@ export async function POST(req: NextRequest) {
     // ── Send email ────────────────────────────────────────────────────────────
     const subject = `📋 סיכום יומי — ${tickets.length} פניות פתוחות`
     const staffEmails = await getStaffEmails()
-    await sendMail({ to: staffEmails, subject, html: mailDailyDigest(tickets) })
+    // Overdue is per type (v3.87). An unreadable setting must not cost the digest.
+    const sla = await getSla().catch(() => DEFAULT_SLA)
+    await sendMail({ to: staffEmails, subject, html: mailDailyDigest(tickets, sla) })
 
     console.log(`[digest] sent ${tickets.length} tickets to ${staffEmails.join(", ")}`)
     return NextResponse.json({ sent: true, count: tickets.length })

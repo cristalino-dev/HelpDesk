@@ -95,20 +95,20 @@ describe("mailDailyDigest", () => {
     expect(html).not.toContain("🔴")
   })
 
-  it("shows the stale card when a ticket is older than 4 days", () => {
-    const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(5) })])
-    expect(html).toContain("4+ ימים")
+  it("shows the overdue card when a ticket is past its SLA — 4 workdays for a ticket", () => {
+    const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(10) })])
+    expect(html).toContain("חורגות מזמן הטיפול")
   })
 
   it("does not show the stale card when no ticket is stale", () => {
     const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(1) })])
-    expect(html).not.toContain("4+ ימים")
+    expect(html).not.toContain("חורגות מזמן הטיפול")
   })
 
   // ── stale row indicator ─────────────────────────────────────────────────────
 
   it("marks a stale ticket row with ⏰ and an orange background", () => {
-    const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(5) })])
+    const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(10) })])
     expect(html).toContain("⏰")
     expect(html).toContain("#fff8f0")   // stale row background colour
   })

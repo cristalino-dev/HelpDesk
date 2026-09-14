@@ -73,6 +73,7 @@ import {
   mailNewMessageToUser, mailNewMessageToStaff, MAIL_FROM_ADDRESS,
 } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
+import { ticketLabel } from "@/lib/ticketType"
 import {
   buildIngestedTicket, fixCharsetLabels, DEFAULT_TICKET_KEYWORD,
   ingestSince, ownAddresses, inboundMeta, skipReason, isRelayed, mayAutoRespond,
@@ -236,7 +237,7 @@ export async function POST(req: NextRequest) {
             await saveMailAttachments(target.id, attachments, plan)
 
             const info = {
-              id: target.id, ticketNumber: target.ticketNumber,
+              id: target.id, ticketNumber: target.ticketNumber, type: target.type,
               subject: target.subject, description: target.description,
               urgency: target.urgency, category: target.category, platform: target.platform,
               phone: target.phone, computerName: target.computerName, status: target.status,
@@ -251,7 +252,7 @@ export async function POST(req: NextRequest) {
               if (owner && owner.toLowerCase() !== senderEmail) {
                 mails.push(sendMail({
                   to: owner,
-                  subject: subjects.newMessageUser(target.ticketNumber, target.subject),
+                  subject: subjects.newMessageUser(target, target.subject),
                   html: mailNewMessageToUser(info, content, authorName),
                 }))
               }
@@ -260,7 +261,7 @@ export async function POST(req: NextRequest) {
               if (staff.length > 0) {
                 mails.push(sendMail({
                   to: staff,
-                  subject: subjects.newMessageStaff(target.ticketNumber, target.subject),
+                  subject: subjects.newMessageStaff(target, target.subject),
                   html: mailNewMessageToStaff(info, content, authorName),
                 }))
               }
@@ -344,16 +345,16 @@ export async function POST(req: NextRequest) {
         })
 
         const ticketInfo = {
-          id: ticket.id, ticketNumber: ticket.ticketNumber,
+          id: ticket.id, ticketNumber: ticket.ticketNumber, type: ticket.type,
           subject: t.subject, description,
           urgency: t.urgency, category: t.category, platform: t.platform,
           phone: t.phone, computerName: t.computerName, status: ticket.status,
           submitterName: t.reporterName, submitterEmail: t.reporterEmail,
         }
         const staffEmails = await getStaffEmails()
-        mails.push(sendMail({ to: staffEmails, subject: `פנייה חדשה (מייל) HDTC-${ticket.ticketNumber}: ${t.subject}`, html: mailTicketOpenedStaff(ticketInfo) }))
+        mails.push(sendMail({ to: staffEmails, subject: `פנייה חדשה (מייל) ${ticketLabel(ticket)}: ${t.subject}`, html: mailTicketOpenedStaff(ticketInfo) }))
         if (mayAutoRespond(meta, t.reporterEmail, recent)) {
-          mails.push(sendMail({ to: t.reporterEmail, subject: `פנייתך התקבלה — HDTC-${ticket.ticketNumber}`, html: mailTicketOpenedUser(ticketInfo) }))
+          mails.push(sendMail({ to: t.reporterEmail, subject: `פנייתך התקבלה — ${ticketLabel(ticket)}`, html: mailTicketOpenedUser(ticketInfo) }))
         }
 
         tickets.push(ticket.ticketNumber)

@@ -28,18 +28,21 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { T } from "@/lib/theme"
+import { ticketLabel } from "@/lib/ticketType"
 
 type Props = {
   ticketNumber: number
+  /** "ticket" or "request" — decides HDTC-N or REQ-N (v3.87). */
+  type?: string | null
   subject?: string
   /** Rendered under the actions — "open another", "back to the dashboard". */
   children?: React.ReactNode
 }
 
 /** The canonical link to a ticket, as the emails build it. */
-export function ticketLink(ticketNumber: number): string {
+export function ticketLink(ticketNumber: number, type?: string | null): string {
   const origin = typeof window === "undefined" ? "" : window.location.origin
-  return `${origin}/tickets/HDTC-${ticketNumber}`
+  return `${origin}/tickets/${ticketLabel({ ticketNumber, type })}`
 }
 
 type CopyState = "idle" | "copied" | "failed"
@@ -120,8 +123,8 @@ function CopyButton({ label, text, primary, targetRef }: {
   )
 }
 
-export function TicketCreatedCard({ ticketNumber, subject, children }: Props) {
-  const code = `HDTC-${ticketNumber}`
+export function TicketCreatedCard({ ticketNumber, type, subject, children }: Props) {
+  const code = ticketLabel({ ticketNumber, type })
   const codeRef = useRef<HTMLDivElement>(null)
 
   return (
@@ -153,7 +156,7 @@ export function TicketCreatedCard({ ticketNumber, subject, children }: Props) {
 
       <div style={{ display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap", marginBottom: children ? 18 : 0 }}>
         <CopyButton label="העתק מספר" text={() => code} primary targetRef={codeRef} />
-        <CopyButton label="העתק קישור" text={() => ticketLink(ticketNumber)} />
+        <CopyButton label="העתק קישור" text={() => ticketLink(ticketNumber, type)} />
       </div>
 
       {children}
@@ -163,7 +166,7 @@ export function TicketCreatedCard({ ticketNumber, subject, children }: Props) {
 
 /** The card in a modal, for pages that have something behind it. */
 export function TicketCreatedDialog({
-  ticketNumber, subject, onClose, children,
+  ticketNumber, type, subject, onClose, children,
 }: Props & { onClose: () => void }) {
   // Escape closes it, and the body does not scroll behind it.
   useEffect(() => {
@@ -199,7 +202,7 @@ export function TicketCreatedDialog({
           style={{ position: "absolute", top: 12, left: 14, background: "none", border: "none", fontSize: "1.1rem", color: T.muted, cursor: "pointer", lineHeight: 1, padding: 4 }}
         >✕</button>
 
-        <TicketCreatedCard ticketNumber={ticketNumber} subject={subject}>
+        <TicketCreatedCard ticketNumber={ticketNumber} type={type} subject={subject}>
           {children}
         </TicketCreatedCard>
       </div>

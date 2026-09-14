@@ -320,15 +320,17 @@ export function buildIngestedTicket(mail: ParsedMail, keyword: string = DEFAULT_
 // ── Replies to notifications (v3.83) ────────────────────────────────────────
 
 /**
- * The ticket a mail is about, from "HDTC-597" in its subject — or null.
+ * The ticket a mail is about, from "HDTC-597" — or "REQ-601" for a request
+ * (v3.87) — in its subject; or null.
  *
- * Every notification subject carries its number (lib/mailSubjects.ts) and a
+ * Every notification subject carries its label (lib/mailSubjects.ts) and a
  * reply keeps the subject ("Re: פנייתך התקבלה — HDTC-597"), so this is how a
- * reply finds its ticket. The first number wins: a forwarded thread may name
+ * reply finds its ticket. The first label wins: a forwarded thread may name
  * several, and the one nearest the start is the conversation being continued.
+ * Tickets and requests share one number sequence, so the number is enough.
  */
 export function ticketNumberFromSubject(subject?: string | null): number | null {
-  const m = /HDTC-(\d{1,7})/i.exec(subject ?? "")
+  const m = /\b(?:HDTC|REQ)-(\d{1,7})/i.exec(subject ?? "")
   return m ? Number(m[1]) : null
 }
 

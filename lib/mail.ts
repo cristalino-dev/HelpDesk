@@ -21,6 +21,8 @@ import nodemailer from "nodemailer"
 import { logError } from "@/lib/logError"
 import { BOT_EMAIL } from "@/lib/staffEmails"
 import { isDevSite } from "@/lib/appEnv"
+import { ticketLabel, slaFor, DEFAULT_SLA, type Sla } from "@/lib/ticketType"
+import { workdaysAgo } from "@/lib/workdays"
 import { LIGHT } from "@/lib/palette"
 import { STATUS_TOKENS, URGENCY_TOKENS } from "@/lib/theme"
 
@@ -221,8 +223,8 @@ export async function sendMail({ to, subject: requestedSubject, html: requestedH
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
-export function ticketUrl(ticketNumber: number) {
-  return `${APP_URL}/tickets/HDTC-${ticketNumber}`
+export function ticketUrl(ticketNumber: number, type?: string | null) {
+  return `${APP_URL}/tickets/${ticketLabel({ ticketNumber, type })}`
 }
 
 export function reviewUrl(ticketId: string) {
@@ -238,8 +240,8 @@ export function reviewUrl(ticketId: string) {
  * must be ON THE CONTENT DIVS themselves — that's what makes Hebrew mails
  * render right-aligned everywhere.
  */
-function wrap(body: string, ticketNumber?: number) {
-  const chip = ticketNumber === undefined ? "" : `<span style="display:inline-block;padding:5px 13px;border-radius:20px;background:rgba(116,197,58,0.14);border:1px solid rgba(116,197,58,0.45);color:${C.green};font-family:'Courier New',Courier,monospace;font-size:13px;font-weight:700;letter-spacing:0.04em;white-space:nowrap">HDTC-${ticketNumber}</span>`
+function wrap(body: string, ticketNumber?: number, type?: string | null) {
+  const chip = ticketNumber === undefined ? "" : `<span style="display:inline-block;padding:5px 13px;border-radius:20px;background:rgba(116,197,58,0.14);border:1px solid rgba(116,197,58,0.45);color:${C.green};font-family:'Courier New',Courier,monospace;font-size:13px;font-weight:700;letter-spacing:0.04em;white-space:nowrap">${ticketLabel({ ticketNumber, type })}</span>`
 
   return `<!DOCTYPE html><html dir="rtl" lang="he">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -330,6 +332,7 @@ const STATUS_COLOR:  Record<string, string> = pillCss(STATUS_TOKENS)
 interface TicketInfo {
   id: string
   ticketNumber: number
+  type?: string | null
   subject: string
   description: string
   urgency: string
@@ -344,11 +347,11 @@ interface TicketInfo {
 
 /** Sent to all staff when a new ticket is opened */
 export function mailTicketOpenedStaff(t: TicketInfo) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div dir="rtl" style="direction:rtl;text-align:right;font-size:20px;font-weight:800;color:${C.text};margin:0 0 4px">🎫 פנייה חדשה נפתחה</div>
     <div dir="rtl" style="direction:rtl;text-align:right;font-size:13px;color:${C.text2};margin:0 0 20px">
-      פנייה <strong style="font-family:'Courier New',Courier,monospace;color:${C.greenInk}">HDTC-${t.ticketNumber}</strong> ממתינה לטיפול.
+      פנייה <strong style="font-family:'Courier New',Courier,monospace;color:${C.greenInk}">${ticketLabel(t)}</strong> ממתינה לטיפול.
     </div>
 
     <div dir="rtl" style="direction:rtl;text-align:right;font-size:17px;font-weight:700;color:${C.text};margin:0 0 14px;line-height:1.45">${esc(t.subject)}</div>
@@ -365,12 +368,12 @@ export function mailTicketOpenedStaff(t: TicketInfo) {
     <div dir="rtl" style="direction:rtl;text-align:right;background:${C.panel};border-right:3px solid ${C.green};border-radius:8px;padding:12px 15px;font-size:14px;color:${C.text};line-height:1.65;white-space:pre-wrap">${esc(t.description)}</div>
 
     ${button(url, "פתח פנייה ←")}
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /** Sent to the user who opened the ticket */
 export function mailTicketOpenedUser(t: TicketInfo) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div dir="rtl" style="direction:rtl;text-align:right;font-size:20px;font-weight:800;color:${C.text};margin:0 0 12px">✅ פנייתך התקבלה</div>
     <div dir="rtl" style="direction:rtl;text-align:right;font-size:15px;color:${C.text2};line-height:1.7;margin:0 0 20px">
@@ -379,7 +382,7 @@ export function mailTicketOpenedUser(t: TicketInfo) {
 
     <div dir="rtl" style="direction:rtl;text-align:center;background:${C.greenBg};border:1px solid rgba(116,197,58,0.40);border-radius:10px;padding:16px;margin:0 0 18px">
       <div style="font-size:11px;font-weight:700;color:${C.greenInk};letter-spacing:0.06em;margin-bottom:4px">מספר הפנייה שלך</div>
-      <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:700;color:${C.greenInk};letter-spacing:0.03em">HDTC-${t.ticketNumber}</div>
+      <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:700;color:${C.greenInk};letter-spacing:0.03em">${ticketLabel(t)}</div>
     </div>
 
     ${details([
@@ -388,12 +391,12 @@ export function mailTicketOpenedUser(t: TicketInfo) {
     ])}
 
     ${button(url, "צפה בפנייה ←")}
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /** Sent to all staff on any field update (status, urgency, etc.) */
 export function mailTicketUpdatedStaff(t: TicketInfo, changedBy: string) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div class="header">🔄 פנייה עודכנה</div>
     <div class="field"><div class="label">עודכן על ידי</div><div class="value">${changedBy}</div></div>
@@ -408,12 +411,12 @@ export function mailTicketUpdatedStaff(t: TicketInfo, changedBy: string) {
       <div class="value"><span class="badge" style="${URGENCY_COLOR[t.urgency] ?? ""}">${t.urgency}</span></div>
     </div>
     <a class="btn" href="${url}">פתח פנייה ←</a>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /** Sent to the user when their ticket moves to בטיפול */
 export function mailTicketStatusUser(t: TicketInfo) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div class="header">📬 עדכון על פנייתך</div>
     <p style="color:${C.text2};font-size:15px">שלום ${esc(t.submitterName)},<br>פנייתך נמצאת כעת בטיפול הצוות הטכני.</p>
@@ -423,7 +426,7 @@ export function mailTicketStatusUser(t: TicketInfo) {
       <div class="value"><span class="badge" style="${STATUS_COLOR["בטיפול"]}">${"בטיפול"}</span></div>
     </div>
     <a class="btn" href="${url}">צפה בפנייה ←</a>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /**
@@ -431,12 +434,12 @@ export function mailTicketStatusUser(t: TicketInfo) {
  * The review link uses the ticket's CUID as an unguessable token so no auth is needed.
  */
 export function mailTicketClosedWithReview(t: TicketInfo) {
-  const ticketLink = ticketUrl(t.ticketNumber)
+  const ticketLink = ticketUrl(t.ticketNumber, t.type)
   const rateLink   = reviewUrl(t.id)
   return wrap(`
     <div class="header">✅ פנייתך טופלה וסגורה</div>
     <p style="color:${C.text2};font-size:15px">שלום ${esc(t.submitterName)},<br>
-      פנייה <strong style="font-family:monospace">HDTC-${t.ticketNumber}</strong> — <strong>${esc(t.subject)}</strong> — טופלה ונסגרה על ידי צוות התמיכה.
+      פנייה <strong style="font-family:monospace">${ticketLabel(t)}</strong> — <strong>${esc(t.subject)}</strong> — טופלה ונסגרה על ידי צוות התמיכה.
     </p>
     <div style="margin:24px 0;padding:22px 24px;background:linear-gradient(135deg,${C.greenBg},${C.greenBg});border-radius:12px;border:1px solid ${C.green};text-align:center">
       <div style="font-size:26px;margin-bottom:8px">⭐</div>
@@ -447,12 +450,12 @@ export function mailTicketClosedWithReview(t: TicketInfo) {
     <p style="font-size:12px;color:${C.muted};text-align:center;margin:0">
       אם הבעיה חזרה, <a href="${ticketLink}" style="color:${C.greenInk}">לחצו כאן לפתיחת פנייה חדשה</a>.
     </p>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /** Sent to ticket owner when a staff member posts a message */
 export function mailNewMessageToUser(t: TicketInfo, messageContent: string, fromName: string) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div class="header">💬 תגובה חדשה על פנייתך</div>
     <p style="color:${C.text2};font-size:15px">שלום ${esc(t.submitterName)},<br>${esc(fromName)} מצוות התמיכה הגיב על פנייתך:</p>
@@ -462,12 +465,12 @@ export function mailNewMessageToUser(t: TicketInfo, messageContent: string, from
     </div>
     <p style="color:${C.text3};font-size:13px">ניתן להגיב דרך המערכת.</p>
     <a class="btn" href="${url}">פתח פנייה וענה ←</a>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /** Sent to all staff when a user posts a message on a ticket */
 export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fromName: string) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div class="header">💬 תגובת משתמש על פנייה</div>
     <p style="color:${C.text2};font-size:15px">${esc(fromName)} הגיב על פנייה:</p>
@@ -477,12 +480,12 @@ export function mailNewMessageToStaff(t: TicketInfo, messageContent: string, fro
       <div class="value" style="background:${C.panel};border-right:3px solid ${C.text3};padding:10px 14px;border-radius:6px;white-space:pre-wrap">${esc(messageContent)}</div>
     </div>
     <a class="btn" href="${url}">פתח פנייה ←</a>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 /** Sent to a specific person when someone replies directly to their message */
 export function mailReplyNotification(t: TicketInfo, replyContent: string, fromName: string, toName: string, messageId: string) {
-  const url = `${ticketUrl(t.ticketNumber)}#msg-${messageId}`
+  const url = `${ticketUrl(t.ticketNumber, t.type)}#msg-${messageId}`
   return wrap(`
     <div class="header">↩ ${esc(fromName)} ענה לך בפנייה</div>
     <p style="color:${C.text2};font-size:15px">שלום ${esc(toName)},<br><strong>${esc(fromName)}</strong> ענה להודעתך בפנייה <strong>"${esc(t.subject)}"</strong>:</p>
@@ -495,13 +498,14 @@ export function mailReplyNotification(t: TicketInfo, replyContent: string, fromN
       <div style="font-size:17px;font-weight:900;color:#c2410c;letter-spacing:0.01em;margin-bottom:6px">⚠️ אין להשיב למייל זה</div>
       <div style="font-size:13px;color:#9a3412;font-weight:600;line-height:1.6">מייל זה נשלח אוטומטית ואינו מנוטר.<br>כדי להשיב — לחץ על הכפתור למעלה ורשום תגובה במערכת.</div>
     </div>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }
 
 // ── Daily digest ─────────────────────────────────────────────────────────────
 
 interface DigestTicket {
   ticketNumber: number
+  type?: string | null
   subject: string
   urgency: string
   status: string
@@ -514,10 +518,11 @@ const URGENCY_RANK_DIGEST: Record<string, number> = { "דחוף": 0, "גבוה":
 /**
  * Sent every morning to all staff with a table of all non-closed tickets,
  * sorted by priority (דחוף → גבוה → בינוני → נמוך) then by age (oldest first).
- * Stale tickets (open > 4 days) are highlighted in red.
+ * Tickets past their type's SLA are highlighted in red — in workdays, the
+ * same rule the queues apply (v3.87); this used to be a flat 4 calendar days.
  */
-export function mailDailyDigest(tickets: DigestTicket[]) {
-  const STALE_MS = 4 * 24 * 60 * 60 * 1000
+export function mailDailyDigest(tickets: DigestTicket[], sla: Sla = DEFAULT_SLA) {
+  const isOverdue = (t: DigestTicket) => workdaysAgo(t.createdAt) > slaFor(t.type, sla)
 
   const daysSince = (d: string | Date) => {
     const days = Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24))
@@ -530,22 +535,21 @@ export function mailDailyDigest(tickets: DigestTicket[]) {
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   })
 
-  const staleCount  = sorted.filter(t => (Date.now() - new Date(t.createdAt).getTime()) > STALE_MS).length
+  const staleCount  = sorted.filter(isOverdue).length
   const urgentCount = sorted.filter(t => t.urgency === "דחוף").length
   const highCount   = sorted.filter(t => t.urgency === "גבוה").length
 
   const tableRows = sorted.map(t => {
-    const ageMs  = Date.now() - new Date(t.createdAt).getTime()
-    const isStale = ageMs > STALE_MS
+    const isStale = isOverdue(t)
     const age     = daysSince(t.createdAt)
-    const url     = ticketUrl(t.ticketNumber)
+    const url     = ticketUrl(t.ticketNumber, t.type)
     const uc      = URGENCY_COLOR[t.urgency] ?? "background:${C.panel};color:${C.text2}"
     const ageStyle = isStale ? "color:#dc2626;font-weight:700" : "color:${C.text3}"
     const rowBg    = isStale ? "background:#fff8f0" : "background:#fff"
     return `
       <tr style="${rowBg};border-bottom:1px solid ${C.panel}">
         <td style="padding:9px 8px;white-space:nowrap">
-          <a href="${url}" style="color:${C.greenInk};font-weight:700;text-decoration:none;font-size:12px">HDTC-${t.ticketNumber}</a>
+          <a href="${url}" style="color:${C.greenInk};font-weight:700;text-decoration:none;font-size:12px">${ticketLabel(t)}</a>
         </td>
         <td style="padding:9px 8px;font-size:13px;color:${C.text};max-width:220px">${esc(t.subject)}</td>
         <td style="padding:9px 8px;white-space:nowrap">
@@ -581,7 +585,7 @@ export function mailDailyDigest(tickets: DigestTicket[]) {
     staleCount > 0
       ? `<div style="background:#fff8f0;border:1px solid #fdba74;border-radius:10px;padding:10px 16px;text-align:center;min-width:72px">
            <div style="font-size:22px;font-weight:800;color:#c2410c">${staleCount}</div>
-           <div style="font-size:11px;color:${C.text3};margin-top:2px">⏰ 4+ ימים</div>
+           <div style="font-size:11px;color:${C.text3};margin-top:2px">⏰ חורגות מזמן הטיפול</div>
          </div>`
       : "",
   ].filter(Boolean).join("")
@@ -611,7 +615,7 @@ export function mailDailyDigest(tickets: DigestTicket[]) {
 
 /** Sent to a mentioned staff member when they are @mentioned in a note */
 export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy: string) {
-  const url = ticketUrl(t.ticketNumber)
+  const url = ticketUrl(t.ticketNumber, t.type)
   return wrap(`
     <div class="header">💬 הוזכרת בהערה</div>
     <p style="color:${C.text2};font-size:15px">${mentionedBy} הזכיר אותך בהערה על פנייה:</p>
@@ -620,5 +624,5 @@ export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy:
       <div class="value" style="background:${C.panel};border-right:3px solid ${C.greenInk};padding:10px 14px;border-radius:6px;white-space:pre-wrap">${esc(noteContent)}</div>
     </div>
     <a class="btn" href="${url}">פתח פנייה ←</a>
-  `, t.ticketNumber)
+  `, t.ticketNumber, t.type)
 }

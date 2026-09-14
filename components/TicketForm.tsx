@@ -85,6 +85,7 @@ import { isOffboarding, suggestsOffboarding, LEAVING_EMPLOYEE_CATEGORY } from "@
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { uploadAttachments, type UploadFailure } from "@/lib/ticketApi"
+import { TICKET_TYPES, TYPE_HINT, TYPE_LABEL } from "@/lib/ticketType"
 import { T } from "@/lib/theme"
 
 /**
@@ -123,7 +124,7 @@ export default function TicketForm({
   isAdmin = false,
 }: {
   /** Callback invoked after the ticket is successfully created. */
-  onSuccess: (ticket: { id: string; ticketNumber: number; subject: string; failedUploads?: UploadFailure[] }) => void
+  onSuccess: (ticket: { id: string; ticketNumber: number; type?: string; subject: string; failedUploads?: UploadFailure[] }) => void
   /** Phone number pre-filled from user profile. Empty if not saved. */
   defaultPhone?: string
   /** Workstation name pre-filled from user profile. Empty if not saved. */
@@ -140,6 +141,7 @@ export default function TicketForm({
     urgency: "בינוני",         // Default urgency: medium
     category: "אחר",           // Default category: other
     platform: "מחשב אישי",
+    type: "ticket",            // a fault (HDTC-N) unless they pick request (REQ-N)
   })
 
   /** Dynamic dropdown options fetched from /api/admin/field-options (falls back to defaults). */
@@ -319,6 +321,7 @@ export default function TicketForm({
 
       onSuccess({
         id: created.id, ticketNumber: created.ticketNumber, subject: form.subject,
+        ...(created.type ? { type: created.type } : {}),
         ...(failedUploads.length > 0 ? { failedUploads } : {}),
       })
       // Reset form, but keep the pre-filled defaults (not blank strings)
@@ -331,6 +334,7 @@ export default function TicketForm({
         urgency: "בינוני",
         category: "אחר",
         platform: "מחשב אישי",
+        type: "ticket",
       })
       setPendingImages([])
       setEquipment({})
@@ -436,6 +440,27 @@ export default function TicketForm({
             )}
           </div>
         )}
+
+        {/* ── Ticket or request (v3.87) — decides the label and the SLA ── */}
+        <div>
+          <label style={{ display: "block", marginBottom: 6 }}>סוג הפנייה</label>
+          <div role="radiogroup" aria-label="סוג הפנייה" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {TICKET_TYPES.map(t => (
+              <button
+                key={t} type="button" role="radio" aria-checked={form.type === t}
+                onClick={() => setForm(f => ({ ...f, type: t }))}
+                style={{
+                  flex: "1 1 180px", padding: "10px 14px", borderRadius: 10, cursor: "pointer", textAlign: "right",
+                  border: `1.5px solid ${form.type === t ? T.inverseBg : T.lineStrong}`,
+                  background: form.type === t ? T.fill : T.card, color: T.text,
+                }}
+              >
+                <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{TYPE_LABEL[t]}</span>
+                <span style={{ display: "block", fontSize: "0.75rem", color: T.inkFaint, marginTop: 2 }}>{TYPE_HINT[t]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── Subject Field ── */}
         <div>

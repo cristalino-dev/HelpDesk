@@ -32,6 +32,7 @@ import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
 import { isOffboarding, offboardingChecklist, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import { findUserByEmail, resolveUserByEmail } from "@/lib/users"
+import { normalizeType, ticketLabel } from "@/lib/ticketType"
 
 /**
  * POST /api/tickets
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const { subject, description, phone, computerName, urgency, category, platform,
+    const { subject, description, phone, computerName, urgency, category, platform, type,
             onBehalfOfEmail, onBehalfOfName, equipment, newEmployee } = await req.json()
 
     // NEW-EMPLOYEE DETAILS — an onboarding ticket is an account-creation request
@@ -126,6 +127,8 @@ export async function POST(req: NextRequest) {
         urgency,
         category,
         platform,
+        // A fault (HDTC-N) unless the form says it is a request (REQ-N) — v3.87.
+        type: normalizeType(type),
         userId: owner.id,
         // status defaults to "פתוח" (see schema), createdAt/updatedAt are automatic
       },
@@ -219,7 +222,7 @@ export async function POST(req: NextRequest) {
     // confirmation recipient, are the ticket OWNER — not the admin who filed it
     // on their behalf.
     const ticketInfo = {
-      id: ticket.id, ticketNumber: ticket.ticketNumber,
+      id: ticket.id, ticketNumber: ticket.ticketNumber, type: ticket.type,
       subject, description: ticketDescription, urgency, category,
       platform, phone, computerName, status: ticket.status,
       submitterName: owner.name ?? owner.email,
@@ -229,8 +232,8 @@ export async function POST(req: NextRequest) {
     const mails = [
       // The ticket number leads the subject so the queue is scannable from the
       // inbox list without opening anything.
-      sendMail({ to: staffEmails, subject: `פנייה חדשה HDTC-${ticket.ticketNumber}: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
-      sendMail({ to: owner.email, subject: `פנייתך התקבלה — HDTC-${ticket.ticketNumber}`, html: mailTicketOpenedUser(ticketInfo) }),
+      sendMail({ to: staffEmails, subject: `פנייה חדשה ${ticketLabel(ticket)}: ${subject}`, html: mailTicketOpenedStaff(ticketInfo) }),
+      sendMail({ to: owner.email, subject: `פנייתך התקבלה — ${ticketLabel(ticket)}`, html: mailTicketOpenedUser(ticketInfo) }),
     ]
     after(async () => { await Promise.all(mails) })
 
@@ -278,7 +281,7 @@ export async function PATCH(req: NextRequest) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email ?? "")
-    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo, ownerEmail } = await req.json()
+    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo, ownerEmail, type } = await req.json()
 
     // Fetch ticket first so we can check ownership for non-staff
     const before = await prisma.ticket.findUnique({
@@ -367,6 +370,7 @@ export async function PATCH(req: NextRequest) {
       if (category     !== undefined) data.category     = category
       if (platform     !== undefined) data.platform     = platform
       if (assignedTo   !== undefined) data.assignedTo   = assignedTo
+      if (type         !== undefined) data.type         = normalizeType(type)
     }
     if (newOwner) data.userId = newOwner.id
     // ON-HOLD — staff may place a ticket on hold with a mandatory reason.
@@ -416,6 +420,8 @@ export async function PATCH(req: NextRequest) {
     }
     if (isStaff) {
       if (assignedTo !== undefined && assignedTo !== before.assignedTo) historyEntries.push({ ticketId: id, field: "assignedTo", oldValue: before.assignedTo, newValue: assignedTo, actorName, actorEmail })
+      // Ticket ↔ request (v3.87): the label changes with it, so the history says when.
+      if (data.type !== undefined && data.type !== before.type) historyEntries.push({ ticketId: id, field: "type", oldValue: before.type, newValue: data.type, actorName, actorEmail })
     }
     // Owner moves are recorded by display name, not id — the history is read by
     // people, and "מי פתח את זה" is exactly the question this row answers.
@@ -461,7 +467,7 @@ export async function PATCH(req: NextRequest) {
     // Email notifications — started below, awaited in after() (rule 41)
     const ticketInfo = {
       id: ticket.id,
-      ticketNumber: ticket.ticketNumber,
+      ticketNumber: ticket.ticketNumber, type: ticket.type,
       subject:      ticket.subject,
       description:  ticket.description,
       urgency:      ticket.urgency,
@@ -484,19 +490,19 @@ export async function PATCH(req: NextRequest) {
       .filter(e => e !== session.user.email)
     const mails: Promise<void>[] = []
     if (staffRecipients.length > 0) {
-      mails.push(sendMail({ to: staffRecipients, subject: subjects.updatedStaff(ticket.ticketNumber, ticket.subject), html: mailTicketUpdatedStaff(ticketInfo, changedBy) }))
+      mails.push(sendMail({ to: staffRecipients, subject: subjects.updatedStaff(ticket, ticket.subject), html: mailTicketUpdatedStaff(ticketInfo, changedBy) }))
     }
     // Notify user on status change
     // Use data.status so auto-changes (e.g. auto-בטיפול on self-assign) also trigger notifications
     if (data.status === "סגור" && owner?.email) {
       // Closure: always send the review-request email, even if the user closed it themselves
-      mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
+      mails.push(sendMail({ to: owner.email, subject: `פנייתך ${ticketLabel(ticket)} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
     } else if (data.status === "בטיפול" && owner?.email && owner.email !== session.user.email) {
       // In-progress: only notify if a staff member (not the user) changed the status
-      mails.push(sendMail({ to: owner.email, subject: subjects.inProgressUser(ticket.ticketNumber), html: mailTicketStatusUser(ticketInfo) }))
+      mails.push(sendMail({ to: owner.email, subject: subjects.inProgressUser(ticket), html: mailTicketStatusUser(ticketInfo) }))
     } else if (data.status === "פתוח" && before.status === "סגור" && owner?.email && owner.email !== session.user.email) {
       // Staff-initiated re-open: notify the ticket owner
-      mails.push(sendMail({ to: owner.email, subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
+      mails.push(sendMail({ to: owner.email, subject: `פנייתך ${ticketLabel(ticket)} נפתחה מחדש`, html: mailTicketStatusUser(ticketInfo) }))
     }
     after(async () => { await Promise.all(mails) })
 

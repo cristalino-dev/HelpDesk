@@ -22,6 +22,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import { T } from "@/lib/theme"
+import { ticketLabel } from "@/lib/ticketType"
 
 interface Review {
   id: string
@@ -173,8 +174,8 @@ export default function ReviewsPage() {
                         <span style={{ ...col, padding: "2px 10px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 700 }}>
                           {review.rating}/5
                         </span>
-                        <a href={`/tickets/HDTC-${review.ticket.ticketNumber}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
-                          HDTC-{review.ticket.ticketNumber}
+                        <a href={`/tickets/${ticketLabel(review.ticket)}`} style={{ fontSize: "0.72rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}>
+                          {ticketLabel(review.ticket)}
                         </a>
                         <span style={{ fontSize: "0.88rem", fontWeight: 600, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {review.ticket.subject}

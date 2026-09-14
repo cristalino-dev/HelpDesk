@@ -2,6 +2,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError, logInfo } from "@/lib/logError"
 import { deleteAttachmentFile } from "@/lib/attachmentStorage"
+import { ticketLabel, ticketRefWhere } from "@/lib/ticketType"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { NextRequest, NextResponse } from "next/server"
@@ -14,10 +15,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
 
-    // Accept both HDTC-N format and raw CUID for backward compat
-    const where = id.startsWith("HDTC-")
-      ? { ticketNumber: parseInt(id.slice(5), 10) }
-      : { id }
+    // Accept HDTC-N, REQ-N (v3.87) or a raw CUID — lib/ticketType.ts ticketRefWhere()
+    const where = ticketRefWhere(id)
 
     // ── Cheap change-detection probe ─────────────────────────────────────────
     // The detail page polls every 10s with ?rev=<signature of what it shows>.
@@ -119,9 +118,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!session.user.isAdmin)  return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const { id } = await params
-    const where = id.startsWith("HDTC-")
-      ? { ticketNumber: parseInt(id.slice(5), 10) }
-      : { id }
+    const where = ticketRefWhere(id)
 
     const ticket = await prisma.ticket.findUnique({
       where,
@@ -143,7 +140,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await prisma.ticket.delete({ where: { id: ticket.id } })
 
     await logInfo(
-      `פנייה HDTC-${ticket.ticketNumber} ("${ticket.subject}") נמחקה על ידי ${session.user.name ?? session.user.email}`,
+      `פנייה ${ticketLabel(ticket)} ("${ticket.subject}") נמחקה על ידי ${session.user.name ?? session.user.email}`,
       "/api/tickets/[id] DELETE",
     )
 

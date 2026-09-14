@@ -16,6 +16,7 @@ import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboa
 import type { TicketEquipment } from "@/types/ticket"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
+import { ticketLabel, TICKET_TYPES, TYPE_LABEL, normalizeType } from "@/lib/ticketType"
 import { useIsMobile } from "@/lib/useIsMobile"
 import Logo from "@/components/Logo"
 
@@ -46,7 +47,7 @@ export default function TicketDetailPage() {
   const [loading, setLoading]     = useState(true)
   const [isStaff, setIsStaff]     = useState(false)
   const [editing, setEditing]     = useState(false)
-  const [editForm, setEditForm]   = useState({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "", ownerEmail: "" })
+  const [editForm, setEditForm]   = useState({ subject: "", description: "", phone: "", computerName: "", urgency: "", category: "", platform: "", status: "", ownerEmail: "", type: "" })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError]   = useState("")
   /** Every registered user, for the מגיש picker. Admin-only (GET /api/users). */
@@ -138,6 +139,7 @@ export default function TicketDetailPage() {
     urgency: t.urgency, category: t.category,
     platform: t.platform, status: t.status,
     ownerEmail: t.user?.email ?? "",
+    type: t.type ?? "ticket",
   })
 
   // Applies a freshly-fetched ticket payload to component state.
@@ -378,7 +380,7 @@ export default function TicketDetailPage() {
   }
 
   const copyLink = () => {
-    const url = `${window.location.origin}/tickets/HDTC-${ticket?.ticketNumber}`
+    const url = `${window.location.origin}/tickets/${ticket ? ticketLabel(ticket) : ""}`
     navigator.clipboard.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -463,7 +465,7 @@ export default function TicketDetailPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 11, flex: 1, minWidth: 0 }}>
           {!isMobile && <Logo onDark size={28} wordmark={false} subtitle={false} />}
           <h1 style={{ margin: 0, fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 700, color: HDR.linkStrong, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            HDTC-{ticket.ticketNumber} · {ticket.subject}
+            {ticketLabel(ticket)} · {ticket.subject}
           </h1>
         </div>
         {isStaff && !editing && (
@@ -536,7 +538,7 @@ export default function TicketDetailPage() {
             style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24, maxWidth: 420, width: "100%", boxShadow: `0 20px 50px ${T.shadow4}` }}
           >
             <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: T.redFgDeep }}>
-              מחיקת פנייה HDTC-{ticket.ticketNumber}
+              מחיקת פנייה {ticketLabel(ticket)}
             </h2>
             <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: T.ink, lineHeight: 1.7 }}>
               הפנייה <strong>{ticket.subject}</strong> תימחק לצמיתות, יחד עם ההיסטוריה, ההערות, ההודעות, הקבצים המצורפים ובקשות הציוד שלה.
@@ -590,7 +592,7 @@ export default function TicketDetailPage() {
             style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24, maxWidth: 420, width: "100%", boxShadow: `0 20px 50px ${T.shadow4}` }}
           >
             <h2 style={{ margin: "0 0 10px", fontSize: "1rem", fontWeight: 800, color: T.text }}>
-              העברת פנייה HDTC-{ticket.ticketNumber}
+              העברת פנייה {ticketLabel(ticket)}
             </h2>
             <p style={{ margin: "0 0 6px", fontSize: "0.88rem", color: T.ink, lineHeight: 1.7 }}>
               המגיש ישונה מ<strong>{userLabel(editForm.ownerEmail)}</strong> ל<strong>{userLabel(ownerConfirm)}</strong>.
@@ -631,8 +633,17 @@ export default function TicketDetailPage() {
             }
           </div>
 
-          {/* Grid: status / urgency / category / platform */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
+          {/* Grid: type / status / urgency / category / platform */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 16, marginBottom: 20 }}>
+            <div>
+              <span style={labelStyle}>סוג</span>
+              {editing
+                ? <select style={{ ...inputStyle }} value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}>
+                    {TICKET_TYPES.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                  </select>
+                : <span style={valueStyle}>{TYPE_LABEL[normalizeType(ticket.type)]}</span>
+              }
+            </div>
             <div>
               <span style={labelStyle}>סטטוס</span>
               {editing
@@ -1192,6 +1203,7 @@ function historyIcon(field: string): string {
     case "urgency":    return "⚡"
     case "assignedTo": return "👤"
     case "owner":      return "🔀"
+    case "type":       return "🏷️"
     case "edited":     return "✏️"
     default:           return "📝"
   }
@@ -1204,6 +1216,7 @@ function historyDotColor(field: string): string {
     case "urgency":    return T.amberBg
     case "assignedTo": return T.codeBg
     case "owner":      return T.purpleBg
+    case "type":       return T.codeBg
     case "edited":     return T.fill
     default:           return T.fill
   }
@@ -1221,6 +1234,10 @@ function historyLabel(entry: TicketHistoryEntry): string {
       return `הפנייה הוקצתה מחדש: ${entry.newValue ?? "—"}`
     case "owner":
       return `המגיש שונה: ${entry.oldValue ?? "—"} ← ${entry.newValue ?? "—"}`
+    case "type": {
+      const name = (v?: string | null) => (v ? TYPE_LABEL[normalizeType(v)] : "—")
+      return `סוג הפנייה שונה: ${name(entry.oldValue)} ← ${name(entry.newValue)}`
+    }
     case "edited":
       return "פרטי הפנייה עודכנו"
     default:

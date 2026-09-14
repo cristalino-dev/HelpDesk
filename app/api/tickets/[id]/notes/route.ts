@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (ticket) {
         const ticketInfo = {
           id: ticket.id,
-          ticketNumber: ticket.ticketNumber,
+          ticketNumber: ticket.ticketNumber, type: ticket.type,
           subject:      ticket.subject,
           description:  ticket.description,
           urgency:      ticket.urgency,
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const mails = mentioned.map(email =>
           sendMail({
             to: email,
-            subject: subjects.mentioned(ticket.ticketNumber, ticket.subject),
+            subject: subjects.mentioned(ticket, ticket.subject),
             html: mailNoteMention(ticketInfo, content.trim(), mentionedBy),
           })
         )

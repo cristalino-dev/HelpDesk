@@ -8,6 +8,7 @@
 "use client"
 import React, { useState, useEffect } from "react"
 import { T } from "@/lib/theme"
+import { ticketLabel } from "@/lib/ticketType"
 import { fetchFieldOptions, FieldOptions, DEFAULT_FIELD_OPTIONS } from "@/lib/fieldOptions"
 import { BulkChanges, BulkUpdateResult } from "@/lib/ticketApi"
 
@@ -55,7 +56,7 @@ export default function BulkEditModal({
 
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [resultErrors, setResultErrors] = useState<{ ticketNumber?: number; error: string }[] | null>(null)
+  const [resultErrors, setResultErrors] = useState<{ ticketNumber?: number; type?: string; error: string }[] | null>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -232,7 +233,7 @@ export default function BulkEditModal({
             <ul style={{ margin: "6px 0 0", paddingRight: 18, lineHeight: 1.5 }}>
               {resultErrors.map((err, idx) => (
                 <li key={idx}>
-                  {err.ticketNumber ? `HDTC-${err.ticketNumber}: ` : ""}
+                  {err.ticketNumber ? `${ticketLabel({ ticketNumber: err.ticketNumber, type: err.type })}: ` : ""}
                   {err.error}
                 </li>
               ))}

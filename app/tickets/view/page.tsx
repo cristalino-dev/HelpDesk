@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import { T } from "@/lib/theme"
+import { ticketLabel, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import RequestsDivider from "@/components/RequestsDivider"
 import FooterCopyright from "@/components/FooterCopyright"
 import { STAFF_EMAILS, VIEWER_EMAILS } from "@/lib/staffEmails"
 import type { TicketWithUser } from "@/types/ticket"
@@ -136,7 +138,7 @@ export default function TicketsViewPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.88rem", background: T.card }}
           />
           <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
@@ -152,11 +154,11 @@ export default function TicketsViewPage() {
         {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
         {numberSuggestion && (
           <a
-            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            href={`/tickets/${ticketLabel(numberSuggestion)}`}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
             <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
-              HDTC-{numberSuggestion.ticketNumber}
+              {ticketLabel(numberSuggestion)}
             </span>
             <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
@@ -203,7 +205,8 @@ export default function TicketsViewPage() {
               </div>
             )}
 
-            {filtered.map((ticket, i) => {
+            {withRequestsDivider(filtered).map((ticket, i) => {
+              if (isRequestsDivider(ticket)) return <RequestsDivider key={ticket.id} count={filtered.filter(isRequest).length} />
               const isClosed   = ticket.status === "סגור"
               const isExpanded = expanded === ticket.id
               const wdOpen = isClosed
@@ -222,7 +225,7 @@ export default function TicketsViewPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>{ticketLabel(ticket)}</span>
                           <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.3, flexShrink: 0, transition: "transform 0.2s", transform: isExpanded ? "rotate(-90deg)" : "rotate(0)" }}>
@@ -243,7 +246,7 @@ export default function TicketsViewPage() {
 
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.greenBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>{ticketLabel(ticket)}</span>
                         <span style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                       </div>
                       <div style={{ fontSize: "0.73rem", color: T.inkFaint, marginTop: 2 }}>
@@ -278,7 +281,7 @@ export default function TicketsViewPage() {
                         <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>🖥️ {ticket.computerName}</span>
                         <span style={{ fontSize: "0.75rem", color: T.inkMuted, fontWeight: 600 }}>📂 {ticket.category} · {ticket.platform}</span>
                       </div>
-                      <a href={`/tickets/HDTC-${ticket.ticketNumber}`}
+                      <a href={`/tickets/${ticketLabel(ticket)}`}
                         style={{ display: "inline-block", padding: "6px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, background: T.greenSBg, color: T.greenSFgDeep, textDecoration: "none" }}
                       >
                         🔍 פתח פנייה מלאה

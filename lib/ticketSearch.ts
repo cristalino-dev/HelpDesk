@@ -1,17 +1,19 @@
 /**
  * lib/ticketSearch.ts — ticket-number aware search helpers
  *
- * Every ticket carries a human-facing label of the form `HDTC-<ticketNumber>`.
- * Staff quote that label in mail, chat and on the phone, so typing it into any
- * search box must always land on the ticket — even when the current view is
- * scoped to open tickets only, or narrowed by a stat card.
+ * Every ticket carries a human-facing label: `HDTC-<ticketNumber>`, or
+ * `REQ-<ticketNumber>` for a request (v3.87). Staff quote that label in mail,
+ * chat and on the phone, so typing it into any search box must always land on
+ * the ticket — even when the current view is scoped to open tickets only, or
+ * narrowed by a stat card. Both kinds share one number sequence, so either
+ * prefix finds a ticket by its number.
  *
  * The helpers here are pure so the pages (admin queue, staff "all tickets",
  * user dashboard) can share one definition and tests can cover it directly.
  */
 
-/** Accepted forms: `494`, `#494`, `HDTC-494`, `hdtc 494`, `hdtc494`, `HDTC_494`. */
-const TICKET_NUMBER_QUERY = /^#?\s*(?:hdtc[\s\-_]*)?(\d{1,9})$/i
+/** Accepted forms: `494`, `#494`, `HDTC-494`, `REQ-494`, `hdtc 494`, `req494`, `HDTC_494`. */
+const TICKET_NUMBER_QUERY = /^#?\s*(?:(?:hdtc|req)[\s\-_]*)?(\d{1,9})$/i
 
 /**
  * Returns the ticket number when the whole query is a ticket-number reference,
@@ -27,8 +29,9 @@ export function parseTicketNumberQuery(query: string): number | null {
 }
 
 /**
- * True when a free-text query matches a ticket's number or its `HDTC-N` label.
- * Substring based, so `49` matches HDTC-494 and `hdtc-49` matches it too.
+ * True when a free-text query matches a ticket's number or its label, under
+ * either prefix. Substring based, so `49` matches HDTC-494, and `hdtc-49` and
+ * `req-49` match it too.
  *
  * @param ticketNumber  The ticket's numeric id.
  * @param query         Raw search-box value.
@@ -38,7 +41,7 @@ export function matchesTicketNumber(ticketNumber: number, query: string): boolea
   if (!q) return false
   if (String(ticketNumber).includes(q)) return true
   const normalized = q.replace(/^#/, "").replace(/[\s_]+/g, "-")
-  return normalized.length > 0 && `hdtc-${ticketNumber}`.includes(normalized)
+  return normalized.length > 0 && (`hdtc-${ticketNumber}`.includes(normalized) || `req-${ticketNumber}`.includes(normalized))
 }
 
 /**

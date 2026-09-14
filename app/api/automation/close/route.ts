@@ -85,6 +85,7 @@ import {
   mailNewMessageToUser,
 } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
+import { ticketLabel } from "@/lib/ticketType"
 import { NextRequest, NextResponse, after } from "next/server"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         ok:           true,
         alreadyClosed: true,
-        ticketNumber: before.ticketNumber,
+        ticketNumber: before.ticketNumber, type: before.type,
         id:           before.id,
         subject:      before.subject,
         status:       before.status,
@@ -281,7 +282,7 @@ export async function POST(req: NextRequest) {
       mails.push(
         sendMail({
           to:      before.user.email,
-          subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`,
+          subject: `פנייתך ${ticketLabel(ticket)} נסגרה — ספרו לנו כיצד היה השירות`,
           html:    mailTicketClosedWithReview(ticketInfo),
         })
       )
@@ -294,7 +295,7 @@ export async function POST(req: NextRequest) {
       mails.push(
         sendMail({
           to:      staffRecipients,
-          subject: subjects.updatedStaff(ticket.ticketNumber, ticket.subject),
+          subject: subjects.updatedStaff(ticket, ticket.subject),
           html:    mailTicketUpdatedStaff(ticketInfo, actorName),
         })
       )
@@ -305,7 +306,7 @@ export async function POST(req: NextRequest) {
       mails.push(
         sendMail({
           to:      before.user.email,
-          subject: subjects.newMessageUser(ticket.ticketNumber, ticket.subject),
+          subject: subjects.newMessageUser(ticket, ticket.subject),
           html:    mailNewMessageToUser(ticketInfo, message.trim(), actorName),
         })
       )
@@ -331,7 +332,7 @@ export async function POST(req: NextRequest) {
     // ── Response ───────────────────────────────────────────────────────────
     return NextResponse.json({
       ok:           true,
-      ticketNumber: ticket.ticketNumber,
+      ticketNumber: ticket.ticketNumber, type: ticket.type,
       id:           ticket.id,
       subject:      ticket.subject,
       status:       ticket.status,

@@ -30,6 +30,7 @@ import { use, useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { T } from "@/lib/theme"
+import { ticketLabel } from "@/lib/ticketType"
 
 type State = "loading" | "notFound" | "notClosed" | "rating" | "submitting" | "done" | "updated"
 
@@ -152,7 +153,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
           <>
             <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
             <h2 style={{ margin: "0 0 10px", color: T.text, fontSize: "1.2rem" }}>הפנייה עדיין פתוחה</h2>
-            <p style={{ margin: "0 0 6px", color: T.inkMuted, fontSize: "0.9rem" }}>HDTC-{ticket.ticketNumber}: {ticket.subject}</p>
+            <p style={{ margin: "0 0 6px", color: T.inkMuted, fontSize: "0.9rem" }}>{ticketLabel(ticket)}: {ticket.subject}</p>
             <p style={{ margin: "0 0 24px", color: T.inkMuted, fontSize: "0.85rem" }}>ניתן לדרג את השירות רק לאחר סגירת הפנייה.</p>
             <Link href="/dashboard" style={{ color: T.text, fontSize: "0.88rem" }}>חזרה ללוח הבקרה</Link>
           </>
@@ -176,7 +177,7 @@ export default function ReviewPage({ params }: { params: Promise<{ ticketId: str
 
             {/* Ticket pill */}
             <div style={{ display: "inline-block", backgroundColor: T.greenBg, color: T.pillBlueFg, borderRadius: 8, padding: "3px 12px", fontSize: "0.75rem", fontWeight: 700, marginBottom: 20 }}>
-              HDTC-{ticket.ticketNumber}
+              {ticketLabel(ticket)}
             </div>
 
             <h1 style={{ margin: "0 0 8px", fontSize: "1.4rem", fontWeight: 800, color: T.text, lineHeight: 1.3 }}>

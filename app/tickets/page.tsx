@@ -16,6 +16,9 @@ import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { useSla } from "@/lib/useSla"
+import RequestsDivider from "@/components/RequestsDivider"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import BulkActionBar from "@/components/BulkActionBar"
@@ -74,6 +77,8 @@ export default function TicketsPage() {
   const [noteText, setNoteText]                 = useState<Record<string, string>>({})
   const [noteImages, setNoteImages]             = useState<Record<string, PendingImage[]>>({})
   const [noteUploadErrors, setNoteUploadErrors] = useState<Record<string, string>>({})
+  // Overdue is per type — 4 workdays for a ticket, 10 for a request, unless admins changed it (v3.87).
+  const sla = useSla()
   const [noteSaving, setNoteSaving]             = useState<string | null>(null)
   // Messages (conversation with user) per expanded ticket
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
@@ -122,7 +127,7 @@ export default function TicketsPage() {
       const res = await bulkUpdateTickets(Array.from(selectedIds), { status: "סגור" })
       if (res.ok) {
         if (res.errors && res.errors.length > 0) {
-          const msgs = res.errors.map(e => `${e.ticketNumber ? `HDTC-${e.ticketNumber}: ` : ""}${e.error}`).join("\n")
+          const msgs = res.errors.map(e => `${e.ticketNumber ? `${ticketLabel({ ticketNumber: e.ticketNumber, type: e.type })}: ` : ""}${e.error}`).join("\n")
           setStatusError(`נסגרו ${res.updatedCount} פניות. שגיאות:\n${msgs}`)
         }
         setSelectedIds(new Set())
@@ -496,7 +501,7 @@ export default function TicketsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.88rem", background: T.card }}
           />
 
@@ -542,11 +547,11 @@ export default function TicketsPage() {
         {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
         {numberSuggestion && (
           <a
-            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            href={`/tickets/${ticketLabel(numberSuggestion)}`}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
             <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
-              HDTC-{numberSuggestion.ticketNumber}
+              {ticketLabel(numberSuggestion)}
             </span>
             <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
@@ -642,11 +647,12 @@ export default function TicketsPage() {
               </div>
             )}
 
-            {filtered.map((ticket, i) => {
+            {withRequestsDivider(filtered).map((ticket, i) => {
+              if (isRequestsDivider(ticket)) return <RequestsDivider key={ticket.id} count={filtered.filter(isRequest).length} />
               const isClosed    = ticket.status === "סגור"
               const resolveMs   = isClosed ? new Date(ticket.updatedAt).getTime() - new Date(ticket.createdAt).getTime() : null
               const isExpanded  = expanded === ticket.id
-              const isStale     = isStaleOpen(ticket)
+              const isStale     = isStaleOpen(ticket, slaFor(ticket.type, sla))
               const ageDays     = openDays(ticket.createdAt)
               const wdOpen      = isClosed
                 ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
@@ -689,7 +695,7 @@ export default function TicketsPage() {
                               marginLeft: 4,
                             }}
                           />
-                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>HDTC-{ticket.ticketNumber}</span>
+                          <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>{ticketLabel(ticket)}</span>
                           {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
                           <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
@@ -740,14 +746,14 @@ export default function TicketsPage() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
                         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", letterSpacing: "0.03em", flexShrink: 0 }}>
-                          HDTC-{ticket.ticketNumber}
+                          {ticketLabel(ticket)}
                         </span>
                         {isStale && (
                           <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 7px", flexShrink: 0, whiteSpace: "nowrap" }}>
                             ⏰ {formatWorkdays(ageDays)}
                           </span>
                         )}
-                        <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
+                        <a href={`/tickets/${ticketLabel(ticket)}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
                           onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
                           onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
                         >{ticket.subject}</a>
@@ -915,7 +921,7 @@ export default function TicketsPage() {
                               style={{ padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: T.codeBg, color: T.text }}>
                               ✏️ עריכה
                             </button>
-                            <a href={`/tickets/HDTC-${ticket.ticketNumber}`} onClick={e => e.stopPropagation()}
+                            <a href={`/tickets/${ticketLabel(ticket)}`} onClick={e => e.stopPropagation()}
                               style={{ marginRight: "auto", padding: "5px 14px", borderRadius: 8, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: T.greenSBg, color: T.greenSFgDeep, textDecoration: "none" }}>
                               🔍 פתח פנייה מלאה
                             </a>

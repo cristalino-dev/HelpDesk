@@ -56,6 +56,7 @@ import { setTicketStatus, setTicketStatusOrError, uploadFailureMessage, type Upl
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { T, HDR } from "@/lib/theme"
+import { ticketLabel } from "@/lib/ticketType"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
@@ -66,7 +67,7 @@ export default function DashboardPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [showForm, setShowForm] = useState(false)
   /** The ticket just created, while its confirmation is on screen. */
-  const [created, setCreated] = useState<{ id: string; ticketNumber: number; subject: string; failedUploads?: UploadFailure[] } | null>(null)
+  const [created, setCreated] = useState<{ id: string; ticketNumber: number; type?: string; subject: string; failedUploads?: UploadFailure[] } | null>(null)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<{ phone?: string; station?: string }>({})
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
@@ -292,7 +293,7 @@ export default function DashboardPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="חיפוש לפי מספר פנייה (HDTC-123), נושא, סטטוס, קטגוריה..."
+              placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, סטטוס, קטגוריה..."
               style={{
                 width: "100%",
                 padding: "9px 36px 9px 36px",
@@ -334,11 +335,11 @@ export default function DashboardPage() {
         {/* Ticket-number suggestion — an exact HDTC-N hit, open or closed */}
         {!loading && numberSuggestion && (
           <a
-            href={`/tickets/HDTC-${numberSuggestion.ticketNumber}`}
+            href={`/tickets/${ticketLabel(numberSuggestion)}`}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.card, border: `1px solid ${T.border}`, borderRight: `4px solid ${T.text}`, borderRadius: 12, textDecoration: "none", boxShadow: `0 1px 3px ${T.shadow1}`, flexWrap: "wrap" }}
           >
             <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>
-              HDTC-{numberSuggestion.ticketNumber}
+              {ticketLabel(numberSuggestion)}
             </span>
             <span style={{ fontWeight: 600, color: T.text, fontSize: "0.86rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1 }}>
               {numberSuggestion.subject}
@@ -360,6 +361,7 @@ export default function DashboardPage() {
         {created && (
           <TicketCreatedDialog
             ticketNumber={created.ticketNumber}
+            type={created.type}
             subject={created.subject}
             onClose={() => setCreated(null)}
           >
@@ -370,7 +372,7 @@ export default function DashboardPage() {
             )}
             <div style={{ display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" }}>
               <Link
-                href={`/tickets/HDTC-${created.ticketNumber}`}
+                href={`/tickets/${ticketLabel(created)}`}
                 style={{ padding: "9px 18px", borderRadius: 10, background: T.card, border: `1px solid ${T.borderStrong}`, color: T.text2, fontWeight: 700, fontSize: "0.84rem", textDecoration: "none" }}
               >צפה בפנייה</Link>
               <button

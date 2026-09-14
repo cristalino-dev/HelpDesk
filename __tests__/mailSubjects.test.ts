@@ -42,10 +42,12 @@ it("finds the literal ticket subjects it is meant to check", () => {
   expect(found.filter(f => ABOUT_A_TICKET.test(f.subject)).length).toBeGreaterThanOrEqual(5)
 })
 
-it("gives every subject about a ticket its HDTC number", () => {
+// A literal HDTC-N, or — since v3.87, when a request is labelled REQ-N — the
+// label built by ticketLabel().
+it("gives every subject about a ticket its label", () => {
   const offenders = found
     .filter(f => ABOUT_A_TICKET.test(f.subject))
-    .filter(f => !/HDTC-/.test(f.subject))
+    .filter(f => !/HDTC-|ticketLabel\(/.test(f.subject))
     .filter(f => !NOT_ONE_TICKET.some(rx => rx.test(f.subject)))
     .map(f => `${f.file}: ${f.subject}`)
   expect(offenders).toEqual([])

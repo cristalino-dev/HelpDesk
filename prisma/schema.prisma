@@ -46,6 +46,10 @@ model Ticket {
   // Free-text reason required when staff places a ticket on hold ("בהמתנה").
   // Cleared automatically when the ticket is reinstated.
   holdReason      String?
+  // "ticket" (a fault, labelled HDTC-N) or "request" (something wanted,
+  // REQ-N) — v3.87. One number sequence for both; the label, the SLA and the
+  // place in the queue follow the type. See lib/ticketType.ts.
+  type            String             @default("ticket")
   notes           TicketNote[]
   attachments     TicketAttachment[]
   messages        TicketMessage[]
@@ -57,6 +61,16 @@ model Ticket {
   // filter by it every few minutes. Postgres does not auto-index FKs.
   @@index([userId])
   @@index([status])
+  @@index([type])
+}
+
+/// Settings admins change from the console (v3.87) — to begin with the SLA per
+/// ticket type, keys "sla.ticket" and "sla.request" (workdays). A missing key
+/// means the default in lib/ticketType.ts. Read and written by lib/sla.ts.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model TicketHistory {

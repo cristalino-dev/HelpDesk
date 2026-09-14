@@ -3,6 +3,7 @@ import { useSession, signIn } from "next-auth/react"
 import { useState, useEffect } from "react"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { uploadAttachments, uploadFailureMessage, type UploadFailure } from "@/lib/ticketApi"
+import { TICKET_TYPES, TYPE_HINT, TYPE_LABEL } from "@/lib/ticketType"
 import AppHeader from "@/components/AppHeader"
 import EquipmentPicker from "@/components/EquipmentPicker"
 import NewEmployeeFields from "@/components/NewEmployeeFields"
@@ -78,6 +79,7 @@ export default function OpenTicketPage() {
     urgency: "בינוני",
     category: "אחר",
     platform: "מחשב אישי",
+    type: "ticket",
   })
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
 
@@ -97,7 +99,7 @@ export default function OpenTicketPage() {
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [submitted, setSubmitted] = useState<{ ticketNumber: number; subject: string; failedUploads?: UploadFailure[] } | null>(null)
+  const [submitted, setSubmitted] = useState<{ ticketNumber: number; type?: string; subject: string; failedUploads?: UploadFailure[] } | null>(null)
   const [showTooltip, setShowTooltip] = useState(false)
 
   const urgColor = URGENCY_COLORS[form.urgency]
@@ -182,7 +184,7 @@ export default function OpenTicketPage() {
         console.error("Failed to save profile on ticket open:", profileErr)
       }
 
-      setSubmitted({ ticketNumber: created.ticketNumber, subject: form.subject, ...(failedUploads.length > 0 ? { failedUploads } : {}) })
+      setSubmitted({ ticketNumber: created.ticketNumber, type: created.type, subject: form.subject, ...(failedUploads.length > 0 ? { failedUploads } : {}) })
     } catch {
       setError("אירעה שגיאה בשליחת הפנייה. נסו שנית.")
     } finally {
@@ -287,7 +289,7 @@ export default function OpenTicketPage() {
             {/* The same card the dashboard shows in a modal — one place for the
                 number, the copy buttons and the wording. Inline here, because
                 on this page the confirmation IS the page. */}
-            <TicketCreatedCard ticketNumber={submitted.ticketNumber} subject={submitted.subject}>
+            <TicketCreatedCard ticketNumber={submitted.ticketNumber} type={submitted.type} subject={submitted.subject}>
               {submitted.failedUploads && submitted.failedUploads.length > 0 && (
                 <div role="alert" style={{ margin: "0 0 14px", padding: "10px 14px", borderRadius: 10, background: T.amberBg, border: `1px solid ${T.amberBorder}`, color: T.amberFgDeep, fontSize: "0.84rem", lineHeight: 1.6 }}>
                   הפנייה נפתחה, אבל {uploadFailureMessage(submitted.failedUploads)}. אפשר לצרף שוב מדף הפנייה.
@@ -305,7 +307,7 @@ export default function OpenTicketPage() {
                 onClick={() => {
                   setSubmitted(null)
                   setPendingImages([])
-                  setForm(f => ({ ...f, subject: "", description: "", urgency: "בינוני", category: "אחר", platform: "מחשב אישי" }))
+                  setForm(f => ({ ...f, subject: "", description: "", urgency: "בינוני", category: "אחר", platform: "מחשב אישי", type: "ticket" }))
                   setEquipment({})
                   setEquipmentOpen(false)
                   setNewEmployee(EMPTY_NEW_EMPLOYEE)
@@ -359,6 +361,27 @@ export default function OpenTicketPage() {
                     placeholder="ישראלי"
                     style={inputStyle}
                   />
+                </div>
+              </div>
+
+              {/* ── Ticket or request (v3.87) — decides the label and the SLA ── */}
+              <div>
+                <label style={{ display: "block", marginBottom: 6 }}>סוג הפנייה</label>
+                <div role="radiogroup" aria-label="סוג הפנייה" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {TICKET_TYPES.map(t => (
+                    <button
+                      key={t} type="button" role="radio" aria-checked={form.type === t}
+                      onClick={() => setForm(f => ({ ...f, type: t }))}
+                      style={{
+                        flex: "1 1 180px", padding: "10px 14px", borderRadius: 10, cursor: "pointer", textAlign: "right",
+                        border: `1.5px solid ${form.type === t ? T.inverseBg : T.lineStrong}`,
+                        background: form.type === t ? T.fill : T.card, color: T.text,
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{TYPE_LABEL[t]}</span>
+                      <span style={{ display: "block", fontSize: "0.75rem", color: T.inkFaint, marginTop: 2 }}>{TYPE_HINT[t]}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -31,6 +31,7 @@ import { subjects } from "@/lib/mailSubjects"
 import { NextRequest, NextResponse, after } from "next/server"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import { findUserByEmail } from "@/lib/users"
+import { normalizeType, ticketLabel } from "@/lib/ticketType"
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
         urgency?: string
         category?: string
         platform?: string
+        type?: string
         assignedTo?: string
         note?: string
         ownerEmail?: string
@@ -79,7 +81,7 @@ export async function POST(req: NextRequest) {
     const actorEmail = session.user.email ?? ""
     const allStaffEmails = await getStaffEmails()
 
-    const errors: { ticketId: string; ticketNumber?: number; error: string }[] = []
+    const errors: { ticketId: string; ticketNumber?: number; type?: string; error: string }[] = []
     let updatedCount = 0
     const pendingMails: Promise<void>[] = []
 
@@ -103,7 +105,7 @@ export async function POST(req: NextRequest) {
         if (blockers.length > 0) {
           errors.push({
             ticketId,
-            ticketNumber: ticket.ticketNumber,
+            ticketNumber: ticket.ticketNumber, type: ticket.type,
             error: blockerMessage(blockers),
           })
           continue
@@ -116,6 +118,7 @@ export async function POST(req: NextRequest) {
       if (changes.urgency !== undefined) data.urgency = changes.urgency
       if (changes.category !== undefined) data.category = changes.category
       if (changes.platform !== undefined) data.platform = changes.platform
+      if (changes.type !== undefined) data.type = normalizeType(changes.type)
       // "" is "unassigned", stored as sent, as PATCH /api/tickets stores it.
       // The column is NOT NULL: turning "" into null threw inside the
       // transaction, and every bulk unassign came back 500.
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
         if (!changes.holdReason?.trim()) {
           errors.push({
             ticketId,
-            ticketNumber: ticket.ticketNumber,
+            ticketNumber: ticket.ticketNumber, type: ticket.type,
             error: "יש להזין סיבת המתנה",
           })
           continue
@@ -212,6 +215,10 @@ export async function POST(req: NextRequest) {
         })
       }
 
+      if (data.type !== undefined && data.type !== ticket.type) {
+        historyEntries.push({ ticketId, field: "type", oldValue: ticket.type, newValue: data.type, actorName, actorEmail })
+      }
+
       if (
         (changes.category !== undefined && changes.category !== ticket.category) ||
         (changes.platform !== undefined && changes.platform !== ticket.platform)
@@ -255,7 +262,7 @@ export async function POST(req: NextRequest) {
 
       const ticketInfo = {
         id: ticket.id,
-        ticketNumber: ticket.ticketNumber,
+        ticketNumber: ticket.ticketNumber, type: ticket.type,
         subject: ticket.subject,
         description: ticket.description,
         urgency: finalUrgency,
@@ -276,7 +283,7 @@ export async function POST(req: NextRequest) {
         pendingMails.push(
           sendMail({
             to: staffRecipients,
-            subject: subjects.updatedStaff(ticket.ticketNumber, ticket.subject),
+            subject: subjects.updatedStaff(ticket, ticket.subject),
             html: mailTicketUpdatedStaff(ticketInfo, actorName),
           })
         )
@@ -286,7 +293,7 @@ export async function POST(req: NextRequest) {
         pendingMails.push(
           sendMail({
             to: finalOwner.email,
-            subject: `פנייתך HDTC-${ticket.ticketNumber} נסגרה — ספרו לנו כיצד היה השירות`,
+            subject: `פנייתך ${ticketLabel(ticket)} נסגרה — ספרו לנו כיצד היה השירות`,
             html: mailTicketClosedWithReview(ticketInfo),
           })
         )
@@ -294,7 +301,7 @@ export async function POST(req: NextRequest) {
         pendingMails.push(
           sendMail({
             to: finalOwner.email,
-            subject: subjects.inProgressUser(ticket.ticketNumber),
+            subject: subjects.inProgressUser(ticket),
             html: mailTicketStatusUser(ticketInfo),
           })
         )
@@ -302,7 +309,7 @@ export async function POST(req: NextRequest) {
         pendingMails.push(
           sendMail({
             to: finalOwner.email,
-            subject: `פנייתך HDTC-${ticket.ticketNumber} נפתחה מחדש`,
+            subject: `פנייתך ${ticketLabel(ticket)} נפתחה מחדש`,
             html: mailTicketStatusUser(ticketInfo),
           })
         )

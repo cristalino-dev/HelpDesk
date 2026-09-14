@@ -50,6 +50,7 @@ export interface Ticket {
   platform: string
   status: string
   holdReason?: string | null   // set when status = "בהמתנה", null otherwise
+  type?: string                // "ticket" (HDTC-N) or "request" (REQ-N) — v3.87, lib/ticketType.ts
   createdAt: string
   updatedAt: string
   userId: string

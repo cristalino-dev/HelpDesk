@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.86**
+**Version 3.87**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -47,6 +47,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 - **Staff notes** — internal technician notes with @mention email notifications, never shown to the user
 - **Two-way chat** — direct messaging between user and staff with email notifications and targeted replies
 - **Attachments** — images, PDF, Word, Excel, PowerPoint and text files up to 7 MB each; paste screenshots straight into any description/note textarea with Ctrl+V; big photos shrink in the browser; mail attachments land on the ticket
+- **Tickets and requests** — a fault (HDTC-N, overdue after 4 workdays) or a request (REQ-N, 10); requests are listed below the tickets; admins set both SLAs
 - **Service ratings** — automatic rating request email after closure; 1–5 star review dashboard
 
 ### Onboarding and offboarding
@@ -85,7 +86,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 | Database | PostgreSQL (AWS RDS) |
 | Styling | Inline React styles; tokens in `lib/theme.ts` (CSS custom properties, two palettes in `lib/palette.ts`) |
 | Mail | nodemailer v7 (outbound) · imapflow + mailparser (inbound) |
-| Tests | Jest 30 + React Testing Library 16 — 1,282 tests, 69 suites |
+| Tests | Jest 30 + React Testing Library 16 — 1,312 tests, 73 suites |
 | OS | Ubuntu 24.04 LTS (AWS Lightsail) |
 | Process manager | PM2 |
 | Deployment | SSH + SCP — `deploy.sh` (bash) or `deploy.ps1` (Windows); build runs on server; also runnable from GitHub Actions |
@@ -134,7 +135,7 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 13 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 1,282 tests across 69 suites
+├── __tests__/                                # 1,312 tests across 73 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── deploy.ps1                                # The same, for Windows PowerShell

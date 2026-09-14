@@ -41,6 +41,9 @@ import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { isStaleOpen } from "@/lib/staleTicket"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
+import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { useSla } from "@/lib/useSla"
+import RequestsDivider from "@/components/RequestsDivider"
 
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
 
@@ -110,6 +113,7 @@ function TicketCard({
   setHoverId: (id: string | null) => void
   isMobile: boolean
 }) {
+  const sla = useSla()
   const isClosed  = ticket.status === "סגור"
   const isHovered = hoverId === ticket.id
   const isClosing   = closingId   === ticket.id
@@ -120,7 +124,7 @@ function TicketCard({
     (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
   const isOnHold = ticket.status === "בהמתנה"
-  const isStale = !isClosed && !isOnHold && isStaleOpen(ticket)
+  const isStale = !isClosed && !isOnHold && isStaleOpen(ticket, slaFor(ticket.type, sla))
   const borderColor = isStale ? T.orangeFg : isClosed ? T.lineStrong : isOnHold ? T.inkFaint : (URGENCY_BORDER[ticket.urgency] ?? T.line)
   const openedDate = new Date(ticket.createdAt).toLocaleDateString("he-IL")
   const wdCount = isClosed
@@ -215,14 +219,14 @@ function TicketCard({
         gap: 8,
       }}>
         {/* Row 1: ticket number + subject + chevron */}
-        <a href={`/tickets/HDTC-${ticket.ticketNumber}`} style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", minWidth: 0 }}>
+        <a href={`/tickets/${ticketLabel(ticket)}`} style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", minWidth: 0 }}>
           <span style={{
             fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.03em",
             flexShrink: 0, borderRadius: 6, padding: "1px 7px",
             color:      isClosed ? T.inkFaint : T.text,
             background: isClosed ? T.fill  : T.codeBg,
           }}>
-            HDTC-{ticket.ticketNumber}
+            {ticketLabel(ticket)}
           </span>
           <span style={{
             fontWeight: 600, fontSize: "0.88rem",
@@ -280,7 +284,7 @@ function TicketCard({
       }}
     >
       {/* Subject + meta */}
-      <a href={`/tickets/HDTC-${ticket.ticketNumber}`} style={{ minWidth: 0, textDecoration: "none", cursor: "pointer" }}>
+      <a href={`/tickets/${ticketLabel(ticket)}`} style={{ minWidth: 0, textDecoration: "none", cursor: "pointer" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
           <span style={{
             fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.03em",
@@ -288,7 +292,7 @@ function TicketCard({
             color:      isClosed ? T.inkFaint : T.text,
             background: isClosed ? T.fill  : T.codeBg,
           }}>
-            HDTC-{ticket.ticketNumber}
+            {ticketLabel(ticket)}
           </span>
           <span style={{
             fontWeight: 600, fontSize: "0.9rem",
@@ -318,7 +322,7 @@ function TicketCard({
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {closeBtn}
         {reopenBtn}
-        <a href={`/tickets/HDTC-${ticket.ticketNumber}`} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+        <a href={`/tickets/${ticketLabel(ticket)}`} style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
           <Chevron />
         </a>
       </div>
@@ -383,9 +387,10 @@ export default function TicketTable({ tickets, onClose, onReopen, isFiltered }: 
       {/* ── Active tickets ──────────────────────────────────────────────────── */}
       {activeTickets.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {activeTickets.map(ticket => (
-            <TicketCard key={ticket.id} ticket={ticket} {...cardProps} />
-          ))}
+          {withRequestsDivider(activeTickets).map(ticket => isRequestsDivider(ticket)
+            ? <RequestsDivider key={ticket.id} count={activeTickets.filter(isRequest).length} />
+            : <TicketCard key={ticket.id} ticket={ticket} {...cardProps} />
+          )}
         </div>
       ) : (
         <div style={{

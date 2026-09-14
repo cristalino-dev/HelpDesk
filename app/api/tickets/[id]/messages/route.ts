@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const mails: Promise<void>[] = []
     if (ticket) {
       const ticketInfo = {
-        id: ticket.id, ticketNumber: ticket.ticketNumber,
+        id: ticket.id, ticketNumber: ticket.ticketNumber, type: ticket.type,
         subject: ticket.subject, description: ticket.description,
         urgency: ticket.urgency, category: ticket.category, platform: ticket.platform,
         phone: ticket.phone, computerName: ticket.computerName, status: ticket.status,
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (replyToEmail && replyToEmail !== session.user.email) {
         mails.push(sendMail({
           to: replyToEmail,
-          subject: subjects.repliedToYou(authorName, ticket.ticketNumber, ticket.subject),
+          subject: subjects.repliedToYou(authorName, ticket, ticket.subject),
           html: mailReplyNotification(ticketInfo, content.trim(), authorName, replyToName ?? replyToEmail, message.id),
         }))
       }
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (ticket.user?.email && ticket.user.email !== replyToEmail) {
           mails.push(sendMail({
             to: ticket.user.email,
-            subject: subjects.newMessageUser(ticket.ticketNumber, ticket.subject),
+            subject: subjects.newMessageUser(ticket, ticket.subject),
             html: mailNewMessageToUser(ticketInfo, content.trim(), authorName),
           }))
         }
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (staffRecipients.length > 0) {
           mails.push(sendMail({
             to: staffRecipients,
-            subject: subjects.newMessageStaff(ticket.ticketNumber, ticket.subject),
+            subject: subjects.newMessageStaff(ticket, ticket.subject),
             html: mailNewMessageToStaff(ticketInfo, content.trim(), authorName),
           }))
         }

@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         where,
         orderBy: { ticketNumber: "asc" },
         select: {
-          id: true, ticketNumber: true, subject: true, description: true,
+          id: true, ticketNumber: true, type: true, subject: true, description: true,
           status: true, urgency: true, category: true, platform: true,
           phone: true, computerName: true, assignedTo: true, createdAt: true,
           user: { select: { name: true, email: true } },
@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
 
     const rows: ExportRow[] = tickets.map(t => ({
       ticketNumber: t.ticketNumber,
+      type: t.type,
       subject: t.subject,
       description: t.description,
       status: t.status,

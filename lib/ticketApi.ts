@@ -103,13 +103,14 @@ export interface BulkChanges {
   assignedTo?: string
   note?: string
   ownerEmail?: string
+  type?: string
 }
 
 export interface BulkUpdateResult {
   ok: boolean
   total?: number
   updatedCount?: number
-  errors?: { ticketId: string; ticketNumber?: number; error: string }[]
+  errors?: { ticketId: string; ticketNumber?: number; type?: string; error: string }[]
   error?: string
 }
 

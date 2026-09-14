@@ -22,10 +22,13 @@
 
 import { TZ, civilDay } from "@/lib/reports"
 import type { Column } from "@/lib/xlsx"
+import { TYPE_LABEL, normalizeType, ticketLabel } from "@/lib/ticketType"
 
 /** A ticket as it appears in the workbook. */
 export type ExportRow = {
   ticketNumber: number
+  /** "ticket" or "request" (v3.87); absent reads as ticket. */
+  type?: string
   subject: string
   description: string
   status: string
@@ -91,7 +94,8 @@ export function hoursToClose(row: ExportRow): number | null {
  */
 export const EXPORT_COLUMNS: Column<ExportRow>[] = [
   { header: "מספר פנייה",      value: r => r.ticketNumber },
-  { header: "מזהה",            value: r => `HDTC-${r.ticketNumber}` },
+  { header: "מזהה",            value: r => ticketLabel(r) },
+  { header: "סוג",             value: r => TYPE_LABEL[normalizeType(r.type)] },
   { header: "נושא",            value: r => r.subject },
   { header: "תיאור",           value: r => r.description },
   { header: "סטטוס",           value: r => r.status },

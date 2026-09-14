@@ -25,15 +25,16 @@
  */
 
 import { auth } from "@/auth"
+import { ticketRefWhere } from "@/lib/ticketType"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { clampReceived, normalizeSelection } from "@/lib/equipment"
 import { NextRequest, NextResponse } from "next/server"
 
-/** Resolve `HDTC-N` or a raw CUID to a where-clause, matching the detail route. */
+/** Resolve `HDTC-N`, `REQ-N` or a raw CUID to a where-clause, matching the detail route. */
 function whereFor(id: string) {
-  return id.startsWith("HDTC-") ? { ticketNumber: parseInt(id.slice(5), 10) } : { id }
+  return ticketRefWhere(id)
 }
 
 /** The ticket's lines in display order — the shared response body. */
