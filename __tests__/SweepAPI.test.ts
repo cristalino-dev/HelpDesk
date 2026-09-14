@@ -1,4 +1,7 @@
+import type { NextRequest } from "next/server"
 import { POST } from "@/app/api/admin/sweep/route"
+import { prisma } from "@/lib/db"
+import { logError } from "@/lib/logError"
 
 // Mock dependencies
 jest.mock("@/lib/db", () => ({
@@ -17,13 +20,13 @@ jest.mock("@/lib/logError", () => ({
 jest.mock("next/server", () => ({
   NextResponse: class {
     status: number
-    data: any
-    constructor(data: any, init?: any) {
+    data: unknown
+    constructor(data: unknown, init?: { status?: number }) {
       this.data = data
       this.status = init?.status || 200
     }
-    static json(data: any, init?: any) {
-      return new (this as any)(data, init)
+    static json(data: unknown, init?: { status?: number }) {
+      return new this(data, init)
     }
     async json() {
       return this.data
@@ -31,10 +34,11 @@ jest.mock("next/server", () => ({
   },
 }))
 
-describe("Sweep API", () => {
-  const { prisma } = require("@/lib/db")
-  const { logError } = require("@/lib/logError")
+type SweepJson = { ok?: boolean; count?: number; error?: string }
+/** What the mocked NextResponse above hands back. */
+type Res = { status: number; json: () => Promise<SweepJson> }
 
+describe("Sweep API", () => {
   const originalEnv = process.env
 
   beforeEach(() => {
@@ -54,9 +58,9 @@ describe("Sweep API", () => {
       headers: {
         get: (name: string) => (name === "x-sweep-secret" ? "secret-key" : null),
       },
-    } as any
+    } as unknown as NextRequest
 
-    const res = await POST(req) as any
+    const res = await POST(req) as unknown as Res
     const data = await res.json()
 
     expect(res.status).toBe(401)
@@ -71,9 +75,9 @@ describe("Sweep API", () => {
       headers: {
         get: (name: string) => (name === "x-sweep-secret" ? "wrong-secret" : null),
       },
-    } as any
+    } as unknown as NextRequest
 
-    const res = await POST(req) as any
+    const res = await POST(req) as unknown as Res
     const data = await res.json()
 
     expect(res.status).toBe(401)
@@ -89,9 +93,9 @@ describe("Sweep API", () => {
       headers: {
         get: (name: string) => (name === "x-sweep-secret" ? "configured-secret" : null),
       },
-    } as any
+    } as unknown as NextRequest
 
-    const res = await POST(req) as any
+    const res = await POST(req) as unknown as Res
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -118,9 +122,9 @@ describe("Sweep API", () => {
       headers: {
         get: (name: string) => (name === "x-sweep-secret" ? "digest-fallback" : null),
       },
-    } as any
+    } as unknown as NextRequest
 
-    const res = await POST(req) as any
+    const res = await POST(req) as unknown as Res
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -137,9 +141,9 @@ describe("Sweep API", () => {
       headers: {
         get: (name: string) => (name === "x-sweep-secret" ? "configured-secret" : null),
       },
-    } as any
+    } as unknown as NextRequest
 
-    const res = await POST(req) as any
+    const res = await POST(req) as unknown as Res
     const data = await res.json()
 
     expect(res.status).toBe(500)

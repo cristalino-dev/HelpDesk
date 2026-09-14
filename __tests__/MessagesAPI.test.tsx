@@ -1,4 +1,8 @@
+import type { NextRequest } from "next/server"
 import { POST } from "@/app/api/tickets/[id]/messages/route"
+import { auth } from "@/auth"
+import { prisma } from "@/lib/db"
+import { sendMail, mailReplyNotification, mailNewMessageToUser, mailNewMessageToStaff } from "@/lib/mail"
 
 jest.mock("@/auth", () => ({ auth: jest.fn() }))
 
@@ -33,9 +37,9 @@ jest.mock("next/server", () => ({
   // the profile seed — still happens inside the test (rule 41, v3.85).
   after: (cb: () => unknown) => { void cb() },
   NextResponse: class {
-    status: number; data: any
-    constructor(data: any, init?: any) { this.data = data; this.status = init?.status || 200 }
-    static json(data: any, init?: any) { return new (this as any)(data, init) }
+    status: number; data: unknown
+    constructor(data: unknown, init?: { status?: number }) { this.data = data; this.status = init?.status || 200 }
+    static json(data: unknown, init?: { status?: number }) { return new this(data, init) }
     async json() { return this.data }
   },
 }))
@@ -52,27 +56,23 @@ const mockTicket = {
 const makeReq = (body: object, params = { id: "ticket-1" }) => ({
   json: async () => body,
   params: Promise.resolve(params),
-})
+}) as unknown as NextRequest
 
 describe("Messages API — POST /api/tickets/[id]/messages", () => {
-  const { auth }    = require("@/auth")
-  const { prisma }  = require("@/lib/db")
-  const { sendMail, mailReplyNotification, mailNewMessageToUser, mailNewMessageToStaff } = require("@/lib/mail")
-
   beforeEach(() => { jest.clearAllMocks() })
 
   // ── auth ───────────────────────────────────────────────────────────────────
 
   it("returns 401 when not authenticated", async () => {
     ;(auth as jest.Mock).mockResolvedValue(null)
-    const res = await POST(makeReq({ content: "hi" }) as any, { params: Promise.resolve({ id: "t1" }) })
-    expect((res as any).status).toBe(401)
+    const res = await POST(makeReq({ content: "hi" }), { params: Promise.resolve({ id: "t1" }) })
+    expect(res.status).toBe(401)
   })
 
   it("returns 400 when content is empty", async () => {
     ;(auth as jest.Mock).mockResolvedValue({ user: { email: "staff@cristalino.co.il", isAdmin: true } })
-    const res = await POST(makeReq({ content: "  " }) as any, { params: Promise.resolve({ id: "t1" }) })
-    expect((res as any).status).toBe(400)
+    const res = await POST(makeReq({ content: "  " }), { params: Promise.resolve({ id: "t1" }) })
+    expect(res.status).toBe(400)
   })
 
   // ── staff posts — no replyTo ───────────────────────────────────────────────
@@ -83,9 +83,9 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
     ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(mockTicket)
 
     const res = await POST(
-      makeReq({ content: "Help is coming" }) as any,
+      makeReq({ content: "Help is coming" }),
       { params: Promise.resolve({ id: "ticket-1" }) }
-    ) as any
+    )
 
     expect(res.status).toBe(200)
     expect(mailReplyNotification).not.toHaveBeenCalled()
@@ -106,9 +106,9 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
         replyToEmail: "alice@cristalino.co.il",
         replyToName:  "Alice",
         replyToMsgId: "prev-msg-id",
-      }) as any,
+      }),
       { params: Promise.resolve({ id: "ticket-1" }) }
-    ) as any
+    )
 
     expect(res.status).toBe(200)
     // Reply notification sent to Alice
@@ -133,9 +133,9 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
         replyToEmail: "other-staff@cristalino.co.il",
         replyToName:  "Other Staff",
         replyToMsgId: "prev-msg-id",
-      }) as any,
+      }),
       { params: Promise.resolve({ id: "ticket-1" }) }
-    ) as any
+    )
 
     expect(res.status).toBe(200)
     // Reply to other-staff
@@ -154,9 +154,9 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
     ;(prisma.ticketMessage.create as jest.Mock).mockResolvedValue({ id: "msg-4", content: "Still broken" })
 
     const res = await POST(
-      makeReq({ content: "Still broken" }) as any,
+      makeReq({ content: "Still broken" }),
       { params: Promise.resolve({ id: "ticket-1" }) }
-    ) as any
+    )
 
     expect(res.status).toBe(200)
     expect(mailReplyNotification).not.toHaveBeenCalled()
@@ -176,9 +176,9 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
         replyToEmail: "staff@cristalino.co.il",
         replyToName:  "Staff",
         replyToMsgId: "prev-msg-id",
-      }) as any,
+      }),
       { params: Promise.resolve({ id: "ticket-1" }) }
-    ) as any
+    )
 
     expect(res.status).toBe(200)
     // Reply notification sent to staff member
@@ -200,7 +200,7 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
         content: "Self",
         replyToEmail: "staff@cristalino.co.il",
         replyToMsgId: "own-msg",
-      }) as any,
+      }),
       { params: Promise.resolve({ id: "ticket-1" }) }
     )
 

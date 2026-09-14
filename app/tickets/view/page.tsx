@@ -54,9 +54,10 @@ export default function TicketsViewPage() {
     }
   }, [status, session, router])
 
+  // `loading` starts true and only the fetch's callbacks clear it, so the
+  // effect body itself sets no state (react-hooks/set-state-in-effect).
   useEffect(() => {
     if (status === "authenticated" && isAllowed(session?.user?.email ?? "")) {
-      setLoading(true)
       fetch("/api/tickets/all")
         .then(r => r.json())
         .then(d => setTickets(Array.isArray(d) ? d : []))
