@@ -136,10 +136,11 @@ helpdesk/
 ├── types/                                    # next-auth.d.ts, ticket.ts, printer.ts
 ├── prisma/schema.prisma                      # 15 models — see docs/ARCHITECTURE.md §6
 ├── scripts/                                  # One-shot maintenance scripts
-├── __tests__/                                # 1,395 tests across 81 suites
+├── __tests__/                                # 1,405 tests across 82 suites
 ├── auth.ts                                   # NextAuth config
 ├── deploy.sh                                 # Deployment (build runs on server)
 ├── deploy.ps1                                # The same, for Windows PowerShell
+├── deploy-test.ps1  deploy-test.sh           # The testing environment: tests, deploy dev, check
 ├── scripts/deploy-remote.sh                  #   the server side, shared by both
 ├── scripts/maintenance.template.html         #   the swap-window page, shared by both
 ├── .github/workflows/deploy.yml              # The same script, run from CI on demand
@@ -270,10 +271,22 @@ DEPLOY_KEY=/c/Users/you/alon.pem ./deploy.sh
 production's) and env files that are never shipped from a laptop. It never
 reads the helpdesk mailbox and mails only `MAIL_REDIRECT_TO`.
 
+**To deploy it — the testing environment — use `deploy-test`.** It runs the
+tests (the server's build does not), deploys the dev copy, and fails unless
+the dev copy then answers with this checkout's version. It cannot deploy
+production.
+
+```powershell
+.\deploy-test.ps1                     # tests, deploy, check  (-SkipTests, -CheckOnly)
+```
+
 ```bash
-bash deploy.sh dev                    # or: .\deploy.ps1 -Target dev
+bash deploy-test.sh                   # the same from Git Bash (--skip-tests, --check-only)
 python scripts/refresh-dev-db.py      # copy production's data into it
 ```
+
+Plain `bash deploy.sh dev` / `.\deploy.ps1 -Target dev` still deploy it, without
+the tests or the check.
 
 One-time setup: `scripts/create-dev-db.py`, then `scripts/setup-dev.sh`, then
 Certbot for the dev domain — see docs/ARCHITECTURE.md §11.
@@ -297,8 +310,12 @@ setup. CI never holds the app's secrets: `.env`/`.env.local` are gitignored, so
 **Build pipeline (runs on the server):**
 
 ```
-npm install → prisma migrate deploy → prisma generate → jest --ci → next build → pm2 restart
+npm install (only if package-lock.json changed) → prisma generate → next build into .next-staging
+  → pm2 stop → prisma migrate deploy → swap .next-staging into .next → pm2 start
 ```
+
+**The server does not run the tests.** Run `npx jest --ci` before deploying —
+`deploy-test` does it for the testing environment.
 
 The build goes into `.next-staging` while the old build keeps serving, then the two are swapped during a seconds-long stop window. `deploy.sh` also installs three cron entries: the daily digest (09:00), the urgency sweep (every 5 min), and email ingestion (every 2 min, `flock`-guarded).
 

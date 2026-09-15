@@ -82,7 +82,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,395 tests across 81 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,405 tests across 82 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -153,7 +153,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 1. **Server-side build only** — Turbopack embeds absolute paths. NEVER build locally and copy `.next`.
 2. **Inline styles only** — no Tailwind component classes. Only `globals.css` uses Tailwind resets. Colors come from `lib/theme.ts`, never typed as literals: an inline style cannot be re-targeted by a media query or a `[data-theme]` selector, so every colour is a CSS custom property with a light and a dark value in `lib/palette.ts`. `__tests__/Palette.test.ts` fails the build on a raw hex under `app/` or `components/`.
 3. **Version in `lib/version.ts` only** — format `"X.YY"`. Renders via `FooterCopyright`.
-4. **Build pipeline** — `prisma generate && jest --ci && next build`. Tests gate the deploy.
+4. **Build pipeline** — `npm run build` is `prisma generate && jest --ci && next build`, but a deploy does **not** run it: the server runs `next build` on its own, so the tests never run there. Run `npx jest --ci` before deploying; `deploy-test.ps1` / `deploy-test.sh` (the testing environment) do it for you.
 5. **Rules of Hooks** — all hooks before any conditional `return null`.
 6. **Stat-card filters** — toggle behavior: click sets, second click clears. Search operates inside the filtered subset when active.
 7. **`STAFF_EMAILS`** — `alon@cristalino.co.il` is system admin, listed first.
@@ -166,10 +166,11 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 ### Deployment steps
 
 1. `deploy.sh` runs locally: packages source, uploads via SCP, triggers the remote build.
-2. Remote: `npm install` → `prisma migrate deploy` → `prisma generate` → `jest --ci` → `next build` into `.next-staging` while the old build keeps serving.
-3. PM2 stops, the two build dirs are swapped, PM2 starts — downtime is the swap window.
+2. Remote: `npm install` (only when the lock file changed) → `prisma generate` → `next build` into `.next-staging` while the old build keeps serving. No tests run on the server.
+3. PM2 stops, `prisma migrate deploy` runs, the two build dirs are swapped, PM2 starts — downtime is the swap window.
 4. Three cron entries are (re)installed: digest 09:00, sweep `*/5`, ingest `*/2` (flock-guarded).
 5. SSL termination via Nginx + Certbot (`ssl-init.sh`).
+6. **The testing environment** (the dev copy, dev-helpdesk.cristalino.co.il): `.\deploy-test.ps1` or `bash deploy-test.sh` — runs the tests, deploys `dev`, then checks that `/api/v1` reports this checkout's version. `-CheckOnly` / `--check-only` only asks. It cannot deploy production.
 
 ---
 

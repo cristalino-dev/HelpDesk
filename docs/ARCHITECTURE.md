@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-14 · v3.89
+> Version 2.0 · Last updated 2026-09-15 · v3.89
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -108,7 +108,7 @@ Two categories carry extra behaviour:
 | HTTP client | axios | 1.14.x | |
 | Testing | Jest + RTL | 30 + 16 | **1,312 tests across 73 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
-| Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner. `bash deploy.sh dev` / `-Target dev` deploys the dev copy (v3.86, §11) |
+| Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner. `bash deploy.sh dev` / `-Target dev` deploys the dev copy (v3.86, §11); `deploy-test.ps1` / `deploy-test.sh` wrap that with the tests and a check of the version that answers |
 
 `nodemailer`, `imapflow` and `mailparser` are listed in `next.config.ts`
 under `serverExternalPackages` — they are Node-only and must not be bundled.
@@ -531,7 +531,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  81 suites, 1,395 tests — gate the build
+__tests__/                  82 suites, 1,405 tests — gate npm run build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -1231,9 +1231,10 @@ Ubuntu server — /home/ubuntu/helpdesk/
   mismatches on the server.
 - **`uploads/` is never in the archive and never in the `rm -rf` list**, so
   ticket attachments and printer drivers survive every deploy.
-- **Tests gate the build.** `npm run build` is
-  `prisma generate && jest --ci && next build` — the same gate runs on the
-  server.
+- **Tests gate `npm run build`, not the deploy.** `npm run build` is
+  `prisma generate && jest --ci && next build`, but the server runs
+  `next build` on its own (above). `deploy-test.ps1` / `deploy-test.sh` run
+  the suite before deploying the testing environment.
 - PM2 is registered with systemd (`pm2 startup`), so the app survives reboots.
 
 SSL is terminated by nginx with a Certbot certificate; `ssl-init.sh` performs
@@ -1248,7 +1249,7 @@ The same code runs a second time on the same server as the **dev copy**:
 
 | | Production | Dev copy |
 |---|---|---|
-| Deploy | `bash deploy.sh` | `bash deploy.sh dev` / `.\deploy.ps1 -Target dev` |
+| Deploy | `bash deploy.sh` | `.\deploy-test.ps1` / `bash deploy-test.sh` — the tests, then `deploy dev`, then a check of the version that answers (plain `bash deploy.sh dev` / `.\deploy.ps1 -Target dev` skip both) |
 | Env files | shipped from the checkout | written once on the server by `scripts/setup-dev.sh`; **never shipped** |
 | Data | the real thing | a copy: `python scripts/refresh-dev-db.py`, plus an `rsync` of `uploads/` — all but the API keys, which the dev copy keeps its own of (v3.88) |
 | Mail out | as addressed | only to `MAIL_REDIRECT_TO`, `[DEV]` in the subject; nothing at all if unset |
