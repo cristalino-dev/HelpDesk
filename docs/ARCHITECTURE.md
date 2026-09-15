@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-15 · v3.89
+> Version 2.0 · Last updated 2026-09-15 · v3.90
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -517,7 +517,8 @@ lib/
 ├── logError.ts             Server-side logError() → Log table
 ├── chunkError.ts           Stale-chunk detection + one-shot reload
 ├── pasteImage.ts           handleImagePaste() for any textarea
-└── useIsMobile.ts          useIsMobile() hook — 768 px breakpoint
+└── useIsMobile.ts          useIsMobile() hook — 768 px breakpoint, by media query
+                            (the layout viewport), never innerWidth (v3.90)
 
 types/
 ├── next-auth.d.ts          Augments NextAuth Session with isAdmin + id
@@ -531,7 +532,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  82 suites, 1,405 tests — gate npm run build
+__tests__/                  83 suites, 1,413 tests — gate npm run build
 ```
 
 > **Every entry point that receives an email address from outside must resolve

@@ -5,6 +5,41 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.90 — הטלפון מקבל שוב את התצוגה שלו
+
+**On a phone the helpdesk could come out as the desktop page. Zoomed out, the
+whole top bar sat in one row about 1,500 px wide, with the tickets a narrow strip
+beside it. Zoomed in, the page scrolled sideways into empty space. The check
+that picks the phone layout now measures the phone, not the zoom.**
+
+### What changed for users
+
+- On a phone the top bar is the phone's again: logo, theme switch and ☰. The
+  links, your name and יציאה are in the ☰ menu.
+- Ticket cards on a phone use their phone layout: the number and subject on one
+  line, the details beneath at full width, and the badges below that. The desktop
+  row had squeezed the details into five lines.
+- The API documentation page (`/api/v1/docs`) fits a phone: long addresses wrap,
+  and tables scroll sideways inside their box.
+
+### What changed for developers
+
+- **`lib/useIsMobile.ts`** now measures the layout viewport with
+  `matchMedia("(max-width: <breakpoint − 0.02>px)")` and follows its `change`
+  event. Safari before 14 gets `addListener`; `innerWidth` remains only where
+  there is no `matchMedia` at all (jsdom). It used to read `window.innerWidth`,
+  which on a phone is the width of what is on screen at the current zoom. A page
+  zoomed out to show the desktop bar reported ~1,500 px, so it kept the desktop
+  bar. Everything that branches on `useIsMobile()` was affected: the header and
+  its nav, the ticket cards, the dashboard's stat grid (rule 70).
+- **`components/AppHeader.tsx`:** the action row is `overflowX: auto`, so
+  anything too wide scrolls inside the bar instead of widening the page.
+- **`lib/apiDocs.ts`:** `code { overflow-wrap: anywhere }`,
+  `.pill { max-width: 100% }`, `.tbl table { min-width: 560px }`.
+- **New test:** `mobileLayout`. 83 suites / 1,413 tests.
+
+---
+
 ## v3.89 — דף תיעוד ל-API
 
 **`https://helpdesk.cristalino.co.il/api/v1` answered 404. That is the one

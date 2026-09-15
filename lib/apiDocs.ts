@@ -273,6 +273,11 @@ td:first-child{white-space:nowrap}
 .req{font-size:.72rem;font-weight:700;color:${T.redFg}}
 .fmt{color:${T.inkFaint}}
 footer{margin-top:48px;color:${T.inkFaint};font-size:.82rem}
+/* Phones (v3.90): a long address or path wraps instead of widening the page,
+   and a table keeps readable columns and scrolls inside its box. */
+code{overflow-wrap:anywhere}
+.pill{max-width:100%}
+.tbl table{min-width:560px}
 `
 
 /** GET /api/v1/docs: the whole contract as one self-contained page. */

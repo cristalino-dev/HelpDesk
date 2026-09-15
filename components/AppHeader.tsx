@@ -64,6 +64,11 @@ export default function AppHeader({
         display: "flex", alignItems: "center",
         gap: isMobile ? 2 : 4,
         minWidth: 0, // let the action row shrink on narrow screens
+        // …and if it still does not fit, scroll inside the bar. Overflowing
+        // visibly made the whole PAGE as wide as the row: on a phone the
+        // content became a strip with empty space beside it (v3.90). The ☰
+        // menu is absolutely positioned against the page, so it is not clipped.
+        overflowX: "auto",
       }}>
         {children}
       </div>
