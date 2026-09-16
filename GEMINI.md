@@ -3,9 +3,9 @@
 > **Current version: 3.92** · Updated 2026-09-16
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
-> Live: **v3.83**–**v3.90** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
-> requests, an API for other programs and its documentation page, the phone layout). Not yet deployed: **v3.91** (the
-> close button reads as an action), **v3.92** (merging tickets — needs its migration). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
+> Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
+> requests, an API for other programs and its documentation page, the phone layout, the close button reads as an
+> action, merging tickets — deployed with its migration 2026-09-16). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
 > (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
