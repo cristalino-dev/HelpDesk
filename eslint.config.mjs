@@ -22,6 +22,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Ad-hoc local scripts, not part of the app (see .gitignore).
     "scratch/**",
+    // Other git worktrees — checkouts of other branches, each linted in its
+    // own right. jest.config.ts skips them for the same reason.
+    ".claude/**",
   ]),
 ]);
 
