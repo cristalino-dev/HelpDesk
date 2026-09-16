@@ -1,5 +1,10 @@
+import type { NextRequest } from "next/server"
+import type { Ticket } from "@prisma/client"
 import { POST, PATCH, GET } from "@/app/api/tickets/route"
 import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
+import { auth } from "@/auth"
+import { prisma } from "@/lib/db"
+import { sendMail, mailTicketOpenedStaff, mailTicketClosedParticipant, mailTicketClosedWithReview } from "@/lib/mail"
 
 // Mock dependencies
 jest.mock("@/auth", () => ({
@@ -70,13 +75,13 @@ jest.mock("next/server", () => ({
   after: (cb: () => unknown) => { void cb() },
   NextResponse: class {
     status: number
-    data: any
-    constructor(data: any, init?: any) {
+    data: unknown
+    constructor(data: unknown, init?: { status?: number }) {
       this.data = data
       this.status = init?.status || 200
     }
-    static json(data: any, init?: any) {
-      return new (this as any)(data, init)
+    static json(data: unknown, init?: { status?: number }) {
+      return new this(data, init)
     }
     async json() {
       return this.data
@@ -84,15 +89,14 @@ jest.mock("next/server", () => ({
   },
 }))
 
+/** What the mocked NextResponse above hands back: the status and the body it was given. */
+type Res = { status: number; json: () => Promise<Record<string, unknown>> }
+
 describe("Tickets API", () => {
   /** PATCH a close and hand back the response — used by the offboarding tests. */
-  const POST_PATCH_CLOSE = async (req: any) => await PATCH(req) as any
+  const POST_PATCH_CLOSE = async (req: NextRequest) => await PATCH(req) as unknown as Res
 
-  const { auth } = require("@/auth")
-  const { prisma } = require("@/lib/db")
-  const { sendMail } = require("@/lib/mail")
-
-  const mockSession = (user: any) => {
+  const mockSession = (user: Record<string, unknown>) => {
     ;(auth as jest.Mock).mockResolvedValue({ user })
   }
 
@@ -122,9 +126,9 @@ describe("Tickets API", () => {
           category: "חומרה",
           platform: "Windows",
         }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await POST(req) as any
+      const res = await POST(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -188,7 +192,7 @@ describe("Tickets API", () => {
 
     // ── EQUIPMENT REQUEST LINES (v3.58) ────────────────────────────────────
     describe("equipment", () => {
-      const equipReq = (equipment: any, category = "אחר") => ({
+      const equipReq = (equipment: unknown, category = "אחר") => ({
         json: async () => ({
           subject: "צריך מסך",
           description: "אני רוצה מסך בשביל המוניטור",
@@ -199,7 +203,7 @@ describe("Tickets API", () => {
           platform: "מחשב אישי",
           equipment,
         }),
-      }) as any
+      }) as unknown as NextRequest
 
       beforeEach(() => {
         const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
@@ -210,7 +214,7 @@ describe("Tickets API", () => {
 
       it("stores requested equipment on an ORDINARY ticket, not just onboarding", async () => {
         // HDTC-506 in production: category אחר, employee wants a screen.
-        const res = await POST(equipReq([{ label: "מסך", quantity: 2 }], "אחר")) as any
+        const res = await POST(equipReq([{ label: "מסך", quantity: 2 }], "אחר")) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticketEquipment.createMany).toHaveBeenCalledWith({
@@ -230,14 +234,14 @@ describe("Tickets API", () => {
             equipment: [{ label: "מחשב", quantity: 1 }],
             newEmployee: { firstName: "דני", lastName: "כהן", phone: "050-2222222", jobTitle: "נציג מכירות" },
           }),
-        } as any) as any
+        } as unknown as NextRequest) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticketEquipment.createMany).toHaveBeenCalled()
       })
 
       it("skips the option lookup entirely when no equipment is requested", async () => {
-        const res = await POST(equipReq(undefined)) as any
+        const res = await POST(equipReq(undefined)) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.fieldOption.findMany).not.toHaveBeenCalled()
@@ -245,7 +249,7 @@ describe("Tickets API", () => {
       })
 
       it("silently drops items that are not on the admin-managed list", async () => {
-        const res = await POST(equipReq([{ label: "מסך", quantity: 1 }, { label: "מכונית", quantity: 1 }])) as any
+        const res = await POST(equipReq([{ label: "מסך", quantity: 1 }, { label: "מכונית", quantity: 1 }])) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticketEquipment.createMany).toHaveBeenCalledWith({
@@ -255,14 +259,14 @@ describe("Tickets API", () => {
       })
 
       it("creates no lines when every requested item is invalid", async () => {
-        const res = await POST(equipReq([{ label: "מכונית", quantity: 1 }])) as any
+        const res = await POST(equipReq([{ label: "מכונית", quantity: 1 }])) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticketEquipment.createMany).not.toHaveBeenCalled()
       })
 
       it("still opens the ticket normally when equipment is malformed", async () => {
-        const res = await POST(equipReq("not-an-array")) as any
+        const res = await POST(equipReq("not-an-array")) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticket.create).toHaveBeenCalled()
@@ -276,7 +280,7 @@ describe("Tickets API", () => {
     describe("new-employee details", () => {
       const hire = { firstName: "דני", lastName: "כהן", phone: "050-1234567", jobTitle: "נציג מכירות" }
 
-      const hireReq = (newEmployee: any, category = "עובד חדש", description = "מתחיל ביום ראשון") => ({
+      const hireReq = (newEmployee: unknown, category = "עובד חדש", description = "מתחיל ביום ראשון") => ({
         json: async () => ({
           subject: "פתיחת משתמשים לעובד חדש",
           description,
@@ -287,7 +291,7 @@ describe("Tickets API", () => {
           platform: "מחשב אישי",
           newEmployee,
         }),
-      }) as any
+      }) as unknown as NextRequest
 
       beforeEach(() => {
         const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
@@ -297,7 +301,7 @@ describe("Tickets API", () => {
       })
 
       it("folds the details into the stored description", async () => {
-        const res = await POST(hireReq(hire)) as any
+        const res = await POST(hireReq(hire)) as unknown as Res
 
         expect(res.status).toBe(200)
         const description = (prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description
@@ -309,27 +313,27 @@ describe("Tickets API", () => {
       })
 
       it("rejects an onboarding ticket with no details at all", async () => {
-        const res = await POST(hireReq(undefined)) as any
+        const res = await POST(hireReq(undefined)) as unknown as Res
 
         expect(res.status).toBe(400)
         expect(prisma.ticket.create).not.toHaveBeenCalled()
       })
 
       it("names the missing fields in the error", async () => {
-        const res = await POST(hireReq({ firstName: "דני", lastName: "כהן" })) as any
+        const res = await POST(hireReq({ firstName: "דני", lastName: "כהן" })) as unknown as Res
 
         expect(res.status).toBe(400)
         expect((await res.json()).missing).toEqual(["טלפון", "תיאור תפקיד"])
       })
 
       it("rejects a field that is only whitespace", async () => {
-        const res = await POST(hireReq({ ...hire, jobTitle: "   " })) as any
+        const res = await POST(hireReq({ ...hire, jobTitle: "   " })) as unknown as Res
 
         expect(res.status).toBe(400)
       })
 
       it("leaves an ordinary ticket's description alone", async () => {
-        const res = await POST(hireReq(undefined, "אחר", "המדפסת לא מדפיסה")) as any
+        const res = await POST(hireReq(undefined, "אחר", "המדפסת לא מדפיסה")) as unknown as Res
 
         expect(res.status).toBe(200)
         expect((prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description)
@@ -337,7 +341,7 @@ describe("Tickets API", () => {
       })
 
       it("ignores stray details sent on a non-onboarding ticket", async () => {
-        const res = await POST(hireReq(hire, "אחר", "המדפסת לא מדפיסה")) as any
+        const res = await POST(hireReq(hire, "אחר", "המדפסת לא מדפיסה")) as unknown as Res
 
         expect(res.status).toBe(200)
         expect((prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description)
@@ -346,14 +350,13 @@ describe("Tickets API", () => {
 
       it("sends the folded description to the notification emails", async () => {
         // The details have to reach the technician's inbox, not just the DB.
-        await POST(hireReq(hire)) as any
+        await POST(hireReq(hire))
 
-        const { mailTicketOpenedStaff } = require("@/lib/mail")
-        expect(mailTicketOpenedStaff.mock.calls[0][0].description).toContain("שם פרטי: דני")
+        expect((mailTicketOpenedStaff as jest.Mock).mock.calls[0][0].description).toContain("שם פרטי: דני")
       })
 
       it("opens an onboarding ticket with no free-text description at all", async () => {
-        const res = await POST(hireReq(hire, "עובד חדש", "")) as any
+        const res = await POST(hireReq(hire, "עובד חדש", "")) as unknown as Res
 
         expect(res.status).toBe(200)
         expect((prisma.ticket.create as jest.Mock).mock.calls[0][0].data.description)
@@ -365,7 +368,7 @@ describe("Tickets API", () => {
     describe("onBehalfOfEmail", () => {
       const admin = { id: "admin-1", email: "admin@cristalino.co.il", name: "Admin", isAdmin: true }
 
-      const behalfReq = (body: any) => ({
+      const behalfReq = (body: Record<string, unknown>) => ({
         json: async () => ({
           subject: "מסך שחור",
           description: "המסך נכבה",
@@ -376,7 +379,7 @@ describe("Tickets API", () => {
           platform: "מחשב אישי",
           ...body,
         }),
-      } as any)
+      } as unknown as NextRequest)
 
       beforeEach(() => {
         mockSession(admin)
@@ -409,7 +412,7 @@ describe("Tickets API", () => {
         const existing = { id: "user-7", email: "Dana@Cristalino.co.il", name: "דנה לוי" }
         ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(existing)
 
-        const res = await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" })) as any
+        const res = await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" })) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.user.upsert).not.toHaveBeenCalled()
@@ -426,7 +429,7 @@ describe("Tickets API", () => {
 
         const res = await POST(behalfReq({
           onBehalfOfEmail: "New.Hire@cristalino.co.il", onBehalfOfName: "עובד חדש",
-        })) as any
+        })) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.user.upsert).toHaveBeenCalledWith(
@@ -438,7 +441,7 @@ describe("Tickets API", () => {
         const owner = { id: "user-7", email: "dana@cristalino.co.il", name: "דנה" }
         ;(prisma.user.upsert as jest.Mock).mockResolvedValue(owner)
 
-        const res = await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" })) as any
+        const res = await POST(behalfReq({ onBehalfOfEmail: "dana@cristalino.co.il" })) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticket.create).toHaveBeenCalledWith(
@@ -494,7 +497,7 @@ describe("Tickets API", () => {
         mockSession(plain)
         ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(plain)
 
-        const res = await POST(behalfReq({ onBehalfOfEmail: "boss@cristalino.co.il" })) as any
+        const res = await POST(behalfReq({ onBehalfOfEmail: "boss@cristalino.co.il" })) as unknown as Res
 
         expect(res.status).toBe(403)
         expect(prisma.ticket.create).not.toHaveBeenCalled()
@@ -502,7 +505,7 @@ describe("Tickets API", () => {
       })
 
       it("treats picking yourself as an ordinary self-opened ticket", async () => {
-        const res = await POST(behalfReq({ onBehalfOfEmail: "admin@cristalino.co.il" })) as any
+        const res = await POST(behalfReq({ onBehalfOfEmail: "admin@cristalino.co.il" })) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.user.upsert).not.toHaveBeenCalled()
@@ -532,11 +535,11 @@ describe("Tickets API", () => {
         urgency: "בינוני", category: LEAVING_EMPLOYEE_CATEGORY, platform: "מחשב אישי",
         ...extra,
       }),
-    }) as any
+    }) as unknown as NextRequest
 
     describe("POST", () => {
       it("creates a line for every item on the gear list", async () => {
-        const res = await POST(leavingReq()) as any
+        const res = await POST(leavingReq()) as unknown as Res
 
         expect(res.status).toBe(200)
         expect(prisma.ticketEquipment.createMany).toHaveBeenCalledWith({
@@ -560,7 +563,7 @@ describe("Tickets API", () => {
       it("does not build a checklist for an ordinary ticket", async () => {
         await POST({
           json: async () => ({ subject: "x", description: "y", category: "אחר" }),
-        } as any)
+        } as unknown as NextRequest)
 
         expect(prisma.ticketEquipment.createMany).not.toHaveBeenCalled()
       })
@@ -579,7 +582,7 @@ describe("Tickets API", () => {
         ;(prisma.ticket.update as jest.Mock).mockResolvedValue({ ...leavingTicket, status: "סגור" })
       })
 
-      const closeReq = () => ({ json: async () => ({ id: "ticket-9", status: "סגור" }) }) as any
+      const closeReq = () => ({ json: async () => ({ id: "ticket-9", status: "סגור" }) }) as unknown as NextRequest
 
       it("refuses to close while an item is unticked", async () => {
         ;(prisma.ticketEquipment.findMany as jest.Mock).mockResolvedValue([
@@ -629,7 +632,7 @@ describe("Tickets API", () => {
           { label: "מסך", quantity: 1, receivedQty: 0 },
         ])
 
-        const res = await PATCH({ json: async () => ({ id: "ticket-9", status: "בהמתנה", holdReason: "ממתין לציוד" }) } as any) as any
+        const res = await PATCH({ json: async () => ({ id: "ticket-9", status: "בהמתנה", holdReason: "ממתין לציוד" }) } as unknown as NextRequest) as unknown as Res
 
         expect(res.status).toBe(200)
       })
@@ -646,7 +649,7 @@ describe("Tickets API", () => {
   })
 
   describe("PATCH /api/tickets — merged tickets and participants (v3.92)", () => {
-    const req = (body: object) => ({ json: async () => body }) as any
+    const req = (body: object) => ({ json: async () => body }) as unknown as NextRequest
 
     it("refuses any change to a merged ticket — staff included — naming where it went", async () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
@@ -654,7 +657,7 @@ describe("Tickets API", () => {
         id: "ticket-1", status: "סגור", user: { name: "User", email: "user@cristalino.co.il" },
         mergedInto: { ticketNumber: 601, type: "request" },
       })
-      const res = await PATCH(req({ id: "ticket-1", status: "פתוח" })) as any
+      const res = await PATCH(req({ id: "ticket-1", status: "פתוח" })) as unknown as Res
       expect(res.status).toBe(409)
       expect((await res.json()).error).toContain("REQ-601")
       expect(prisma.ticket.update).not.toHaveBeenCalled()
@@ -667,7 +670,7 @@ describe("Tickets API", () => {
         id: "ticket-1", status: "סגור", updatedAt: new Date(), user: { name: "User", email: "user@cristalino.co.il" },
         mergedInto: { ticketNumber: 12, type: "ticket" },
       })
-      expect(((await PATCH(req({ id: "ticket-1", status: "פתוח" }))) as any).status).toBe(409)
+      expect(((await PATCH(req({ id: "ticket-1", status: "פתוח" }))) as unknown as Res).status).toBe(409)
     })
 
     it("does not let a participant close the ticket — that is the owner's", async () => {
@@ -676,7 +679,7 @@ describe("Tickets API", () => {
         id: "ticket-1", status: "פתוח", user: { name: "User", email: "user@cristalino.co.il" },
         participants: [{ user: { id: "u-bob", name: "Bob", email: "bob@cristalino.co.il" } }],
       })
-      expect(((await PATCH(req({ id: "ticket-1", status: "סגור" }))) as any).status).toBe(403)
+      expect(((await PATCH(req({ id: "ticket-1", status: "סגור" }))) as unknown as Res).status).toBe(403)
     })
 
     it("tells the participants when the ticket closes, without asking them for a review", async () => {
@@ -690,7 +693,6 @@ describe("Tickets API", () => {
       })
       ;(prisma.ticket.update as jest.Mock).mockResolvedValue({ id: "ticket-1", ticketNumber: 44, status: "סגור", subject: "רשת" })
       await PATCH(req({ id: "ticket-1", status: "סגור" }))
-      const { mailTicketClosedParticipant, mailTicketClosedWithReview } = require("@/lib/mail")
       const to = (sendMail as jest.Mock).mock.calls.map(c => c[0].to)
       expect(to).toContain("user@cristalino.co.il")
       expect(to).toContain("bob@cristalino.co.il")
@@ -721,9 +723,9 @@ describe("Tickets API", () => {
           id: "ticket-1",
           status: "בטיפול",
         }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -747,9 +749,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-2", status: "סגור" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -775,9 +777,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-3", status: "סגור" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -795,9 +797,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-4", status: "סגור" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
 
       expect(res.status).toBe(403)
       expect(prisma.ticket.update).not.toHaveBeenCalled()
@@ -812,9 +814,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-5", status: "בטיפול" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
 
       expect(res.status).toBe(403)
       expect(prisma.ticket.update).not.toHaveBeenCalled()
@@ -838,9 +840,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-6", status: "פתוח" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -865,9 +867,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-10", status: "סגור" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -892,9 +894,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-7", status: "פתוח" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
 
       expect(res.status).toBe(403)
       expect(prisma.ticket.update).not.toHaveBeenCalled()
@@ -918,9 +920,9 @@ describe("Tickets API", () => {
 
       const req = {
         json: async () => ({ id: "ticket-8", status: "פתוח" }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -947,9 +949,9 @@ describe("Tickets API", () => {
           id: "ticket-1",
           assignedTo: "staff@cristalino.co.il",
         }),
-      } as any
+      } as unknown as NextRequest
 
-      const res = await PATCH(req) as any
+      const res = await PATCH(req) as unknown as Res
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -973,7 +975,7 @@ describe("Tickets API", () => {
     const NEW_OWNER = { id: "user-2", name: "יוסי כהן", email: "yossi@cristalino.co.il" }
 
     /** The ticket as it stands before the move. */
-    const existing = (over: any = {}) => ({
+    const existing = (over: Partial<Ticket> = {}) => ({
       id: "ticket-1",
       status: "פתוח",
       urgency: "בינוני",
@@ -985,7 +987,7 @@ describe("Tickets API", () => {
       ...over,
     })
 
-    const req = (body: any) => ({ json: async () => body }) as any
+    const req = (body: unknown) => ({ json: async () => body }) as unknown as NextRequest
 
     beforeEach(() => {
       ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(existing())
@@ -999,7 +1001,7 @@ describe("Tickets API", () => {
     it("moves the ticket to the chosen user when an admin asks", async () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
 
-      const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as any
+      const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as unknown as Res
 
       expect(res.status).toBe(200)
       // Case-insensitively: auth.ts stores Google's address verbatim, so a
@@ -1029,7 +1031,7 @@ describe("Tickets API", () => {
     it("refuses a non-admin staff member — this field is not part of a staff edit", async () => {
       mockSession({ email: "staff@cristalino.co.il", isAdmin: false, name: "Staff" })
 
-      const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as any
+      const res = await PATCH(req({ id: "ticket-1", ownerEmail: NEW_OWNER.email })) as unknown as Res
 
       expect(res.status).toBe(403)
       expect(prisma.ticket.update).not.toHaveBeenCalled()
@@ -1039,7 +1041,7 @@ describe("Tickets API", () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
       ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(null)
 
-      const res = await PATCH(req({ id: "ticket-1", ownerEmail: "nobody@cristalino.co.il" })) as any
+      const res = await PATCH(req({ id: "ticket-1", ownerEmail: "nobody@cristalino.co.il" })) as unknown as Res
 
       expect(res.status).toBe(400)
       expect(prisma.user.upsert).not.toHaveBeenCalled()
@@ -1054,7 +1056,7 @@ describe("Tickets API", () => {
 
       const res = await PATCH(req({
         id: "ticket-1", subject: "מסך לא נדלק בכלל", ownerEmail: "  DANA@Cristalino.co.il  ",
-      })) as any
+      })) as unknown as Res
 
       expect(res.status).toBe(200)
       expect(prisma.user.findFirst).not.toHaveBeenCalled()
@@ -1100,8 +1102,7 @@ describe("Tickets API", () => {
 
     it("scopes an ADMIN's request to their own tickets — the regression this guards", async () => {
       mockSession({ email: OWNER.email, isAdmin: true })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res = await GET() as any
+      const res = await GET() as unknown as Res
       expect(res.status).toBe(200)
 
       const where = (prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where
@@ -1110,8 +1111,7 @@ describe("Tickets API", () => {
 
     it("scopes a regular user's request the same way", async () => {
       mockSession({ email: OWNER.email, isAdmin: false })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await GET() as any
+      await GET()
       expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({ OR: [{ userId: OWNER.id }, { participants: { some: { userId: OWNER.id } } }] })
     })
 
@@ -1134,8 +1134,8 @@ describe("Tickets API", () => {
         { id: "2", userId: "someone-else" },
       ])
       mockSession({ email: OWNER.email, isAdmin: false })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const body = await ((await GET()) as any).json()
+      const res = (await GET()) as unknown as { json: () => Promise<{ id: string; role: string }[]> }
+      const body = await res.json()
       expect(body.map((t: { id: string; role: string }) => [t.id, t.role])).toEqual([["1", "owner"], ["2", "participant"]])
     })
 
@@ -1152,16 +1152,14 @@ describe("Tickets API", () => {
     it("returns an empty list, not an error, for a session with no DB row yet", async () => {
       ;(prisma.user.findFirst as jest.Mock).mockResolvedValue(null)
       mockSession({ email: "brand-new@cristalino.co.il", isAdmin: false })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res = await GET() as any
+      const res = await GET() as unknown as Res
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual([])
     })
 
     it("rejects a session with no email", async () => {
       mockSession({ isAdmin: true })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(((await GET()) as any).status).toBe(401)
+      expect(((await GET()) as unknown as Res).status).toBe(401)
     })
   })
 

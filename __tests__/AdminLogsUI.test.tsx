@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { useSession } from "next-auth/react"
 import AdminLogsPage from "@/app/admin/logs/page"
 
 // Mock NextAuth using the common pattern that works with next/jest
@@ -40,9 +41,6 @@ const mockLogs = [
 ]
 
 describe("AdminLogsPage Component", () => {
-  const { useSession } = require("next-auth/react")
-  const { useRouter } = require("next/navigation")
-
   beforeEach(() => {
     jest.clearAllMocks()
     ;(fetch as jest.Mock).mockResolvedValue({
