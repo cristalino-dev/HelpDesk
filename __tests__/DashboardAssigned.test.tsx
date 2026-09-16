@@ -112,10 +112,10 @@ describe("for staff", () => {
     render(<DashboardPage />)
     const section = await assignedSection()
     await ownListReady()
-    expect(within(section).queryByText("✓ סגור")).toBeNull()
+    expect(within(section).queryByText("סגור פנייה")).toBeNull()
     // The button is in the DOM on desktop too — it fades in on hover — so this
     // counts exactly what the own list rendered: one open ticket, one button.
-    expect(screen.getAllByText("✓ סגור")).toHaveLength(1)
+    expect(screen.getAllByText("סגור פנייה")).toHaveLength(1)
   })
 
   it("links through to the full queue", async () => {

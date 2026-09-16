@@ -212,7 +212,7 @@ export default function BulkActionBar({
               gap: 6,
             }}
           >
-            ✓ סגור פניות
+            סגור פניות
           </button>
         )}
 

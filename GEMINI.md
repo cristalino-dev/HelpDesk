@@ -1,11 +1,11 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.90** · Updated 2026-09-15
+> **Current version: 3.91** · Updated 2026-09-16
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
-> Live: **v3.83**–**v3.89** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
-> requests, an API for other programs and its documentation page). Committed: **v3.90** (phones get the phone
-> layout again). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
+> Live: **v3.83**–**v3.90** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
+> requests, an API for other programs and its documentation page, the phone layout). Committed: **v3.91** (the
+> close button reads as an action). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
 > (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
@@ -82,7 +82,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,413 tests across 83 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,417 tests across 84 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -182,6 +182,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.91 | The quick-close button reads as an action: an outlined "סגור פנייה" in the queue and on the dashboard cards, where a green "✓ סגור" pill beside the status pill had read as the ticket's status. The tick is gone from the ticket page and the bulk bar too |
 | 3.90 | Phones get the phone layout again: `useIsMobile()` read `window.innerWidth`, which on a phone follows the zoom — a page zoomed out to show the desktop top bar reported ~1,500 px and kept it, so the nav came out in one row with the content a strip beside it. It now asks a media query (the layout viewport); the header's action row scrolls inside the bar instead of widening the page; the API docs page fits a phone |
 | 3.89 | The API's documentation page: `/api/v1` answered 404 — the address everyone is given. Now a browser there is sent to `/api/v1/docs`, a page generated from the OpenAPI document (every endpoint, parameter, body, response and a curl example), and a program gets a JSON index of every endpoint and the key it needs (`lib/apiDocs.ts`) |
 | 3.88 | An API for other programs: `/api/v1` lists and queries tickets and requests by any field, reads one in full, opens, changes, writes to the owner and adds notes, with the site's rules and mail. A key per program (read or read-write, stored as SHA-256), made and revoked in the admin console's new API tab; OpenAPI 3.1 at `/api/v1/openapi.json`, guide in `docs/API.md`. `ApiKey` (migration `20260916000000_api_keys`) |
@@ -247,4 +248,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.90 — updated 2026-09-15.*
+*v3.91 — updated 2026-09-16.*

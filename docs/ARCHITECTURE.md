@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-15 · v3.90
+> Version 2.0 · Last updated 2026-09-16 · v3.91
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -532,7 +532,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  83 suites, 1,413 tests — gate npm run build
+__tests__/                  84 suites, 1,417 tests — gate npm run build
 ```
 
 > **Every entry point that receives an email address from outside must resolve

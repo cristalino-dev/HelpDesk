@@ -156,10 +156,12 @@ function TicketCard({
       style={{
         padding: "3px 10px",
         borderRadius: 8,
-        border: `1px solid ${T.greenSBorder}`,
-        background: isClosing ? T.line : T.greenSBg,
-        color:  isClosing ? T.inkFaint : T.greenSFgDeep,
-        fontWeight: 700,
+        // An action, not a state: outlined and neutral. A green pill with a
+        // tick sat beside the status pill and read as a status (v3.91).
+        border: `1px solid ${T.borderStrong}`,
+        background: "transparent",
+        color:  isClosing ? T.inkFaint : T.text2,
+        fontWeight: 600,
         fontSize: "0.72rem",
         cursor: isClosing ? "default" : "pointer",
         whiteSpace: "nowrap",
@@ -170,7 +172,7 @@ function TicketCard({
         transition: "opacity 0.18s",
       }}
     >
-      {isClosing ? "..." : "✓ סגור"}
+      {isClosing ? "..." : "סגור פנייה"}
     </button>
   ) : null
 

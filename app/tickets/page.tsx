@@ -709,8 +709,9 @@ export default function TicketsPage() {
                         <span style={{ fontSize: "0.68rem", color: isStale ? T.orangeFgDeep : T.inkFaint }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
                         {!isClosed && (
                           <button onClick={e => { e.stopPropagation(); updateStatus(ticket.id, "סגור") }} disabled={updating === ticket.id}
-                            style={{ padding: "2px 8px", borderRadius: 8, border: "none", background: updating === ticket.id ? T.line : T.greenSBg, color: updating === ticket.id ? T.inkFaint : T.greenSFgDeep, fontWeight: 700, fontSize: "0.7rem", cursor: updating === ticket.id ? "default" : "pointer" }}>
-                            {updating === ticket.id ? "..." : "✓ סגור"}
+                            title="סגור פנייה"
+                            style={{ padding: "2px 8px", borderRadius: 8, border: `1px solid ${T.borderStrong}`, background: "transparent", color: updating === ticket.id ? T.inkFaint : T.text2, fontWeight: 600, fontSize: "0.7rem", cursor: updating === ticket.id ? "default" : "pointer", whiteSpace: "nowrap" }}>
+                            {updating === ticket.id ? "..." : "סגור פנייה"}
                           </button>
                         )}
                       </div>
@@ -798,18 +799,19 @@ export default function TicketsPage() {
                       </div>
                     )}
 
-                    {/* Quick close button */}
+                    {/* Quick close: an outlined action button. It was a green pill with a tick,
+                        beside the status pill, and read as a status (v3.91). */}
                     {!isClosed ? (
                       <button
                         onClick={e => { e.stopPropagation(); updateStatus(ticket.id, "סגור") }}
                         disabled={updating === ticket.id}
                         title="סגור פנייה"
-                        style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: updating === ticket.id ? T.line : T.greenSBg, color: updating === ticket.id ? T.inkFaint : T.greenSFgDeep, fontWeight: 700, fontSize: "0.72rem", cursor: updating === ticket.id ? "default" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                        style={{ minWidth: 84, padding: "4px 10px", borderRadius: 8, border: `1px solid ${T.borderStrong}`, background: "transparent", color: updating === ticket.id ? T.inkFaint : T.text2, fontWeight: 600, fontSize: "0.72rem", cursor: updating === ticket.id ? "default" : "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
                       >
-                        {updating === ticket.id ? "..." : "✓ סגור"}
+                        {updating === ticket.id ? "..." : "סגור פנייה"}
                       </button>
                     ) : (
-                      <div style={{ width: 60 }} />
+                      <div style={{ width: 84 }} />
                     )}
 
                     {/* Expand chevron */}

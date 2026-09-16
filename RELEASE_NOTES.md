@@ -5,6 +5,32 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.91 — כפתור הסגירה נראה ככפתור
+
+**The quick-close button in the queue was a small green pill reading "✓ סגור",
+right beside the status pill. "סגור" is also a status, the tick says done, and
+green is the closed status's colour, so it read as the ticket's status. It is
+now an outlined "סגור פנייה" button.**
+
+### What changed for users
+
+- **In the queue (כל הפניות) and on the dashboard cards,** the close button
+  says סגור פנייה and is outlined in grey: the shape of the other buttons, not
+  of the status badges.
+- The ticket page and the bulk bar lose their tick: סגור פנייה, סגור פניות.
+- The help page names the new button.
+
+### What changed for developers
+
+- **`app/tickets/page.tsx` (both rows) and `components/TicketTable.tsx`:** the
+  button now has a transparent background, a `1px solid T.borderStrong` border
+  and `T.text2` text. In the queue, the button and the placeholder on closed
+  rows are both 84 px wide, so the chevrons still line up.
+- **New test:** `closeButtonLabel` fails if "✓ סגור" returns to any page or
+  component. 84 suites / 1,417 tests.
+
+---
+
 ## v3.90 — הטלפון מקבל שוב את התצוגה שלו
 
 **On a phone the helpdesk could come out as the desktop page. Zoomed out, the

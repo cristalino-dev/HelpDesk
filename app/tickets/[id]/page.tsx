@@ -483,7 +483,7 @@ export default function TicketDetailPage() {
             title={closeBlocked ? blockerMessage(closeBlockers) : undefined}
             style={{ padding: "6px 16px", borderRadius: 8, border: "none", background: (closing || closeBlocked) ? HDR.pillBg : T.green, color: (closing || closeBlocked) ? HDR.muted : T.onGreen, fontWeight: 700, fontSize: "0.85rem", cursor: (closing || closeBlocked) ? "not-allowed" : "pointer" }}
           >
-            {closing ? "סוגר..." : closeBlocked ? "🔒 סגור פנייה" : "✓ סגור פנייה"}
+            {closing ? "סוגר..." : closeBlocked ? "🔒 סגור פנייה" : "סגור פנייה"}
           </button>
         )}
         <button
