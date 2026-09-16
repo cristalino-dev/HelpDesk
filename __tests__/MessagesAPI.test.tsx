@@ -188,6 +188,66 @@ describe("Messages API — POST /api/tickets/[id]/messages", () => {
     expect(sendMail).toHaveBeenCalledTimes(1)
   })
 
+  // ── participants and merged tickets (v3.92) ────────────────────────────────
+
+  describe("participants and merged tickets (v3.92)", () => {
+    const BOB = { id: "u-bob", name: "Bob", email: "bob@cristalino.co.il" }
+    const followed = { ...mockTicket, participants: [{ user: BOB }] }
+
+    it("lets a participant write in the conversation, and tells staff", async () => {
+      ;(auth as jest.Mock).mockResolvedValue({ user: { email: BOB.email, name: "Bob", isAdmin: false } })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(followed)
+      ;(prisma.ticketMessage.create as jest.Mock).mockResolvedValue({ id: "msg-p1", content: "גם אצלי" })
+
+      const res = await POST(makeReq({ content: "גם אצלי" }) as any, { params: Promise.resolve({ id: "ticket-1" }) }) as any
+
+      expect(res.status).toBe(200)
+      expect(prisma.ticketMessage.create).toHaveBeenCalledWith({ data: expect.objectContaining({ authorEmail: BOB.email, authorRole: "user" }) })
+      expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ to: ["staff@cristalino.co.il"] }))
+    })
+
+    it("refuses someone who neither owns nor follows the ticket", async () => {
+      ;(auth as jest.Mock).mockResolvedValue({ user: { email: "eve@cristalino.co.il", name: "Eve", isAdmin: false } })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(followed)
+
+      const res = await POST(makeReq({ content: "hi" }) as any, { params: Promise.resolve({ id: "ticket-1" }) }) as any
+
+      expect(res.status).toBe(403)
+      expect(prisma.ticketMessage.create).not.toHaveBeenCalled()
+    })
+
+    it("answers 404 for a ticket that does not exist", async () => {
+      ;(auth as jest.Mock).mockResolvedValue({ user: { email: "staff@cristalino.co.il", name: "Staff", isAdmin: true } })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(null)
+      const res = await POST(makeReq({ content: "hi" }) as any, { params: Promise.resolve({ id: "nope" }) }) as any
+      expect(res.status).toBe(404)
+    })
+
+    it("tells the owner and each participant when staff write", async () => {
+      ;(auth as jest.Mock).mockResolvedValue({ user: { email: "staff@cristalino.co.il", name: "Staff", isAdmin: true } })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue(followed)
+      ;(prisma.ticketMessage.create as jest.Mock).mockResolvedValue({ id: "msg-p2", content: "טופל" })
+
+      await POST(makeReq({ content: "טופל" }) as any, { params: Promise.resolve({ id: "ticket-1" }) })
+
+      expect((sendMail as jest.Mock).mock.calls.map(c => c[0].to)).toEqual(["alice@cristalino.co.il", BOB.email])
+      // Each is greeted by their own name.
+      expect((mailNewMessageToUser as jest.Mock).mock.calls.map(c => c[0].submitterName)).toEqual(["Alice", "Bob"])
+    })
+
+    it("takes no messages on a merged ticket — the conversation went to the other one", async () => {
+      ;(auth as jest.Mock).mockResolvedValue({ user: { email: "staff@cristalino.co.il", name: "Staff", isAdmin: true } })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ ...mockTicket, mergedInto: { ticketNumber: 205, type: "ticket" } })
+
+      const res = await POST(makeReq({ content: "hi" }) as any, { params: Promise.resolve({ id: "ticket-1" }) }) as any
+
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toContain("HDTC-205")
+      expect(prisma.ticketMessage.create).not.toHaveBeenCalled()
+      expect(sendMail).not.toHaveBeenCalled()
+    })
+  })
+
   // ── no self-notification ───────────────────────────────────────────────────
 
   it("does not send reply notification when replying to yourself", async () => {

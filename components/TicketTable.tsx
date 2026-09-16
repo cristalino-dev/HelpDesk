@@ -23,6 +23,13 @@
  *   onClose  {fn}        Optional close handler; when omitted close buttons
  *                        are never rendered (e.g. in read-only views).
  *
+ * MERGED AND FOLLOWED TICKETS (v3.92):
+ * ─────────────────────────────────────
+ * A ticket merged into another says where it went, and never offers "reopen" —
+ * it is frozen. A ticket the user follows as a participant (role
+ * "participant", from GET /api/tickets) is tagged, and offers neither close nor
+ * reopen: those are the owner's.
+ *
  * COLOUR CODING:
  * ───────────────
  *   נמוך   (low)    → green  (greenSFg border, greenSBg badge)
@@ -47,9 +54,12 @@ import RequestsDivider from "@/components/RequestsDivider"
 
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
 
+/** A card's ticket: its opener when the list has one, and — on the dashboard — the caller's role. */
+type Row = TicketWithUser & { role?: "owner" | "participant" }
+
 type Props = {
   /** Plain Ticket[] (user dashboard) or TicketWithUser[] (admin — includes opener). */
-  tickets: TicketWithUser[]
+  tickets: Row[]
   onClose?:  (id: string) => Promise<void> | void
   onReopen?: (id: string) => Promise<void> | void
   /** When true the caller is filtering — empty state shows "no results" instead of "no tickets" */
@@ -102,7 +112,7 @@ function TicketCard({
   setHoverId,
   isMobile,
 }: {
-  ticket: TicketWithUser
+  ticket: Row
   onClose?:  (id: string) => Promise<void> | void
   onReopen?: (id: string) => Promise<void> | void
   closingId:    string | null
@@ -118,9 +128,12 @@ function TicketCard({
   const isHovered = hoverId === ticket.id
   const isClosing   = closingId   === ticket.id
   const isReopening = reopeningId === ticket.id
-  const showClose  = !!onClose  && !isClosed
-  // Reopen button: closed ticket, has handler, and within 4-week window
-  const canReopen  = isClosed && !!onReopen &&
+  const mergedInto = ticket.mergedInto ?? null
+  const isFollower = ticket.role === "participant"
+  const showClose  = !!onClose  && !isClosed && !isFollower
+  // Reopen button: closed ticket, has handler, and within 4-week window — never
+  // on a merged ticket (frozen) or one the caller only follows (v3.92).
+  const canReopen  = isClosed && !!onReopen && !mergedInto && !isFollower &&
     (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
   const isOnHold = ticket.status === "בהמתנה"
@@ -205,6 +218,21 @@ function TicketCard({
     </button>
   ) : null
 
+  const tags = (mergedInto || isFollower) ? (
+    <>
+      {mergedInto && (
+        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.pillBlueFg, background: T.pillBlueBg, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+          🔗 מוזגה ל-{ticketLabel(mergedInto)}
+        </span>
+      )}
+      {isFollower && (
+        <span title="פנייה שאתם עוקבים אחריה — פנייה שפתחתם אוחדה איתה" style={{ fontSize: "0.68rem", fontWeight: 700, color: T.purpleFg, background: T.purpleBg, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+          👥 משתתף
+        </span>
+      )}
+    </>
+  ) : null
+
   // ── Mobile layout ──────────────────────────────────────────────────────────
   if (isMobile) {
     return (
@@ -255,6 +283,7 @@ function TicketCard({
               ⏰ {formatWorkdays(wdCount)}
             </span>
           )}
+          {tags}
           {closeBtn}
           {reopenBtn}
         </div>
@@ -303,6 +332,7 @@ function TicketCard({
           }}>
             {ticket.subject}
           </span>
+          {tags}
         </div>
         <div style={{ fontSize: "0.75rem", color: T.inkFaint }}>{meta}</div>
       </a>

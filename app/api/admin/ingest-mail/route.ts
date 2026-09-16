@@ -21,7 +21,8 @@
  *   3. A mail whose subject names a ticket (HDTC-N) — typically a reply to one
  *      of our notifications, which come from noreply_helpdesk@, an alias of
  *      this very mailbox — joins that ticket's conversation instead, when its
- *      sender owns the ticket or is staff. No new ticket and no automatic
+ *      sender owns the ticket, follows it, or is staff. A ticket that was
+ *      merged passes the reply on to the one it went into (v3.92). No new ticket and no automatic
  *      reply; the other side is told, exactly as for a reply typed in the app.
  *      Anyone else, or a number that matches no ticket, goes on to step 4.
  *   4. Opens a ticket for the rest: reported by the From: address, or by the
@@ -84,6 +85,7 @@ import { planMailAttachments, droppedAttachmentsNote, type MailAttachmentPlan } 
 import { storeAttachment } from "@/lib/storeAttachment"
 import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
 import { isDevSite } from "@/lib/appEnv"
+import { followerEmails, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 import { NextRequest, NextResponse, after } from "next/server"
 
 /** The first address in a mailparser address field, whichever shape it came in. */
@@ -204,15 +206,22 @@ export async function POST(req: NextRequest) {
         const replyNumber = ticketNumberFromSubject(parsed.subject)
         const senderEmail = (sender?.address ?? "").trim().toLowerCase()
         if (replyNumber !== null && senderEmail) {
-          const target = await prisma.ticket.findUnique({
-            where: { ticketNumber: replyNumber },
-            include: { user: { select: { name: true, email: true } } },
-          })
+          const include = {
+            user:         { select: { name: true, email: true } },
+            participants: PARTICIPANTS_SELECT,
+          } as const
+          let target = await prisma.ticket.findUnique({ where: { ticketNumber: replyNumber }, include })
+          // A reply to a merged ticket joins the one it was merged into (v3.92) —
+          // merges never chain, so one step is enough; the bound is a safeguard.
+          for (let hops = 0; target?.mergedIntoId && hops < 5; hops++) {
+            target = await prisma.ticket.findUnique({ where: { id: target.mergedIntoId }, include })
+          }
           const senderUser = target ? await findUserByEmail(senderEmail) : null
           const isStaffSender = STAFF_EMAILS.includes(senderEmail) || !!senderUser?.isAdmin
           const isOwner = !!target && (target.user?.email ?? "").toLowerCase() === senderEmail
+          const isFollower = !!target && (target.participants ?? []).some(p => p.user.email.toLowerCase() === senderEmail)
 
-          if (target && (isOwner || isStaffSender)) {
+          if (target && (isOwner || isFollower || isStaffSender)) {
             const text = stripQuotedReply(parsed.text)
             const content = (text || (plan.keep.length > 0 ? "(קבצים מצורפים)" : "(הודעה ללא תוכן)")) + droppedNote
             const authorName = sender?.name?.trim() || senderUser?.name || senderEmail
@@ -248,12 +257,14 @@ export async function POST(req: NextRequest) {
             // owner is told; the owner writes → staff are told. Never the
             // author themselves, and no "received" reply — it is not new.
             if (isStaffSender) {
-              const owner = target.user?.email ?? ""
-              if (owner && owner.toLowerCase() !== senderEmail) {
+              // The owner and the participants (v3.92), each greeted by name.
+              const names = new Map((target.participants ?? []).map(p => [p.user.email, p.user.name]))
+              for (const to of followerEmails(target, [senderEmail])) {
+                const name = to === target.user?.email ? info.submitterName : (names.get(to) ?? to)
                 mails.push(sendMail({
-                  to: owner,
+                  to,
                   subject: subjects.newMessageUser(target, target.subject),
-                  html: mailNewMessageToUser(info, content, authorName),
+                  html: mailNewMessageToUser({ ...info, submitterName: name }, content, authorName),
                 }))
               }
             } else {

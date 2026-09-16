@@ -46,6 +46,7 @@ jest.mock("@/lib/mail", () => ({
   mailTicketUpdatedStaff: jest.fn(),
   mailTicketStatusUser: jest.fn(),
   mailTicketClosedWithReview: jest.fn(),
+  mailTicketClosedParticipant: jest.fn(),
   mailDailyDigest: jest.fn(),
 }))
 
@@ -644,6 +645,62 @@ describe("Tickets API", () => {
     })
   })
 
+  describe("PATCH /api/tickets — merged tickets and participants (v3.92)", () => {
+    const req = (body: object) => ({ json: async () => body }) as any
+
+    it("refuses any change to a merged ticket — staff included — naming where it went", async () => {
+      mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-1", status: "סגור", user: { name: "User", email: "user@cristalino.co.il" },
+        mergedInto: { ticketNumber: 601, type: "request" },
+      })
+      const res = await PATCH(req({ id: "ticket-1", status: "פתוח" })) as any
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toContain("REQ-601")
+      expect(prisma.ticket.update).not.toHaveBeenCalled()
+      expect(prisma.$transaction).not.toHaveBeenCalled()
+    })
+
+    it("refuses the owner reopening a merged ticket", async () => {
+      mockSession({ email: "user@cristalino.co.il", isAdmin: false, name: "User" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-1", status: "סגור", updatedAt: new Date(), user: { name: "User", email: "user@cristalino.co.il" },
+        mergedInto: { ticketNumber: 12, type: "ticket" },
+      })
+      expect(((await PATCH(req({ id: "ticket-1", status: "פתוח" }))) as any).status).toBe(409)
+    })
+
+    it("does not let a participant close the ticket — that is the owner's", async () => {
+      mockSession({ email: "bob@cristalino.co.il", isAdmin: false, name: "Bob" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-1", status: "פתוח", user: { name: "User", email: "user@cristalino.co.il" },
+        participants: [{ user: { id: "u-bob", name: "Bob", email: "bob@cristalino.co.il" } }],
+      })
+      expect(((await PATCH(req({ id: "ticket-1", status: "סגור" }))) as any).status).toBe(403)
+    })
+
+    it("tells the participants when the ticket closes, without asking them for a review", async () => {
+      mockSession({ email: "staff@cristalino.co.il", isAdmin: false, name: "Staff" })
+      ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
+        id: "ticket-1", status: "בטיפול", user: { name: "User", email: "user@cristalino.co.il" },
+        participants: [
+          { user: { id: "u-bob", name: "Bob", email: "bob@cristalino.co.il" } },
+          { user: { id: "u-staff", name: "Staff", email: "staff@cristalino.co.il" } },
+        ],
+      })
+      ;(prisma.ticket.update as jest.Mock).mockResolvedValue({ id: "ticket-1", ticketNumber: 44, status: "סגור", subject: "רשת" })
+      await PATCH(req({ id: "ticket-1", status: "סגור" }))
+      const { mailTicketClosedParticipant, mailTicketClosedWithReview } = require("@/lib/mail")
+      const to = (sendMail as jest.Mock).mock.calls.map(c => c[0].to)
+      expect(to).toContain("user@cristalino.co.il")
+      expect(to).toContain("bob@cristalino.co.il")
+      // Not the person who closed it, even though they follow it.
+      expect(to).not.toContain("staff@cristalino.co.il")
+      expect(mailTicketClosedWithReview).toHaveBeenCalledTimes(1)
+      expect(mailTicketClosedParticipant).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe("PATCH /api/tickets", () => {
     it("updates ticket status as admin", async () => {
       mockSession({ email: "admin@cristalino.co.il", isAdmin: true, name: "Admin" })
@@ -1048,14 +1105,14 @@ describe("Tickets API", () => {
       expect(res.status).toBe(200)
 
       const where = (prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where
-      expect(where).toEqual({ userId: OWNER.id })
+      expect(where).toEqual({ OR: [{ userId: OWNER.id }, { participants: { some: { userId: OWNER.id } } }] })
     })
 
     it("scopes a regular user's request the same way", async () => {
       mockSession({ email: OWNER.email, isAdmin: false })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await GET() as any
-      expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({ userId: OWNER.id })
+      expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({ OR: [{ userId: OWNER.id }, { participants: { some: { userId: OWNER.id } } }] })
     })
 
     it("never returns an unscoped query, whatever the role", async () => {
@@ -1066,8 +1123,20 @@ describe("Tickets API", () => {
         mockSession({ email: OWNER.email, isAdmin })
         await GET()
         const args = (prisma.ticket.findMany as jest.Mock).mock.calls[0][0]
-        expect(args.where?.userId).toBe(OWNER.id)
+        // Every branch of the OR names the caller: owned, or followed (v3.92).
+        expect(args.where?.OR).toEqual([{ userId: OWNER.id }, { participants: { some: { userId: OWNER.id } } }])
       }
+    })
+
+    it("marks the tickets the caller follows rather than owns (v3.92)", async () => {
+      ;(prisma.ticket.findMany as jest.Mock).mockResolvedValue([
+        { id: "1", userId: OWNER.id },
+        { id: "2", userId: "someone-else" },
+      ])
+      mockSession({ email: OWNER.email, isAdmin: false })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body = await ((await GET()) as any).json()
+      expect(body.map((t: { id: string; role: string }) => [t.id, t.role])).toEqual([["1", "owner"], ["2", "participant"]])
     })
 
     it("resolves the owner case-insensitively, not with a bare findUnique", async () => {

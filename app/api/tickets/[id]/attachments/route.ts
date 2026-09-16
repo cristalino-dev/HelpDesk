@@ -28,6 +28,8 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { MAX_ATTACHMENT_DATAURL_LENGTH, decodeDataUrl } from "@/lib/attachmentStorage"
 import { MAX_ATTACHMENT_BYTES, formatBytes, mimeForFile } from "@/lib/attachmentTypes"
 import { storeAttachment } from "@/lib/storeAttachment"
+import { canSeeTicket, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
+import { mergedError } from "@/lib/ticketType"
 import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "nodejs"
@@ -54,16 +56,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!mimeType) return NextResponse.json({ error: "סוג הקובץ אינו נתמך" }, { status: 415 })
     if (decoded.buffer.length > MAX_ATTACHMENT_BYTES) return NextResponse.json({ error: TOO_LARGE }, { status: 413 })
 
-    // Verify user owns the ticket or is staff
+    // Staff, the owner, or a participant (v3.92) — and never onto a merged
+    // ticket, whose files have moved to the one it was merged into.
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
     const ticket = await prisma.ticket.findUnique({
       where: { id },
-      select: { id: true, user: { select: { email: true } } },
+      select: {
+        id: true, user: { select: { email: true } }, participants: PARTICIPANTS_SELECT,
+        mergedInto: { select: { ticketNumber: true, type: true } },
+      },
     })
     if (!ticket) return NextResponse.json({ error: "Not found" }, { status: 404 })
-    if (!isStaff && ticket.user.email !== session.user.email) {
+    if (!canSeeTicket(ticket, session.user.email, isStaff)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
+    if (ticket.mergedInto) return NextResponse.json({ error: mergedError(ticket.mergedInto) }, { status: 409 })
 
     const attachment = await storeAttachment(id, { buffer: decoded.buffer, mimeType, filename })
     return NextResponse.json(attachment)

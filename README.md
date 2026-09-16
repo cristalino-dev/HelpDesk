@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.91**
+**Version 3.92**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -30,6 +30,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 - **Ticket deletion** — admins can permanently erase a ticket (two-step confirm); the deletion itself is written to the error log
 - **Change the submitter** — admins can move a ticket filed against the wrong person to the right one, after confirming
 - **Open on behalf of** — admins can file a ticket for an employee who phoned or walked in, even one who has never signed in
+- **Merging** — staff merge duplicate tickets into the one that stays: its conversation, notes and files move there, the others close and point to it, and whoever opened them follows it as a participant (v3.92)
 
 ### Queue management
 

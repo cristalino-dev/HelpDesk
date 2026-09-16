@@ -11,7 +11,7 @@
  *           sets urgency נמוך, בהמתנה needs holdReason, a leaving-employee ticket
  *           with gear still out does not close (409). History records
  *           "API: <key name>"; mail goes out as for a staff edit unless
- *           "notify": false.
+ *           "notify": false. A merged ticket (v3.92) takes no changes: 409.
  */
 
 import { prisma } from "@/lib/db"
@@ -34,6 +34,8 @@ const DETAIL_INCLUDE = {
   history:     { orderBy: { changedAt: "asc" as const } },
   attachments: { select: { id: true, filename: true, mimeType: true, size: true, createdAt: true }, orderBy: { createdAt: "asc" as const } },
   equipment:   { orderBy: { createdAt: "asc" as const } },
+  mergedInto:  { select: { ticketNumber: true, type: true } },
+  participants: { select: { user: { select: { name: true, email: true } } }, orderBy: { createdAt: "asc" as const } },
 }
 
 export async function GET(req: NextRequest, { params }: Ctx) {
@@ -70,7 +72,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     // Started inside applyTicketChanges, awaited once the response is out (rule 41).
     if (result.mails.length > 0) after(async () => { await Promise.all(result.mails) })
 
-    const fresh = await prisma.ticket.findUnique({ where: { id: ticket.id }, include: { user: { select: { name: true, email: true } } } })
+    const fresh = await prisma.ticket.findUnique({
+      where: { id: ticket.id },
+      include: { user: { select: { name: true, email: true } }, mergedInto: { select: { ticketNumber: true, type: true } } },
+    })
     return NextResponse.json({ data: toApiTicket(fresh!) })
   } catch (err) {
     return serverError(err, "/api/v1/tickets/[ref] PATCH")

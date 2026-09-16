@@ -453,6 +453,50 @@ export function mailTicketClosedWithReview(t: TicketInfo) {
   `, t.ticketNumber, t.type)
 }
 
+/**
+ * Sent to a participant when the ticket they follow closes (v3.92) — the
+ * owner's closing mail without its review request: the service review is the
+ * owner's to give, and a ticket has one.
+ */
+export function mailTicketClosedParticipant(t: TicketInfo, recipientName: string) {
+  const url = ticketUrl(t.ticketNumber, t.type)
+  return wrap(`
+    <div class="header">✅ הפנייה שאתם עוקבים אחריה נסגרה</div>
+    <p style="color:${C.text2};font-size:15px">שלום ${esc(recipientName)},<br>
+      פנייה <strong style="font-family:monospace">${ticketLabel(t)}</strong> — <strong>${esc(t.subject)}</strong> — טופלה ונסגרה על ידי צוות התמיכה.
+    </p>
+    <p style="color:${C.text3};font-size:13px">קיבלתם את העדכון כי פנייה שפתחתם אוחדה עם פנייה זו.</p>
+    <a class="btn" href="${url}">צפה בפנייה ←</a>
+  `, t.ticketNumber, t.type)
+}
+
+/**
+ * Sent to the people who opened or followed a ticket that staff merged into
+ * another (v3.92): where the conversation went, and that it goes on there.
+ * The chip and the button are the survivor's; a reply to this mail carries
+ * both labels and intake follows the merge (app/api/admin/ingest-mail).
+ */
+export function mailTicketMerged(
+  source: { ticketNumber: number; type?: string | null; subject: string },
+  target: { ticketNumber: number; type?: string | null; subject: string },
+  recipientName: string,
+) {
+  const url = ticketUrl(target.ticketNumber, target.type)
+  return wrap(`
+    <div class="header">🔗 פנייתך אוחדה עם פנייה אחרת</div>
+    <p style="color:${C.text2};font-size:15px;line-height:1.7">שלום ${esc(recipientName)},<br>
+      פנייה <strong style="font-family:monospace">${ticketLabel(source)}</strong> — <strong>${esc(source.subject)}</strong> —
+      עוסקת באותו נושא כמו פנייה <strong style="font-family:monospace">${ticketLabel(target)}</strong>, ולכן הצוות איחד ביניהן.
+    </p>
+    ${details([
+      ["הפנייה שנסגרה", `${ticketLabel(source)} · ${esc(source.subject)}`],
+      ["הפנייה שממשיכה", `${ticketLabel(target)} · ${esc(target.subject)}`],
+    ])}
+    <p style="color:${C.text2};font-size:14px;line-height:1.7">ההודעות והקבצים עברו לפנייה ${ticketLabel(target)}, ושם יימשך הטיפול — כולל העדכונים מהצוות.</p>
+    ${button(url, "צפה בפנייה ←")}
+  `, target.ticketNumber, target.type)
+}
+
 /** Sent to ticket owner when a staff member posts a message */
 export function mailNewMessageToUser(t: TicketInfo, messageContent: string, fromName: string) {
   const url = ticketUrl(t.ticketNumber, t.type)

@@ -5,6 +5,7 @@ import { deleteAttachmentFile } from "@/lib/attachmentStorage"
 import { ticketLabel, ticketRefWhere } from "@/lib/ticketType"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { ticketRevision } from "@/lib/ticketRevision"
+import { canSeeTicket, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         select: {
           updatedAt: true,
           user:        { select: { email: true } },
+          participants: PARTICIPANTS_SELECT,
           // orderBy clauses must mirror the full fetch below exactly — the
           // signature folds in the LAST id of each collection.
           attachments: { select: { id: true }, orderBy: { createdAt: "asc" } },
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
       })
       if (!light) return NextResponse.json({ error: "Not found" }, { status: 404 })
-      if (!isStaff && light.user.email !== session.user.email) {
+      if (!canSeeTicket(light, session.user.email, isStaff)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
       // Client signatures come from the JSON payload where Dates are ISO
@@ -67,14 +69,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         messages:    { orderBy: { createdAt: "asc" } },
         history:     { orderBy: { changedAt: "asc" } },
         equipment:   { orderBy: { createdAt: "asc" } },
+        // Merging (v3.92): where this ticket went, what was merged into it, and
+        // who follows it besides its owner.
+        mergedInto:   { select: { ticketNumber: true, type: true } },
+        mergedFrom:   { select: { id: true, ticketNumber: true, type: true, subject: true }, orderBy: { ticketNumber: "asc" } },
+        participants: PARTICIPANTS_SELECT,
       },
     })
 
     if (!ticket) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-    // Regular users can only view their own tickets. The owner's email is
-    // already in the include — no extra user lookup needed (emails are unique).
-    if (!isStaff && ticket.user.email !== session.user.email) {
+    // Regular users see the tickets they own or follow (lib/ticketAccess.ts).
+    // Both are already in the include — no extra lookup.
+    if (!canSeeTicket(ticket, session.user.email, isStaff)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

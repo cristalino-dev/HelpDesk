@@ -8,60 +8,88 @@ datasource db {
 }
 
 model User {
-  id      String   @id @default(cuid())
+  id        String              @id @default(cuid())
   // Unique on the exact bytes, which is not the same as unique per person:
   // "dana@x" and "Dana@X" both fit. A second, case-insensitive constraint —
   // UNIQUE (lower(email)) — is created out of band by the migration
   // 20260824000000_user_email_case_insensitive, because Prisma has no syntax
   // for a functional index. `prisma migrate dev` reports it as drift; that is
   // expected. Resolve a User from an email only through lib/users.ts.
-  email   String   @unique
-  name    String?
-  image   String?
-  isAdmin Boolean  @default(false)
-  phone   String?
-  station String?
-  tickets Ticket[]
+  email     String              @unique
+  name      String?
+  image     String?
+  isAdmin   Boolean             @default(false)
+  phone     String?
+  station   String?
+  tickets   Ticket[]
+  following TicketParticipant[]
 }
 
 model Ticket {
-  id              String             @id @default(cuid())
-  ticketNumber    Int                @unique @default(autoincrement())
-  assignedTo      String             @default("helpdesk@cristalino.co.il")
+  id              String              @id @default(cuid())
+  ticketNumber    Int                 @unique @default(autoincrement())
+  assignedTo      String              @default("helpdesk@cristalino.co.il")
   subject         String
   description     String
   phone           String
   computerName    String
-  urgency         String             @default("בינוני")
-  category        String             @default("אחר")
-  platform        String             @default("מחשב אישי")
-  status          String             @default("פתוח")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  urgency         String              @default("בינוני")
+  category        String              @default("אחר")
+  platform        String              @default("מחשב אישי")
+  status          String              @default("פתוח")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   userId          String
-  user            User               @relation(fields: [userId], references: [id])
+  user            User                @relation(fields: [userId], references: [id])
   // For email-ingested tickets: the source email's Message-ID. Unique so the
   // same email can never create two tickets (idempotency). Null for UI tickets.
-  sourceMessageId String?            @unique
+  sourceMessageId String?             @unique
   // Free-text reason required when staff places a ticket on hold ("בהמתנה").
   // Cleared automatically when the ticket is reinstated.
   holdReason      String?
   // "ticket" (a fault, labelled HDTC-N) or "request" (something wanted,
   // REQ-N) — v3.87. One number sequence for both; the label, the SLA and the
   // place in the queue follow the type. See lib/ticketType.ts.
-  type            String             @default("ticket")
+  type            String              @default("ticket")
+  // Merged tickets (v3.92). A ticket merged into another is closed, frozen,
+  // and points at the one that carries on; its messages, notes and files
+  // moved there. Never a chain: merging into a ticket also repoints whatever
+  // had been merged into the one being merged. See lib/ticketMerge.ts.
+  mergedIntoId    String?
+  mergedInto      Ticket?             @relation("TicketMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedFrom      Ticket[]            @relation("TicketMerge")
   notes           TicketNote[]
   attachments     TicketAttachment[]
   messages        TicketMessage[]
   review          TicketReview?
   history         TicketHistory[]
   equipment       TicketEquipment[]
+  participants    TicketParticipant[]
 
   // userId — user dashboard filters by owner; status — digest/sweep crons
   // filter by it every few minutes. Postgres does not auto-index FKs.
   @@index([userId])
   @@index([status])
   @@index([type])
+  @@index([mergedIntoId])
+}
+
+/// Someone other than the owner who follows a ticket (v3.92): sees it on their
+/// dashboard, may read and write in its conversation, and is mailed when staff
+/// answer or the ticket closes. The owner of a ticket merged into another
+/// becomes one, so nobody who reported the problem loses sight of it. Owner
+/// actions — closing, reopening, rating the service — stay the owner's.
+model TicketParticipant {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedBy   String // email of the staff member whose merge added them
+  createdAt DateTime @default(now())
+
+  @@unique([ticketId, userId])
+  @@index([userId])
 }
 
 /// Settings admins change from the console (v3.87) — to begin with the SLA per

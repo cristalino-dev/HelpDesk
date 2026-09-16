@@ -26,6 +26,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
+import { canSeeTicket, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 import { attachmentResponseHeaders, parseImageDataUrl, readAttachmentFile } from "@/lib/attachmentStorage"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -41,13 +42,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       where: { id },
       select: {
         storedName: true, mimeType: true, dataUrl: true, filename: true,
-        ticket: { select: { user: { select: { email: true } } } },
+        ticket: { select: { user: { select: { email: true } }, participants: PARTICIPANTS_SELECT } },
       },
     })
     if (!attachment) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
-    if (!isStaff && attachment.ticket.user.email !== session.user.email) {
+    if (!canSeeTicket(attachment.ticket, session.user.email, isStaff)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

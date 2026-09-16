@@ -86,6 +86,7 @@ import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import BulkActionBar from "@/components/BulkActionBar"
 import BulkEditModal from "@/components/BulkEditModal"
+import MergeTicketsModal from "@/components/MergeTicketsModal"
 
 // Cristalino theme: status/urgency pill colors come from the central palette.
 const URGENCY_STYLES: Record<string, React.CSSProperties> = Object.fromEntries(
@@ -145,6 +146,7 @@ export default function AdminPage() {
   // Bulk actions
   const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set())
   const [bulkModalOpen, setBulkModalOpen]       = useState(false)
+  const [mergeOpen, setMergeOpen]               = useState(false)
   const [bulkLoading, setBulkLoading]           = useState(false)
 
   const toggleSelect = (id: string) => {
@@ -2209,8 +2211,16 @@ export default function AdminPage() {
           }}
           onQuickClose={handleQuickClose}
           onQuickAssign={handleQuickAssign}
+          onMerge={() => setMergeOpen(true)}
           staffMembers={staffMembers}
           loading={bulkLoading}
+        />
+
+        <MergeTicketsModal
+          isOpen={mergeOpen}
+          initialRefs={Array.from(selectedIds)}
+          onClose={() => setMergeOpen(false)}
+          onMerged={async () => { setMergeOpen(false); setSelectedIds(new Set()); await loadTickets() }}
         />
 
         <BulkEditModal

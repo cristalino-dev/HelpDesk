@@ -51,6 +51,7 @@ export interface Ticket {
   status: string
   holdReason?: string | null   // set when status = "בהמתנה", null otherwise
   type?: string                // "ticket" (HDTC-N) or "request" (REQ-N) — v3.87, lib/ticketType.ts
+  mergedIntoId?: string | null // set when this ticket was merged into another (v3.92, lib/ticketMerge.ts)
   createdAt: string
   updatedAt: string
   userId: string
@@ -66,6 +67,8 @@ export interface TicketWithUser extends Ticket {
     name?: string | null
     email?: string | null
   }
+  /** Where a merged ticket went (v3.92) — GET /api/tickets/all includes it. */
+  mergedInto?: { ticketNumber: number; type?: string | null } | null
 }
 
 export interface TicketNote {
@@ -101,7 +104,7 @@ export interface TicketMessage {
 export interface TicketHistoryEntry {
   id: string
   ticketId: string
-  field: string       // "created" | "status" | "urgency" | "assignedTo" | "edited"
+  field: string       // "created" | "status" | "urgency" | "assignedTo" | "owner" | "type" | "edited" | "merged" | "mergedFrom" | "participant"
   oldValue?: string | null
   newValue?: string | null
   actorName: string
@@ -130,4 +133,35 @@ export interface TicketDetail extends TicketWithUser {
   messages: TicketMessage[]
   history: TicketHistoryEntry[]
   equipment: TicketEquipment[]
+  /** The ticket this one was merged into — the one the conversation goes on in (v3.92). */
+  mergedInto?: { ticketNumber: number; type?: string | null } | null
+  /** Tickets merged into this one. */
+  mergedFrom?: { id: string; ticketNumber: number; type?: string | null; subject: string }[]
+  /** People who follow the ticket without owning it — see lib/ticketAccess.ts. */
+  participants?: { user: { id?: string; name: string | null; email: string } }[]
+}
+
+/** A ticket on the user's dashboard (GET /api/tickets): theirs, or one they follow (v3.92). */
+export interface DashboardTicket extends TicketWithUser {
+  /** "participant" when the caller follows the ticket rather than owns it. */
+  role?: "owner" | "participant"
+}
+
+/** One ticket as the merge dialog shows it — GET /api/tickets/merge (v3.92). */
+export interface MergePreviewTicket {
+  id: string
+  ticketNumber: number
+  type: string
+  label: string
+  subject: string
+  status: string
+  urgency: string
+  createdAt: string
+  owner: { name: string | null; email: string }
+  participants: { name: string | null; email: string }[]
+  counts: { messages: number; notes: number; attachments: number; equipment: number }
+  /** Label of the ticket it was already merged into, if any. */
+  mergedInto: string | null
+  /** Why a merge with this ticket as the one that stays cannot go ahead; empty when it can. */
+  problems: string[]
 }

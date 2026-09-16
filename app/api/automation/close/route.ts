@@ -81,11 +81,13 @@ import { logError } from "@/lib/logError"
 import {
   sendMail,
   mailTicketClosedWithReview,
+  mailTicketClosedParticipant,
   mailTicketUpdatedStaff,
   mailNewMessageToUser,
 } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
 import { ticketLabel } from "@/lib/ticketType"
+import { PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 import { NextRequest, NextResponse, after } from "next/server"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 
@@ -149,7 +151,7 @@ export async function POST(req: NextRequest) {
     // ── Load ticket ────────────────────────────────────────────────────────
     const before = await prisma.ticket.findUnique({
       where: { ticketNumber: Number(ticketNumber) },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { name: true, email: true } }, participants: PARTICIPANTS_SELECT },
     })
     if (!before) {
       return NextResponse.json({ error: "Ticket not found" }, { status: 404 })
@@ -284,6 +286,18 @@ export async function POST(req: NextRequest) {
           to:      before.user.email,
           subject: `פנייתך ${ticketLabel(ticket)} נסגרה — ספרו לנו כיצד היה השירות`,
           html:    mailTicketClosedWithReview(ticketInfo),
+        })
+      )
+    }
+
+    // Participants (v3.92) hear that it closed — without the review, which is the owner's
+    for (const p of before.participants ?? []) {
+      if (p.user.email === before.user?.email || p.user.email === actorEmail) continue
+      mails.push(
+        sendMail({
+          to:      p.user.email,
+          subject: subjects.closedParticipant(ticket, ticket.subject),
+          html:    mailTicketClosedParticipant(ticketInfo, p.user.name ?? p.user.email),
         })
       )
     }

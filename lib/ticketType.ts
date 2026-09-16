@@ -54,6 +54,15 @@ export function ticketRefWhere(ref: string): { ticketNumber: number } | { id: st
   return m ? { ticketNumber: Number(m[1]) } : { id: ref }
 }
 
+/**
+ * Why a merged ticket refuses a change (v3.92): it is frozen, and the
+ * conversation goes on in the ticket it was merged into. One sentence for every
+ * route that refuses, so the page can show it as it is.
+ */
+export function mergedError(into: { ticketNumber: number; type?: string | null }): string {
+  return `הפנייה מוזגה ל-${ticketLabel(into)} — ההמשך בפנייה ${ticketLabel(into)}`
+}
+
 /** Tickets first, then requests, each in the order given — a queue's two sections. */
 export function splitByType<T extends { type?: string | null }>(list: readonly T[]): { tickets: T[]; requests: T[] } {
   const tickets: T[] = []

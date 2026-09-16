@@ -1,11 +1,11 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.91** · Updated 2026-09-16
+> **Current version: 3.92** · Updated 2026-09-16
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.90** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
-> requests, an API for other programs and its documentation page, the phone layout). Committed: **v3.91** (the
-> close button reads as an action). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
+> requests, an API for other programs and its documentation page, the phone layout). Not yet deployed: **v3.91** (the
+> close button reads as an action), **v3.92** (merging tickets — needs its migration). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
 > (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
@@ -54,6 +54,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Ticket deletion** — admins only, two-step confirm, permanent; the deletion is written to the `Log` table because the ticket's own audit trail dies with it
 - **Change the submitter** — admins can move a ticket to a different registered user (`ownerEmail` on PATCH), after confirming
 - **Open on behalf of** — admins can file a ticket for someone who phoned in, including a person who has never signed in
+- **Merging tickets (v3.92)** — staff merge duplicates from a ticket's page or the queue's selection bar. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become **participants** of it — they see it on their dashboard, write in it and get its mail. `lib/ticketMerge.ts`, `lib/ticketAccess.ts`
 - **Full-text search** — every page; typing a ticket number (`494`, `#494`, `HDTC-494`, `hdtc494`) always lands on that ticket even when the view is filtered (`lib/ticketSearch.ts`)
 - **Email automation** — new ticket, status change, staff @mention, closure + rating request, daily digest
 - **Email-to-ticket ingestion** — inbound mail whose subject contains "ticket" becomes an URGENT ticket via IMAP polling (see §6)
@@ -92,18 +93,19 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 
 ## 3. Architecture & Data Model
 
-### Data models (Prisma) — 15 tables
+### Data models (Prisma) — 16 tables
 
 Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.md` §6](docs/ARCHITECTURE.md#6-database-schema-reference).
 
 - **User** — OAuth metadata, `name`, `isAdmin`, `phone`, `station`. 1→N Ticket. `email` is `@unique` **plus an out-of-band `UNIQUE (lower(email))`** (v3.66) — the plain unique is over the exact bytes, so on its own it would let one person hold two rows differing only in case. Stored lowercased since v3.66; rows created before that may still carry capitals, so resolve through `lib/users.ts`.
-- **Ticket** — `ticketNumber` (autoincrement, the human `HDTC-N` id), `subject`, `description`, `phone`, `computerName`, `urgency`, `category`, `platform`, `status`, `assignedTo`, plus **`holdReason`** (required while בהמתנה) and **`sourceMessageId`** (`@unique`, the email-ingest idempotency key). FK → User. Indexed on `userId` and `status`. Relations: notes, attachments, messages, review, history, equipment.
+- **Ticket** — `ticketNumber` (autoincrement, the human `HDTC-N` id), `subject`, `description`, `phone`, `computerName`, `urgency`, `category`, `platform`, `status`, `assignedTo`, plus **`holdReason`** (required while בהמתנה) and **`sourceMessageId`** (`@unique`, the email-ingest idempotency key). FK → User. Indexed on `userId` and `status`. Relations: notes, attachments, messages, review, history, equipment, participants. **`mergedIntoId`** (v3.92) — the ticket this one was merged into; a merged ticket is closed and frozen.
 - **TicketHistory** — audit trail: `field`, `oldValue`, `newValue`, `actorName`, `actorEmail`, `changedAt`. Written on create and on every status/urgency/assignedTo/edit change.
 - **TicketMessage** — two-way user↔staff chat with email notifications. Only the author may delete their own message.
 - **TicketNote** — staff-only technician notes (hidden from the user). Supports @mentions + image paste.
 - **TicketAttachment** — file metadata (images, and since v3.84 PDF/Office/text). **Bytes live on disk** under `uploads/ticket-attachments/` since v3.48; `dataUrl` remains only for legacy rows and is still served as a fallback.
 - **TicketEquipment** *(v3.58)* — `label`, `quantity`, `receivedQty`, `receivedAt`, `receivedBy`. `@@unique([ticketId, label])`. `label` is a **snapshot** of the FieldOption label at request time, so renaming an option never rewrites filed tickets. Not limited to onboarding — any ticket can carry lines.
 - **TicketReview** — 1–5 star rating + optional comment. One per ticket (`ticketId @unique`).
+- **TicketParticipant** *(v3.92)* — someone who follows a ticket without owning it (`ticketId`, `userId`, `addedBy`), `@@unique([ticketId, userId])`. Added by a merge; sees the ticket, writes in its conversation, is mailed when staff answer or it closes. Closing, reopening and the review stay the owner's.
 - **License** — key, category (default "Office"), optional username/password, remark. `@@unique([category, key])`; bulk insert skips duplicates.
 - **Printer** — name, maker, model, supplier, ipv4, hostname, inkToner, tonerLevel, supplierSerial.
 - **PrinterDriver** — driver metadata; the binaries live on disk under `uploads/printer-drivers/`.
@@ -145,6 +147,8 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 11. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` only supplies curated handles/names for matching emails (and is the empty-DB fallback). Clients fetch `GET /api/staff`.
 12. **FieldOption deletions are guarded** — the four urgencies and the עובד חדש / עובד עוזב categories cannot be removed; business logic depends on them.
 13. **`/api/v1` is a contract — additive only** (v3.88). Other programs are built against it: within v1 never rename, remove or retype a field, a parameter or an error code — add new optional ones. A breaking change is `/api/v2`, beside v1. A new route or method goes into `lib/openapi.ts` in the same change (`__tests__/openapi.test.ts` fails otherwise).
+14. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
+15. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
 
 ---
 
@@ -182,6 +186,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.92 | Merging tickets: staff merge duplicates from a ticket's page or the queue. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become participants (see it, write in it, get its mail). Replies to an old number follow the merge; reports leave merged tickets out. `Ticket.mergedIntoId`, `TicketParticipant` (migration `20260917000000_ticket_merge`); `lib/ticketMerge.ts`, `lib/ticketAccess.ts` |
 | 3.91 | The quick-close button reads as an action: an outlined "סגור פנייה" in the queue and on the dashboard cards, where a green "✓ סגור" pill beside the status pill had read as the ticket's status. The tick is gone from the ticket page and the bulk bar too |
 | 3.90 | Phones get the phone layout again: `useIsMobile()` read `window.innerWidth`, which on a phone follows the zoom — a page zoomed out to show the desktop top bar reported ~1,500 px and kept it, so the nav came out in one row with the content a strip beside it. It now asks a media query (the layout viewport); the header's action row scrolls inside the bar instead of widening the page; the API docs page fits a phone |
 | 3.89 | The API's documentation page: `/api/v1` answered 404 — the address everyone is given. Now a browser there is sent to `/api/v1/docs`, a page generated from the OpenAPI document (every endpoint, parameter, body, response and a curl example), and a program gets a JSON index of every endpoint and the key it needs (`lib/apiDocs.ts`) |
@@ -248,4 +253,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.91 — updated 2026-09-16.*
+*v3.92 — updated 2026-09-16.*

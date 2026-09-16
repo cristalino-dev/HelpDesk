@@ -5,6 +5,105 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.92 — מיזוג פניות
+
+**The same problem often reaches the helpdesk more than once: a ticket and then
+an email about it, two emails, or several people reporting one outage. Staff
+can now merge them. One ticket stays; the others close and point to it; their
+messages, notes and files move into it; and everyone who reported the problem
+keeps following it.**
+
+The design follows the large helpdesks — Zendesk, Freshdesk, Zoho Desk, Help
+Scout:
+- staff pick the ticket that stays;
+- the others are closed, not deleted;
+- both sides keep a record;
+- a reply to the old number goes on to the ticket that stays;
+- there is no undo.
+
+### What changed for users
+
+- **Staff merge from a ticket's page** (🔗 מיזוג, then the other ticket's
+  number) **or from the queue** (tick two or more, then 🔗 מיזוג in the bar).
+  The dialog:
+  - shows each ticket's subject, opener and status, and how many messages,
+    notes and files it has;
+  - keeps the oldest ticket by default, and staff can pick another;
+  - names who will become a participant of the ticket that stays;
+  - says why a merge cannot go ahead, when it cannot;
+  - warns that a merge cannot be undone.
+- **The ticket that stays** receives the others' messages, notes and files, in
+  time order, plus an internal note with each merged ticket's subject, opener
+  and description. A "מוזגו לכאן" line links to them.
+- **A merged ticket** is closed and says where it went ("הפנייה מוזגה
+  ל-HDTC-15 →"). It cannot be edited, reopened or written to.
+- **Participants.** When a merged ticket belonged to someone else, that person
+  now follows the ticket that stays:
+  - it is on their dashboard, tagged 👥 משתתף;
+  - they can read and write in its conversation, in the app or by mail;
+  - they are mailed when staff answer and when it closes.
+
+  Closing, reopening and rating the service stay the owner's. Staff can take a
+  participant off from the ticket's page.
+- **Mail.** Whoever opened a merged ticket is told where it went. A reply that
+  names the old number joins the ticket that stays.
+- **Reports** leave merged tickets out. A merged ticket is the same problem
+  reported again, and counting it would open and close that problem twice.
+  The queue's time-to-close figures leave them out too.
+
+### What changed for developers
+
+- **Schema** (migration `20260917000000_ticket_merge`, `IF NOT EXISTS`
+  throughout):
+  - `Ticket.mergedIntoId` — a self-relation (`mergedInto` / `mergedFrom`),
+    `ON DELETE SET NULL`, indexed;
+  - new model `TicketParticipant` (`ticketId`, `userId`, `addedBy`), unique on
+    `(ticketId, userId)`, cascading with the ticket and with the user.
+- **`lib/ticketMerge.ts`:**
+  - `mergeProblems()` and `planMerge()` are pure; `mergeTickets()` carries the
+    plan out in one transaction, which re-checks that nobody merged the same
+    tickets meanwhile, and returns the mail for `after()`.
+  - It refuses merging a ticket into itself, a ticket already merged, and a
+    source with equipment lines (that ticket must be the one that stays).
+  - There are no chains: tickets merged into a source are repointed at the
+    target.
+- **`lib/ticketAccess.ts`:**
+  - `canSeeTicket()` (staff, owner or participant) replaces the inline owner
+    checks in the detail, history, messages and attachment routes.
+  - `followerEmails()` returns the owner and the participants, for staff-reply
+    mail.
+- **New routes:**
+  - `GET /api/tickets/merge?refs=` — the dialog's preview, with `problems` for
+    each ticket as the one that stays;
+  - `POST /api/tickets/merge` `{ targetId, sourceIds }` — all or nothing, 409
+    with `problems`;
+  - `DELETE /api/tickets/[id]/participants` `{ userId }` — staff only.
+- **A merged ticket is frozen.** These answer 409 with `mergedError()`
+  (`lib/ticketType.ts`):
+  - `PATCH /api/tickets`;
+  - `applyTicketChanges()`, so the bulk route and `/api/v1` PATCH too;
+  - the messages, notes, attachments and equipment routes;
+  - `/api/v1` messages and notes.
+- **`GET /api/tickets`** also returns the tickets the caller follows, with
+  `role: "owner" | "participant"` and `mergedInto`.
+- **Mail intake** follows `mergedIntoId` and accepts a participant's reply.
+- **Reports and the export** filter on `mergedIntoId: null`. A single-ticket
+  export still finds a merged ticket.
+- **`/api/v1`** (additive, rule 69):
+  - `mergedInto` (a label, or null) on every ticket;
+  - `participants` on the detail;
+  - 409 on writes to a merged ticket;
+  - new history fields `merged`, `mergedFrom`, `participant` and
+    `participantRemoved`.
+- **New mail:** `mailTicketMerged` and `mailTicketClosedParticipant`, with the
+  subjects `merged` and `closedParticipant`.
+- **New tests:** `ticketMerge`, `ticketAccess`, `mergeRoute` and
+  `MergeTicketsModal`, plus merged-ticket and participant cases in
+  `MessagesAPI`, `TicketsAPI`, `BulkTicketsAPI`, `IngestMailRoute`, `apiV1`,
+  `ReportsAPI` and `ReportsExportAPI`. 88 suites / 1,497 tests.
+
+---
+
 ## v3.91 — כפתור הסגירה נראה ככפתור
 
 **The quick-close button in the queue was a small green pill reading "✓ סגור",

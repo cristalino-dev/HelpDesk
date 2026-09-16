@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-16 · v3.91
+> Version 2.0 · Last updated 2026-09-16 · v3.92
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -74,6 +74,12 @@ accounts always get the account picker rather than being signed in silently.
 
 Four statuses, not three: **בהמתנה** (on hold) requires a free-text
 `holdReason`, which is cleared automatically when the ticket leaves that status.
+
+**Merging (v3.92)** leaves the lifecycle: a ticket merged into another is closed
+(compound close), gets `mergedIntoId`, and is frozen — every write route answers
+409, staff included. Its messages, notes and files moved to the ticket it went
+into; the people who opened or followed it become that ticket's participants.
+There is no unmerge. See `lib/ticketMerge.ts`.
 
 **Compound close is a system-wide invariant.** Setting `status = "סגור"` always
 also forces `urgency = "נמוך"`. It is enforced server-side in
@@ -601,9 +607,10 @@ The central table.
 | `userId` | String | ✓ | FK → `User.id`. The מגיש (submitter). Admins can move it via `PATCH /api/tickets { ownerEmail }` |
 | `sourceMessageId` | String? | ✗ | `@unique`. The source email's `Message-ID` for email-ingested tickets; the idempotency key that stops one email becoming two tickets. Null for UI tickets |
 | `holdReason` | String? | ✗ | Required while `status = "בהמתנה"`; cleared automatically on reinstatement |
+| `mergedIntoId` | String? | ✗ | FK → `Ticket.id`, `onDelete: SetNull`, indexed (v3.92). The ticket this one was merged into. Set only by a merge; never a chain — merging into a ticket repoints what had been merged into the source |
 
 Relations: `user`, `notes`, `attachments`, `messages`, `review`, `history`,
-`equipment`.
+`equipment`, `participants`, `mergedInto` / `mergedFrom`.
 
 Indexes: `@@index([userId])` (the user dashboard filters by owner) and
 `@@index([status])` (the digest and sweep crons filter by it every few minutes).
@@ -617,7 +624,7 @@ The audit trail. Written on creation and on every field change.
 |---|---|---|---|
 | `id` | String (CUID) | ✓ | Primary key |
 | `ticketId` | String | ✓ | FK → `Ticket.id`, `onDelete: Cascade` |
-| `field` | String | ✓ | `"created"` \| `"status"` \| `"urgency"` \| `"assignedTo"` \| `"edited"` |
+| `field` | String | ✓ | `"created"` \| `"status"` \| `"urgency"` \| `"assignedTo"` \| `"owner"` \| `"type"` \| `"edited"` \| `"merged"` (this ticket went into `newValue`) \| `"mergedFrom"` (`oldValue` came into this one) \| `"participant"` \| `"participantRemoved"` |
 | `oldValue` | String? | ✗ | Previous value |
 | `newValue` | String? | ✗ | New value. For a hold this reads `בהמתנה: <holdReason>` |
 | `actorName` | String | ✓ | Who made the change — the acting admin, not the ticket owner |
@@ -869,6 +876,26 @@ One row per program allowed to call `/api/v1` (§7). No foreign keys.
 
 `scripts/refresh-dev-db.py` never copies this table: the dev copy keeps its own keys.
 
+### TicketParticipant (v3.92)
+
+Someone who follows a ticket without owning it. A merge adds the owners (and
+participants) of the merged tickets to the one that stays, so nobody who
+reported the problem loses sight of it.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | String (cuid) | |
+| `ticketId` | String | FK → `Ticket.id`, `onDelete: Cascade` |
+| `userId` | String | FK → `User.id`, `onDelete: Cascade` |
+| `addedBy` | String | Email of the staff member whose merge added them |
+| `createdAt` | DateTime | |
+
+Unique on `(ticketId, userId)`; indexed on `userId` (the dashboard's query).
+A participant sees the ticket on their dashboard, reads and writes in its
+conversation, and is mailed when staff answer and when it closes. Closing,
+reopening, equipment and the review stay the owner's. Access is decided in one
+place, `canSeeTicket()` in `lib/ticketAccess.ts`.
+
 ## 7. API Routes Reference
 
 **Auth column key** — `—` none · `User` any signed-in user ·
@@ -880,10 +907,13 @@ One row per program allowed to call `/api/v1` (§7). No foreign keys.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/tickets` | User | The caller's **own** tickets — the ones they opened — whatever their role. (Until v3.72 an admin got every ticket here; the queue is `/api/tickets/all`.) |
+| GET | `/api/tickets` | User | The caller's **own** tickets — the ones they opened — whatever their role, and since v3.92 the ones they follow as a participant, each with `role: "owner" \| "participant"` and `mergedInto`. (Until v3.72 an admin got every ticket here; the queue is `/api/tickets/all`.) |
 | POST | `/api/tickets` | User | Create a ticket. Accepts `equipment[]` on any category, `newEmployee{}` (mandatory for `עובד חדש`, else 400), and `onBehalfOfEmail` / `onBehalfOfName` (**admin only**, 403 otherwise), and `type` — `ticket` (default) or `request` (v3.87) → 201 |
 | PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }`. Staff may change `type` — a `type` history row (v3.87) |
 | POST | `/api/tickets/bulk` | **Staff** | Change many tickets at once: `{ ids, changes }` with any of `status` (+ `holdReason`), `urgency`, `category`, `platform`, `assignedTo`, `note`, and `ownerEmail` (**admin only**). The single-edit rules apply per ticket — compound close, hold reason, offboarding guard, self-assign → `בטיפול` — and a ticket that cannot take the change is reported in `errors[]` while the rest go ahead → `{ ok, total, updatedCount, errors? }` (v3.83) |
+| GET | `/api/tickets/merge?refs=` | **Staff** | What the merge dialog shows: each ticket (`HDTC-N`, `REQ-N`, `N` or an id; up to 10) with its owner, participants, counts, `mergedInto`, and `problems` — why it could not be the one that stays → `{ tickets, notFound }` (v3.92) |
+| POST | `/api/tickets/merge` | **Staff** | Merge `{ targetId, sourceIds[] }`: messages, notes and files move to the target; sources close, freeze and point to it; their people become participants; history on both sides; mail in `after()`. All or nothing — 409 `{ error, problems }` (v3.92) |
+| DELETE | `/api/tickets/[id]/participants` | **Staff** | Take `{ userId }` off the ticket's participants; a `participantRemoved` history row (v3.92) |
 | GET | `/api/settings/sla` | User | The SLA per type in workdays, `{ ticket, request }` — every queue marks overdue tickets with it (v3.87) |
 | PUT | `/api/admin/settings/sla` | **Admin** | Set both: whole workdays 1–60 each (400 otherwise, in Hebrew); the change is logged (v3.87) |
 | GET | `/api/tickets/all` | Staff / Viewer | All tickets — the read-only viewer list |
@@ -1011,19 +1041,21 @@ GET /review/[ticketId]      │ ✓ (no login)    │ ✓           │ ✓     
 ```
 Endpoint                          │ Unauth │ Employee   │ Viewer │ Staff │ Admin
 ──────────────────────────────────┼────────┼────────────┼────────┼───────┼──────
-GET   /api/tickets                │ 401    │ Own only   │ Own    │ Own   │ Own
+GET   /api/tickets                │ 401    │ Own+follow │ Own    │ Own   │ Own
+GET/POST /api/tickets/merge       │ 401    │ 403        │ 403    │ ✓     │ ✓
+DELETE /api/tickets/[id]/particip.│ 401    │ 403        │ 403    │ ✓     │ ✓
 POST  /api/tickets                │ 401    │ ✓          │ ✓      │ ✓     │ ✓ +onBehalfOf
 PATCH /api/tickets                │ 401    │ Own close/ │ 403    │ ✓     │ ✓ +ownerEmail
                                   │        │ reopen ≤4w │        │       │
 GET   /api/tickets/all            │ 401    │ 403        │ ✓      │ ✓     │ ✓
 GET   /api/tickets/assigned       │ 401    │ 403        │ 403    │ ✓     │ ✓
-GET   /api/tickets/[id]           │ 401    │ Own only   │ ✓      │ ✓     │ ✓
+GET   /api/tickets/[id]           │ 401    │ Own/follow │ ✓      │ ✓     │ ✓
 DELETE/api/tickets/[id]           │ 401    │ 403        │ 403    │ 403   │ ✓
 POST  /api/tickets/[id]/notes     │ 401    │ 403        │ 403    │ ✓     │ ✓
-POST  /api/tickets/[id]/messages  │ 401    │ Own ticket │ 403    │ ✓     │ ✓
+POST  /api/tickets/[id]/messages  │ 401    │ Own/follow │ 403    │ ✓     │ ✓
 POST  /api/tickets/[id]/equipment │ 401    │ Own ticket │ 403    │ ✓     │ ✓
 PATCH /api/tickets/[id]/equipment │ 401    │ 403        │ 403    │ ✓     │ ✓
-GET   /api/attachments/[id]       │ 401    │ Own only   │ 403    │ ✓     │ ✓
+GET   /api/attachments/[id]       │ 401    │ Own/follow │ 403    │ ✓     │ ✓
 GET/PATCH /api/profile            │ 401    │ Own only   │ Own    │ Own   │ Own
 GET/PATCH/DELETE /api/users       │ 401    │ 403        │ 403    │ 403   │ ✓
 GET   /api/staff                  │ 401    │ 403        │ 403    │ ✓     │ ✓
@@ -1044,6 +1076,9 @@ POST  /api/automation/close       │ Bearer AUTOMATION_API_KEY (no session)
 *     /api/v1/*                   │ an ApiKey (no session): read → GET, write → all; /api/v1, /docs, /openapi.json open
 POST  /api/admin/{digest,sweep,ingest-mail}  │ shared-secret header (no session)
 ```
+
+"Own/follow" is `canSeeTicket()` (`lib/ticketAccess.ts`, v3.92): the owner or a
+participant. Every write to a merged ticket is 409, whoever sends it.
 
 Page guards are client-side redirects; **every one of them is backed by a
 server-side check in the corresponding API route.** The client guard is

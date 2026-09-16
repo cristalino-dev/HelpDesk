@@ -122,6 +122,12 @@ describe("resolving the close date", () => {
     expect(r[1].closedAt).toBe("2026-09-05T10:00:00.000Z")
   })
 
+  // v3.92 — a merged ticket is the survivor's problem reported again.
+  it("leaves merged tickets out of the counts", async () => {
+    await GET()
+    expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({ mergedIntoId: null })
+  })
+
   it("only asks the database for closure rows, not the whole history table", async () => {
     await GET()
     expect((prisma.ticketHistory.findMany as jest.Mock).mock.calls[0][0].where)

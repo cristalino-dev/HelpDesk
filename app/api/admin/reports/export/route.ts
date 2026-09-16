@@ -41,7 +41,9 @@ export async function GET(req: NextRequest) {
 
     // A single ticket is fetched as one row rather than filtered out of the
     // whole table — the common case for this scope is "send me that one".
-    const where = scope.kind === "ticket" ? { ticketNumber: scope.ticketNumber } : {}
+    // Otherwise merged tickets (v3.92) are left out, as the reports leave them
+    // out: the sheet and the chart must count the same tickets.
+    const where = scope.kind === "ticket" ? { ticketNumber: scope.ticketNumber } : { mergedIntoId: null }
 
     const [tickets, closeRows] = await Promise.all([
       prisma.ticket.findMany({

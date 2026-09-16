@@ -49,7 +49,7 @@ import Link from "next/link"
 import TicketForm from "@/components/TicketForm"
 import { TicketCreatedDialog } from "@/components/TicketCreated"
 import TicketTable from "@/components/TicketTable"
-import type { Ticket, TicketWithUser } from "@/types/ticket"
+import type { DashboardTicket, TicketWithUser } from "@/types/ticket"
 import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatus, setTicketStatusOrError, uploadFailureMessage, type UploadFailure } from "@/lib/ticketApi"
@@ -64,7 +64,8 @@ import AppNav from "@/components/AppNav"
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [tickets, setTickets] = useState<Ticket[]>([])
+  /** Theirs, and — since v3.92 — the ones they follow (`role: "participant"`). */
+  const [tickets, setTickets] = useState<DashboardTicket[]>([])
   const [showForm, setShowForm] = useState(false)
   /** The ticket just created, while its confirmation is on screen. */
   const [created, setCreated] = useState<{ id: string; ticketNumber: number; type?: string; subject: string; failedUploads?: UploadFailure[] } | null>(null)

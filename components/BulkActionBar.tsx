@@ -3,7 +3,7 @@
  *
  * Appears when 1 or more tickets are selected.
  * Provides quick actions: bulk edit modal trigger, quick close, quick technician assignment,
- * and clear selection.
+ * merging (v3.92, two or more selected) and clear selection.
  */
 
 "use client"
@@ -21,6 +21,8 @@ interface BulkActionBarProps {
   onOpenBulkEdit: () => void
   onQuickClose?: () => void
   onQuickAssign?: (staffEmail: string) => void
+  /** Opens the merge dialog; offered once two or more tickets are selected. */
+  onMerge?: () => void
   staffMembers?: StaffMember[]
   loading?: boolean
 }
@@ -31,6 +33,7 @@ export default function BulkActionBar({
   onOpenBulkEdit,
   onQuickClose,
   onQuickAssign,
+  onMerge,
   staffMembers = [],
   loading = false,
 }: BulkActionBarProps) {
@@ -191,6 +194,30 @@ export default function BulkActionBar({
               </div>
             )}
           </div>
+        )}
+
+        {/* Merge — the same problem reported more than once */}
+        {onMerge && selectedCount >= 2 && (
+          <button
+            onClick={onMerge}
+            disabled={loading}
+            title="מיזוג הפניות שנבחרו לפנייה אחת"
+            style={{
+              background: T.fill,
+              border: `1px solid ${T.border}`,
+              color: T.text,
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              padding: "8px 12px",
+              borderRadius: 10,
+              cursor: loading ? "default" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            🔗 מיזוג
+          </button>
         )}
 
         {/* Quick Close Button */}

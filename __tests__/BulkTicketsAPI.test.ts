@@ -191,6 +191,21 @@ describe("POST /api/tickets/bulk — Execution & Business Rules", () => {
     expect(json.errors[0].error).toContain("מחשב נייד")
   })
 
+  // v3.92 — a merged ticket is frozen; the rest of the selection goes ahead.
+  it("reports a merged ticket as refused and changes the others", async () => {
+    mockFindUnique
+      .mockResolvedValueOnce({ ...sampleTicket1, id: "t9", ticketNumber: 109, status: "סגור", mergedInto: { ticketNumber: 101, type: "ticket" } })
+      .mockResolvedValueOnce(sampleTicket1)
+
+    const res = await call({ ids: ["t9", "t1"], changes: { status: "פתוח" } })
+    const json = await res.json()
+    expect(json.updatedCount).toBe(1)
+    expect(json.errors).toHaveLength(1)
+    expect(json.errors[0]).toMatchObject({ ticketId: "t9", ticketNumber: 109 })
+    expect(json.errors[0].error).toContain("HDTC-101")
+    expect(mockTransaction).toHaveBeenCalledTimes(1)
+  })
+
   it("applies status, urgency, category, platform, assignedTo and note in bulk", async () => {
     mockFindUnique
       .mockResolvedValueOnce(sampleTicket1)

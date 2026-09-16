@@ -37,4 +37,8 @@ export const subjects = {
   repliedToYou:    (author: string, t: Ref, subject: string) => `${author} ענה לך בפנייה ${tag(t)}: ${subject}`,
   /** Staff: they were @mentioned in an internal note. */
   mentioned:       (t: Ref, subject: string) => `הוזכרת בפנייה ${tag(t)}: ${subject}`,
+  /** Owner and participants of a merged ticket: where it went (v3.92). */
+  merged:          (source: Ref, target: Ref) => `פנייתך ${tag(source)} אוחדה עם פנייה ${tag(target)}`,
+  /** Participant: the ticket they follow closed (v3.92). */
+  closedParticipant: (t: Ref, subject: string) => `הפנייה ${tag(t)} נסגרה: ${subject}`,
 } as const

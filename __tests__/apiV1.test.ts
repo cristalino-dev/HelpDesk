@@ -24,6 +24,12 @@ describe("toApiTicket", () => {
     expect(t.createdAt).toBe("2026-09-14T08:00:00.000Z")
     expect(t).not.toHaveProperty("userId")
     expect(t).not.toHaveProperty("sourceMessageId")
+    expect(t.mergedInto).toBeNull()
+  })
+
+  // v3.92 — a merged ticket names the one it went into, by label.
+  it("names the ticket a merged one went into", () => {
+    expect(toApiTicket({ ...ROW, mergedInto: { ticketNumber: 590, type: "ticket" } }).mergedInto).toBe("HDTC-590")
   })
 })
 
@@ -41,6 +47,15 @@ describe("toApiTicketDetail", () => {
     expect(d.history[0]).toMatchObject({ field: "status", from: "פתוח", to: "בטיפול" })
     expect(d.attachments[0].url.endsWith("/api/v1/attachments/a1")).toBe(true)
     expect(d.equipment).toEqual([{ label: "מסך", quantity: 2, received: 1 }])
+    expect(d.participants).toEqual([])
+  })
+
+  it("lists the people who follow the ticket (v3.92)", () => {
+    const d = toApiTicketDetail({
+      ...ROW, messages: [], notes: [], history: [], attachments: [], equipment: [],
+      participants: [{ user: { name: "רון", email: "ron@cristalino.co.il" } }, { user: { name: null, email: "x@cristalino.co.il" } }],
+    })
+    expect(d.participants).toEqual([{ name: "רון", email: "ron@cristalino.co.il" }, { name: null, email: "x@cristalino.co.il" }])
   })
 })
 

@@ -17,10 +17,11 @@
 
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
-import { sendMail, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
+import { sendMail, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview, mailTicketClosedParticipant } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
-import { normalizeType, ticketLabel } from "@/lib/ticketType"
+import { normalizeType, ticketLabel, mergedError } from "@/lib/ticketType"
+import { PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 
 export type TicketChanges = {
   status?: string
@@ -39,8 +40,10 @@ export type TicketChanges = {
 
 /** What applyTicketChanges needs loaded with the ticket. */
 export const TICKET_CHANGE_INCLUDE = {
-  user:      { select: { name: true, email: true } },
-  equipment: { select: { label: true, quantity: true, receivedQty: true } },
+  user:         { select: { name: true, email: true } },
+  equipment:    { select: { label: true, quantity: true, receivedQty: true } },
+  participants: PARTICIPANTS_SELECT,
+  mergedInto:   { select: { ticketNumber: true, type: true } },
 } satisfies Prisma.TicketInclude
 
 export type LoadedTicket = Prisma.TicketGetPayload<{ include: typeof TICKET_CHANGE_INCLUDE }>
@@ -65,6 +68,10 @@ export async function applyTicketChanges(opts: {
   notify?: boolean
 }): Promise<{ ok: true; mails: Promise<void>[] } | { ok: false; error: string }> {
   const { ticket, changes, actor, staffEmails, newOwner = null, notify = true } = opts
+
+  // A merged ticket is frozen (v3.92): it stays closed and points at the one
+  // that carries on. Reopening it would split the conversation again.
+  if (ticket.mergedInto) return { ok: false, error: mergedError(ticket.mergedInto) }
 
   if (changes.status === "סגור" && isOffboarding(ticket.category)) {
     const blockers = offboardingBlockers(ticket.equipment)
@@ -146,8 +153,17 @@ export async function applyTicketChanges(opts: {
   if (staffRecipients.length > 0) {
     mails.push(sendMail({ to: staffRecipients, subject: subjects.updatedStaff(label, info.subject), html: mailTicketUpdatedStaff(info, actor.name) }))
   }
-  if (data.status === "סגור" && owner?.email) {
-    mails.push(sendMail({ to: owner.email, subject: `פנייתך ${ticketLabel(label)} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(info) }))
+  if (data.status === "סגור") {
+    if (owner?.email) {
+      mails.push(sendMail({ to: owner.email, subject: `פנייתך ${ticketLabel(label)} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(info) }))
+    }
+    // Participants hear that it closed, without the review — that is the owner's (v3.92).
+    if (ticket.status !== "סגור") {
+      for (const p of ticket.participants ?? []) {
+        if (p.user.email === owner?.email || p.user.email === actor.email) continue
+        mails.push(sendMail({ to: p.user.email, subject: subjects.closedParticipant(label, info.subject), html: mailTicketClosedParticipant(info, p.user.name ?? p.user.email) }))
+      }
+    }
   } else if (data.status === "בטיפול" && owner?.email && owner.email !== actor.email) {
     mails.push(sendMail({ to: owner.email, subject: subjects.inProgressUser(label), html: mailTicketStatusUser(info) }))
   } else if (data.status === "פתוח" && ticket.status === "סגור" && owner?.email && owner.email !== actor.email) {

@@ -39,7 +39,11 @@ export async function GET() {
     if (!session.user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const [tickets, closeRows] = await Promise.all([
+      // A ticket merged into another (v3.92) is the same problem reported
+      // twice. Counting it would open and close the problem twice — the
+      // survivor already stands for it.
       prisma.ticket.findMany({
+        where: { mergedIntoId: null },
         select: {
           id: true, ticketNumber: true, createdAt: true,
           category: true, urgency: true, platform: true, status: true, assignedTo: true,

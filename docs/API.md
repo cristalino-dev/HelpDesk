@@ -52,7 +52,7 @@ Always the same shape, with an HTTP status that means what it says:
 | 401 | `unauthorized` | no key, or an unknown or revoked one |
 | 403 | `forbidden` | a read key tried to write |
 | 404 | `not_found` / `file_missing` | no such ticket or attachment |
-| 409 | `conflict` | the change breaks a rule — e.g. closing a leaving-employee ticket with equipment still out |
+| 409 | `conflict` | the change breaks a rule — e.g. closing a leaving-employee ticket with equipment still out, or writing to a merged ticket |
 | 429 | `rate_limited` | over 120 requests a minute |
 | 500 | `server_error` | our failure; it has been logged |
 
@@ -81,6 +81,7 @@ an account (labelled `REQ-601`). One number sequence for both. Anywhere a ticket
   "platform": "מחשב אישי",
   "assignedTo": "helpdesk@cristalino.co.il",
   "owner": { "name": "דנה לוי", "email": "dana@cristalino.co.il" },
+  "mergedInto": null,
   "phone": "050-1234567",
   "computerName": "PC-DANA",
   "createdAt": "2026-09-14T08:00:00.000Z",
@@ -91,6 +92,11 @@ an account (labelled `REQ-601`). One number sequence for both. Anywhere a ticket
 
 `status` is one of `פתוח` · `בטיפול` · `בהמתנה` · `סגור`. The allowed `urgency`, `category` and `platform`
 values are whatever admins configured — read them from `GET /options`.
+
+**Merged tickets.** Staff can merge a ticket that repeats another into it. The merged ticket is closed, its
+`mergedInto` names the ticket it went into (`"HDTC-590"`), and it takes no more changes, messages or notes
+(`409`); its conversation, notes and files are on that ticket now. `mergedInto` is `null` on every other
+ticket.
 
 ---
 
@@ -141,7 +147,9 @@ curl -s -X POST "https://helpdesk.cristalino.co.il/api/v1/tickets" \
 ### `GET /tickets/{ref}` — one ticket, in full (read)
 
 The ticket plus `messages` (the conversation with the owner), `notes` (internal — the owner never sees
-them), `history`, `attachments` (with a `url` to download each) and `equipment` lines.
+them), `history`, `attachments` (with a `url` to download each), `equipment` lines, and `participants` —
+people who follow the ticket without owning it, usually the owners of tickets merged into it:
+`[{ "name": "רון כהן", "email": "ron@cristalino.co.il" }]`.
 
 ### `PATCH /tickets/{ref}` — change a ticket (write)
 
@@ -151,7 +159,8 @@ the change. The rules of a staff edit on the site apply:
 
 - `"status": "סגור"` also sets urgency to `נמוך`, and asks the owner to rate the service;
 - `"status": "בהמתנה"` requires `holdReason`;
-- a leaving-employee ticket with equipment not yet returned does not close → `409`.
+- a leaving-employee ticket with equipment not yet returned does not close → `409`;
+- a merged ticket takes no changes → `409`.
 
 The same mail goes out as for a staff edit on the site, unless `"notify": false`.
 
@@ -166,11 +175,12 @@ curl -s -X PATCH "https://helpdesk.cristalino.co.il/api/v1/tickets/REQ-601" \
 ### `POST /tickets/{ref}/messages` — write to the owner (write)
 
 `{ "content": "…", "authorName": "מערכת ההזמנות" }` → `201 { "data": Message }`. It appears in the
-ticket's conversation as from staff, and the owner is mailed unless `"notify": false`.
+ticket's conversation as from staff, and the owner and the participants are mailed unless `"notify": false`.
+A merged ticket takes no messages → `409`.
 
 ### `POST /tickets/{ref}/notes` — internal note (write)
 
-`{ "content": "…" }` → `201 { "data": Note }`. Staff only; nobody is mailed.
+`{ "content": "…" }` → `201 { "data": Note }`. Staff only; nobody is mailed. A merged ticket takes no notes → `409`.
 
 ### `GET /attachments/{id}` — download a file (read)
 

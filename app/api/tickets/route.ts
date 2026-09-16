@@ -25,14 +25,15 @@ import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
-import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview } from "@/lib/mail"
+import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview, mailTicketClosedParticipant } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
 import { NextRequest, NextResponse, after } from "next/server"
 import { normalizeSelection, NEW_EMPLOYEE_CATEGORY } from "@/lib/equipment"
 import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from "@/lib/newEmployee"
 import { isOffboarding, offboardingChecklist, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import { findUserByEmail, resolveUserByEmail } from "@/lib/users"
-import { normalizeType, ticketLabel } from "@/lib/ticketType"
+import { normalizeType, ticketLabel, mergedError } from "@/lib/ticketType"
+import { PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 
 /**
  * POST /api/tickets
@@ -286,9 +287,19 @@ export async function PATCH(req: NextRequest) {
     // Fetch ticket first so we can check ownership for non-staff
     const before = await prisma.ticket.findUnique({
       where: { id },
-      include: { user: { select: { name: true, email: true } } },
+      include: {
+        user:         { select: { name: true, email: true } },
+        participants: PARTICIPANTS_SELECT,
+        mergedInto:   { select: { ticketNumber: true, type: true } },
+      },
     })
     if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    // MERGED — frozen for everyone, staff included (v3.92). Reopening or editing
+    // it would split the conversation that now lives in the ticket it went into.
+    if (before.mergedInto) {
+      return NextResponse.json({ error: mergedError(before.mergedInto) }, { status: 409 })
+    }
 
     // 4-week window during which the ticket owner may re-open a closed ticket
     const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
@@ -494,9 +505,18 @@ export async function PATCH(req: NextRequest) {
     }
     // Notify user on status change
     // Use data.status so auto-changes (e.g. auto-בטיפול on self-assign) also trigger notifications
-    if (data.status === "סגור" && owner?.email) {
+    if (data.status === "סגור") {
       // Closure: always send the review-request email, even if the user closed it themselves
-      mails.push(sendMail({ to: owner.email, subject: `פנייתך ${ticketLabel(ticket)} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
+      if (owner?.email) {
+        mails.push(sendMail({ to: owner.email, subject: `פנייתך ${ticketLabel(ticket)} נסגרה — ספרו לנו כיצד היה השירות`, html: mailTicketClosedWithReview(ticketInfo) }))
+      }
+      // Participants (v3.92) hear that it closed — without the review, which is the owner's.
+      if (before.status !== "סגור") {
+        for (const p of before.participants ?? []) {
+          if (p.user.email === owner?.email || p.user.email === session.user.email) continue
+          mails.push(sendMail({ to: p.user.email, subject: subjects.closedParticipant(ticket, ticket.subject), html: mailTicketClosedParticipant(ticketInfo, p.user.name ?? p.user.email) }))
+        }
+      }
     } else if (data.status === "בטיפול" && owner?.email && owner.email !== session.user.email) {
       // In-progress: only notify if a staff member (not the user) changed the status
       mails.push(sendMail({ to: owner.email, subject: subjects.inProgressUser(ticket), html: mailTicketStatusUser(ticketInfo) }))
@@ -515,7 +535,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 /**
- * GET /api/tickets — the caller's OWN tickets. Everyone, admins included.
+ * GET /api/tickets — the caller's OWN tickets, and the ones they follow as a
+ * participant (v3.92, `role: "participant"`). Everyone, admins included.
  *
  * This used to branch on isAdmin and return the entire table to an admin,
  * which made /dashboard — the page called "לוח אישי" — show every ticket in
@@ -543,11 +564,16 @@ export async function GET() {
     const user = await findUserByEmail(session.user.email)
     if (!user) return NextResponse.json([]) // Authenticated but not in the DB yet
 
+    // Theirs, and — since v3.92 — the tickets they follow: when a ticket they
+    // opened is merged into someone else's, the conversation goes on there, and
+    // it must not vanish from the board of a person who reported the problem.
+    // `role` tells the page which is which: closing and reopening stay the owner's.
     const tickets = await prisma.ticket.findMany({
-      where: { userId: user.id },
+      where: { OR: [{ userId: user.id }, { participants: { some: { userId: user.id } } }] },
       orderBy: { createdAt: "desc" },
+      include: { mergedInto: { select: { ticketNumber: true, type: true } } },
     })
-    return NextResponse.json(tickets)
+    return NextResponse.json(tickets.map(t => ({ ...t, role: t.userId === user.id ? "owner" : "participant" })))
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets GET", e.stack)

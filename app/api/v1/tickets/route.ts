@@ -26,7 +26,10 @@ import { NextRequest, NextResponse, after } from "next/server"
 
 export const runtime = "nodejs"
 
-const WITH_OWNER = { user: { select: { name: true, email: true } } } as const
+const WITH_OWNER = {
+  user:       { select: { name: true, email: true } },
+  mergedInto: { select: { ticketNumber: true, type: true } },
+} as const
 
 export async function GET(req: NextRequest) {
   try {

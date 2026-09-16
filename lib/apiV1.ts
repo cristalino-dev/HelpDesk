@@ -19,6 +19,8 @@ type Row = {
   status: string; holdReason: string | null; urgency: string; category: string; platform: string
   assignedTo: string; phone: string; computerName: string; createdAt: Date; updatedAt: Date
   user?: { name: string | null; email: string } | null
+  /** v3.92 — the ticket this one was merged into; the routes include it. */
+  mergedInto?: { ticketNumber: number; type: string } | null
 }
 
 export function toApiTicket(t: Row) {
@@ -37,6 +39,9 @@ export function toApiTicket(t: Row) {
     platform: t.platform,
     assignedTo: t.assignedTo || null,
     owner: t.user ? { name: t.user.name ?? null, email: t.user.email } : null,
+    // v3.92: the label of the ticket this one was merged into — it is closed and
+    // takes no more changes; the conversation goes on there. null otherwise.
+    mergedInto: t.mergedInto ? ticketLabel(t.mergedInto) : null,
     phone: t.phone || null,
     computerName: t.computerName || null,
     createdAt: t.createdAt.toISOString(),
@@ -53,6 +58,7 @@ type DetailRow = Row & {
   history: { field: string; oldValue: string | null; newValue: string | null; actorName: string; actorEmail: string; changedAt: Date }[]
   attachments: { id: string; filename: string | null; mimeType: string | null; size: number | null; createdAt: Date }[]
   equipment: { label: string; quantity: number; receivedQty: number }[]
+  participants?: { user: { name: string | null; email: string } }[]
 }
 
 export function toApiTicketDetail(t: DetailRow) {
@@ -75,6 +81,9 @@ export function toApiTicketDetail(t: DetailRow) {
       url: `${APP_URL()}/api/v1/attachments/${a.id}`,
     })),
     equipment: t.equipment.map(e => ({ label: e.label, quantity: e.quantity, received: e.receivedQty })),
+    // v3.92: people who follow the ticket without owning it — usually the
+    // owners of tickets merged into it. They see it and are mailed about it.
+    participants: (t.participants ?? []).map(p => ({ name: p.user.name ?? null, email: p.user.email })),
   }
 }
 

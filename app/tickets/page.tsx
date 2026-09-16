@@ -23,6 +23,7 @@ import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import BulkActionBar from "@/components/BulkActionBar"
 import BulkEditModal from "@/components/BulkEditModal"
+import MergeTicketsModal from "@/components/MergeTicketsModal"
 
 function formatDuration(ms: number) {
   if (ms < 0) return "—"
@@ -90,6 +91,7 @@ export default function TicketsPage() {
   // Bulk actions
   const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set())
   const [bulkModalOpen, setBulkModalOpen]       = useState(false)
+  const [mergeOpen, setMergeOpen]               = useState(false)
   const [bulkLoading, setBulkLoading]           = useState(false)
   const [registeredUsers, setRegisteredUsers]   = useState<{ name: string | null; email: string }[]>([])
 
@@ -323,7 +325,9 @@ export default function TicketsPage() {
     const open       = tickets.filter(t => t.status === "פתוח").length
     const inProgress = tickets.filter(t => t.status === "בטיפול").length
     const closed     = tickets.filter(t => t.status === "סגור")
-    const closedMs   = closed.map(t => new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime())
+    // Time to close leaves merged tickets out (v3.92): they were closed by the
+    // merge, not resolved, and would pull the average toward zero.
+    const closedMs   = closed.filter(t => !t.mergedIntoId).map(t => new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime())
     const today      = new Date().toDateString()
     const openedToday = tickets.filter(t => new Date(t.createdAt).toDateString() === today).length
     const closedToday = closed.filter(t => new Date(t.updatedAt).toDateString() === today).length
@@ -333,7 +337,7 @@ export default function TicketsPage() {
     const weekOpen       = weekTickets.filter(t => t.status === "פתוח").length
     const weekInProgress = weekTickets.filter(t => t.status === "בטיפול").length
     const weekClosed     = tickets.filter(t => t.status === "סגור" && new Date(t.updatedAt) >= weekAgo)
-    const weekClosedMs   = weekClosed.map(t => new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime())
+    const weekClosedMs   = weekClosed.filter(t => !t.mergedIntoId).map(t => new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime())
     return {
       total: tickets.length,
       open,
@@ -761,6 +765,7 @@ export default function TicketsPage() {
                       </div>
                       <div style={{ fontSize: "0.73rem", color: T.inkFaint, marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
+                        {ticket.mergedInto && <> · 🔗 מוזגה ל-{ticketLabel(ticket.mergedInto)}</>}
                         {ticket.assignedTo && <> · 👤 {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo.split("@")[0]}</>}
                       </div>
                     </div>
@@ -1033,8 +1038,16 @@ export default function TicketsPage() {
           onOpenBulkEdit={() => setBulkModalOpen(true)}
           onQuickClose={handleQuickClose}
           onQuickAssign={handleQuickAssign}
+          onMerge={() => setMergeOpen(true)}
           staffMembers={staffMembers}
           loading={bulkLoading}
+        />
+
+        <MergeTicketsModal
+          isOpen={mergeOpen}
+          initialRefs={Array.from(selectedIds)}
+          onClose={() => setMergeOpen(false)}
+          onMerged={async () => { setMergeOpen(false); setSelectedIds(new Set()); await load() }}
         />
 
         <BulkEditModal

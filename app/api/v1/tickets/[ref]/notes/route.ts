@@ -2,13 +2,14 @@
  * POST /api/v1/tickets/{ref}/notes — an internal note, for staff only (v3.88).
  *
  * Write key. { content, authorName? } → 201 { data: Note }. The owner never
- * sees notes and nobody is mailed.
+ * sees notes and nobody is mailed. A merged ticket (v3.92) takes no notes: 409.
  */
 
 import { prisma } from "@/lib/db"
 import { authenticateApi, apiError, apiActor } from "@/lib/apiKeys"
 import { parseEntry } from "@/lib/apiV1"
 import { refWhere, serverError } from "@/lib/apiRoute"
+import { mergedError } from "@/lib/ticketType"
 import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "nodejs"
@@ -22,8 +23,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ref
     const parsed = parseEntry(await req.json().catch(() => undefined))
     if ("errors" in parsed) return apiError(400, "invalid_body", parsed.errors.join("; "))
 
-    const ticket = await prisma.ticket.findUnique({ where: refWhere(ref), select: { id: true } })
+    const ticket = await prisma.ticket.findUnique({ where: refWhere(ref), select: { id: true, mergedInto: { select: { ticketNumber: true, type: true } } } })
     if (!ticket) return apiError(404, "not_found", `No ticket ${ref}.`)
+    // v3.92: a merged ticket is frozen — its notes moved to the one it was merged into.
+    if (ticket.mergedInto) return apiError(409, "conflict", mergedError(ticket.mergedInto))
 
     const actor = apiActor(auth.caller)
     const note = await prisma.ticketNote.create({

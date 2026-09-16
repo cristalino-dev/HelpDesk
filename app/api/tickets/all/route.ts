@@ -15,6 +15,8 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { name: true, email: true } },
+        // v3.92 — the queue names the ticket a merged one went into.
+        mergedInto: { select: { ticketNumber: true, type: true } },
       },
     })
 

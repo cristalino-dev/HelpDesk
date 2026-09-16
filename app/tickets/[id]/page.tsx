@@ -19,6 +19,7 @@ import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
 import { ticketLabel, TICKET_TYPES, TYPE_LABEL, normalizeType } from "@/lib/ticketType"
 import { useIsMobile } from "@/lib/useIsMobile"
 import Logo from "@/components/Logo"
+import MergeTicketsModal, { type MergeResult } from "@/components/MergeTicketsModal"
 
 /** How often (ms) the open ticket page polls the server for changes. */
 const POLL_INTERVAL_MS = 10_000
@@ -73,6 +74,10 @@ export default function TicketDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting]     = useState(false)
   const [deleteError, setDeleteError] = useState("")
+  /** The merge dialog (v3.92) — staff only. */
+  const [mergeOpen, setMergeOpen]   = useState(false)
+  /** User id of the participant being taken off, while the request runs. */
+  const [removingParticipant, setRemovingParticipant] = useState<string | null>(null)
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [platforms,  setPlatforms]  = useState<string[]>(DEFAULT_PLATFORMS)
@@ -379,6 +384,36 @@ export default function TicketDetailPage() {
     }
   }
 
+  /**
+   * After a merge: when this ticket was folded into another, its page is now a
+   * pointer — go to the one that carries on. When it is the one that stays,
+   * reload: the moved messages, notes and files are here now.
+   */
+  const afterMerge = async (result: MergeResult) => {
+    setMergeOpen(false)
+    if (ticket && result.target.id !== ticket.id) {
+      router.push(`/tickets/${result.target.label}`)
+      return
+    }
+    await load()
+  }
+
+  /** Staff: stop someone following this ticket (v3.92). */
+  const removeParticipant = async (userId: string) => {
+    if (!ticket) return
+    setRemovingParticipant(userId)
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/participants`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      })
+      if (res.ok) await load()
+    } finally {
+      setRemovingParticipant(null)
+    }
+  }
+
   const copyLink = () => {
     const url = `${window.location.origin}/tickets/${ticket ? ticketLabel(ticket) : ""}`
     navigator.clipboard.writeText(url)
@@ -446,6 +481,13 @@ export default function TicketDetailPage() {
   const closeBlockers = leaving ? offboardingBlockers(ticket.equipment ?? []) : []
   const closeBlocked  = closeBlockers.length > 0
 
+  // MERGED (v3.92) — this ticket was folded into another. It is closed and
+  // frozen: the server refuses edits, messages, notes and files (409), so the
+  // page offers none of them and points to where the conversation went.
+  const mergedInto   = ticket.mergedInto ?? null
+  const mergedFrom   = ticket.mergedFrom ?? []
+  const participants = ticket.participants ?? []
+
   const labelStyle: React.CSSProperties = { fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4, display: "block" }
   const valueStyle: React.CSSProperties = { fontSize: "0.9rem", color: T.text }
   const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.88rem", boxSizing: "border-box" }
@@ -468,7 +510,16 @@ export default function TicketDetailPage() {
             {ticketLabel(ticket)} · {ticket.subject}
           </h1>
         </div>
-        {isStaff && !editing && (
+        {isStaff && !editing && !mergedInto && (
+          <button
+            onClick={() => setMergeOpen(true)}
+            title="מיזוג פנייה אחרת עם פנייה זו"
+            style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${HDR.pillBorder}`, background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link, fontWeight: 600, whiteSpace: "nowrap" }}
+          >
+            🔗 מיזוג
+          </button>
+        )}
+        {isStaff && !editing && !mergedInto && (
           <button
             onClick={() => setEditing(true)}
             style={{ padding: "6px 16px", borderRadius: 8, border: `1px solid ${HDR.pillBorder}`, background: HDR.pillBg, cursor: "pointer", fontSize: "0.85rem", color: HDR.linkStrong, fontWeight: 600 }}
@@ -520,6 +571,17 @@ export default function TicketDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Merge dialog (v3.92) — this ticket, and the one staff name in it. */}
+      {isStaff && (
+        <MergeTicketsModal
+          isOpen={mergeOpen}
+          initialRefs={[ticket.id]}
+          allowAdd
+          onClose={() => setMergeOpen(false)}
+          onMerged={afterMerge}
+        />
+      )}
 
       {/* Delete confirmation — deliberately a stop, not a toast-with-undo.
           The ticket and its whole audit trail go at once, so the dialog spells
@@ -620,6 +682,27 @@ export default function TicketDetailPage() {
       )}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {/* Merged banner — where the conversation went (v3.92) */}
+        {mergedInto && (
+          <div role="status" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "14px 18px", background: T.pillBlueBg, border: `1px solid ${T.blueBorder}`, borderRadius: 12 }}>
+            <span style={{ fontSize: "1.2rem" }}>🔗</span>
+            <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+              <div style={{ fontSize: "0.92rem", fontWeight: 800, color: T.pillBlueFg }}>
+                הפנייה מוזגה ל-{ticketLabel(mergedInto)}
+              </div>
+              <div style={{ fontSize: "0.8rem", color: T.ink, marginTop: 2, lineHeight: 1.6 }}>
+                ההודעות, ההערות והקבצים שלה עברו לשם, ושם נמשך הטיפול. פנייה זו סגורה ואינה ניתנת לעריכה.
+              </div>
+            </div>
+            <a
+              href={`/tickets/${ticketLabel(mergedInto)}`}
+              style={{ padding: "7px 16px", borderRadius: 9, background: T.inverseBg, color: T.inverseText, fontWeight: 700, fontSize: "0.85rem", textDecoration: "none", whiteSpace: "nowrap" }}
+            >
+              מעבר ל-{ticketLabel(mergedInto)} ←
+            </a>
+          </div>
+        )}
 
         {/* Main info card */}
         <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
@@ -766,7 +849,7 @@ export default function TicketDetailPage() {
               <>
                 <select
                   value={ticket.assignedTo}
-                  disabled={assigning}
+                  disabled={assigning || !!mergedInto}
                   onChange={e => assignTicket(e.target.value)}
                   style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", background: T.card, fontWeight: 600, color: T.text, cursor: "pointer", opacity: assigning ? 0.5 : 1 }}
                 >
@@ -774,7 +857,7 @@ export default function TicketDetailPage() {
                     <option key={m.email} value={m.email}>{m.display}</option>
                   ))}
                 </select>
-                {ticket.assignedTo !== session?.user?.email && (
+                {ticket.assignedTo !== session?.user?.email && !mergedInto && (
                   <button
                     onClick={() => assignTicket(session?.user?.email ?? "")}
                     disabled={assigning || !session?.user?.email}
@@ -791,6 +874,50 @@ export default function TicketDetailPage() {
               </span>
             )}
           </div>
+
+          {/* Merged here, and who follows the ticket besides its owner (v3.92) */}
+          {(mergedFrom.length > 0 || participants.length > 0) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10, padding: "10px 14px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
+              {mergedFrom.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: "0.8rem", color: T.ink }}>
+                  <span style={{ fontWeight: 700, flexShrink: 0 }}>🔗 מוזגו לכאן:</span>
+                  {mergedFrom.map(m => (
+                    <a
+                      key={m.id}
+                      href={`/tickets/${ticketLabel(m)}`}
+                      title={m.subject}
+                      style={{ fontSize: "0.74rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 8px", textDecoration: "none" }}
+                    >
+                      {ticketLabel(m)}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {participants.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: "0.8rem", color: T.ink }}>
+                  <span style={{ fontWeight: 700, flexShrink: 0 }} title="רואים את הפנייה, כותבים בשיחה ומקבלים עדכונים עליה">👥 משתתפים:</span>
+                  {participants.map(p => (
+                    <span
+                      key={p.user.email}
+                      title={isStaff ? p.user.email : undefined}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: "0.76rem", fontWeight: 600, color: T.text, background: T.card, border: `1px solid ${T.line}`, borderRadius: 999, padding: "2px 10px" }}
+                    >
+                      {p.user.name || p.user.email}
+                      {isStaff && p.user.id && (
+                        <button
+                          onClick={() => removeParticipant(p.user.id!)}
+                          disabled={removingParticipant === p.user.id}
+                          aria-label={`הסר את ${p.user.name || p.user.email} מהמשתתפים`}
+                          title="הסר מהמשתתפים"
+                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: T.inkFaint, fontSize: "0.72rem", lineHeight: 1, opacity: removingParticipant === p.user.id ? 0.4 : 1 }}
+                        >✕</button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* New-employee details — pulled back out of the description, which
               stays the single source of truth (see lib/newEmployee.ts). When a
@@ -838,7 +965,7 @@ export default function TicketDetailPage() {
           const isOwner  = ticket.user?.email === session?.user?.email
           const isOpen   = ticket.status !== "סגור"
           // Who may add lines: staff any time, the owner while it is open.
-          const canAdd   = isStaff || (isOwner && isOpen)
+          const canAdd   = !mergedInto && (isStaff || (isOwner && isOpen))
           if (lines.length === 0 && !canAdd && ticket.category !== NEW_EMPLOYEE_CATEGORY && !leaving) return null
           const progress = equipmentProgress(lines)
           return (
@@ -1072,7 +1199,12 @@ export default function TicketDetailPage() {
             )()}
           </div>
 
-          {/* Reply input */}
+          {/* Reply input — none on a merged ticket: the conversation goes on in the other one */}
+          {mergedInto ? (
+            <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14, fontSize: "0.82rem", color: T.inkMuted }}>
+              השיחה נמשכת בפנייה <a href={`/tickets/${ticketLabel(mergedInto)}`} style={{ color: T.greenInk, fontWeight: 700 }}>{ticketLabel(mergedInto)}</a>.
+            </div>
+          ) : (
           <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 16 }}>
             {replyTo && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, padding: "6px 12px", background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 8, fontSize: "0.8rem", color: T.amberFgDeep }}>
@@ -1100,6 +1232,7 @@ export default function TicketDetailPage() {
               </button>
             </div>
           </div>
+          )}
         </div>
 
         {/* Notes — staff only */}
@@ -1124,7 +1257,8 @@ export default function TicketDetailPage() {
               </div>
             ))}
 
-            {/* Add note */}
+            {/* Add note — none on a merged ticket; its notes moved with it */}
+            {!mergedInto && (
             <div style={{ borderTop: ticket.notes.length ? `1px solid ${T.line}` : "none", paddingTop: ticket.notes.length ? 16 : 0 }}>
               <textarea
                 rows={3}
@@ -1156,6 +1290,7 @@ export default function TicketDetailPage() {
                 {noteSaving ? "שומר..." : "הוסף הערה"}
               </button>
             </div>
+            )}
           </div>
         )}
 
@@ -1205,6 +1340,10 @@ function historyIcon(field: string): string {
     case "owner":      return "🔀"
     case "type":       return "🏷️"
     case "edited":     return "✏️"
+    case "merged":
+    case "mergedFrom": return "🔗"
+    case "participant":
+    case "participantRemoved": return "👥"
     default:           return "📝"
   }
 }
@@ -1218,6 +1357,10 @@ function historyDotColor(field: string): string {
     case "owner":      return T.purpleBg
     case "type":       return T.codeBg
     case "edited":     return T.fill
+    case "merged":
+    case "mergedFrom": return T.pillBlueBg
+    case "participant":
+    case "participantRemoved": return T.purpleBg
     default:           return T.fill
   }
 }
@@ -1240,6 +1383,14 @@ function historyLabel(entry: TicketHistoryEntry): string {
     }
     case "edited":
       return "פרטי הפנייה עודכנו"
+    case "merged":
+      return `הפנייה מוזגה ל-${entry.newValue ?? "—"}`
+    case "mergedFrom":
+      return `${entry.oldValue ?? "—"} מוזגה לפנייה זו`
+    case "participant":
+      return `נוסף משתתף: ${entry.newValue ?? "—"}`
+    case "participantRemoved":
+      return `הוסר משתתף: ${entry.oldValue ?? "—"}`
     default:
       return `${entry.field} עודכן`
   }

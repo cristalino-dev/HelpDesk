@@ -78,6 +78,10 @@ export function openApiDocument() {
             platform: { type: "string" },
             assignedTo: { type: ["string", "null"], description: "The handling technician's email." },
             owner: { oneOf: [ref("Person"), { type: "null" }], description: "Who the ticket belongs to." },
+            mergedInto: {
+              type: ["string", "null"], examples: ["HDTC-601"],
+              description: "The label of the ticket this one was merged into. A merged ticket is closed and takes no changes (409); the conversation goes on in that one.",
+            },
             phone: { type: ["string", "null"] },
             computerName: { type: ["string", "null"] },
             createdAt: { type: "string", format: "date-time" },
@@ -94,6 +98,10 @@ export function openApiDocument() {
             equipment: { type: "array", items: { type: "object", properties: {
               label: { type: "string" }, quantity: { type: "integer" }, received: { type: "integer" },
             } } },
+            participants: {
+              type: "array", items: ref("Person"),
+              description: "People who follow the ticket without owning it — usually the owners of tickets merged into it. They see it and are mailed when staff write.",
+            },
           } }],
         },
         Message: {
@@ -113,7 +121,7 @@ export function openApiDocument() {
         HistoryEntry: {
           type: "object",
           properties: {
-            field: { type: "string", examples: ["created", "status", "urgency", "assignedTo", "owner", "type", "edited"] },
+            field: { type: "string", examples: ["created", "status", "urgency", "assignedTo", "owner", "type", "edited", "merged", "mergedFrom", "participant", "participantRemoved"] },
             from: { type: ["string", "null"] }, to: { type: ["string", "null"] },
             at: { type: "string", format: "date-time" },
             by: { type: "object", properties: { name: { type: "string" }, email: { type: "string" } } },
@@ -244,7 +252,7 @@ export function openApiDocument() {
             "200": { description: "Changed.", content: json({ type: "object", properties: { data: ref("Ticket") } }) },
             "400": err("The body was not valid."),
             "404": err("No such ticket."),
-            "409": err("The change breaks a rule — for example closing a leaving-employee ticket with gear still out."),
+            "409": err("The change breaks a rule — for example closing a leaving-employee ticket with gear still out, or changing a ticket that was merged into another."),
             ...WRITE_ERRORS,
           },
         },
@@ -252,13 +260,14 @@ export function openApiDocument() {
       "/api/v1/tickets/{ref}/messages": {
         post: {
           summary: "Write to the ticket's owner", operationId: "addMessage",
-          description: "Appears in the ticket's conversation as from staff; the owner is mailed unless notify is false.",
+          description: "Appears in the ticket's conversation as from staff; the owner and the participants are mailed unless notify is false.",
           parameters: [REF_PARAM],
           requestBody: { required: true, content: json(ref("Entry")) },
           responses: {
             "201": { description: "Added.", content: json({ type: "object", properties: { data: ref("Message") } }) },
             "400": err("The body was not valid."),
             "404": err("No such ticket."),
+            "409": err("The ticket was merged into another — write to that one (its label is in mergedInto)."),
             ...WRITE_ERRORS,
           },
         },
@@ -272,6 +281,7 @@ export function openApiDocument() {
             "201": { description: "Added.", content: json({ type: "object", properties: { data: ref("Note") } }) },
             "400": err("The body was not valid."),
             "404": err("No such ticket."),
+            "409": err("The ticket was merged into another — add the note to that one."),
             ...WRITE_ERRORS,
           },
         },

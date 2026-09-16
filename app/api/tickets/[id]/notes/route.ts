@@ -5,6 +5,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getAllStaffMembers, parseMentionsFromList } from "@/lib/staffMembers"
 import { sendMail, mailNoteMention } from "@/lib/mail"
 import { subjects } from "@/lib/mailSubjects"
+import { mergedError } from "@/lib/ticketType"
 import { NextRequest, NextResponse, after } from "next/server"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +18,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params
     const { content } = await req.json()
     if (!content?.trim()) return NextResponse.json({ error: "Content required" }, { status: 400 })
+
+    // A merged ticket is frozen; its notes moved to the ticket it was merged into (v3.92).
+    const target = await prisma.ticket.findUnique({ where: { id }, select: { mergedInto: { select: { ticketNumber: true, type: true } } } })
+    if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    if (target.mergedInto) return NextResponse.json({ error: mergedError(target.mergedInto) }, { status: 409 })
 
     const note = await prisma.ticketNote.create({
       data: {

@@ -25,7 +25,7 @@
  */
 
 import { auth } from "@/auth"
-import { ticketRefWhere } from "@/lib/ticketType"
+import { ticketRefWhere, mergedError } from "@/lib/ticketType"
 import { prisma } from "@/lib/db"
 import { logError } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
@@ -65,7 +65,10 @@ async function resolveAccess(id: string): Promise<{ error: NextResponse } | Acce
 
   const ticket = await prisma.ticket.findUnique({
     where: whereFor(id),
-    select: { id: true, status: true, user: { select: { email: true } } },
+    select: {
+      id: true, status: true, user: { select: { email: true } },
+      mergedInto: { select: { ticketNumber: true, type: true } },
+    },
   })
   if (!ticket) {
     return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) }
@@ -75,6 +78,10 @@ async function resolveAccess(id: string): Promise<{ error: NextResponse } | Acce
   const isOwner = ticket.user.email === session.user.email
   if (!isStaff && !isOwner) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
+  }
+  // A merged ticket is frozen (v3.92) — equipment is asked for on the one it went into.
+  if (ticket.mergedInto) {
+    return { error: NextResponse.json({ error: mergedError(ticket.mergedInto) }, { status: 409 }) }
   }
 
   return {

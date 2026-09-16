@@ -131,9 +131,11 @@ describe("scope reaches the query", () => {
       .toEqual({ ticketNumber: 565 })
   })
 
-  it("asks for everything otherwise", async () => {
+  // A merged ticket (v3.92) is a duplicate of the one it went into; the reports
+  // do not count it, so neither does the sheet.
+  it("asks for everything but merged tickets otherwise", async () => {
     await GET(req("?scope=all"))
-    expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({})
+    expect((prisma.ticket.findMany as jest.Mock).mock.calls[0][0].where).toEqual({ mergedIntoId: null })
   })
 
   it("rejects a malformed ticket number with a message, not a silent full export", async () => {

@@ -365,6 +365,44 @@ describe("replies to a ticket join it (v3.83)", () => {
     expect(seen()).toEqual([1])
   })
 
+  // v3.92 — merging. A reply that names a merged ticket goes on in the one it
+  // was merged into; the people who follow that ticket may write to it by mail.
+  describe("merged tickets and participants (v3.92)", () => {
+    const SURVIVOR = {
+      ...TICKET, id: "t601", ticketNumber: 601, subject: "אין הדפסה בקומה 2",
+      user: { name: "רון כהן", email: "ron@cristalino.co.il" },
+      participants: [{ user: { id: "u-dana", name: "דנה לוי", email: EMPLOYEE } }],
+    }
+    beforeEach(() => {
+      ;(prisma.ticket.findUnique as jest.Mock).mockImplementation(async ({ where }: { where: { ticketNumber?: number; id?: string } }) =>
+        where.ticketNumber === 597 ? { ...TICKET, mergedIntoId: "t601" }
+          : where.id === "t601" || where.ticketNumber === 601 ? SURVIVOR
+          : null)
+    })
+
+    it("adds a reply to a merged ticket to the ticket it was merged into", async () => {
+      inbox({ uid: 1, from: EMPLOYEE, name: "דנה לוי", subject: REPLY_SUBJECT, text: QUOTED })
+      const { body } = await run()
+      expect(body.replies).toEqual([601])
+      expect(body.created).toBe(0)
+      expect(messages()[0]).toMatchObject({ ticketId: "t601", authorEmail: EMPLOYEE, authorRole: "user" })
+    })
+
+    it("accepts a participant's reply to the ticket they follow", async () => {
+      inbox({ uid: 1, from: EMPLOYEE, subject: "Re: תגובה חדשה על פנייתך REQ-601: אין הדפסה", text: "גם אצלי" })
+      const { body } = await run()
+      expect(body.replies).toEqual([601])
+      expect(messages()[0]).toMatchObject({ ticketId: "t601", content: "גם אצלי" })
+    })
+
+    it("tells the owner and the participants when staff reply by mail", async () => {
+      inbox({ uid: 1, from: "alon@cristalino.co.il", subject: "Re: HDTC-601", text: "טופל" })
+      await run()
+      expect(messages()[0]).toMatchObject({ ticketId: "t601", authorRole: "staff" })
+      expect((sendMail as jest.Mock).mock.calls.map(c => c[0].to).sort()).toEqual([EMPLOYEE, "ron@cristalino.co.il"].sort())
+    })
+  })
+
   // Our own notification names its ticket too — it must still be skipped as
   // ours, never added to the ticket as if someone had written it.
   it("never adds one of our own notifications to the ticket it names", async () => {
