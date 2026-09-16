@@ -14,7 +14,11 @@ import { join } from "path"
 
 const root = join(__dirname, "..")
 const read = (p: string) => readFileSync(join(root, p), "utf8")
-const ps = read("deploy-test.ps1")
+// .gitattributes checks .ps1 files out with CRLF (eol=crlf), so on a Windows
+// checkout — and in CI — "@deployArgs\n" is really "@deployArgs\r\n". The
+// PowerShell script is compared as LF; the bash one is left as it is, because
+// staying LF is one of the things tested about it.
+const ps = read("deploy-test.ps1").replace(/\r\n/g, "\n")
 const sh = read("deploy-test.sh")
 const scripts: [string, string][] = [["deploy-test.ps1", ps], ["deploy-test.sh", sh]]
 
