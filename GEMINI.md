@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.93** · Updated 2026-09-28
+> **Current version: 3.94** · Updated 2026-09-28
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
@@ -186,6 +186,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.94 | The last two checkboxes without a size of their own — "הרשאת מנהל" in the user editor and "כלול פניות סגורות" in ציוד חסר — were being stretched to full width by `globals.css`, as the v3.92 merge dialog's radio was |
 | 3.93 | The v3.92 merge dialog was unreadable: `app/globals.css` styles every `<label>` and every `<input>`, so the radio inside each ticket card was stretched to `width: 100%` and squeezed the subject into a one-character column. The dialog resets both on its own elements, as the checkboxes elsewhere already do |
 | 3.92 | Merging tickets: staff merge duplicates from a ticket's page or the queue. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become participants (see it, write in it, get its mail). Replies to an old number follow the merge; reports leave merged tickets out. `Ticket.mergedIntoId`, `TicketParticipant` (migration `20260917000000_ticket_merge`); `lib/ticketMerge.ts`, `lib/ticketAccess.ts` |
 | 3.91 | The quick-close button reads as an action: an outlined "סגור פנייה" in the queue and on the dashboard cards, where a green "✓ סגור" pill beside the status pill had read as the ticket's status. The tick is gone from the ticket page and the bulk bar too |
@@ -254,4 +255,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.93 — updated 2026-09-28.*
+*v3.94 — updated 2026-09-28.*

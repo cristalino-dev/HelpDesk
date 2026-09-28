@@ -5,6 +5,29 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.94 — שתי תיבות סימון בקונסולת הניהול
+
+**The same rule behind v3.93: two checkboxes in the admin console had no size
+of their own, so `globals.css` stretched each into a full-width box with its
+tick floating in the middle and its label squeezed beside it.**
+
+### What changed for users
+
+- **ניהול משתמשים → עריכת משתמש:** "הרשאת מנהל" is a checkbox next to its
+  label again.
+- **ציוד חסר:** so is "כלול פניות סגורות".
+
+### What changed for developers
+
+- `app/admin/page.tsx`: both inputs now carry the
+  `{ width: 16, height: 16, cursor: "pointer", accentColor: T.inverseBg }` that
+  every other checkbox in the app already had. They were the last two without
+  it — `grep 'type="checkbox"'` across `app/` and `components/` finds no more.
+- Checked in a browser, an unsized checkbox beside a sized one. 88 suites /
+  1,498 tests.
+
+---
+
 ## v3.93 — דיאלוג המיזוג נראה כמו שצריך
 
 **The merge dialog shipped in v3.92 was unreadable: every ticket's subject came

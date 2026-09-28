@@ -896,7 +896,10 @@ export default function AdminPage() {
                   ))}
 
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <input type="checkbox" id="isAdmin" checked={editingUser.isAdmin} onChange={e => setEditingUser(u => u ? { ...u, isAdmin: e.target.checked } : u)} />
+                    {/* globals.css gives every <input> width:100% — a checkbox
+                        left to it becomes a full-width box (v3.94). */}
+                    <input type="checkbox" id="isAdmin" checked={editingUser.isAdmin} onChange={e => setEditingUser(u => u ? { ...u, isAdmin: e.target.checked } : u)}
+                      style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.inverseBg }} />
                     <label htmlFor="isAdmin" style={{ fontSize: "0.88rem", color: T.ink, fontWeight: 600 }}>הרשאת מנהל</label>
                   </div>
 
@@ -1525,6 +1528,7 @@ export default function AdminPage() {
                     type="checkbox"
                     checked={shortageClosed}
                     onChange={e => { setShortageClosed(e.target.checked); loadShortage(e.target.checked) }}
+                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.inverseBg }}
                   />
                   כלול פניות סגורות
                 </label>
