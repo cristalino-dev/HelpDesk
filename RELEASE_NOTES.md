@@ -5,6 +5,38 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.93 — דיאלוג המיזוג נראה כמו שצריך
+
+**The merge dialog shipped in v3.92 was unreadable: every ticket's subject came
+out as a column one character wide, beside a huge empty box with a dot in it.**
+
+### What changed for users
+
+- Each ticket in the dialog is one line again: the radio, then the number, the
+  subject, and beneath them the opener, the status, the date and the counts.
+- A count no longer wraps away from its icon on a narrow screen.
+
+### What changed for developers
+
+- `app/globals.css` styles **every** `<label>` on the site (`display: block`,
+  uppercase, small grey) and **every** `<input>` (`width: 100%`, a border,
+  padding). Each ticket in the dialog is a `<label>` with a radio inside, so
+  the radio was stretched to the full width of the row — the box in the
+  screenshot — and, being `flex-shrink: 0`, it left the text a column one
+  character wide. The subject's `overflow-wrap: anywhere` then broke it letter
+  by letter.
+- `components/MergeTicketsModal.tsx` resets both on its own elements: the card
+  label (`textTransform`, `letterSpacing`, `marginBottom`, font and colour) and
+  the radio (`width`/`height` 16, no padding, no border, no background) — the
+  explicit sizing the checkboxes elsewhere in the app already use.
+- The counts are rendered as `white-space: nowrap` spans, so "💬 4" stays
+  together when the line wraps.
+- **New test:** `MergeTicketsModal` pins the inline reset. jsdom loads no CSS,
+  so the rendering itself was checked in a browser — light and dark, desktop
+  and phone. 88 suites / 1,498 tests.
+
+---
+
 ## v3.92 — מיזוג פניות
 
 **The same problem often reaches the helpdesk more than once: a ticket and then

@@ -115,6 +115,28 @@ describe("MergeTicketsModal", () => {
     expect(decodeURIComponent(fetchMock.mock.calls.at(-1)![0] as string)).toContain("refs=t1,HDTC-2")
   })
 
+  /**
+   * globals.css styles every <label> on the site (block, uppercase) and every
+   * <input> (width: 100%, border, padding). Each ticket here is a <label> with
+   * a radio inside, so v3.92 shipped a radio stretched across the whole row —
+   * it pushed each ticket's text into a one-character-wide column. jsdom loads
+   * no CSS, so what is pinned here is the inline reset that neutralises those
+   * rules; the rendering itself was checked in a browser.
+   */
+  it("resets the global label and input rules on its cards", async () => {
+    open()
+    const radios = await screen.findAllByRole("radio")
+    for (const radio of radios) {
+      expect(radio.style.width).toBe("16px")
+      expect(radio.style.height).toBe("16px")
+      expect(radio.style.padding).toBe("0px")
+      expect(radio.style.flexShrink).toBe("0")
+    }
+    const card = radios[0].closest("label") as HTMLElement
+    expect(card.style.display).toBe("flex")
+    expect(card.style.textTransform).toBe("none")
+  })
+
   it("renders nothing while closed", () => {
     const { container } = render(<MergeTicketsModal isOpen={false} initialRefs={["t1"]} onClose={jest.fn()} onMerged={jest.fn()} />)
     expect(container.firstChild).toBeNull()

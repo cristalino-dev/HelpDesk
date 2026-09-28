@@ -206,6 +206,10 @@ export default function MergeTicketsModal({ isOpen, initialRefs, allowAdd = fals
         <div role="radiogroup" aria-label="הפנייה שנשארת" style={{ display: "flex", flexDirection: "column", gap: 8, opacity: loading ? 0.6 : 1 }}>
           {tickets.map(t => {
             const stays = t.id === targetId
+            // globals.css styles every <label> (block, uppercase, small grey) and
+            // every <input> (width:100%, border, padding). A radio left to those
+            // rules fills the row and squeezes the text into a one-character
+            // column, which is what v3.92 shipped. Both are reset below.
             return (
               <label
                 key={t.id}
@@ -213,6 +217,8 @@ export default function MergeTicketsModal({ isOpen, initialRefs, allowAdd = fals
                   display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 10, cursor: "pointer",
                   border: `1.5px solid ${stays ? T.green : T.line}`,
                   background: stays ? T.greenBg : T.fill2,
+                  textTransform: "none", letterSpacing: "normal", marginBottom: 0,
+                  fontSize: "0.86rem", fontWeight: 400, color: T.text,
                 }}
               >
                 <input
@@ -220,17 +226,34 @@ export default function MergeTicketsModal({ isOpen, initialRefs, allowAdd = fals
                   name="merge-target"
                   checked={stays}
                   onChange={() => setTargetId(t.id)}
-                  style={{ marginTop: 3, accentColor: T.inverseBg, flexShrink: 0 }}
+                  style={{
+                    width: 16, height: 16, minWidth: 16, flexShrink: 0, marginTop: 2,
+                    padding: 0, border: "none", borderRadius: 0, background: "none",
+                    accentColor: T.inverseBg, cursor: "pointer",
+                  }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontSize: "0.7rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 7px" }}>{t.label}</span>
                     <span style={{ fontWeight: 700, fontSize: "0.88rem", color: T.text, overflowWrap: "anywhere" }}>{t.subject}</span>
                   </div>
+                  {/* Each fact keeps its own value on the same line — a count
+                      that wraps away from its icon reads as a stray number. */}
                   <div style={{ fontSize: "0.74rem", color: T.inkMuted, marginTop: 3, lineHeight: 1.5 }}>
-                    {nameOf(t.owner)} · {t.status} · נפתחה {fmtDate(t.createdAt)}
-                    {" · "}💬 {t.counts.messages} · 📝 {t.counts.notes} · 📎 {t.counts.attachments}
-                    {t.counts.equipment > 0 && <> · 📦 רשימת ציוד</>}
+                    {[
+                      nameOf(t.owner),
+                      t.status,
+                      `נפתחה ${fmtDate(t.createdAt)}`,
+                      `💬 ${t.counts.messages}`,
+                      `📝 ${t.counts.notes}`,
+                      `📎 ${t.counts.attachments}`,
+                      ...(t.counts.equipment > 0 ? ["📦 רשימת ציוד"] : []),
+                    ].map((fact, i) => (
+                      <span key={fact} style={{ whiteSpace: "nowrap" }}>
+                        {i > 0 && <span style={{ whiteSpace: "normal" }}> · </span>}
+                        {fact}
+                      </span>
+                    ))}
                   </div>
                   {t.mergedInto && (
                     <div style={{ fontSize: "0.74rem", color: T.orangeFgDeep, marginTop: 3 }}>כבר מוזגה ל-{t.mergedInto}</div>

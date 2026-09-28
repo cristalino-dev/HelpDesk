@@ -1,11 +1,11 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.92** · Updated 2026-09-16
+> **Current version: 3.93** · Updated 2026-09-28
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
 > requests, an API for other programs and its documentation page, the phone layout, the close button reads as an
-> action, merging tickets — deployed with its migration 2026-09-16). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
+> action, merging tickets — deployed with its migration 2026-09-16, its dialog fixed in v3.93). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
 > (git-ignored). Remove this banner when the list is done.
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
@@ -186,6 +186,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.93 | The v3.92 merge dialog was unreadable: `app/globals.css` styles every `<label>` and every `<input>`, so the radio inside each ticket card was stretched to `width: 100%` and squeezed the subject into a one-character column. The dialog resets both on its own elements, as the checkboxes elsewhere already do |
 | 3.92 | Merging tickets: staff merge duplicates from a ticket's page or the queue. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become participants (see it, write in it, get its mail). Replies to an old number follow the merge; reports leave merged tickets out. `Ticket.mergedIntoId`, `TicketParticipant` (migration `20260917000000_ticket_merge`); `lib/ticketMerge.ts`, `lib/ticketAccess.ts` |
 | 3.91 | The quick-close button reads as an action: an outlined "סגור פנייה" in the queue and on the dashboard cards, where a green "✓ סגור" pill beside the status pill had read as the ticket's status. The tick is gone from the ticket page and the bulk bar too |
 | 3.90 | Phones get the phone layout again: `useIsMobile()` read `window.innerWidth`, which on a phone follows the zoom — a page zoomed out to show the desktop top bar reported ~1,500 px and kept it, so the nav came out in one row with the content a strip beside it. It now asks a media query (the layout viewport); the header's action row scrolls inside the bar instead of widening the page; the API docs page fits a phone |
@@ -253,4 +254,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.92 — updated 2026-09-16.*
+*v3.93 — updated 2026-09-28.*
