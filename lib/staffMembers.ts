@@ -39,13 +39,21 @@ export async function getAllStaffMembers(): Promise<StaffMember[]> {
 
   const curated = new Map(STAFF_MEMBERS.map(m => [m.email.toLowerCase(), m]))
 
-  const roster = admins.map(a =>
-    curated.get(a.email.toLowerCase()) ?? {
-      email:   a.email,
-      handle:  handleFromEmail(a.email),
-      display: a.name?.trim() || a.email.split("@")[0],
+  const roster = admins.map(a => {
+    const entry = curated.get(a.email.toLowerCase())
+    return {
+      email: a.email,
+      // The handle is a typing shortcut (@alon), so a curated one wins.
+      handle: entry?.handle ?? handleFromEmail(a.email),
+      // The NAME is the database's (v3.95). It is what ניהול משתמשים edits and
+      // what the users table shows, so it has to be what the assignment
+      // dropdown, the queue's "👤 …" and the ticket page show too. A curated
+      // display is only a fallback for a row that has no name at all — until
+      // v3.95 it outranked the database, and renaming a user changed the users
+      // table while every assignment still read the hardcoded name.
+      display: a.name?.trim() || entry?.display || a.email.split("@")[0],
     }
-  )
+  })
 
   // Safety net: if the DB has no admins at all (misconfiguration), fall back
   // to the hardcoded list so tickets can still be assigned.

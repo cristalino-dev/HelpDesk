@@ -109,6 +109,33 @@ describe("auth.ts session callback", () => {
     expect(session.user!.email).toBe("new.hire@cristalino.co.il")
   })
 
+  /**
+   * v3.95 — the same argument as the address above, for the name. A name is
+   * edited in the person's own profile or by an admin in ניהול משתמשים, and
+   * resolveUserByEmail never lets Google overwrite the row; but the session
+   * carried Google's name, and that is what signs every new history row, note,
+   * message and mail.
+   */
+  it("puts the stored name on the session, not the one Google sent", async () => {
+    db.findFirst.mockResolvedValue(STORED)
+
+    const session = await sessionCallback()({
+      session: { user: { email: "dana@cristalino.co.il", name: "Dana Levi (Google)" } },
+    })
+
+    expect(session.user!.name).toBe("דנה לוי")
+  })
+
+  it("keeps the name Google sent when the row has none", async () => {
+    db.findFirst.mockResolvedValue({ ...STORED, name: null })
+
+    const session = await sessionCallback()({
+      session: { user: { email: "dana@cristalino.co.il", name: "Dana Levi" } },
+    })
+
+    expect(session.user!.name).toBe("Dana Levi")
+  })
+
   it("attaches id and isAdmin from the database row", async () => {
     db.findFirst.mockResolvedValue({ ...STORED, isAdmin: true })
 

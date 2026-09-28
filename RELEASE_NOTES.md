@@ -5,6 +5,42 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.95 — שם שעורכים בקונסולה הוא השם בכל מקום
+
+**Renaming someone in ניהול משתמשים changed the users table and nothing else:
+the assignment dropdown, the queue and the ticket page went on showing the old
+name, and the person's own new notes and history rows were still signed with
+it.**
+
+### What changed for users
+
+- A name edited in ניהול משתמשים (or by the person in their profile) is the
+  name shown wherever staff are named: **מוקצה ל** on the ticket page, the
+  assignment dropdown, the 👤 in the queue, and the daily digest.
+- It is also the name that signs what that person does from then on — history
+  entries, internal notes, messages and the mail they trigger.
+- What does **not** change is what they did before the rename: an old history
+  row, note or message keeps the name as it was, because that is the record of
+  who did it at the time.
+
+### What changed for developers
+
+- **`lib/staffMembers.ts`:** the roster's `display` is now the DB `User.name`.
+  `STAFF_MEMBERS` still supplies the @mention `handle` — a typing shortcut, not
+  a name — and its display survives only as the fallback for a row with no name
+  at all. Until now a curated entry replaced the whole row, so an edit to a
+  curated admin's name reached nothing.
+- **`auth.ts`:** the session callback writes the stored name onto the session,
+  as it already did for the address (rule 50). `session.user.name` signs
+  history rows, notes, messages and mail, and it had been Google's name;
+  `resolveUserByEmail` deliberately never lets Google overwrite the row, so the
+  two drifted apart. A row with no name keeps whatever Google sent.
+- **New tests:** the roster shows the DB name and keeps the curated handle; the
+  session carries the stored name, and Google's when the row has none.
+  88 suites / 1,501 tests.
+
+---
+
 ## v3.94 — שתי תיבות סימון בקונסולת הניהול
 
 **The same rule behind v3.93: two checkboxes in the admin console had no size

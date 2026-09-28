@@ -5,7 +5,7 @@
  *
  * Covers:
  *   - getAllStaffMembers returns exactly the DB isAdmin users (ex-admins drop out)
- *   - curated handle/display from STAFF_MEMBERS is applied when the email matches
+ *   - the DB name is what the roster displays; a curated handle is kept (v3.95)
  *   - unknown admins get a handle derived from the email local-part + name display
  *   - empty-DB safety net falls back to the hardcoded STAFF_MEMBERS
  *   - parseMentionsFromList matches @handles case-insensitively
@@ -41,10 +41,19 @@ describe("getAllStaffMembers", () => {
     expect(roster.map(m => m.email)).not.toContain("daniel.l@cristalino.co.il")
   })
 
-  it("applies curated handle/display for a matching admin email", async () => {
-    findMany.mockResolvedValue([{ email: "alon@cristalino.co.il", name: "Ignored DB Name" }])
+  // v3.95: a curated display used to outrank the database, so renaming a user
+  // in ניהול משתמשים changed the users table while every assignment dropdown,
+  // queue row and ticket page went on showing the hardcoded name.
+  it("shows the DB name for a curated admin, and keeps the curated handle", async () => {
+    findMany.mockResolvedValue([{ email: "alon@cristalino.co.il", name: "אלון כרם" }])
     const [m] = await getAllStaffMembers()
-    expect(m).toEqual({ email: "alon@cristalino.co.il", handle: "alon", display: "אלון" })
+    expect(m).toEqual({ email: "alon@cristalino.co.il", handle: "alon", display: "אלון כרם" })
+  })
+
+  it("falls back to the curated display when a curated admin's row has no name", async () => {
+    findMany.mockResolvedValue([{ email: "alon@cristalino.co.il", name: "   " }])
+    const [m] = await getAllStaffMembers()
+    expect(m.display).toBe("אלון")
   })
 
   it("derives handle from email local-part and display from name for unknown admins", async () => {

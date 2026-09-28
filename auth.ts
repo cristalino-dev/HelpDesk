@@ -108,6 +108,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // `session.user.email === someStoredEmail` in the app rides on this.
         session.user.email = user.email
 
+        // The NAME as the database stores it (v3.95). A name is edited in two
+        // places — the person's own /profile and an admin in ניהול משתמשים —
+        // and `resolveUserByEmail` deliberately never lets Google overwrite the
+        // row. But the session still carried Google's name, and that is what
+        // signs every new history row, note, message and mail, so a renamed
+        // person went on being recorded under the old name. A row with no name
+        // keeps whatever Google supplied.
+        if (user.name) session.user.name = user.name
+
         // Attach our application-specific fields to the session.
         // These are declared in types/next-auth.d.ts.
         session.user.isAdmin = user.isAdmin  // Controls /admin access

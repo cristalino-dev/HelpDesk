@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.94** · Updated 2026-09-28
+> **Current version: 3.95** · Updated 2026-09-28
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
@@ -144,7 +144,7 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 8. **Ticket deletion is admin-only and permanent** — no soft-delete flag. Child rows cascade, attachment bytes are unlinked first, and the act is logged to `Log`.
 9. **Equipment receiving is staff-only** — anyone may ask for a screen; only the technician who handed it over may say it arrived, because the shortage report is the purchase order.
 10. **Email addresses are matched case-insensitively** — always via `lib/users.ts`. A bare `findUnique` on a lowercased address misses rows and turns an `upsert` into a duplicate account. Since v3.66 the database backs this up with `UNIQUE (lower(email))` on `User`, created by a raw-SQL migration because Prisma cannot express a functional index — so `prisma migrate dev` reporting it as drift is expected, not a reason to reset.
-11. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` only supplies curated handles/names for matching emails (and is the empty-DB fallback). Clients fetch `GET /api/staff`.
+11. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` supplies the curated @mention **handle**, and a display name only for a row that has none — the name shown is the DB's `User.name`, so an edit in ניהול משתמשים reaches every assignment dropdown and queue row (v3.95). `session.user.name` is the stored name too, so it signs new history rows, notes, messages and mail. Clients fetch `GET /api/staff`.
 12. **FieldOption deletions are guarded** — the four urgencies and the עובד חדש / עובד עוזב categories cannot be removed; business logic depends on them.
 13. **`/api/v1` is a contract — additive only** (v3.88). Other programs are built against it: within v1 never rename, remove or retype a field, a parameter or an error code — add new optional ones. A breaking change is `/api/v2`, beside v1. A new route or method goes into `lib/openapi.ts` in the same change (`__tests__/openapi.test.ts` fails otherwise).
 14. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
@@ -186,6 +186,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.95 | A name edited in ניהול משתמשים is the name everywhere: the roster's display comes from `User.name` rather than the curated `STAFF_MEMBERS` entry, and the session carries the stored name, so it also signs new history rows, notes, messages and mail. Older rows keep the name they were written with |
 | 3.94 | The last two checkboxes without a size of their own — "הרשאת מנהל" in the user editor and "כלול פניות סגורות" in ציוד חסר — were being stretched to full width by `globals.css`, as the v3.92 merge dialog's radio was |
 | 3.93 | The v3.92 merge dialog was unreadable: `app/globals.css` styles every `<label>` and every `<input>`, so the radio inside each ticket card was stretched to `width: 100%` and squeezed the subject into a one-character column. The dialog resets both on its own elements, as the checkboxes elsewhere already do |
 | 3.92 | Merging tickets: staff merge duplicates from a ticket's page or the queue. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become participants (see it, write in it, get its mail). Replies to an old number follow the merge; reports leave merged tickets out. `Ticket.mergedIntoId`, `TicketParticipant` (migration `20260917000000_ticket_merge`); `lib/ticketMerge.ts`, `lib/ticketAccess.ts` |
@@ -255,4 +256,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.94 — updated 2026-09-28.*
+*v3.95 — updated 2026-09-28.*
