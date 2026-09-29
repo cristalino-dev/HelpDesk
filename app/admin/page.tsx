@@ -1647,7 +1647,7 @@ export default function AdminPage() {
           <input
             value={ticketSearch}
             onChange={e => setTicketSearch(e.target.value)}
-            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45, או כמה מופרדים בפסיק), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 200, padding: "8px 13px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.85rem", background: T.card }}
           />
           {/* Open / All toggle */}

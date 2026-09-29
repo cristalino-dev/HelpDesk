@@ -294,7 +294,7 @@ export default function DashboardPage() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, סטטוס, קטגוריה..."
+              placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45, או כמה מופרדים בפסיק), נושא, סטטוס, קטגוריה..."
               style={{
                 width: "100%",
                 padding: "9px 36px 9px 36px",

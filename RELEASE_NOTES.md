@@ -5,6 +5,41 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.96 — חיפוש כמה פניות יחד
+
+**Typing two ticket numbers separated by a comma found nothing. Now
+`133,245` — and as many more as are typed — shows exactly those tickets.**
+
+### What changed for users
+
+- In every ticket list (תור פניות, כל הפניות, הלוח האישי, התצוגה לצפייה בלבד),
+  a comma-separated list of ticket numbers shows exactly those tickets, in the
+  order typed: `133,245`, `133, 245, 49`, `HDTC-133, REQ-245`, `#133; 245`.
+- They appear whatever the view is scoped to — open-only, or a stat card —
+  exactly as a single ticket number always has.
+- A number that matches no ticket is simply left out; the rest still show.
+- A comma inside ordinary text ("מדפסת, קומה 2") is still ordinary text.
+- The search boxes say so.
+
+### What changed for developers
+
+- **`lib/ticketSearch.ts`** gains `parseTicketNumberList()`: the numbers a
+  list query names, in order, without repeats — and empty unless **every**
+  comma- or semicolon-separated part is a ticket reference and there are at
+  least two of them. A single reference stays with `parseTicketNumberQuery()`
+  and its suggestion card.
+  - `matchesTicketNumber()` matches a list exactly: substring matching would
+    pull HDTC-4940 in beside HDTC-494.
+  - `withNumberSuggestion()` answers a list query with the named tickets from
+    the **unfiltered** set and no suggestion card.
+- The four list pages needed no change: they already route every number query
+  through these two helpers (rule 30).
+- **New tests:** the list parser, exact matching, the unfiltered answer, and
+  the page pipeline with the view scoped to open tickets. 88 suites /
+  1,518 tests.
+
+---
+
 ## v3.95 — שם שעורכים בקונסולה הוא השם בכל מקום
 
 **Renaming someone in ניהול משתמשים changed the users table and nothing else:

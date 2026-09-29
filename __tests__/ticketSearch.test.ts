@@ -13,6 +13,7 @@ export {}
 
 import {
   parseTicketNumberQuery,
+  parseTicketNumberList,
   matchesTicketNumber,
   findByTicketNumber,
   withNumberSuggestion,
@@ -28,6 +29,7 @@ const tickets: MinTicket[] = [
   { ticketNumber: 49,  subject: "מדפסת לא מדפיסה", status: "פתוח" },
   { ticketNumber: 494, subject: "החלפת מסך",        status: "סגור" },
   { ticketNumber: 495, subject: "התקנת Office",     status: "בטיפול" },
+  { ticketNumber: 133, subject: "אין רשת בקומה 2",  status: "סגור" },
 ]
 
 // ── parseTicketNumberQuery ────────────────────────────────────────────────────
@@ -76,6 +78,50 @@ describe("parseTicketNumberQuery", () => {
   })
 })
 
+// ── parseTicketNumberList (v3.96) ─────────────────────────────────────────────
+
+describe("parseTicketNumberList", () => {
+  it("reads a comma-separated pair", () => {
+    expect(parseTicketNumberList("133,245")).toEqual([133, 245])
+  })
+
+  it("reads as many as are typed", () => {
+    expect(parseTicketNumberList("133,245,49,495")).toEqual([133, 245, 49, 495])
+  })
+
+  it("accepts spaces, labels, # and a semicolon between them", () => {
+    expect(parseTicketNumberList("133, 245")).toEqual([133, 245])
+    expect(parseTicketNumberList("HDTC-133, REQ-245")).toEqual([133, 245])
+    expect(parseTicketNumberList("#133; hdtc 245")).toEqual([133, 245])
+  })
+
+  it("keeps the order typed and names a ticket once", () => {
+    expect(parseTicketNumberList("245,133,245")).toEqual([245, 133])
+  })
+
+  it("ignores empty parts, so a trailing comma is harmless", () => {
+    expect(parseTicketNumberList("133,245,")).toEqual([133, 245])
+    expect(parseTicketNumberList("133, ,245")).toEqual([133, 245])
+  })
+
+  // One part that is not a reference means the comma belongs to the text.
+  it("is not a list when any part is free text", () => {
+    expect(parseTicketNumberList("מדפסת, קומה 2")).toEqual([])
+    expect(parseTicketNumberList("133, מדפסת")).toEqual([])
+    expect(parseTicketNumberList("133,0")).toEqual([])
+  })
+
+  it("is not a list when only one ticket is named", () => {
+    expect(parseTicketNumberList("133")).toEqual([])
+    expect(parseTicketNumberList("133,")).toEqual([])
+  })
+
+  it("is not a list for an empty query", () => {
+    expect(parseTicketNumberList("")).toEqual([])
+    expect(parseTicketNumberList("  ")).toEqual([])
+  })
+})
+
 // ── matchesTicketNumber ───────────────────────────────────────────────────────
 
 describe("matchesTicketNumber", () => {
@@ -110,6 +156,25 @@ describe("matchesTicketNumber", () => {
   it("empty query never matches", () => {
     expect(matchesTicketNumber(494, "")).toBe(false)
     expect(matchesTicketNumber(494, "   ")).toBe(false)
+  })
+
+  // v3.96 — a list names its tickets exactly: substring matching there would
+  // drag HDTC-4940 in beside HDTC-494.
+  describe("a list query matches the tickets it names, and only those", () => {
+    it("matches each ticket named", () => {
+      expect(matchesTicketNumber(133, "133,494")).toBe(true)
+      expect(matchesTicketNumber(494, "133,494")).toBe(true)
+      expect(matchesTicketNumber(494, "HDTC-133, REQ-494")).toBe(true)
+    })
+
+    it("does not match a ticket the list does not name", () => {
+      expect(matchesTicketNumber(495, "133,494")).toBe(false)
+    })
+
+    it("does not match by substring", () => {
+      expect(matchesTicketNumber(4940, "133,494")).toBe(false)
+      expect(matchesTicketNumber(13, "133,494")).toBe(false)
+    })
   })
 })
 
@@ -164,7 +229,7 @@ describe("withNumberSuggestion", () => {
 
   it("keeps the list order untouched when the suggestion is already present", () => {
     const { list } = withNumberSuggestion(tickets, tickets, "494")
-    expect(list.map(t => t.ticketNumber)).toEqual([49, 494, 495])
+    expect(list.map(t => t.ticketNumber)).toEqual(tickets.map(t => t.ticketNumber))
   })
 
   it("returns the list unchanged for a free-text query", () => {
@@ -184,6 +249,31 @@ describe("withNumberSuggestion", () => {
     const { list, suggestion } = withNumberSuggestion(tickets, tickets, "9999")
     expect(suggestion).toBeNull()
     expect(list).toBe(tickets)
+  })
+
+  // v3.96 — naming several tickets answers with exactly those.
+  describe("a list query", () => {
+    it("answers with the tickets named, in the order typed", () => {
+      const { list, suggestion } = withNumberSuggestion(tickets, tickets, "494,133")
+      expect(list.map(t => t.ticketNumber)).toEqual([494, 133])
+      expect(suggestion).toBeNull()
+    })
+
+    it("reaches tickets the open-only view had dropped", () => {
+      const openOnly = tickets.filter(t => t.status !== "סגור")
+      const { list } = withNumberSuggestion(openOnly, tickets, "133,494")
+      expect(list.map(t => t.ticketNumber)).toEqual([133, 494])
+    })
+
+    it("leaves out a number that matches no ticket, and keeps the rest", () => {
+      const { list } = withNumberSuggestion(tickets, tickets, "133,9999,495")
+      expect(list.map(t => t.ticketNumber)).toEqual([133, 495])
+    })
+
+    it("answers with nothing when none of the numbers exist", () => {
+      const { list } = withNumberSuggestion(tickets, tickets, "9998,9999")
+      expect(list).toEqual([])
+    })
   })
 })
 
@@ -228,5 +318,18 @@ describe("search pipeline — number query beats the status scope", () => {
     const { list, suggestion } = pageFilter(true, "מסך")
     expect(suggestion).toBeNull()
     expect(list.map(t => t.ticketNumber)).toEqual([494])
+  })
+
+  // v3.96 — the case the user asked for: two closed tickets, named together,
+  // while the page is showing open tickets only.
+  it("shows every ticket a list names, whatever the view is scoped to", () => {
+    const { list, suggestion } = pageFilter(false, "133,494")
+    expect(list.map(t => t.ticketNumber)).toEqual([133, 494])
+    expect(suggestion).toBeNull()
+  })
+
+  it("a comma inside free text is still free text", () => {
+    const { list } = pageFilter(true, "מסך, החלפת")
+    expect(list).toEqual([])
   })
 })

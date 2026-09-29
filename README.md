@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.95**
+**Version 3.96**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -37,7 +37,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 - **Admin queue** — sorted by urgency (דחוף → גבוה → בינוני → נמוך), FIFO within urgency; sortable by any column
 - **Staff portal** — all tickets with weekly/all-time stat toggle, inline expand and edit
 - **Viewer role** — read-only ticket list for observers who must not change anything
-- **Full-text search** — every page has a search bar across all ticket fields, and typing a ticket number (`494`, `#494`, `HDTC-494`) always lands on that ticket even when the current view is filtered
+- **Full-text search** — every page has a search bar across all ticket fields, and typing a ticket number (`494`, `#494`, `HDTC-494`) always lands on that ticket even when the current view is filtered; several numbers separated by commas (`133,245`) show exactly those tickets
 - **Clickable stat-card filters** — summary cards filter the list on click; click again to clear
 - **Stale ticket warning** — visual flag on open/in-progress tickets idle for 4+ workdays (Israeli Sun–Thu week)
 - **Workdays display** — open duration shown in business days everywhere

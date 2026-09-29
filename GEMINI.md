@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.95** · Updated 2026-09-28
+> **Current version: 3.96** · Updated 2026-09-29
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
@@ -55,7 +55,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Change the submitter** — admins can move a ticket to a different registered user (`ownerEmail` on PATCH), after confirming
 - **Open on behalf of** — admins can file a ticket for someone who phoned in, including a person who has never signed in
 - **Merging tickets (v3.92)** — staff merge duplicates from a ticket's page or the queue's selection bar. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become **participants** of it — they see it on their dashboard, write in it and get its mail. `lib/ticketMerge.ts`, `lib/ticketAccess.ts`
-- **Full-text search** — every page; typing a ticket number (`494`, `#494`, `HDTC-494`, `hdtc494`) always lands on that ticket even when the view is filtered (`lib/ticketSearch.ts`)
+- **Full-text search** — every page; typing a ticket number (`494`, `#494`, `HDTC-494`, `hdtc494`) always lands on that ticket even when the view is filtered, and a comma-separated list (`133,245`, as many as are typed) shows exactly those tickets (v3.96, `lib/ticketSearch.ts`)
 - **Email automation** — new ticket, status change, staff @mention, closure + rating request, daily digest
 - **Email-to-ticket ingestion** — inbound mail whose subject contains "ticket" becomes an URGENT ticket via IMAP polling (see §6)
 - **Service ratings** — 1–5 stars with comment; admin review dashboard
@@ -186,6 +186,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.96 | Searching for several tickets at once: a comma-separated list of numbers (`133,245`, `HDTC-133, REQ-245`, and as many as are typed) shows exactly those tickets, in the order typed, whatever the view is scoped to. `parseTicketNumberList()` in `lib/ticketSearch.ts`; the four list pages needed no change |
 | 3.95 | A name edited in ניהול משתמשים is the name everywhere: the roster's display comes from `User.name` rather than the curated `STAFF_MEMBERS` entry, and the session carries the stored name, so it also signs new history rows, notes, messages and mail. Older rows keep the name they were written with |
 | 3.94 | The last two checkboxes without a size of their own — "הרשאת מנהל" in the user editor and "כלול פניות סגורות" in ציוד חסר — were being stretched to full width by `globals.css`, as the v3.92 merge dialog's radio was |
 | 3.93 | The v3.92 merge dialog was unreadable: `app/globals.css` styles every `<label>` and every `<input>`, so the radio inside each ticket card was stretched to `width: 100%` and squeezed the subject into a one-character column. The dialog resets both on its own elements, as the checkboxes elsewhere already do |
@@ -256,4 +257,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.95 — updated 2026-09-28.*
+*v3.96 — updated 2026-09-29.*

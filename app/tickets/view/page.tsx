@@ -139,7 +139,7 @@ export default function TicketsViewPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45), נושא, שם, קטגוריה..."
+            placeholder="חיפוש לפי מספר פנייה (HDTC-123 / REQ-45, או כמה מופרדים בפסיק), נושא, שם, קטגוריה..."
             style={{ flex: 1, minWidth: 220, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.line}`, fontSize: "0.88rem", background: T.card }}
           />
           <div style={{ display: "flex", background: T.card, border: `1px solid ${T.line}`, borderRadius: 10, overflow: "hidden" }}>
