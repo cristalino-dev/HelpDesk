@@ -162,6 +162,12 @@ describe("no colour is typed inline any more", () => {
       const src = readFileSync(file, "utf8")
         .replace(/\/\*[\s\S]*?\*\//g, "")
         .replace(/(^|[^:])\/\/.*/g, "$1")
+        // A quoted string with Hebrew in it is words on a screen, not a colour.
+        // The support team's guide spells out how to search by ticket number —
+        // "#494", "#133; 245" — and a three-digit hex is exactly what that
+        // looks like (v3.97). No colour in this codebase is ever written inside
+        // a Hebrew sentence; they are `T.` tokens, or literals in palette.ts.
+        .replace(/(["'`])[^"'`\n]*[֐-׿][^"'`\n]*\1/g, "")
         .replace(ALLOWED, "")
       const found = src.match(/#[0-9A-Fa-f]{3,8}\b|rgba?\([\d.,\s]+\)/g) ?? []
       // A hex here is a colour that cannot follow the theme: it will stay

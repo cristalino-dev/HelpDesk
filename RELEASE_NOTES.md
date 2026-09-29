@@ -5,6 +5,46 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.97 — מדריך החיפוש במדריך המנהל
+
+**Everything the search box accepts is now written down, in the support team's
+guide, in one section.**
+
+### What changed for users
+
+- **`/help` → מדריך מנהל** (staff and admins only) gains **"🔎 חיפוש — שדה
+  החיפוש בכל רשימת פניות"**, right after the section about the queue:
+  - where the field is, and that it filters as you type, ignores case and
+    matches mid-word;
+  - **what each list actually searches** — the fields differ between כל הפניות,
+    תור פניות, התצוגה לצפייה בלבד and הלוח האישי, and each is listed;
+  - **every ticket-number form**: `494`, `#494`, `HDTC-494`, `REQ-494`,
+    `hdtc 494`, `hdtc_494`, `hdtc494`, `HDTC-0494`; either prefix finds any
+    ticket; `49` also returns 494 and 495; an exact number surfaces its ticket
+    even when the filter hides it;
+  - **several tickets at once** (v3.96): `133,245`, any number of them, spaces,
+    labels, `#` or a semicolon, the order typed, working through a filtered
+    view, missing numbers left out, exact matching, and a comma inside ordinary
+    text staying ordinary text;
+  - **the other search boxes in the console**: users, licences, printers and
+    the error log, with the fields each one covers.
+- The queue section keeps a one-line summary and points at the new section.
+
+### What changed for developers
+
+- `components/AdminGuide.tsx` only — no behaviour changed.
+- **`__tests__/Palette.test.ts`** ignores a hex inside a quoted string that
+  contains Hebrew. The guide documents `#494` and `#133; 245`, and a
+  three-digit hex is exactly what a ticket number with a `#` looks like, so the
+  guard failed on prose. It still catches a real one: `color: "#ff0000"`,
+  `` `1px solid #ccc` `` and `rgba(…)` all fail as before — no colour in this
+  codebase is written inside a Hebrew sentence.
+- **New test:** `HelpPage` checks that the guide an admin is served documents
+  the search, list queries included, so the section cannot quietly disappear.
+  88 suites / 1,519 tests.
+
+---
+
 ## v3.96 — חיפוש כמה פניות יחד
 
 **Typing two ticket numbers separated by a comma found nothing. Now

@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.96** · Updated 2026-09-29
+> **Current version: 3.97** · Updated 2026-09-29
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
@@ -186,6 +186,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.97 | The support team's guide documents the search field in one section: what each list searches, every ticket-number form, the comma-separated list from v3.96, and the console's other search boxes |
 | 3.96 | Searching for several tickets at once: a comma-separated list of numbers (`133,245`, `HDTC-133, REQ-245`, and as many as are typed) shows exactly those tickets, in the order typed, whatever the view is scoped to. `parseTicketNumberList()` in `lib/ticketSearch.ts`; the four list pages needed no change |
 | 3.95 | A name edited in ניהול משתמשים is the name everywhere: the roster's display comes from `User.name` rather than the curated `STAFF_MEMBERS` entry, and the session carries the stored name, so it also signs new history rows, notes, messages and mail. Older rows keep the name they were written with |
 | 3.94 | The last two checkboxes without a size of their own — "הרשאת מנהל" in the user editor and "כלול פניות סגורות" in ציוד חסר — were being stretched to full width by `globals.css`, as the v3.92 merge dialog's radio was |
@@ -257,4 +258,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.96 — updated 2026-09-29.*
+*v3.97 — updated 2026-09-29.*

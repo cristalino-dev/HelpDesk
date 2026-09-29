@@ -107,6 +107,16 @@ describe("the manual is one page now", () => {
     expect(screen.getByText("לצוות התמיכה בלבד")).toBeInTheDocument()
   })
 
+  // The search box is the tool staff use most, and every form it accepts is
+  // documented in one section — including the comma-separated list (v3.96).
+  it("documents the search field for staff, list queries and all", async () => {
+    await renderHelp({ email: "alon@cristalino.co.il", isAdmin: true })
+    expect(screen.getByText("חיפוש — שדה החיפוש בכל רשימת פניות")).toBeInTheDocument()
+    expect(screen.getAllByText(/133,245/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/HDTC-0494/)).toBeInTheDocument()
+    expect(screen.getByText(/יומן שגיאות: תוכן השגיאה/)).toBeInTheDocument()
+  })
+
   it("shows it to staff, who its own opening line addresses", async () => {
     await renderHelp({ email: STAFF_EMAILS[0], isAdmin: false })
     expect(screen.getByText("מדריך מנהל")).toBeInTheDocument()
