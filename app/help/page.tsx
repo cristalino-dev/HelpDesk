@@ -62,6 +62,7 @@ export default async function HelpPage() {
           <ol style={{ margin: 0, padding: "0 20px", display: "flex", flexDirection: "column", gap: "8px", color: T.text, fontSize: "0.9rem" }}>
             <li><a href="#login"           style={{ color: T.text }}>כניסה למערכת</a></li>
             <li><a href="#dashboard"       style={{ color: T.text }}>לוח הבקרה — הפניות שלי</a></li>
+            <li><a href="#search"          style={{ color: T.text }}>חיפוש פניות</a></li>
             <li><a href="#new-ticket"      style={{ color: T.text }}>פתיחת פנייה חדשה</a></li>
             <li><a href="#notes-attachments" style={{ color: T.text }}>הערות וקבצים מצורפים</a></li>
             <li><a href="#messaging"       style={{ color: T.text }}>שיחה עם צוות התמיכה</a></li>
@@ -185,9 +186,34 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 3: NEW TICKET ── */}
+        {/* ── SECTION 3: SEARCH ── */}
+        <section id="search" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <SectionTitle number="3" title="חיפוש פניות" />
+
+          <Card>
+            <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
+              תיבת החיפוש נמצאת בלוח הבקרה, מתחת לכותרת. הרשימה מסתננת תוך כדי הקלדה, אין הבדל בין
+              אותיות גדולות לקטנות, וכל מילה נמצאת גם באמצע משפט. אפשר לשלב חיפוש עם כרטיסי הסינון
+              שמעליו — לניקוי, רוקנו את התיבה ולחצו שוב על הכרטיס.
+            </p>
+            <FieldList items={[
+              { label: "מה מחפשים",        desc: "החיפוש עובר על כל הפרטים של הפנייה: מספר, נושא, תיאור, סטטוס, דחיפות, קטגוריה, פלטפורמה, שם מחשב, טלפון ותאריך הפתיחה" },
+              { label: "לפי מספר פנייה",   desc: "כל הצורות מתאימות: 494, ‎# 494, HDTC-494, REQ-494, hdtc 494 או hdtc494. גם אפס מוביל לא מפריע" },
+              { label: "לפניות ולבקשות",   desc: "יש רצף מספרים אחד לשתיהן, כך ש-HDTC-494 ו-REQ-494 מוצאים את אותה פנייה" },
+              { label: "חיפוש חלקי",       desc: "הקלדת 49 מחזירה גם את 494 וגם את 495 — לא חייבים את המספר המלא" },
+              { label: "המספר תמיד מנצח",  desc: "פנייה שחיפשתם לפי מספר מדויק תופיע גם אם היא סגורה וגם אם כרטיס הסינון הפעיל הסתיר אותה" },
+              { label: "כמה פניות יחד",    desc: "רוצים לראות כמה פניות במכה אחת? הקלידו את המספרים מופרדים בפסיק — למשל 133,245 — ותקבלו בדיוק אותן. אפשר כמה שצריך: 133,245,49" },
+              { label: "צורות מותרות ברשימה", desc: "מותר רווח אחרי הפסיק, תוויות מלאות ואפילו נקודה-פסיק: ‎133, 245‎ · ‎HDTC-133, REQ-245‎ · ‎133; 245" },
+              { label: "מספר שלא קיים",    desc: "פשוט לא יופיע ברשימה, והשאר כן — כך רואים מיד איזו פנייה לא נמצאה" },
+              { label: "פסיק בטקסט רגיל",  desc: "חיפוש כמו ׳מדפסת, קומה 2׳ נשאר חיפוש טקסט רגיל — הפסיק מפצל רק כשכל החלקים הם מספרי פניות" },
+            ]} />
+            <Note text="לא מוצאים פנייה? ודאו שהחיפוש אינו מוגבל בכרטיס סינון פעיל, ונסו לחפש לפי מספר הפנייה — חיפוש לפי מספר מתעלם מהסינון." />
+          </Card>
+        </section>
+
+        {/* ── SECTION 4: NEW TICKET ── */}
         <section id="new-ticket" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="3" title="פתיחת פנייה חדשה" />
+          <SectionTitle number="4" title="פתיחת פנייה חדשה" />
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}`, backgroundColor: T.card }}>
             <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: "8px" }}>
@@ -240,9 +266,9 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 4: NOTES & ATTACHMENTS ── */}
+        {/* ── SECTION 5: NOTES & ATTACHMENTS ── */}
         <section id="notes-attachments" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="4" title="הערות וקבצים מצורפים" />
+          <SectionTitle number="5" title="הערות וקבצים מצורפים" />
           <Card>
             <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
               מעבר לפרטי הפנייה הבסיסיים, המערכת מאפשרת להוסיף הערות לטכנאים ולצרף תמונות וקבצים — צילומי מסך, PDF ומסמכי Office.
@@ -266,9 +292,9 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 5: MESSAGING ── */}
+        {/* ── SECTION 6: MESSAGING ── */}
         <section id="messaging" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="5" title="שיחה עם צוות התמיכה" />
+          <SectionTitle number="6" title="שיחה עם צוות התמיכה" />
           <Card>
             <p style={{ fontSize: "0.95rem", color: T.inkMuted, lineHeight: 1.7, marginBottom: "20px" }}>
               ניתן לנהל שיחה ישירה עם צוות התמיכה בתוך כל פנייה.
@@ -291,9 +317,9 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 6: STATUSES ── */}
+        {/* ── SECTION 7: STATUSES ── */}
         <section id="statuses" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="6" title="מצבי פנייה" />
+          <SectionTitle number="7" title="מצבי פנייה" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <StatusRow badge={badge(T.pillBlueBg, T.pillBlueFg, "פתוח")}   title="פתוח"   desc="הפנייה התקבלה ומחכה לטיפול. הפנייה נמצאת בתור הניהול." />
@@ -306,9 +332,9 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 7: URGENCY ── */}
+        {/* ── SECTION 8: URGENCY ── */}
         <section id="urgency" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="7" title="רמות דחיפות — מתי לבחור מה?" />
+          <SectionTitle number="8" title="רמות דחיפות — מתי לבחור מה?" />
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <UrgencyRow badge={badge(T.redBg, T.redFgDeep, "דחוף")}   title="דחוף"   desc="המחשב לא עולה כלל, אין גישה למערכות קריטיות, הבעיה מונעת עבודה לחלוטין." />
@@ -323,9 +349,9 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 8: REVIEW ── */}
+        {/* ── SECTION 9: REVIEW ── */}
         <section id="review" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="8" title="דירוג השירות לאחר סגירה" />
+          <SectionTitle number="9" title="דירוג השירות לאחר סגירה" />
 
           {/* Review page mockup */}
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}` }}>
@@ -359,9 +385,9 @@ export default async function HelpPage() {
           </Card>
         </section>
 
-        {/* ── SECTION 9: CONTACT ── */}
+        {/* ── SECTION 10: CONTACT ── */}
         <section id="contact" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <SectionTitle number="9" title="צרו קשר עם תמיכת המערכת" />
+          <SectionTitle number="10" title="צרו קשר עם תמיכת המערכת" />
 
           <div style={{ borderRadius: "14px", overflow: "hidden", boxShadow: `0 4px 20px ${T.shadow3}`, border: `1px solid ${T.line}`, backgroundColor: T.card }}>
             <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: "8px" }}>

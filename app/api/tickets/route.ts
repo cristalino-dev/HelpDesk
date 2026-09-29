@@ -135,34 +135,35 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // SEED THE OWNER'S PROFILE from what was just typed. Phone and machine are
-    // required on the form, so every ticket carries them — but almost nobody
-    // visits /profile, so the User columns stay null and the next admin filing
-    // on this person's behalf has nothing to pre-fill from.
+    // KEEP THE OWNER'S PROFILE IN STEP with what was just typed. Phone and
+    // machine are required on the form, so every ticket carries them, and
+    // almost nobody visits /profile: filing a ticket is where these two facts
+    // are actually kept current.
     //
-    // Only fills what is EMPTY. Overwriting a value someone deliberately saved
-    // with whatever a stand-in typed once would make the profile less reliable
-    // than the ticket, not more. `updateMany` does the emptiness check inside
-    // the UPDATE, so there is no read-then-write race with the profile page.
+    // FILING YOUR OWN TICKET OVERWRITES (v3.98). A number typed today is the
+    // number, whether this is a first ticket or a correction to what is stored
+    // — before v3.98 only an EMPTY column was filled, so a new phone reached
+    // the ticket and never the profile, and the next form pre-filled the old
+    // one. Changing it in /profile still works exactly as it did.
+    //
+    // A ticket an ADMIN files on someone's behalf still only fills what is
+    // empty: a stand-in's guess must not replace what the person saved
+    // themselves. `updateMany` puts that emptiness test inside the UPDATE, so
+    // there is no read-then-write race with the profile page.
     const text = (v: unknown) => (typeof v === "string" ? v.trim() : "")
     const seedPhone = text(phone), seedStation = text(computerName)
-    // Nothing the response reports, so it runs once the response is out — in
-    // after(), which Next.js keeps alive until it finishes; a bare `void` could
-    // be abandoned when the request ended (rule 41).
-    after(() => Promise.all([
-      seedPhone
-        ? prisma.user.updateMany({
-            where: { id: owner.id, OR: [{ phone: null }, { phone: "" }] },
-            data: { phone: seedPhone },
-          })
-        : null,
-      seedStation
-        ? prisma.user.updateMany({
-            where: { id: owner.id, OR: [{ station: null }, { station: "" }] },
-            data: { station: seedStation },
-          })
-        : null,
-    ]).catch(() => { /* a profile that stays empty is not worth failing a ticket over */ }))
+    const phoneWhere   = onBehalf ? { id: owner.id, OR: [{ phone: null }, { phone: "" }] }     : { id: owner.id }
+    const stationWhere = onBehalf ? { id: owner.id, OR: [{ station: null }, { station: "" }] } : { id: owner.id }
+    // Awaited, not deferred to after(): the person has just told us their
+    // number, and it is in the database before they are told the ticket was
+    // opened. A profile that would not save is still not worth failing a
+    // ticket over, so the failure is swallowed rather than raised.
+    try {
+      await Promise.all([
+        seedPhone   ? prisma.user.updateMany({ where: phoneWhere,   data: { phone: seedPhone } })     : null,
+        seedStation ? prisma.user.updateMany({ where: stationWhere, data: { station: seedStation } }) : null,
+      ])
+    } catch { /* the ticket is what matters; the profile can catch up next time */ }
 
     // EQUIPMENT REQUEST — allowed on ANY ticket. A new hire needs a whole kit
     // and an existing employee may just want a second screen; both end up on

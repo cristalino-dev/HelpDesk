@@ -5,6 +5,47 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.98 — הטלפון והמחשב נשמרים בפרופיל בעת הגשה, וחיפוש במדריך המשתמש
+
+**Two things. The phone and machine typed on a ticket are now saved to the
+person's profile as the ticket is filed — a correction too, not only the first
+time. And the user guide gains a search section of its own.**
+
+### What changed for users
+
+- **הפרופיל מתעדכן מהפנייה.** Filing a ticket saves the טלפון and שם מחשב on
+  it to your profile, there and then:
+  - a first ticket fills an empty profile, as before;
+  - **a different number or machine now replaces what was stored** — the next
+    form pre-fills what you last typed, instead of an old value you had already
+    corrected on a ticket;
+  - editing them in הפרופיל שלי works exactly as before;
+  - a ticket an **admin files on somebody's behalf** still only fills what is
+    empty: a stand-in's guess must not overwrite what the person saved about
+    themselves.
+- **מדריך למשתמש → סעיף 3, "חיפוש פניות"** (new, with its own line in the
+  table of contents): what the box searches, every form of a ticket number,
+  partial numbers, a number outranking the active filter, and several tickets
+  at once — `133,245`, as many as needed, with spaces, labels or a semicolon,
+  what happens to a number that matches nothing, and why a comma inside
+  ordinary text is still ordinary text. Sections 3–9 became 4–10.
+
+### What changed for developers
+
+- **`app/api/tickets/route.ts`:** the profile write is `where: { id: owner.id }`
+  for the owner's own ticket and keeps the `OR: [{ phone: null }, { phone: "" }]`
+  guard only for an on-behalf filing. It is now **awaited before the response**
+  instead of deferred to `after()` — the row is in the database by the time the
+  person is told the ticket was opened — and its failure is still swallowed:
+  a profile that would not save must not fail a ticket.
+- **`app/help/page.tsx`:** the new section, the table-of-contents entry, and
+  the renumbering.
+- **New tests:** the owner's own ticket overwrites and an on-behalf ticket does
+  not; the write lands before the response; the user guide documents the
+  search. 88 suites / 1,522 tests.
+
+---
+
 ## v3.97 — מדריך החיפוש במדריך המנהל
 
 **Everything the search box accepts is now written down, in the support team's

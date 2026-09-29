@@ -42,6 +42,16 @@ describe("HelpPage", () => {
     expect(screen.getAllByText(/רמות דחיפות/).length).toBeGreaterThanOrEqual(1)
   })
 
+  // v3.98 — the search options belong in the user guide too, not only in the
+  // staff one, and they are for everybody: no session needed.
+  it("documents searching, including several tickets at once", async () => {
+    await renderHelp()
+    expect(screen.getByRole("link", { name: "חיפוש פניות" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "חיפוש פניות" })).toBeInTheDocument()
+    expect(screen.getAllByText(/133,245/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/המספר תמיד מנצח/)).toBeInTheDocument()
+  })
+
   it("renders table of contents links", async () => {
     await renderHelp()
     expect(screen.getByRole("link", { name: "כניסה למערכת" })).toBeInTheDocument()

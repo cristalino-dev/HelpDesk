@@ -147,7 +147,9 @@ describe("Tickets API", () => {
      * the gap for the next ticket, without ever overwriting something the
      * person deliberately saved.
      */
-    describe("fills in the owner's empty profile from the ticket", () => {
+    describe("keeps the owner's profile in step with the ticket", () => {
+      const ADMIN = { id: "admin-1", email: "admin@cristalino.co.il", name: "אלון", isAdmin: true }
+
       const post = async (over: Record<string, unknown> = {}) => {
         const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
         mockSession(user)
@@ -160,6 +162,20 @@ describe("Tickets API", () => {
         return (prisma.user.updateMany as jest.Mock).mock.calls.map(c => c[0])
       }
 
+      /** An admin filing for somebody else — the stand-in case. */
+      const postOnBehalf = async () => {
+        mockSession(ADMIN)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(ADMIN)
+        ;(prisma.user.findFirst as jest.Mock).mockResolvedValue({ id: "user-2", email: "dana@cristalino.co.il", name: "דנה" })
+        ;(prisma.ticket.create as jest.Mock).mockResolvedValue({ id: "t2", ticketNumber: 2, subject: "s", status: "פתוח" })
+        await POST({ json: async () => ({
+          subject: "s", description: "d", phone: "050-9999999", computerName: "PC-2",
+          urgency: "בינוני", category: "חומרה", platform: "Windows",
+          onBehalfOfEmail: "dana@cristalino.co.il",
+        }) } as never)
+        return (prisma.user.updateMany as jest.Mock).mock.calls.map(c => c[0])
+      }
+
       it("saves the phone and the machine against the ticket's owner", async () => {
         const calls = await post()
         expect(calls).toHaveLength(2)
@@ -168,11 +184,29 @@ describe("Tickets API", () => {
           expect.arrayContaining([{ phone: "050-1234567" }, { station: "PC-1" }]))
       })
 
-      it("only touches a field that is still EMPTY", async () => {
-        // The emptiness test lives in the WHERE clause, so a profile the person
-        // filled in themselves cannot be overwritten by whatever a stand-in
-        // typed — and there is no read-then-write race with the profile page.
+      // v3.98 — a first ticket and a correction are the same thing: what the
+      // person just typed is what the profile holds. Only an EMPTY column was
+      // filled before, so a new number reached the ticket and never the
+      // profile, and the next form pre-filled the old one.
+      it("overwrites what is stored when people file their own ticket", async () => {
         for (const c of await post()) {
+          expect(c.where).toEqual({ id: "user-1" })
+        }
+      })
+
+      it("is written before the response, not left to after()", async () => {
+        // The calls are on record by the time POST resolves; nothing here runs
+        // the after() callbacks.
+        expect(await post()).toHaveLength(2)
+      })
+
+      // The stand-in rule survives: an admin's guess must not replace what
+      // somebody saved about themselves.
+      it("only fills what is empty when an admin files on someone's behalf", async () => {
+        const calls = await postOnBehalf()
+        expect(calls).toHaveLength(2)
+        for (const c of calls) {
+          expect(c.where.id).toBe("user-2")
           const field = c.data.phone ? "phone" : "station"
           expect(c.where.OR).toEqual([{ [field]: null }, { [field]: "" }])
         }
@@ -183,7 +217,7 @@ describe("Tickets API", () => {
       })
 
       it("still creates the ticket when the profile write fails", async () => {
-        // A profile that stays empty is not worth failing a ticket over.
+        // A profile that did not save is not worth failing a ticket over.
         ;(prisma.user.updateMany as jest.Mock).mockRejectedValueOnce(new Error("db down"))
         await expect(post()).resolves.toBeDefined()
         expect(prisma.ticket.create).toHaveBeenCalled()
