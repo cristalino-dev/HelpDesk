@@ -58,6 +58,39 @@ ticket is now called what it is.**
   the directory), `docsRoute` (who may read the shelf). 91 suites /
   1,559 tests.
 
+### Data repair — 2026-09-29 (no release)
+
+REQ-732 showed the same reply and the same technician note twice, and a status
+change from "סגור" to "סגור". The app did not write them twice: a ticket is
+closed both through `POST /api/automation/close` — which is idempotent, a
+second call on a closed ticket returns `alreadyClosed` and writes nothing —
+and by an external agent writing straight into the tables. On REQ-732 and
+HDTC-671 both ran, 0.3 to 0.6 seconds apart, so the reply, the note and the
+history landed twice.
+
+The two writers are told apart by the row id. Prisma's `cuid()` encodes
+`Date.now()` at the INSERT in the 8 characters after the leading `c`, so for a
+row the app wrote, the id decodes to the row's own `createdAt`. The rows
+written directly carry ids that were made up: they decode to dates months
+away, and three rows inserted in one transaction carry three different
+fingerprint sections, which no cuid implementation can produce.
+
+`scripts/fix-duplicate-close-writes.mjs` is that reading, made runnable. It
+removes a repeated message, note or history row — identical in everything the
+writer chose, stored within ten seconds — keeping the twin whose id matches
+its own timestamp, and removes `status` rows whose old and new value are the
+same. **`Ticket` has no `closedAt`**: the closing date is derived from the
+latest `field: "status", newValue: "סגור"` row, so the script never removes
+the last real one. It is a dry run unless given `--apply`.
+
+Run on production: 15 rows across REQ-732, REQ-727, HDTC-671, HDTC-650,
+HDTC-561, HDTC-555, HDTC-552, HDTC-200 and HDTC-198 — 4 messages, 5 notes and
+6 history rows. Every affected ticket kept its closing date.
+
+The fix proper is not in this repository: the agent should close tickets
+through the API and not write to the tables, and then there is nothing to
+clean up.
+
 ---
 
 ## v3.98 — הטלפון והמחשב נשמרים בפרופיל בעת הגשה, וחיפוש במדריך המשתמש
