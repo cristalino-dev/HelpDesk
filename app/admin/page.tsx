@@ -86,6 +86,7 @@ import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import BulkActionBar from "@/components/BulkActionBar"
 import BulkEditModal from "@/components/BulkEditModal"
+import DocsPanel from "@/components/DocsPanel"
 import MergeTicketsModal from "@/components/MergeTicketsModal"
 
 // Cristalino theme: status/urgency pill colors come from the central palette.
@@ -115,7 +116,7 @@ export default function AdminPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [statFilter, setStatFilter] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment" | "api">("tickets")
+  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment" | "api" | "docs">("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
@@ -825,7 +826,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: `2px solid ${T.line}`, paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"], ["api", "API"]] as const).map(([key, label]) => (
+          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"], ["api", "API"], ["docs", "מסמכים"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => {
               setTab(key)
               if (key === "users" && users.length === 0) loadUsers()
@@ -1160,7 +1161,7 @@ export default function AdminPage() {
                     onChange={e => setLicForm(f => ({ ...f, category: e.target.value }))}
                     style={{ ...inputStyle, background: T.fill2 }}
                   >
-                    {licCategories.map(c => <option key={c}>{c}</option>)}
+                    {licCategories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <input style={inputStyle} value={licForm.username} onChange={e => setLicForm(f => ({ ...f, username: e.target.value }))} placeholder="שם משתמש (אופציונלי)" />
                   <input style={inputStyle} value={licForm.password} onChange={e => setLicForm(f => ({ ...f, password: e.target.value }))} placeholder="סיסמה (אופציונלי)" />
@@ -1190,7 +1191,7 @@ export default function AdminPage() {
                     style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.82rem", background: T.fill2 }}
                   >
                     <option value="">כל הקטגוריות</option>
-                    {licCategories.map(c => <option key={c}>{c}</option>)}
+                    {licCategories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <input
                     value={licSearch}
@@ -1228,7 +1229,7 @@ export default function AdminPage() {
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, fontFamily: "monospace", minWidth: 180 }} value={editingLic.key} onChange={e => setEditingLic(p => p ? { ...p, key: e.target.value } : p)} /></td>
                             <td style={{ padding: 8 }}>
                               <select style={{ ...inputStyle, minWidth: 110 }} value={editingLic.category} onChange={e => setEditingLic(p => p ? { ...p, category: e.target.value } : p)}>
-                                {licCategories.map(c => <option key={c}>{c}</option>)}
+                                {licCategories.map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
                             </td>
                             <td style={{ padding: 8 }}><input style={{ ...inputStyle, minWidth: 110 }} value={editingLic.username ?? ""} onChange={e => setEditingLic(p => p ? { ...p, username: e.target.value } : p)} /></td>
@@ -1501,6 +1502,9 @@ export default function AdminPage() {
 
         {/* ── API TAB (v3.88) — keys for other programs ── */}
         {tab === "api" && <ApiKeysPanel />}
+
+        {/* The team's own documentation, served from the server to admins only (v3.99) */}
+        {tab === "docs" && <DocsPanel />}
 
         {/* ── TICKETS TAB ── */}
         {/* ── EQUIPMENT SHORTAGE TAB ── */}
@@ -1955,7 +1959,7 @@ export default function AdminPage() {
                               <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>{label}</div>
                               <select value={editForm[key as keyof typeof editForm]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
                                 style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", background: T.card }}>
-                                {opts.map(o => <option key={o}>{o}</option>)}
+                                {opts.map(o => <option key={o} value={o}>{o}</option>)}
                               </select>
                             </div>
                           ))}
@@ -2069,7 +2073,7 @@ export default function AdminPage() {
 
                         {/* ── Conversation with user ── */}
                         <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14, marginBottom: 14 }}>
-                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>💬 שיחה עם המגיש</div>
+                          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>💬 היסטוריית שיחה</div>
                           {(expandedMessages[ticket.id] ?? []).length === 0
                             ? <div style={{ fontSize: "0.78rem", color: T.inkFaint, marginBottom: 10 }}>אין הודעות עדיין</div>
                             : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (

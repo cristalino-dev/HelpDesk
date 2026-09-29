@@ -22,7 +22,7 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
-import { logError } from "@/lib/logError"
+import { logError, logInfo } from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { getStaffEmails } from "@/lib/staffMembers"
 import { sendMail, mailTicketOpenedStaff, mailTicketOpenedUser, mailTicketUpdatedStaff, mailTicketStatusUser, mailTicketClosedWithReview, mailTicketClosedParticipant } from "@/lib/mail"
@@ -33,6 +33,8 @@ import { normalizeNewEmployee, missingFieldLabels, withNewEmployeeDetails } from
 import { isOffboarding, offboardingChecklist, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import { findUserByEmail, resolveUserByEmail } from "@/lib/users"
 import { normalizeType, ticketLabel, mergedError } from "@/lib/ticketType"
+import { getTicketOptions } from "@/lib/apiOptions"
+import { knownValue, DEFAULT_URGENCIES, DEFAULT_CATEGORIES, DEFAULT_PLATFORMS } from "@/lib/fieldOptions"
 import { PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
 
 /**
@@ -119,15 +121,42 @@ export async function POST(req: NextRequest) {
       ? await resolveUserByEmail(behalfEmail, typeof onBehalfOfName === "string" ? onBehalfOfName : null)
       : actor
 
+    // A value the field does not allow never reaches the row (v3.99). See
+    // knownValue() in lib/fieldOptions.ts for how one got in.
+    //
+    // The built-in values are answered without a query — that is every ticket.
+    // Only an unfamiliar value asks the database, because an admin may have
+    // added it in שדות מערכת; if it is not there either, the field's default
+    // stands in and the substitution is logged.
+    let liveOptions: Awaited<ReturnType<typeof getTicketOptions>> | null = null
+    const allowed = async (value: unknown, defaults: readonly string[], field: "urgency" | "category" | "platform", fallback: string) => {
+      const v = typeof value === "string" ? value.trim() : ""
+      if (defaults.includes(v)) return v
+      liveOptions ??= await getTicketOptions()
+      return knownValue(v, liveOptions[field], fallback)
+    }
+    const safe = {
+      urgency:  await allowed(urgency,  DEFAULT_URGENCIES,  "urgency",  "בינוני"),
+      category: await allowed(category, DEFAULT_CATEGORIES, "category", "אחר"),
+      platform: await allowed(platform, DEFAULT_PLATFORMS,  "platform", "מחשב אישי"),
+    }
+    const sent = { urgency, category, platform }
+    const replaced = (["urgency", "category", "platform"] as const)
+      .filter(f => safe[f] !== sent[f])
+      .map(f => `${f}: ${JSON.stringify(sent[f])} → ${safe[f]}`)
+    if (replaced.length > 0) {
+      await logInfo(`פנייה נפתחה עם ערך שאינו ברשימה, והוחלף בברירת המחדל — ${replaced.join(", ")}`, "/api/tickets POST")
+    }
+
     const ticket = await prisma.ticket.create({
       data: {
         subject,
         description: ticketDescription,
         phone,
         computerName,
-        urgency,
-        category,
-        platform,
+        urgency:  safe.urgency,
+        category: safe.category,
+        platform: safe.platform,
         // A fault (HDTC-N) unless the form says it is a request (REQ-N) — v3.87.
         type: normalizeType(type),
         userId: owner.id,
@@ -225,7 +254,7 @@ export async function POST(req: NextRequest) {
     // on their behalf.
     const ticketInfo = {
       id: ticket.id, ticketNumber: ticket.ticketNumber, type: ticket.type,
-      subject, description: ticketDescription, urgency, category,
+      subject, description: ticketDescription, urgency: safe.urgency, category: safe.category,
       platform, phone, computerName, status: ticket.status,
       submitterName: owner.name ?? owner.email,
       submitterEmail: owner.email,

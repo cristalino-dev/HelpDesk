@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-09-28 · v3.98
+> Version 2.0 · Last updated 2026-09-28 · v3.99
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -911,6 +911,8 @@ place, `canSeeTicket()` in `lib/ticketAccess.ts`.
 | POST | `/api/tickets` | User | Create a ticket. Accepts `equipment[]` on any category, `newEmployee{}` (mandatory for `עובד חדש`, else 400), and `onBehalfOfEmail` / `onBehalfOfName` (**admin only**, 403 otherwise), and `type` — `ticket` (default) or `request` (v3.87) → 201 |
 | PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }`. Staff may change `type` — a `type` history row (v3.87) |
 | POST | `/api/tickets/bulk` | **Staff** | Change many tickets at once: `{ ids, changes }` with any of `status` (+ `holdReason`), `urgency`, `category`, `platform`, `assignedTo`, `note`, and `ownerEmail` (**admin only**). The single-edit rules apply per ticket — compound close, hold reason, offboarding guard, self-assign → `בטיפול` — and a ticket that cannot take the change is reported in `errors[]` while the rest go ahead → `{ ok, total, updatedCount, errors? }` (v3.83) |
+| GET | `/api/admin/docs` | **Admin** | The IT documentation shelf: every file under `uploads/it-docs/`, named and ordered by `lib/docs.ts` → `{ docs }` (v3.99) |
+| GET | `/api/admin/docs/[name]` | **Admin** | One document. HTML, PDF and text open inline (HTML under `default-src 'none'`), the rest download. `name` is a filename, never a path (v3.99) |
 | GET | `/api/tickets/merge?refs=` | **Staff** | What the merge dialog shows: each ticket (`HDTC-N`, `REQ-N`, `N` or an id; up to 10) with its owner, participants, counts, `mergedInto`, and `problems` — why it could not be the one that stays → `{ tickets, notFound }` (v3.92) |
 | POST | `/api/tickets/merge` | **Staff** | Merge `{ targetId, sourceIds[] }`: messages, notes and files move to the target; sources close, freeze and point to it; their people become participants; history on both sides; mail in `after()`. All or nothing — 409 `{ error, problems }` (v3.92) |
 | DELETE | `/api/tickets/[id]/participants` | **Staff** | Take `{ userId }` off the ticket's participants; a `participantRemoved` history row (v3.92) |
@@ -1066,6 +1068,7 @@ POST/DELETE /api/admin/field-opts │ 403    │ 403        │ 403    │ 403  
 *     /api/admin/licenses         │ 403    │ 403        │ 403    │ 403   │ ✓
 *     /api/admin/printers[/*]     │ 403    │ 403        │ 403    │ 403   │ ✓
 *     /api/admin/api-keys[/*]     │ 401    │ 403        │ 403    │ 403   │ ✓
+GET   /api/admin/docs[/*]         │ 401    │ 403        │ 403    │ 403   │ ✓
 GET   /api/admin/equipment        │ 401    │ 403        │ 403    │ ✓     │ ✓
 POST  /api/contact                │ 401    │ ✓          │ ✓      │ ✓     │ ✓
 POST  /api/logs                   │ ✓ open │ ✓          │ ✓      │ ✓     │ ✓

@@ -571,7 +571,7 @@ export default function TicketForm({
               value={form.platform}
               onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
             >
-              {platforms.map(p => <option key={p}>{p}</option>)}
+              {platforms.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
@@ -581,7 +581,7 @@ export default function TicketForm({
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
             >
-              {categories.map(c => <option key={c}>{c}</option>)}
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
@@ -593,7 +593,7 @@ export default function TicketForm({
               onChange={e => setForm(f => ({ ...f, urgency: e.target.value }))}
               style={{ backgroundColor: urgColor?.bg, color: urgColor?.text, borderColor: urgColor?.border, fontWeight: 600 }}
             >
-              {urgencies.map(u => <option key={u}>{u}</option>)}
+              {urgencies.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
         </div>

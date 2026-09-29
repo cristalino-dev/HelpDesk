@@ -865,7 +865,7 @@ export default function TicketsPage() {
                                 <div style={{ fontSize: "0.75rem", fontWeight: 600, color: T.inkMuted, marginBottom: 4 }}>{label}</div>
                                 <select value={editForm[key as keyof typeof editForm]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
                                   style={{ width: "100%", padding: "7px 10px", borderRadius: 8, border: `1px solid ${T.lineStrong}`, fontSize: "0.875rem", background: T.card }}>
-                                  {opts.map(o => <option key={o}>{o}</option>)}
+                                  {opts.map(o => <option key={o} value={o}>{o}</option>)}
                                 </select>
                               </div>
                             ))}
@@ -936,7 +936,7 @@ export default function TicketsPage() {
 
                           {/* ── Conversation with user ── */}
                           <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14, marginBottom: 14 }}>
-                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>💬 שיחה עם המגיש</div>
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, marginBottom: 10 }}>💬 היסטוריית שיחה</div>
                             {(expandedMessages[ticket.id] ?? []).length === 0
                               ? <div style={{ fontSize: "0.78rem", color: T.inkFaint, marginBottom: 10 }}>אין הודעות עדיין</div>
                               : (expandedMessages[ticket.id] ?? []).map((msg: TicketMessage) => (

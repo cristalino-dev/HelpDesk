@@ -5,6 +5,61 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.99 — "urgent" במקום "דחוף", מדור מסמכים, והיסטוריית שיחה
+
+**A ticket reached the queue with the urgency "urgent". The admin console gains
+a מסמכים tab holding the team's own documentation. And the conversation on a
+ticket is now called what it is.**
+
+### What changed for users
+
+- **דחיפות לא תיכתב שוב באנגלית.** HDTC-738 was filed with urgency `urgent`
+  instead of `דחוף`: its pill had no colour, the urgency sort did not know
+  where to put it, and the reports could not count it. Chrome's page
+  translation rewrites what a dropdown option SAYS, and an option that carries
+  no value of its own submits its own text — so a translated form submitted the
+  English word. Every dropdown in the app now submits the value in the code,
+  whatever the browser displays. HDTC-738 has been corrected to דחוף, and it
+  was the only such ticket in the database.
+- **פאנל ניהול → מסמכים** (admins only): the IT documentation in one place —
+  the numbered infrastructure set (00–09) and the working guides for Google
+  Workspace and Zoho Desk. Each opens in a new tab: HTML and PDF for reading,
+  Word downloads. The files live on the server, not in the code.
+- **"שיחה עם המגיש" is now "היסטוריית שיחה"** — on the ticket page, in the
+  queue and in the admin console. It is a thread between people, and the title
+  no longer names only one side of it.
+
+### What changed for developers
+
+- **The dropdown fix, in two lines of defence:**
+  - every `<option>` in `app/` and `components/` carries an explicit `value`
+    (14 of them did not), pinned by the new `selectValues` test;
+  - `POST /api/tickets` passes urgency, category and platform through
+    `knownValue()` (`lib/fieldOptions.ts`): a built-in value is accepted with
+    no query, an unfamiliar one asks `getTicketOptions()` in case an admin
+    added it in שדות מערכת, and anything else becomes the field's default and
+    is written to the log.
+- **The documentation shelf:**
+  - `uploads/it-docs/` on the server — outside the deploy archive, outside
+    deploy.sh's `rm -rf`, and git-ignored, so internal documents (one is a
+    security runbook) are not in the repository and survive every deploy;
+  - `lib/docs.ts` (pure, client-safe) reads a filename: `00_NAME.docx` →
+    index `00` + title, numbered files are the infrastructure set and the rest
+    are guides; it also decides the media type, inline-vs-download, and the CSP
+    that HTML is served under;
+  - `lib/docStorage.ts` lists and reads the directory. A name is a filename,
+    never a path: `basename` plus an extension check, so `../../.env` is a 404;
+  - `GET /api/admin/docs` lists and `GET /api/admin/docs/[name]` serves, both
+    **admin only** (401 signed out, 403 for a non-admin);
+  - `components/DocsPanel.tsx` is the tab. Adding a document is copying a file
+    into the directory — no code change.
+- **New tests:** `selectValues` (every option carries its value, and
+  `knownValue`), `docs` (names, order, headers, and that a read can never leave
+  the directory), `docsRoute` (who may read the shelf). 91 suites /
+  1,559 tests.
+
+---
+
 ## v3.98 — הטלפון והמחשב נשמרים בפרופיל בעת הגשה, וחיפוש במדריך המשתמש
 
 **Two things. The phone and machine typed on a ticket are now saved to the

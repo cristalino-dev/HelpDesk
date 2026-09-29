@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.98** · Updated 2026-09-29
+> **Current version: 3.99** · Updated 2026-09-29
 
 > ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
 > Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
@@ -60,6 +60,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Email-to-ticket ingestion** — inbound mail whose subject contains "ticket" becomes an URGENT ticket via IMAP polling (see §6)
 - **Service ratings** — 1–5 stars with comment; admin review dashboard
 - **Error logging** — ErrorBoundary + ClientErrorHandler + server `logError()` → `Log` table, with stale-chunk failures filtered out
+- **IT documentation shelf (v3.99)** — `/admin` → **מסמכים**, admins only: the numbered infrastructure set and the working guides, each opening in a new tab. The files live in `uploads/it-docs/` on the server (git-ignored, outside the deploy archive); `lib/docs.ts` reads a filename into a title, a group and an order, and `GET /api/admin/docs[/name]` serves them. Adding a document is copying a file in
 - **API for other programs (v3.88)** — `/api/v1`: list and query tickets and requests by any field, read one in full, open one, change it, write to its owner, add a note. A key per program (read, or read and write), created and revoked in the admin console. documentation page at `/api/v1/docs` (v3.89); OpenAPI at `/api/v1/openapi.json`; guide in [`docs/API.md`](docs/API.md)
 - **Automation API** — `POST /api/automation/close` closes a ticket with a Bearer key; idempotent
 - **Periodic urgency sweep** — cron every 5 min ensures closed tickets have `urgency = נמוך`
@@ -147,8 +148,10 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 11. **Staff roster is DB-driven** — assignment dropdown + @mention shortcuts show only current `isAdmin` users. `lib/staffMembers.ts` `getAllStaffMembers()` queries admins; `STAFF_MEMBERS` supplies the curated @mention **handle**, and a display name only for a row that has none — the name shown is the DB's `User.name`, so an edit in ניהול משתמשים reaches every assignment dropdown and queue row (v3.95). `session.user.name` is the stored name too, so it signs new history rows, notes, messages and mail. Clients fetch `GET /api/staff`.
 12. **FieldOption deletions are guarded** — the four urgencies and the עובד חדש / עובד עוזב categories cannot be removed; business logic depends on them.
 13. **`/api/v1` is a contract — additive only** (v3.88). Other programs are built against it: within v1 never rename, remove or retype a field, a parameter or an error code — add new optional ones. A breaking change is `/api/v2`, beside v1. A new route or method goes into `lib/openapi.ts` in the same change (`__tests__/openapi.test.ts` fails otherwise).
-14. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
-15. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
+14. **A dropdown submits the value in the code, not the text on screen** (v3.99) — every `<option>` carries an explicit `value`, and `POST /api/tickets` puts urgency, category and platform through `knownValue()`. Chrome's page translation rewrites an option's text, and an option without a value submits its text: that is how HDTC-738 was filed with urgency `urgent`, a row the queue drew without a colour and the reports could not count. `__tests__/selectValues.test.ts` fails if an option loses its value.
+15. **The documents shelf is server-only and admin-only** (v3.99) — `uploads/it-docs/` is git-ignored and outside the deploy archive: internal documents, one of them a security runbook, are not in the repository and survive deploys. Both routes check `isAdmin`, and a document name is a filename, never a path (`lib/docStorage.ts`).
+16. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
+17. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
 
 ---
 
@@ -186,6 +189,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.99 | A ticket was filed with urgency `urgent`: an `<option>` without a `value` submits its text, and Chrome had translated the page. Every option carries its value now, and the server replaces anything the field does not allow. New **מסמכים** tab for admins — the IT documentation from `uploads/it-docs/`, each document in a new tab. "שיחה עם המגיש" became "היסטוריית שיחה" |
 | 3.98 | Filing a ticket saves its phone and machine to the owner's profile at that moment — a correction too, not only an empty column, and awaited rather than left to `after()`. An admin filing on somebody's behalf still only fills what is empty. The user guide gains a "חיפוש פניות" section |
 | 3.97 | The support team's guide documents the search field in one section: what each list searches, every ticket-number form, the comma-separated list from v3.96, and the console's other search boxes |
 | 3.96 | Searching for several tickets at once: a comma-separated list of numbers (`133,245`, `HDTC-133, REQ-245`, and as many as are typed) shows exactly those tickets, in the order typed, whatever the view is scoped to. `parseTicketNumberList()` in `lib/ticketSearch.ts`; the four list pages needed no change |
@@ -259,4 +263,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.98 — updated 2026-09-29.*
+*v3.99 — updated 2026-09-29.*

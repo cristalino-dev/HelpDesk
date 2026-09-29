@@ -731,7 +731,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>סטטוס</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
-                    {STATUSES.map(s => <option key={s}>{s}</option>)}
+                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 : <span style={{ ...STATUS_STYLE[ticket.status], borderRadius: 20, padding: "3px 12px", fontSize: "0.8rem", fontWeight: 600, display: "inline-block" }}>{ticket.status}</span>
               }
@@ -740,7 +740,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>דחיפות</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.urgency} onChange={e => setEditForm(f => ({ ...f, urgency: e.target.value }))}>
-                    {urgencies.map(u => <option key={u}>{u}</option>)}
+                    {urgencies.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 : <span style={{ ...URGENCY_STYLE[ticket.urgency], borderRadius: 20, padding: "3px 12px", fontSize: "0.8rem", fontWeight: 600, display: "inline-block" }}>{ticket.urgency}</span>
               }
@@ -749,7 +749,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>קטגוריה</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
-                    {categories.map(c => <option key={c}>{c}</option>)}
+                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 : <span style={valueStyle}>{ticket.category}</span>
               }
@@ -758,7 +758,7 @@ export default function TicketDetailPage() {
               <span style={labelStyle}>פלטפורמה</span>
               {editing
                 ? <select style={{ ...inputStyle }} value={editForm.platform} onChange={e => setEditForm(f => ({ ...f, platform: e.target.value }))}>
-                    {platforms.map(p => <option key={p}>{p}</option>)}
+                    {platforms.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 : <span style={valueStyle}>{ticket.platform}</span>
               }
@@ -1149,7 +1149,7 @@ export default function TicketDetailPage() {
 
         {/* Conversation — visible to everyone */}
         <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.line}`, padding: 24 }}>
-          <h2 style={{ margin: "0 0 16px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>💬 שיחה עם הצוות</h2>
+          <h2 style={{ margin: "0 0 16px", fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>💬 היסטוריית שיחה</h2>
 
           {ticket.messages.length === 0 && (
             <div style={{ fontSize: "0.85rem", color: T.inkFaint, marginBottom: 16 }}>אין הודעות עדיין</div>

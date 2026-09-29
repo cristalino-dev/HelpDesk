@@ -447,14 +447,14 @@ export default function OpenTicketPage() {
                   <FieldLabel label="פלטפורמה" hint="באיזה מערכת / מכשיר?" />
                   <select value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
                     style={{ ...inputStyle, background: T.fill2, cursor: "pointer" }}>
-                    {platforms.map(p => <option key={p}>{p}</option>)}
+                    {platforms.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
                   <FieldLabel label="קטגוריה" hint="סוג התקלה" />
                   <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                     style={{ ...inputStyle, background: T.fill2, cursor: "pointer" }}>
-                    {categories.map(c => <option key={c}>{c}</option>)}
+                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>

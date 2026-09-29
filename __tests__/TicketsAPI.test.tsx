@@ -5,6 +5,7 @@ import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { sendMail, mailTicketOpenedStaff, mailTicketClosedParticipant, mailTicketClosedWithReview } from "@/lib/mail"
+import { logInfo } from "@/lib/logError"
 
 // Mock dependencies
 jest.mock("@/auth", () => ({
@@ -57,6 +58,7 @@ jest.mock("@/lib/mail", () => ({
 
 jest.mock("@/lib/logError", () => ({
   logError: jest.fn(),
+  logInfo: jest.fn(),
 }))
 
 jest.mock("@/lib/staffEmails", () => ({
@@ -221,6 +223,43 @@ describe("Tickets API", () => {
         ;(prisma.user.updateMany as jest.Mock).mockRejectedValueOnce(new Error("db down"))
         await expect(post()).resolves.toBeDefined()
         expect(prisma.ticket.create).toHaveBeenCalled()
+      })
+    })
+
+    // v3.99 — a translated page submits the option's TEXT when the option
+    // carries no value of its own, which is how a ticket reached the database
+    // with urgency "urgent". The options carry values now; this is the guard
+    // behind them.
+    describe("a value the field does not allow never reaches the row", () => {
+      const create = async (over: Record<string, unknown>) => {
+        const user = { id: "user-1", email: "user@cristalino.co.il", name: "Test User" }
+        mockSession(user)
+        ;(prisma.user.findUnique as jest.Mock).mockResolvedValue(user)
+        ;(prisma.ticket.create as jest.Mock).mockResolvedValue({ id: "t1", ticketNumber: 1, subject: "s", status: "פתוח" })
+        await POST({ json: async () => ({
+          subject: "s", description: "d", phone: "050", computerName: "PC-1",
+          urgency: "בינוני", category: "אחר", platform: "מחשב אישי", ...over,
+        }) } as never)
+        return (prisma.ticket.create as jest.Mock).mock.calls[0][0].data
+      }
+
+      it("replaces a translated urgency with the default", async () => {
+        expect((await create({ urgency: "urgent" })).urgency).toBe("בינוני")
+      })
+
+      it("keeps a value that is on the list", async () => {
+        expect((await create({ urgency: "דחוף" })).urgency).toBe("דחוף")
+      })
+
+      it("guards the category and the platform too", async () => {
+        const data = await create({ category: "Other", platform: "Personal computer" })
+        expect(data.category).toBe("אחר")
+        expect(data.platform).toBe("מחשב אישי")
+      })
+
+      it("says so in the log, so the next one is noticed", async () => {
+        await create({ urgency: "urgent" })
+        expect(logInfo).toHaveBeenCalledWith(expect.stringContaining("urgent"), "/api/tickets POST")
       })
     })
 

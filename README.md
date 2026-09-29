@@ -1,6 +1,6 @@
 # מערכת helpdesk — Cristalino HelpDesk
 
-**Version 3.98**
+**Version 3.99**
 
 A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees submit IT support tickets through a web app using their Google account. Helpdesk staff and admins manage the queue through dedicated panels.
 
@@ -67,6 +67,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 - **מדפסות** — printer inventory with toner levels, supplier serials, and driver file uploads
 - **ציוד חסר** — the equipment shortage report
 - **Error monitoring** — admin log viewer with live filtering, copy-all and download
+- **מסמכים** — the team's IT documentation, served from the server to admins only; each document opens in a new tab (v3.99)
 
 ### Automation
 

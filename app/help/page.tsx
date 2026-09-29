@@ -303,7 +303,7 @@ export default async function HelpPage() {
               <div>
                 <span style={{ fontWeight: 700, color: T.text, fontSize: "0.9rem", display: "block", marginBottom: "6px" }}>💬 צ׳אט אינטראקטיבי</span>
                 <p style={{ margin: 0, color: T.ink, fontSize: "0.85rem", lineHeight: 1.6 }}>
-                  בתוך מסך הפנייה תמצאו את החלק &quot;שיחה עם הצוות&quot;. כתבו הודעות ישירות לטכנאי המטפל.
+                  בתוך מסך הפנייה תמצאו את החלק &quot;היסטוריית שיחה&quot;. כתבו הודעות ישירות לטכנאי המטפל.
                 </p>
               </div>
               <div style={{ height: "1px", backgroundColor: T.fill }} />

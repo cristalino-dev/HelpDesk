@@ -27,6 +27,22 @@ export type FieldOptions = {
   equipment: string[]
 }
 
+/**
+ * The value a form sent, when the field allows it — otherwise the field's
+ * default (v3.99).
+ *
+ * A dropdown value is not to be trusted just because it came from our own
+ * form. Chrome's page translation rewrites what an `<option>` says, and an
+ * `<option>` carrying no explicit `value` submits its own text: that is how a
+ * ticket was filed with urgency "urgent" instead of "דחוף" — one row the
+ * queue then drew with no colour and the reports could not count. The options
+ * carry values now; this is the second line, for anything else that arrives.
+ */
+export function knownValue(value: unknown, allowed: readonly string[], fallback: string): string {
+  const v = typeof value === "string" ? value.trim() : ""
+  return allowed.includes(v) ? v : fallback
+}
+
 export const DEFAULT_FIELD_OPTIONS: FieldOptions = {
   category:  DEFAULT_CATEGORIES,
   platform:  DEFAULT_PLATFORMS,
