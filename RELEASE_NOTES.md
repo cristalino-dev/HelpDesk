@@ -106,9 +106,23 @@ opens the connection with `set_session(readonly=True)`, so an `INSERT` raises
 prohibition also moved to the top of the skill, covers all four ticket tables,
 and names the symptom so the next reader recognises it.
 
-The remaining hole is the credential itself: the connection string can still
-write, and a script that drops the read-only line is back where we started. A
-`SELECT`-only Postgres role for the agent would close it for good.
+**2026-10-04 — the credential is now read-only too.** The agent had been
+connecting as `dbmasteruser`, the RDS master account that owns all 17 tables:
+full write and DDL on production, held by an AI agent, with only a line of
+prose between it and the data. `scripts/create-readonly-role.mjs` creates the
+Postgres role `helpdesk_readonly` — `CONNECT`, `USAGE`, `SELECT`, nothing
+else — and `ALTER DEFAULT PRIVILEGES FOR ROLE dbmasteruser` so tomorrow's
+`prisma migrate deploy` tables are readable without a second visit. The script
+ends by signing in as the new role and attempting a write; a run that does not
+print `verified: SELECT works, INSERT refused` has not finished.
+
+The agent's credentials file now holds that role. Confirmed through the
+agent's own connection path: `SELECT` returns, and `INSERT` into `Ticket`,
+`TicketMessage`, `TicketNote` and `TicketHistory` plus `CREATE TABLE` all come
+back `permission denied`. The app keeps its own owner login and is untouched.
+
+Duplicate rows can no longer be written. The repair script stays for the
+history already in the table.
 
 ---
 
