@@ -91,6 +91,25 @@ The fix proper is not in this repository: the agent should close tickets
 through the API and not write to the tables, and then there is nothing to
 clean up.
 
+**2026-10-04 — it recurred, and the guard moved into the agent.** REQ-768
+arrived with the same signature (reply twice, note twice, `סגור ← סגור`), and
+the script found four more tickets since: REQ-767 and REQ-768 that day,
+HDTC-722 and REQ-741 on 2026-09-30. Thirteen tickets in all since 2026-06-04.
+
+The agent is the `helpdesk-db` skill, which holds both a psycopg2 connection
+and the automation API key. It already carried a prose warning against
+inserting `TicketMessage` and `TicketNote` directly — three sections below the
+recipe, conditional on `close_ticket()`, and silent about `TicketHistory`. It
+did not hold. The guard is now structural instead: the skill's script template
+opens the connection with `set_session(readonly=True)`, so an `INSERT` raises
+`ReadOnlySqlTransaction` rather than quietly duplicating a conversation. The
+prohibition also moved to the top of the skill, covers all four ticket tables,
+and names the symptom so the next reader recognises it.
+
+The remaining hole is the credential itself: the connection string can still
+write, and a script that drops the read-only line is back where we started. A
+`SELECT`-only Postgres role for the agent would close it for good.
+
 ---
 
 ## v3.98 — הטלפון והמחשב נשמרים בפרופיל בעת הגשה, וחיפוש במדריך המשתמש
