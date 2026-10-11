@@ -5,6 +5,66 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.100 — תחנות הקצה מדווחות על עצמן
+
+**The scripts that build a Cristalino PC now post their transcript to the
+helpdesk, which files it and mails it to the dev address.**
+
+### What changed for users
+
+- **A setup run reports itself.** When `setup-new-pc.ps1`,
+  `setup-without-lenovo.ps1`, `setup-users.ps1` or `setup-workstation.ps1`
+  finishes on a workstation, the run appears in **יומן שגיאות** — `info` for a
+  clean run, `error` for one with failures — and dev@ receives a mail with the
+  verdict, the machine, the duration, the last 80 lines, and the whole
+  transcript attached as a `.log` file.
+
+### What changed for developers
+
+- **`sendMail` takes `attachments`** (`MailAttachment[]`), passed through to
+  nodemailer. The first caller is this one.
+- **`mailProvisioningLog()` lives in `lib/mail.ts`**, with every other
+  template. It was written inside the route first, which the palette guard
+  caught: `__tests__/Palette.test.ts` scans `app/` and `components/` for typed
+  colours, and an email built in a route is inside that scan. Mail belongs in
+  `lib/mail.ts`, where the colours come from `LIGHT` — so a card in the inbox
+  matches the app instead of drifting from it.
+- **`POST /api/provisioning/log` is the only route here with no credential,**
+  and the reason is worth stating: it is called by a PC that is being built
+  from a USB stick and holds nothing of ours yet, so a key would be a key on
+  the USB stick. Since the route SENDS MAIL, an open endpoint is a relay
+  unless it is bounded, and it is bounded four ways:
+  - a **1 MB body cap**, checked on the raw text before anything is parsed, so
+    one request cannot mail a 50 MB attachment (413);
+  - a **per-IP window**, 10 per 10 minutes, so one machine cannot loop (429);
+  - a **global window**, 60 per 10 minutes, because a per-IP limit says
+    nothing about one request each from a thousand addresses, and what is
+    being protected is the dev inbox, not the CPU;
+  - a **constant recipient** — nothing in the payload can redirect the mail.
+
+  Both windows are in process memory, which is exact while the app runs as a
+  single pm2 fork; a second instance would need a shared counter. The
+  tradeoff is deliberate: a dropped provisioning log is a log, not a ticket.
+- **Validation that can actually fire.** The first version checked
+  `if (!logContent && !computerName)` *after* applying defaults — and
+  `computerName` defaults to `"UNKNOWN-PC"`, which is truthy, so the guard was
+  unreachable and an empty `{}` produced a log row and an email. The check now
+  reads the body. Malformed JSON answers 400 instead of 500.
+- **The attachment name is a filename, never a path.** A computer name
+  arrives from the workstation; `../../etc/passwd` becomes `etcpasswd`, with
+  runs of dots collapsed so stripping the separators cannot leave `....etc`.
+- **Tests:** 10 cases covering the record, the mail, the failure verdict, the
+  filename, and each of 400 / 400-malformed / 413 / 429-per-IP /
+  429-global. The suite is 92 suites / 1,569 tests.
+
+**Not in this release:** the workstation scripts themselves. They live in
+`scripts/` but are git-ignored — they carry hard-coded local administrator
+passwords, and a repository is the one place a password cannot be taken back
+out of. Note that `deploy.sh` tars `scripts/` wholesale, so they do reach the
+server; excluding them is a separate change.
+
+---
+
 ## v3.99 — "urgent" במקום "דחוף", מדור מסמכים, והיסטוריית שיחה
 
 **A ticket reached the queue with the urgency "urgent". The admin console gains

@@ -81,6 +81,14 @@ const C = {
   text2:    LIGHT.text2,
   text3:    LIGHT.text3,      // labels, captions, secondary detail
   muted:    LIGHT.muted,      // footer
+  okBg:     LIGHT.greenSBg,   // a run that succeeded
+  okBorder: LIGHT.greenSBorder,
+  okFg:     LIGHT.greenSFgDeep,
+  badBg:    LIGHT.redBg,      // a run that failed
+  badBorder: LIGHT.redBorder,
+  badFg:    LIGHT.redFgDeep,
+  logBg:    LIGHT.consoleBg,  // the transcript tail, as a terminal
+  logFg:    LIGHT.consoleFg,
 } as const
 
 /**
@@ -108,10 +116,17 @@ function createTransporter() {
   })
 }
 
-interface MailOptions {
+export interface MailAttachment {
+  filename: string
+  content: string | Buffer
+  contentType?: string
+}
+
+export interface MailOptions {
   to: string | string[]
   subject: string
   html: string
+  attachments?: MailAttachment[]
 }
 
 /** Total attempts, and the waits between them. */
@@ -170,7 +185,7 @@ export function devRedirect(
   return { recipients: [redirect], subject: `[DEV] ${subject}`, html: notice + html }
 }
 
-export async function sendMail({ to, subject: requestedSubject, html: requestedHtml }: MailOptions) {
+export async function sendMail({ to, subject: requestedSubject, html: requestedHtml, attachments }: MailOptions) {
   const transporter = createTransporter()
   if (!transporter) {
     console.warn("[mail] SMTP_USER / SMTP_PASS not set — skipping email")
@@ -198,7 +213,7 @@ export async function sendMail({ to, subject: requestedSubject, html: requestedH
   // temporary; give up immediately on the ones it calls permanent.
   for (let attempt = 1; attempt <= MAIL_ATTEMPTS; attempt++) {
     try {
-      await transporter.sendMail({ from: FROM, to: recipients, subject, html, headers: AUTOMATED_HEADERS })
+      await transporter.sendMail({ from: FROM, to: recipients, subject, html, attachments, headers: AUTOMATED_HEADERS })
       console.log(`[mail] sent "${subject}" → ${recipients.join(", ")}`)
       return
     } catch (err) {
@@ -669,4 +684,55 @@ export function mailNoteMention(t: TicketInfo, noteContent: string, mentionedBy:
     </div>
     <a class="btn" href="${url}">פתח פנייה ←</a>
   `, t.ticketNumber, t.type)
+}
+
+// ── Workstation provisioning ─────────────────────────────────────────────────
+
+export interface ProvisioningRun {
+  computerName: string
+  scriptName:   string
+  status:       string
+  duration:     string
+  errorCount:   number
+  /** The tail of the transcript. The whole thing travels as the attachment. */
+  tail:         string
+  /** Set when the transcript was longer than the endpoint accepts. */
+  truncated:    boolean
+  failed:       boolean
+}
+
+/**
+ * Sent to the dev address when a setup script finishes on an endpoint PC
+ * (v3.100). The full transcript rides along as a .log attachment; what is in
+ * the body is the verdict plus the last lines, which is what tells you whether
+ * to open the attachment at all.
+ *
+ * Every value here was typed by a machine we do not control — the computer
+ * name comes from the workstation and the transcript from whatever the script
+ * printed — so all of it goes through `esc()`, same as a ticket subject.
+ */
+export function mailProvisioningLog(r: ProvisioningRun) {
+  const chip = r.failed
+    ? `background:${C.badBg};color:${C.badFg};border:1px solid ${C.badBorder}`
+    : `background:${C.okBg};color:${C.okFg};border:1px solid ${C.okBorder}`
+  const verdict = r.failed ? "נכשל / אותרו שגיאות" : "הסתיים בהצלחה"
+
+  return wrap(`
+    <div class="header">${r.failed ? "🛠️" : "✅"} הרצת סקריפט על תחנת קצה</div>
+    <div style="margin:0 0 18px">${badge(`${r.status} — ${verdict}`, chip)}</div>
+    ${details([
+      ["מחשב יעד",      `<strong>${esc(r.computerName)}</strong>`],
+      ["שם הסקריפט",    `<span style="font-family:'Courier New',Courier,monospace">${esc(r.scriptName)}</span>`],
+      ["שגיאות שאותרו", r.errorCount > 0
+        ? `<strong style="color:${C.badFg}">${esc(r.errorCount)}</strong>`
+        : "0"],
+      ["משך הרצה",      esc(r.duration)],
+      ["זמן סיום",      esc(new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }))],
+    ])}
+    <div class="label" style="margin-bottom:6px">סוף הלוג — הקובץ המלא מצורף</div>
+    <div dir="ltr" style="direction:ltr;text-align:left;background:${C.logBg};color:${C.logFg};padding:14px 16px;border-radius:8px;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word">${esc(r.tail)}</div>
+    ${r.truncated
+      ? `<p style="font-size:12px;color:${C.badFg};margin:10px 0 0">הלוג היה ארוך מהמותר ונחתך. הקובץ המצורף מכיל את החלק שהתקבל בלבד.</p>`
+      : ""}
+  `)
 }

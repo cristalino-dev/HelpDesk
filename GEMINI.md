@@ -1,12 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.99** · Updated 2026-09-29
-
-> ⚠️ **IN PROGRESS (2026-09-14) — Claude is working on branch `claude/roadmap` (worktree `.claude/worktrees/roadmap`).**
-> Live: **v3.83**–**v3.92** (mail replies, bulk editing, attachments, no lost mail, a dev copy, tickets and
-> requests, an API for other programs and its documentation page, the phone layout, the close button reads as an
-> action, merging tickets — deployed with its migration 2026-09-16, its dialog fixed in v3.93). Before doing anything, read **HANDOFF.md → "▶ RESUME HERE"** in the repository root
-> (git-ignored). Remove this banner when the list is done.
+> **Current version: 3.100** · Updated 2026-10-11
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -48,7 +42,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Employee portal (`/dashboard`)** — submit tickets, view own tickets, search, filter, re-open within 4 weeks, update profile
 - **Staff portal (`/tickets`)** — all tickets with search, sort, stat-card filters (weekly/total toggle), inline expand/edit, paste images into notes
 - **Viewer portal (`/tickets/view`)** — read-only ticket list
-- **Admin portal (`/admin`)** — eight tabs: תור פניות · ניהול משתמשים · יומן שגיאות · שדות מערכת · רישוי · מדפסות · ציוד חסר · API
+- **Admin portal (`/admin`)** — nine tabs: תור פניות · ניהול משתמשים · יומן שגיאות · שדות מערכת · רישוי · מדפסות · ציוד חסר · API · מסמכים
 - **Ticket detail (`/tickets/<cuid>`)** — notes, messages, attachments, equipment lines, audit timeline, close button, copy-link button. Polls by revision signature so it stays live without flicker
 - **Four-state lifecycle** — פתוח / בטיפול / **בהמתנה** / סגור. בהמתנה requires a `holdReason`, cleared automatically on reinstatement
 - **Ticket deletion** — admins only, two-step confirm, permanent; the deletion is written to the `Log` table because the ticket's own audit trail dies with it
@@ -57,9 +51,10 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Merging tickets (v3.92)** — staff merge duplicates from a ticket's page or the queue's selection bar. The ticket that stays takes the others' messages, notes and files; the others close, freeze and point to it; their owners become **participants** of it — they see it on their dashboard, write in it and get its mail. `lib/ticketMerge.ts`, `lib/ticketAccess.ts`
 - **Full-text search** — every page; typing a ticket number (`494`, `#494`, `HDTC-494`, `hdtc494`) always lands on that ticket even when the view is filtered, and a comma-separated list (`133,245`, as many as are typed) shows exactly those tickets (v3.96, `lib/ticketSearch.ts`)
 - **Email automation** — new ticket, status change, staff @mention, closure + rating request, daily digest
-- **Email-to-ticket ingestion** — inbound mail whose subject contains "ticket" becomes an URGENT ticket via IMAP polling (see §6)
+- **Email-to-ticket ingestion** — every inbound mail to helpdesk@ opens a ticket; "ticket" in the subject makes it urgent; replies to notifications thread as messages (v3.82, v3.83, see §6)
 - **Service ratings** — 1–5 stars with comment; admin review dashboard
 - **Error logging** — ErrorBoundary + ClientErrorHandler + server `logError()` → `Log` table, with stale-chunk failures filtered out
+- **Workstation provisioning logs (v3.100)** — the PC setup scripts post their transcript to `POST /api/provisioning/log`; the run lands in the `Log` table and the whole transcript is mailed to dev@ as a `.log` attachment. The one route here with no credential, because it is called by a machine being built — see rule 16
 - **IT documentation shelf (v3.99)** — `/admin` → **מסמכים**, admins only: the numbered infrastructure set and the working guides, each opening in a new tab. The files live in `uploads/it-docs/` on the server (git-ignored, outside the deploy archive); `lib/docs.ts` reads a filename into a title, a group and an order, and `GET /api/admin/docs[/name]` serves them. Adding a document is copying a file in
 - **API for other programs (v3.88)** — `/api/v1`: list and query tickets and requests by any field, read one in full, open one, change it, write to its owner, add a note. A key per program (read, or read and write), created and revoked in the admin console. documentation page at `/api/v1/docs` (v3.89); OpenAPI at `/api/v1/openapi.json`; guide in [`docs/API.md`](docs/API.md)
 - **Automation API** — `POST /api/automation/close` closes a ticket with a Bearer key; idempotent
@@ -84,7 +79,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,417 tests across 84 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,569 tests across 92 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -150,8 +145,9 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 13. **`/api/v1` is a contract — additive only** (v3.88). Other programs are built against it: within v1 never rename, remove or retype a field, a parameter or an error code — add new optional ones. A breaking change is `/api/v2`, beside v1. A new route or method goes into `lib/openapi.ts` in the same change (`__tests__/openapi.test.ts` fails otherwise).
 14. **A dropdown submits the value in the code, not the text on screen** (v3.99) — every `<option>` carries an explicit `value`, and `POST /api/tickets` puts urgency, category and platform through `knownValue()`. Chrome's page translation rewrites an option's text, and an option without a value submits its text: that is how HDTC-738 was filed with urgency `urgent`, a row the queue drew without a colour and the reports could not count. `__tests__/selectValues.test.ts` fails if an option loses its value.
 15. **The documents shelf is server-only and admin-only** (v3.99) — `uploads/it-docs/` is git-ignored and outside the deploy archive: internal documents, one of them a security runbook, are not in the repository and survive deploys. Both routes check `isAdmin`, and a document name is a filename, never a path (`lib/docStorage.ts`).
-16. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
-17. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
+16. **An endpoint with no key is an endpoint with limits** (v3.100) — `POST /api/provisioning/log` is the only route here that takes no credential, because the PC calling it is being built from a USB stick and has nothing of ours on it yet; a key would simply be a key on the USB stick. It SENDS MAIL, so it is bounded instead: a 1 MB body cap, a per-IP window, a **global** window — a per-IP limit is no defence against one request each from a thousand addresses, and it is the dev inbox being protected — and a recipient constant that no payload can redirect. Do not add a second keyless route without the same four.
+17. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
+18. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
 
 ---
 
@@ -189,6 +185,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.100 | The PC setup scripts report home. `POST /api/provisioning/log` records the run and mails the transcript to dev@ as an attachment; `sendMail` gained `attachments`. It takes no key — a key would live on the USB stick — so it is bounded instead: a 1 MB body cap, a per-IP window and a global one, and a recipient nothing in the payload can change |
 | 3.99 | A ticket was filed with urgency `urgent`: an `<option>` without a `value` submits its text, and Chrome had translated the page. Every option carries its value now, and the server replaces anything the field does not allow. New **מסמכים** tab for admins — the IT documentation from `uploads/it-docs/`, each document in a new tab. "שיחה עם המגיש" became "היסטוריית שיחה" |
 | 3.98 | Filing a ticket saves its phone and machine to the owner's profile at that moment — a correction too, not only an empty column, and awaited rather than left to `after()`. An admin filing on somebody's behalf still only fills what is empty. The user guide gains a "חיפוש פניות" section |
 | 3.97 | The support team's guide documents the search field in one section: what each list searches, every ticket-number form, the comma-separated list from v3.96, and the console's other search boxes |
@@ -263,4 +260,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.99 — updated 2026-09-29.*
+*v3.100 — updated 2026-10-11.*

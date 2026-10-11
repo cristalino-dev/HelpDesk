@@ -15,6 +15,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import ReportsPage from "@/app/admin/reports/page"
 import { useSession } from "next-auth/react"
 import { axisMax } from "@/app/admin/reports/TimelineChart"
+import { civilDay, addDays } from "@/lib/reports"
 
 const push = jest.fn()
 
@@ -34,12 +35,14 @@ global.fetch = jest.fn()
  *  midnight boundary, so the test can't drift with the offset. */
 const at = (day: string) => `${day}T09:00:00.000Z`
 
+const today = civilDay(new Date())
+
 const tickets = [
-  { ticketNumber: 1, createdAt: at("2026-09-01"), closedAt: at("2026-09-02"), category: "תוכנה", urgency: "דחוף",   platform: "מחשב אישי", status: "סגור", assignedTo: "a@b.c" },
-  { ticketNumber: 2, createdAt: at("2026-09-01"), closedAt: null,             category: "תוכנה", urgency: "בינוני", platform: "מחשב אישי", status: "פתוח", assignedTo: "a@b.c" },
-  { ticketNumber: 3, createdAt: at("2026-09-02"), closedAt: null,             category: "חומרה", urgency: "נמוך",   platform: "נייד",      status: "פתוח", assignedTo: "d@e.f" },
+  { ticketNumber: 1, createdAt: at(addDays(today, -2)), closedAt: at(addDays(today, -1)), category: "תוכנה", urgency: "דחוף",   platform: "מחשב אישי", status: "סגור", assignedTo: "a@b.c" },
+  { ticketNumber: 2, createdAt: at(addDays(today, -2)), closedAt: null,                   category: "תוכנה", urgency: "בינוני", platform: "מחשב אישי", status: "פתוח", assignedTo: "a@b.c" },
+  { ticketNumber: 3, createdAt: at(addDays(today, -1)), closedAt: null,                   category: "חומרה", urgency: "נמוך",   platform: "נייד",      status: "פתוח", assignedTo: "d@e.f" },
   // Well outside the default 30-day window, to prove the range actually scopes.
-  { ticketNumber: 4, createdAt: at("2020-01-01"), closedAt: null,             category: "אחר",   urgency: "נמוך",   platform: "נייד",      status: "פתוח", assignedTo: "d@e.f" },
+  { ticketNumber: 4, createdAt: at("2020-01-01"),       closedAt: null,                   category: "אחר",   urgency: "נמוך",   platform: "נייד",      status: "פתוח", assignedTo: "d@e.f" },
 ]
 
 const admin = { data: { user: { name: "אלון", email: "alon@cristalino.co.il", isAdmin: true } }, status: "authenticated" }
@@ -47,7 +50,7 @@ const admin = { data: { user: { name: "אלון", email: "alon@cristalino.co.il"
 beforeEach(() => {
   jest.clearAllMocks()
   ;(useSession as jest.Mock).mockReturnValue(admin)
-  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ tickets, generatedAt: at("2026-09-03") }) })
+  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ tickets, generatedAt: at(today) }) })
 })
 
 const ready = async () => { await waitFor(() => expect(screen.getByText("ציר זמן")).toBeInTheDocument()) }

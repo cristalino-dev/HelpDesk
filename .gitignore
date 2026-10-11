@@ -67,3 +67,15 @@ uploads/
 # Local Claude Code settings, tooling worktrees, and scratch work
 .claude/
 scratch/
+
+# Workstation provisioning scripts (v3.100). They run on a PC being built, not
+# on the server, and they carry hard-coded local administrator passwords - a
+# repository is the one place a password cannot be taken back out of.
+scripts/setup-new-pc.ps1
+scripts/setup-users.ps1
+scripts/setup-without-lenovo.ps1
+scripts/setup-workstation.ps1
+scripts/update-all.ps1
+scripts/sync-to-usb.ps1
+scripts/Run-*.bat
+scripts/without-lenovo.bat
