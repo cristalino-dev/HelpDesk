@@ -529,7 +529,12 @@ describe("Reline sends back their case number", () => {
     expect(body.relined).toEqual([862])
     expect(body.created).toBe(0)
     expect(prisma.ticket.create).not.toHaveBeenCalled()
-    expect(prisma.ticket.update).toHaveBeenCalledWith({ where: { id: "t862" }, data: { relineRef: "269311" } })
+    // The time their answer arrived is recorded with it (v3.103): "replied in
+    // 20 minutes" and "nothing after nine days" are both worth seeing.
+    expect(prisma.ticket.update).toHaveBeenCalledWith({
+      where: { id: "t862" },
+      data: { relineRef: "269311", relineRepliedAt: expect.any(Date) },
+    })
     expect(prisma.ticketHistory.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ field: "relineRef", newValue: "269311" }),
     }))

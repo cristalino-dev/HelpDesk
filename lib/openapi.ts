@@ -9,6 +9,7 @@
 
 import { MAX_LIMIT, DEFAULT_LIMIT, SORT_FIELDS } from "@/lib/ticketQuery"
 import { RATE_LIMIT_PER_MINUTE } from "@/lib/apiKeys"
+import { STATUSES } from "@/lib/ticketStatus"
 
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` })
 const json = (schema: object) => ({ "application/json": { schema } })
@@ -71,7 +72,7 @@ export function openApiDocument() {
             type: { type: "string", enum: ["ticket", "request"] },
             subject: { type: "string" },
             description: { type: "string" },
-            status: { type: "string", enum: ["פתוח", "בטיפול", "בהמתנה", "סגור"] },
+            status: { type: "string", enum: [...STATUSES] },
             holdReason: { type: ["string", "null"], description: "Why it is בהמתנה." },
             urgency: { type: "string", description: "One of GET /api/v1/options → urgency." },
             category: { type: "string" },
@@ -160,7 +161,7 @@ export function openApiDocument() {
           type: "object", additionalProperties: false, minProperties: 1,
           description: "Only what is sent changes. The rules of a staff edit apply: closing sets urgency נמוך; בהמתנה needs holdReason; a leaving-employee ticket with gear still out does not close (409).",
           properties: {
-            status: { type: "string", enum: ["פתוח", "בטיפול", "בהמתנה", "סגור"] },
+            status: { type: "string", enum: [...STATUSES] },
             holdReason: { type: "string" },
             urgency: { type: "string" }, category: { type: "string" }, platform: { type: "string" },
             type: { type: "string", enum: ["ticket", "request"] },

@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.102** · Updated 2026-10-19
+> **Current version: 3.103** · Updated 2026-10-19
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -44,7 +44,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Viewer portal (`/tickets/view`)** — read-only ticket list
 - **Admin portal (`/admin`)** — nine tabs: תור פניות · ניהול משתמשים · יומן שגיאות · שדות מערכת · רישוי · מדפסות · ציוד חסר · API · מסמכים
 - **Ticket detail (`/tickets/<cuid>`)** — notes, messages, attachments, equipment lines, audit timeline, close button, copy-link button. Polls by revision signature so it stays live without flicker
-- **Four-state lifecycle** — פתוח / בטיפול / **בהמתנה** / סגור. בהמתנה requires a `holdReason`, cleared automatically on reinstatement
+- **Five-state lifecycle** — פתוח / בטיפול / **בהמתנה** / **ממתין לגורם חיצוני** / סגור. בהמתנה requires a `holdReason`; ממתין לגורם חיצוני is set by an escalation to Reline (v3.103). The list lives in `lib/ticketStatus.ts` — it used to be typed out in seven places and two had drifted
 - **Ticket deletion** — admins only, two-step confirm, permanent; the deletion is written to the `Log` table because the ticket's own audit trail dies with it
 - **Change the submitter** — admins can move a ticket to a different registered user (`ownerEmail` on PATCH), after confirming
 - **Open on behalf of** — admins can file a ticket for someone who phoned in, including a person who has never signed in
@@ -81,7 +81,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Auth:** NextAuth v5.0.0-beta.30 (Google provider only).
 - **ORM:** Prisma 5.22.0 + PostgreSQL (AWS RDS).
 - **Styling:** inline React styles; design tokens in `lib/theme.ts`, which are `var(--c-…)` references resolved from `lib/palette.ts` (light + dark). Only `globals.css` uses Tailwind.
-- **Tests:** Jest 30 + React Testing Library 16 — **1,612 tests across 96 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
+- **Tests:** Jest 30 + React Testing Library 16 — **1,626 tests across 97 suites**, gating `npm run build` locally (the server deploy runs `next build` directly, so jest is not a server-side gate).
 - **Hosting:** AWS Lightsail Linux (Ubuntu 24.04 LTS).
 - **Process manager:** PM2 with auto-restart and boot persistence.
 - **Deployment:** SSH + SCP via `deploy.sh`. Build runs strictly on the target server.
@@ -147,11 +147,12 @@ Field-by-field reference with types, defaults and indexes: [`docs/ARCHITECTURE.m
 13. **`/api/v1` is a contract — additive only** (v3.88). Other programs are built against it: within v1 never rename, remove or retype a field, a parameter or an error code — add new optional ones. A breaking change is `/api/v2`, beside v1. A new route or method goes into `lib/openapi.ts` in the same change (`__tests__/openapi.test.ts` fails otherwise).
 14. **A dropdown submits the value in the code, not the text on screen** (v3.99) — every `<option>` carries an explicit `value`, and `POST /api/tickets` puts urgency, category and platform through `knownValue()`. Chrome's page translation rewrites an option's text, and an option without a value submits its text: that is how HDTC-738 was filed with urgency `urgent`, a row the queue drew without a colour and the reports could not count. `__tests__/selectValues.test.ts` fails if an option loses its value.
 15. **The documents shelf is server-only and admin-only** (v3.99) — `uploads/it-docs/` is git-ignored and outside the deploy archive: internal documents, one of them a security runbook, are not in the repository and survive deploys. Both routes check `isAdmin`, and a document name is a filename, never a path (`lib/docStorage.ts`).
-16. **Reline's acknowledgement is handled before the reply branch** (v3.102) — our own label is in their subject, which is how their case number is matched back to a ticket; so without that ordering the reply branch would read their mail as a reply, find `support@reline.co.il` is neither owner nor staff, and open a duplicate ticket for every escalation sent. `isRelineSender` matches the domain exactly — a lookalike like `notreline.co.il` must not be able to write a reference onto a ticket.
-17. **One person can have more than one address** (v3.101) — `findUserByEmail` checks `User.email` first and `UserEmail` second, so a real account can never be shadowed by somebody's alias. Identity is compared **by row, not by string**: the mail ingest asks `target.userId === senderUser.id`, because an address comparison tells a person replying from their other mailbox that they do not own their own ticket, and opens a duplicate. REQ-862 was a user reporting that 24 of his tickets had vanished; they were filed under the address he mails from, and he signs in with another.
-18. **An endpoint with no key is an endpoint with limits** (v3.100) — `POST /api/provisioning/log` is the only route here that takes no credential, because the PC calling it is being built from a USB stick and has nothing of ours on it yet; a key would simply be a key on the USB stick. It SENDS MAIL, so it is bounded instead: a 1 MB body cap, a per-IP window, a **global** window — a per-IP limit is no defence against one request each from a thousand addresses, and it is the dev inbox being protected — and a recipient constant that no payload can redirect. Do not add a second keyless route without the same four.
-19. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
-20. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
+16. **A parked ticket does not age** (v3.103) — `pausesTheClock()` keeps בהמתנה, ממתין לגורם חיצוני and סגור out of the stale report. "Stale" measures OUR response time, and a ticket sitting with a supplier is waiting on them; counting it makes the queue look neglected for work somebody else has not returned.
+17. **Reline's acknowledgement is handled before the reply branch** (v3.102) — our own label is in their subject, which is how their case number is matched back to a ticket; so without that ordering the reply branch would read their mail as a reply, find `support@reline.co.il` is neither owner nor staff, and open a duplicate ticket for every escalation sent. `isRelineSender` matches the domain exactly — a lookalike like `notreline.co.il` must not be able to write a reference onto a ticket.
+18. **One person can have more than one address** (v3.101) — `findUserByEmail` checks `User.email` first and `UserEmail` second, so a real account can never be shadowed by somebody's alias. Identity is compared **by row, not by string**: the mail ingest asks `target.userId === senderUser.id`, because an address comparison tells a person replying from their other mailbox that they do not own their own ticket, and opens a duplicate. REQ-862 was a user reporting that 24 of his tickets had vanished; they were filed under the address he mails from, and he signs in with another.
+19. **An endpoint with no key is an endpoint with limits** (v3.100) — `POST /api/provisioning/log` is the only route here that takes no credential, because the PC calling it is being built from a USB stick and has nothing of ours on it yet; a key would simply be a key on the USB stick. It SENDS MAIL, so it is bounded instead: a 1 MB body cap, a per-IP window, a **global** window — a per-IP limit is no defence against one request each from a thousand addresses, and it is the dev inbox being protected — and a recipient constant that no payload can redirect. Do not add a second keyless route without the same four.
+20. **A merged ticket is frozen** (v3.92) — every write route answers 409 with `mergedError()`, staff included: reopening it would split the conversation again. There is no unmerge. Reports and the export leave merged tickets out; mail intake passes a reply to the old number on to the ticket it went into.
+21. **Access to a ticket is `canSeeTicket()`** (v3.92) — staff, the owner, or a participant (`lib/ticketAccess.ts`). Never an inline `ticket.user.email === session.user.email` in a new route; a participant would be locked out of the ticket they follow.
 
 ---
 
@@ -189,6 +190,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.103 | An escalation now parks the ticket: new status **ממתין לגורם חיצוני**, and the stale clock stops while somebody else holds it. The ticket shows when it was opened, when it went to Reline and when they answered — and because that answer may never come, staff can type the number in by hand |
 | 3.102 | A ticket can be escalated to Reline from its page, behind a confirmation that shows exactly what leaves the company. Their acknowledgement carries their case number; the intake reads it into `relineRef`, and `Reline #269311` then appears wherever the ticket is listed |
 | 3.101 | A user reported that 24 of his tickets were missing. They were not: he mails the helpdesk from a sister company's address and signs in with his Google one, so he was two accounts. `UserEmail` lets an admin list the second address, and merge the row it had created |
 | 3.100 | The PC setup scripts report home. `POST /api/provisioning/log` records the run and mails the transcript to dev@ as an attachment; `sendMail` gained `attachments`. It takes no key — a key would live on the USB stick — so it is bounded instead: a 1 MB body cap, a per-IP window and a global one, and a recipient nothing in the payload can change |
@@ -266,4 +268,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.102 — updated 2026-10-19.*
+*v3.103 — updated 2026-10-19.*

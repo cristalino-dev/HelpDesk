@@ -18,6 +18,7 @@ import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
 import { ticketLabel, TICKET_TYPES, TYPE_LABEL, normalizeType } from "@/lib/ticketType"
 import { relineContact, relineLabel } from "@/lib/reline"
+import { STATUSES, WAITING_EXTERNAL } from "@/lib/ticketStatus"
 import { useIsMobile } from "@/lib/useIsMobile"
 import Logo from "@/components/Logo"
 import MergeTicketsModal, { type MergeResult } from "@/components/MergeTicketsModal"
@@ -32,7 +33,6 @@ const STATUS_STYLE: Record<string, React.CSSProperties> = Object.fromEntries(
   Object.entries(STATUS).map(([k, v]) => [k, { background: v.bg, color: v.fg }])
 )
 
-const STATUSES  = ["פתוח", "בטיפול", "בהמתנה", "סגור"]
 
 function formatDate(s: string) {
   return new Date(s).toLocaleString("he-IL", { dateStyle: "medium", timeStyle: "short" })
@@ -83,6 +83,10 @@ export default function TicketDetailPage() {
   const [relineAsk, setRelineAsk]     = useState(false)
   const [relineBusy, setRelineBusy]   = useState(false)
   const [relineError, setRelineError] = useState<string | null>(null)
+  // Their acknowledgement may never arrive, so the number can be typed in.
+  const [refInput, setRefInput]       = useState("")
+  const [refBusy, setRefBusy]         = useState(false)
+  const [refError, setRefError]       = useState<string | null>(null)
   /** User id of the participant being taken off, while the request runs. */
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null)
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
@@ -396,6 +400,26 @@ export default function TicketDetailPage() {
    * pointer — go to the one that carries on. When it is the one that stays,
    * reload: the moved messages, notes and files are here now.
    */
+  /** Record Reline's number by hand, for when no acknowledgement arrives. */
+  const saveRelineRef = async (ref: string | null) => {
+    if (!ticket) return
+    setRefBusy(true)
+    setRefError(null)
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/reline`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setRefError(data.error ?? "שמירת המספר נכשלה"); return }
+      setRefInput("")
+      await load()
+    } finally {
+      setRefBusy(false)
+    }
+  }
+
   /** Escalate to Reline. Confirmed first — see `relineAsk`. */
   const sendToReline = async () => {
     if (!ticket) return
@@ -774,6 +798,68 @@ export default function TicketDetailPage() {
       )}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {/* ── Reline (v3.102, times in v3.103) ──
+            The three moments that matter, in the order they happen: when the
+            ticket was reported, when it left for Reline, and when they
+            answered. The last may never come — their mail can go to a person
+            instead of to helpdesk@, or not arrive at all — so the elapsed
+            time is shown and the number can be typed in. */}
+        {(ticket.relineSentAt || ticket.relineRef) && (
+          <div style={{ padding: "14px 18px", background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+              <span style={{ fontSize: "1.1rem" }}>↗</span>
+              <span style={{ fontSize: "0.92rem", fontWeight: 800, color: T.amberFgDeep }}>
+                {ticket.relineRef ? relineLabel(ticket.relineRef) : "נשלח ל-Reline — טרם התקבלה תשובה"}
+              </span>
+              {!ticket.relineRef && ticket.relineSentAt && (
+                <span style={{ fontSize: "0.78rem", color: T.ink }}>
+                  ({formatWorkdays(workdaysBetween(ticket.relineSentAt))} מאז השליחה)
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10, fontSize: "0.8rem" }}>
+              <div>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, color: T.inkMuted, letterSpacing: "0.05em" }}>הפנייה נפתחה</div>
+                <div style={{ color: T.ink, marginTop: 2 }}>{formatDate(ticket.createdAt)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, color: T.inkMuted, letterSpacing: "0.05em" }}>הועברה ל-Reline</div>
+                <div style={{ color: T.ink, marginTop: 2 }}>{ticket.relineSentAt ? formatDate(ticket.relineSentAt) : "—"}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: "0.7rem", fontWeight: 700, color: T.inkMuted, letterSpacing: "0.05em" }}>התקבלה תשובה</div>
+                <div style={{ color: T.ink, marginTop: 2 }}>{ticket.relineRepliedAt ? formatDate(ticket.relineRepliedAt) : "טרם התקבלה"}</div>
+              </div>
+            </div>
+
+            {isStaff && !ticket.relineRef && (
+              <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <input
+                  value={refInput}
+                  onChange={e => { setRefInput(e.target.value); setRefError(null) }}
+                  placeholder="מספר הפנייה אצל Reline"
+                  inputMode="numeric"
+                  style={{ flex: "1 1 180px", padding: "7px 11px", border: `1px solid ${T.lineStrong}`, borderRadius: 8, fontSize: "0.85rem", boxSizing: "border-box", direction: "ltr", textAlign: "left" }}
+                />
+                <button onClick={() => saveRelineRef(refInput.trim())} disabled={refBusy || !refInput.trim()}
+                  style={{ background: T.inverseBg, color: T.inverseText, fontWeight: 700, padding: "8px 16px", borderRadius: 8, border: "none", cursor: refBusy || !refInput.trim() ? "not-allowed" : "pointer", fontSize: "0.82rem", whiteSpace: "nowrap" }}>
+                  {refBusy ? "שומר..." : "שמור מספר"}
+                </button>
+              </div>
+            )}
+            {isStaff && ticket.relineRef && (
+              <button onClick={() => saveRelineRef(null)} disabled={refBusy}
+                style={{ marginTop: 10, background: "none", border: "none", color: T.inkFaint, cursor: "pointer", fontSize: "0.76rem", textDecoration: "underline", padding: 0 }}>
+                הסר את המספר
+              </button>
+            )}
+            {refError && (
+              <div style={{ marginTop: 8, fontSize: "0.78rem", color: T.redFgDeep }}>{refError}</div>
+            )}
+          </div>
+        )}
 
         {/* Merged banner — where the conversation went (v3.92) */}
         {mergedInto && (

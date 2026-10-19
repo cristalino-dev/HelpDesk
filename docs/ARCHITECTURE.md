@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-10-19 · v3.102
+> Version 2.0 · Last updated 2026-10-19 · v3.103
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -112,7 +112,7 @@ Two categories carry extra behaviour:
 | Mail (outbound) | nodemailer | 7.x | Google Workspace SMTP |
 | Mail (inbound) | imapflow + mailparser | 1.4.x / 3.9.x | Email-to-ticket polling |
 | HTTP client | axios | 1.14.x | |
-| Testing | Jest + RTL | 30 + 16 | **1,612 tests across 96 suites** — they gate `npm run build` locally |
+| Testing | Jest + RTL | 30 + 16 | **1,626 tests across 97 suites** — they gate `npm run build` locally |
 | Hosting | Ubuntu 24.04 (AWS Lightsail) | — | PM2 process manager |
 | Deploy | SSH + SCP | — | `deploy.sh` (bash) and `deploy.ps1` (Windows PowerShell) — the build runs on the server. Both share `scripts/deploy-remote.sh` and `scripts/maintenance.template.html`, so the entry points cannot drift. `DEPLOY_KEY`/`DEPLOY_HOST`/`DEPLOY_USER` override the defaults, which is how `.github/workflows/deploy.yml` runs it from a runner. `bash deploy.sh dev` / `-Target dev` deploys the dev copy (v3.86, §11); `deploy-test.ps1` / `deploy-test.sh` wrap that with the tests and a check of the version that answers |
 
@@ -538,7 +538,7 @@ prisma/
 scripts/
 └── migrate-attachments-to-disk.js   One-shot v3.48 backfill
 
-__tests__/                  96 suites, 1,612 tests — gate npm run build
+__tests__/                  97 suites, 1,626 tests — gate npm run build
 ```
 
 > **Every entry point that receives an email address from outside must resolve
@@ -985,6 +985,7 @@ emailed link is unguessable, so only the recipient can reach the URL.
 |---|---|---|---|
 | GET/POST | `/api/auth/[...nextauth]` | — | NextAuth OAuth handler |
 | POST | `/api/logs` | — | Write a telemetry/error entry (+ 30-day cleanup). Deliberately open — the client must be able to report errors even when auth is what broke |
+| PATCH | `/api/tickets/[id]/reline` | **Staff** | Set or clear Reline's case number by hand, for when their acknowledgement never arrives. `{ ref }` digits only, `null` clears. The history row names the staff member, so it is never mistaken for one Reline sent (v3.103) |
 | POST | `/api/tickets/[id]/reline` | **Staff** | Mail the ticket to `support@reline.co.il` with the contact details, and record it. 409 on a merged ticket. Their reply carries the case number, which the intake writes to `relineRef` (v3.102) |
 | POST | `/api/users/emails` | **Admin** | Add a secondary address to a user. 409 `{ needsMerge, owner, plan }` when the address is already an account — repeat with `merge: true` to fold that row in (v3.101) |
 | DELETE | `/api/users/emails` | **Admin** | Remove one. Nothing moves back; it only stops future mail resolving there (v3.101) |

@@ -17,6 +17,7 @@ import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOpt
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { STATUSES } from "@/lib/ticketStatus"
 import { useSla } from "@/lib/useSla"
 import RequestsDivider from "@/components/RequestsDivider"
 import AppHeader from "@/components/AppHeader"
@@ -864,7 +865,7 @@ export default function TicketsPage() {
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                             {([
                               { label: "דחיפות",   key: "urgency",  opts: fieldUrgencies },
-                              { label: "סטטוס",    key: "status",   opts: ["פתוח", "בטיפול", "סגור"] },
+                              { label: "סטטוס",    key: "status",   opts: [...STATUSES] },
                               { label: "קטגוריה",  key: "category", opts: fieldCategories },
                               { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
                             ]).map(({ label, key, opts }) => (
@@ -924,7 +925,7 @@ export default function TicketsPage() {
 
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                             <span style={{ fontSize: "0.78rem", color: T.inkMuted, fontWeight: 600 }}>שנה סטטוס:</span>
-                            {["פתוח", "בטיפול", "סגור"].map(s => (
+                            {STATUSES.map(s => (
                               <button key={s} disabled={updating === ticket.id || ticket.status === s}
                                 onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
                                 style={{ padding: "5px 14px", borderRadius: 999, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLE[s] : { background: T.fill, color: T.ink }) }}>

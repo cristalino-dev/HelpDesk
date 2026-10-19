@@ -166,6 +166,9 @@ export const STATUS_TOKENS = {
   "פתוח":   { bg: "pillBlueBg",    fg: "pillBlueFg" },
   "בטיפול": { bg: "pillAmberBg",   fg: "pillAmberFg" },
   "בהמתנה": { bg: "pillNeutralBg", fg: "pillNeutralFg" },
+  // Waiting on somebody outside the company (v3.103). Amber like בטיפול —
+  // it is live work — but bordered, so the two read apart at a glance.
+  "ממתין לגורם חיצוני": { bg: "amberBg", fg: "amberFgDeep" },
   "סגור":   { bg: "pillGreenBg",   fg: "pillGreenFg" },
 } as const satisfies Record<string, { bg: keyof Palette; fg: keyof Palette }>
 

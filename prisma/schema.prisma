@@ -87,6 +87,10 @@ model Ticket {
   // mail back; until that arrives a ticket has been sent but has no number.
   relineRef       String?
   relineSentAt    DateTime?
+  // When their answer came back. Separate from `relineRef` because an answer
+  // may never come at all, and because "sent 9 days ago, no reply" is a
+  // different thing to know than "no reference" (v3.103).
+  relineRepliedAt DateTime?
   mergedIntoId    String?
   mergedInto      Ticket?             @relation("TicketMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
   mergedFrom      Ticket[]            @relation("TicketMerge")

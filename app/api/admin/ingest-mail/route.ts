@@ -223,7 +223,13 @@ export async function POST(req: NextRequest) {
             // Their first acknowledgement assigns the number; a later mail in
             // the same thread quotes it and must not reopen the question.
             if (relineTarget.relineRef !== ref) {
-              await prisma.ticket.update({ where: { id: relineTarget.id }, data: { relineRef: ref } })
+              // The time their answer arrived is recorded alongside the
+              // number: "replied after 20 minutes" and "still nothing after
+              // nine days" are both things somebody needs to see (v3.103).
+              await prisma.ticket.update({
+                where: { id: relineTarget.id },
+                data: { relineRef: ref, relineRepliedAt: new Date() },
+              })
               await prisma.ticketHistory.create({
                 data: {
                   ticketId: relineTarget.id, field: "relineRef",

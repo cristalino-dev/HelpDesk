@@ -56,7 +56,8 @@ export interface Ticket {
   // (v3.102, lib/reline.ts). On the BASE interface so every list that shows a
   // ticket can show it — which is the point of having it.
   relineRef?: string | null
-  relineSentAt?: string | null // escalated, but their number has not arrived yet
+  relineSentAt?: string | null    // when it was handed to Reline
+  relineRepliedAt?: string | null // when their answer came back, if it did
   createdAt: string
   updatedAt: string
   userId: string

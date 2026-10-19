@@ -12,7 +12,9 @@ import type { TicketChanges } from "@/lib/ticketChanges"
 
 const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "https://helpdesk.cristalino.co.il"
 
-export const STATUSES = ["פתוח", "בטיפול", "בהמתנה", "סגור"] as const
+// Re-exported so existing importers keep working; lib/ticketStatus.ts owns it.
+import { STATUSES } from "@/lib/ticketStatus"
+export { STATUSES }
 
 type Row = {
   id: string; ticketNumber: number; type: string; subject: string; description: string

@@ -78,6 +78,7 @@ import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
 import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { STATUSES } from "@/lib/ticketStatus"
 import { useSla } from "@/lib/useSla"
 import RequestsDivider from "@/components/RequestsDivider"
 import SlaSettings from "@/components/SlaSettings"
@@ -2066,7 +2067,7 @@ export default function AdminPage() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                           {([
                             { label: "דחיפות", key: "urgency",  opts: fieldUrgencies },
-                            { label: "סטטוס",  key: "status",   opts: ["פתוח", "בטיפול", "בהמתנה", "סגור"] },
+                            { label: "סטטוס",  key: "status",   opts: [...STATUSES] },
                             { label: "קטגוריה", key: "category", opts: fieldCategories },
                             { label: "פלטפורמה", key: "platform", opts: fieldPlatforms },
                           ]).map(({ label, key, opts }) => (
@@ -2130,7 +2131,7 @@ export default function AdminPage() {
                         <p style={{ margin: "0 0 16px", fontSize: "0.875rem", color: T.ink, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ticket.description}</p>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: holdForId === ticket.id ? 6 : 14 }}>
                           <span style={{ fontSize: "0.78rem", color: T.inkMuted, fontWeight: 600 }}>שנה סטטוס:</span>
-                          {["פתוח", "בטיפול", "בהמתנה", "סגור"].map(s => (
+                          {STATUSES.map(s => (
                             <button key={s} disabled={updating === ticket.id || ticket.status === s}
                               onClick={e => { e.stopPropagation(); updateStatus(ticket.id, s) }}
                               style={{ padding: "5px 14px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: ticket.status === s || updating === ticket.id ? "default" : "pointer", opacity: updating === ticket.id ? 0.5 : 1, ...(ticket.status === s ? STATUS_STYLES[s] : { backgroundColor: T.fill, color: T.ink }) }}>

@@ -10,6 +10,7 @@
  */
 
 import { workdaysBetween, workdaysAgo } from "@/lib/workdays"
+import { pausesTheClock } from "@/lib/ticketStatus"
 
 /** Threshold in **workdays** after which an open ticket is considered stale. */
 export const STALE_DAYS = 4   // kept as alias for backward-compat with tests
@@ -26,7 +27,9 @@ export function isStaleOpen(
   ticket: { status: string; createdAt: string | Date },
   staleWorkdays: number = STALE_WORKDAYS,
 ): boolean {
-  if (ticket.status === "סגור") return false
+  // A parked ticket is not one we are being slow about: "stale" measures OUR
+  // response time, and a ticket sitting with Reline is waiting on them (v3.103).
+  if (pausesTheClock(ticket.status)) return false
   return workdaysAgo(ticket.createdAt) > staleWorkdays
 }
 

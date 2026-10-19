@@ -29,6 +29,7 @@ import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { sendMail, mailRelineRequest } from "@/lib/mail"
 import { mergedError, ticketLabel } from "@/lib/ticketType"
 import { RELINE_EMAIL, relineSubject, relineContact } from "@/lib/reline"
+import { WAITING_EXTERNAL, CLOSED } from "@/lib/ticketStatus"
 import { NextRequest, NextResponse, after } from "next/server"
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -55,20 +56,39 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const sentBy = session.user.name ?? session.user.email
     const sentAt = new Date()
 
-    // Written before the response: a 200 says the escalation is on record,
-    // and the button will read "נשלח" from here on.
-    await prisma.$transaction([
-      prisma.ticket.update({ where: { id }, data: { relineSentAt: sentAt } }),
-      prisma.ticketHistory.create({
+    // Handing a ticket to an outside supplier parks it: it is no longer work
+    // we are doing, and leaving it "פתוח" makes the queue look neglected for
+    // something somebody else is holding (v3.103). A closed ticket is left
+    // closed — escalating one is for the record, not a reopening.
+    const parks = ticket.status !== CLOSED && ticket.status !== WAITING_EXTERNAL
+    const writes = [
+      prisma.ticket.update({
+        where: { id },
         data: {
-          ticketId: id,
-          field: "reline",
-          newValue: RELINE_EMAIL,
-          actorName: sentBy,
-          actorEmail: session.user.email,
+          relineSentAt: sentAt,
+          // A second send is a new case at their end, so the old reference
+          // and reply time no longer describe the ticket.
+          relineRef: null,
+          relineRepliedAt: null,
+          ...(parks ? { status: WAITING_EXTERNAL, holdReason: null } : {}),
         },
       }),
-    ])
+      prisma.ticketHistory.create({
+        data: {
+          ticketId: id, field: "reline", newValue: RELINE_EMAIL,
+          actorName: sentBy, actorEmail: session.user.email,
+        },
+      }),
+      ...(parks ? [prisma.ticketHistory.create({
+        data: {
+          ticketId: id, field: "status", oldValue: ticket.status, newValue: WAITING_EXTERNAL,
+          actorName: sentBy, actorEmail: session.user.email,
+        },
+      })] : []),
+    ]
+    // Written before the response: a 200 says the escalation is on record,
+    // and the button reads "נשלח" from here on.
+    await prisma.$transaction(writes)
 
     const html = mailRelineRequest(
       {
@@ -97,10 +117,69 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       }
     })
 
-    return NextResponse.json({ ok: true, sentAt: sentAt.toISOString() })
+    return NextResponse.json({ ok: true, sentAt: sentAt.toISOString(), status: parks ? WAITING_EXTERNAL : ticket.status })
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets/[id]/reline POST", e.stack)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
+  }
+}
+
+/**
+ * PATCH /api/tickets/[id]/reline — set or clear the reference by hand.
+ *
+ * Their acknowledgement may never arrive: it can be answered to a person
+ * rather than to helpdesk@, their system can be quiet, or somebody rings them
+ * instead of mailing. Without this the reference would be unreachable in
+ * exactly the cases where somebody already knows it, so staff can type it in.
+ *
+ * `{ ref: "269311" }` sets it, `{ ref: null }` clears it. The history row
+ * names the staff member, so a hand-entered number is never mistaken for one
+ * Reline sent — which is the whole reason the field is attributable.
+ *
+ * Staff only. 400 on anything that is not digits; 404 for no such ticket.
+ */
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
+    if (!isStaff) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+    const { id } = await params
+    const { ref } = await req.json()
+
+    const clearing = ref === null || ref === ""
+    const value = clearing ? null : String(ref ?? "").trim()
+    if (!clearing && !/^\d{3,12}$/.test(value ?? "")) {
+      return NextResponse.json({ error: "מספר פנייה של Reline הוא ספרות בלבד" }, { status: 400 })
+    }
+
+    const ticket = await prisma.ticket.findUnique({ where: { id }, select: { relineRef: true } })
+    if (!ticket) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    await prisma.$transaction([
+      prisma.ticket.update({
+        where: { id },
+        // Clearing drops the reply time with it: it recorded when THAT
+        // reference arrived, and it describes nothing once it is gone.
+        data: { relineRef: value, relineRepliedAt: clearing ? null : new Date() },
+      }),
+      prisma.ticketHistory.create({
+        data: {
+          ticketId: id, field: "relineRef",
+          oldValue: ticket.relineRef, newValue: value,
+          actorName: session.user.name ?? session.user.email,
+          actorEmail: session.user.email,
+        },
+      }),
+    ])
+
+    return NextResponse.json({ ok: true, relineRef: value })
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err))
+    await logError(e.message, "/api/tickets/[id]/reline PATCH", e.stack)
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

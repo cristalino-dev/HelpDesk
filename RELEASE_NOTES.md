@@ -5,6 +5,57 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.103 — הפנייה ממתינה לגורם חיצוני, והזמנים נרשמים
+
+**An escalation is not just a mail — it parks the ticket, and the three
+moments that matter are on the record. Including the one that may never come.**
+
+### What changed for users
+
+- **סטטוס חדש: ממתין לגורם חיצוני.** Sending a ticket to Reline moves it
+  there. A ticket somebody else is holding is not work we are doing, and
+  leaving it פתוח made the queue look neglected for something out of our
+  hands. A **closed** ticket stays closed — escalating one is for the record,
+  not a reopening.
+- **שלושת הזמנים, על הפנייה**: when it was reported, when it went to Reline,
+  and when they answered. While there is no answer the panel says
+  **טרם התקבלה** and how long it has been — so a ticket in flight is not
+  mistaken for one nobody sent.
+- **Their answer may never come.** It can be sent to a person rather than to
+  helpdesk@, their system can be quiet, or somebody phones them instead. Staff
+  can therefore **type the case number in by hand** on the ticket, and remove
+  it again. A hand-entered number is attributed to the staff member in the
+  history, so it never reads as one Reline sent.
+- **A parked ticket no longer ages.** The ⏰ stale marker and the stale report
+  skip בהמתנה, ממתין לגורם חיצוני and סגור.
+
+### What changed for developers
+
+- **`lib/ticketStatus.ts` owns the status list.** It was typed out in seven
+  places — the detail page, the staff queue, the admin console twice, the v1
+  validator, the OpenAPI document, the pill colours — and **two had already
+  drifted**: the staff queue offered three of the four, so a ticket on hold
+  could not be filtered for there. Adding a fifth status would have meant
+  getting it right seven times. `__tests__/ticketStatus.test.ts` now fails if
+  a status has no pill colour, or a pill colour has no status.
+- **`pausesTheClock()`** is what `isStaleOpen` asks. "Stale" measures OUR
+  response time; a ticket sitting with a supplier is waiting on the supplier.
+- **`relineRepliedAt`** is separate from `relineRef` on purpose: "sent nine
+  days ago, no reply" and "no reference" are different things to know, and
+  only the pair can tell them apart.
+- **A re-send clears the old reference and reply time.** A second escalation
+  opens a second case at their end, so the previous number describes nothing
+  and must not sit there looking current.
+- **`PATCH /api/tickets/[id]/reline`** takes `{ ref }` — digits only, `null`
+  to clear, clearing drops the reply time with it since it recorded when
+  *that* reference arrived. Staff only, like the POST.
+- **Tests:** `ticketStatus` (the list, every pill, the stopped clock) and
+  eight more in `relineRoute` (parking, a closed ticket left alone, a re-send
+  clearing the old number, hand entry and its attribution, the digits rule,
+  staff-only). 97 suites / 1,626 tests.
+
+---
+
 ## v3.102 — שליחה ל-Reline, ומספר הפנייה חוזר לבד
 
 **Staff escalate a ticket to the outside supplier from its own page. Reline

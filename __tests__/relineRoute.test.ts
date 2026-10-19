@@ -11,7 +11,7 @@
  */
 
 import type { NextRequest } from "next/server"
-import { POST } from "@/app/api/tickets/[id]/reline/route"
+import { POST, PATCH } from "@/app/api/tickets/[id]/reline/route"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/db"
 import { sendMail } from "@/lib/mail"
@@ -44,9 +44,12 @@ jest.mock("next/server", () => {
 type Res = { status: number; json: () => Promise<Record<string, unknown>> }
 const call = (id = "t1") =>
   POST({} as NextRequest, { params: Promise.resolve({ id }) }) as unknown as Promise<Res>
+const patch = (body: unknown, id = "t1") =>
+  PATCH({ json: async () => body } as unknown as NextRequest,
+        { params: Promise.resolve({ id }) }) as unknown as Promise<Res>
 
 const TICKET = {
-  id: "t1", ticketNumber: 862, type: "request", subject: "המדפסת לא עובדת",
+  id: "t1", ticketNumber: 862, type: "request", status: "פתוח", subject: "המדפסת לא עובדת",
   description: "לא מדפיסה בכלל", category: "חומרה", platform: "מחשב אישי", urgency: "גבוה",
   phone: "052-2222222", createdAt: new Date("2026-10-18T14:44:00Z"), relineRef: null,
   mergedInto: null, user: { name: "דנה לוי", email: "dana@cristalino.co.il", phone: "050-1111111" },
@@ -93,7 +96,7 @@ describe("the escalation", () => {
     await call()
     expect(prisma.ticket.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "t1" },
-      data: { relineSentAt: expect.any(Date) },
+      data: expect.objectContaining({ relineSentAt: expect.any(Date) }),
     }))
     expect(prisma.ticketHistory.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ field: "reline", actorEmail: "alon@cristalino.co.il" }),
@@ -116,6 +119,91 @@ describe("the escalation", () => {
     })
     expect((await call()).status).toBe(409)
     expect(sendMail).not.toHaveBeenCalled()
+    expect(prisma.ticket.update).not.toHaveBeenCalled()
+  })
+})
+
+// ── Parking the ticket while Reline hold it (v3.103) ─────────────────────────
+describe("what the escalation does to the ticket", () => {
+  it("moves it to ממתין לגורם חיצוני and records the change", async () => {
+    asStaff()
+    const res = await call()
+    expect((await res.json()).status).toBe("ממתין לגורם חיצוני")
+    expect(prisma.ticket.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: "ממתין לגורם חיצוני", relineSentAt: expect.any(Date) }),
+    }))
+    expect(prisma.ticketHistory.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ field: "status", oldValue: "פתוח", newValue: "ממתין לגורם חיצוני" }),
+    }))
+  })
+
+  // Escalating a closed ticket is for the record, not a reopening.
+  it("leaves a closed ticket closed", async () => {
+    asStaff()
+    ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ ...TICKET, status: "סגור" })
+    const res = await call()
+    expect((await res.json()).status).toBe("סגור")
+    expect(prisma.ticket.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.not.objectContaining({ status: expect.anything() }),
+    }))
+  })
+
+  // A second send is a new case at their end, so the old number describes
+  // nothing and must not sit there looking current.
+  it("clears a previous reference and reply time on a re-send", async () => {
+    asStaff()
+    ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ ...TICKET, relineRef: "111111" })
+    await call()
+    expect(prisma.ticket.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ relineRef: null, relineRepliedAt: null }),
+    }))
+  })
+})
+
+// ── When no acknowledgement ever arrives ─────────────────────────────────────
+describe("typing the reference in by hand", () => {
+  beforeEach(() => { (prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ relineRef: null }) })
+
+  it("saves it, and stamps when it was recorded", async () => {
+    asStaff()
+    const res = await patch({ ref: "269311" })
+    expect(res.status).toBe(200)
+    expect(prisma.ticket.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { relineRef: "269311", relineRepliedAt: expect.any(Date) },
+    }))
+  })
+
+  // A hand-entered number must never read as one Reline sent.
+  it("attributes it to the staff member, not to Reline", async () => {
+    asStaff()
+    await patch({ ref: "269311" })
+    expect(prisma.ticketHistory.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ field: "relineRef", actorEmail: "alon@cristalino.co.il" }),
+    }))
+  })
+
+  it("clears it, and the reply time with it", async () => {
+    asStaff()
+    ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ relineRef: "269311" })
+    await patch({ ref: null })
+    expect(prisma.ticket.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { relineRef: null, relineRepliedAt: null },
+    }))
+  })
+
+  it("refuses anything that is not a case number", async () => {
+    asStaff()
+    for (const ref of ["abc", "26 9311", "12", "<script>"]) {
+      expect((await patch({ ref })).status).toBe(400)
+    }
+    expect(prisma.ticket.update).not.toHaveBeenCalled()
+  })
+
+  it("is staff only", async () => {
+    ;(auth as jest.Mock).mockResolvedValue({ user: { email: "dana@cristalino.co.il", isAdmin: false } })
+    expect((await patch({ ref: "269311" })).status).toBe(403)
+    ;(auth as jest.Mock).mockResolvedValue(null)
+    expect((await patch({ ref: "269311" })).status).toBe(401)
     expect(prisma.ticket.update).not.toHaveBeenCalled()
   })
 })
