@@ -51,7 +51,7 @@ jest.mock("mailparser", () => ({
 }))
 jest.mock("@/lib/db", () => ({
   prisma: {
-    ticket: { findUnique: jest.fn(), create: jest.fn(), count: jest.fn() },
+    ticket: { findUnique: jest.fn(), create: jest.fn(), count: jest.fn(), update: jest.fn() },
     ticketHistory: { create: jest.fn() },
     ticketMessage: { findFirst: jest.fn(), create: jest.fn() },
     // v3.101: findUserByEmail falls through to the secondary-address
@@ -106,6 +106,7 @@ function inbox(...msgs: Msg[]) {
 
 type Body = {
   ok?: boolean; created?: number; tickets?: number[]; replies?: number[]
+  relined?: number[]
   skipped?: Record<string, number>; error?: string
 }
 const req = (secret = "s") =>
@@ -503,5 +504,61 @@ describe("the dev copy (v3.86)", () => {
     inbox({ uid: 1, from: EMPLOYEE })
     const { body } = await run()
     expect(body.created).toBe(1)
+  })
+})
+
+// ── Reline's acknowledgement (v3.102) ────────────────────────────────────────
+//
+// Their subject echoes ours, so it carries OUR ticket label — which means the
+// reply branch would recognise it, find that support@reline.co.il is neither
+// the owner nor staff, and open a duplicate ticket for every escalation we
+// send. This branch has to run first, and these tests are what says so.
+describe("Reline sends back their case number", () => {
+  const TICKET = { id: "t862", ticketNumber: 862, subject: "תקלה בשליחת זימונים", relineRef: null }
+  const ACK = "פנייתך התקבלה בהצלחה: [REQ-862] תקלה בשליחת זימונים [#269311]"
+
+  beforeEach(() => {
+    ;(prisma.ticket.findUnique as jest.Mock).mockImplementation(async ({ where }: { where: { ticketNumber?: number } }) =>
+      where.ticketNumber === 862 ? TICKET : null)
+    ;(prisma.ticket.update as jest.Mock).mockResolvedValue({ ...TICKET, relineRef: "269311" })
+  })
+
+  it("writes the number to the ticket and opens nothing", async () => {
+    inbox({ uid: 1, from: "support@reline.co.il", name: "Reline Support", subject: ACK, text: "תודה" })
+    const { body } = await run()
+    expect(body.relined).toEqual([862])
+    expect(body.created).toBe(0)
+    expect(prisma.ticket.create).not.toHaveBeenCalled()
+    expect(prisma.ticket.update).toHaveBeenCalledWith({ where: { id: "t862" }, data: { relineRef: "269311" } })
+    expect(prisma.ticketHistory.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ field: "relineRef", newValue: "269311" }),
+    }))
+    expect(seen()).toEqual([1])
+  })
+
+  // A later mail in the same thread quotes the number; it is not news.
+  it("does not rewrite a number it already has", async () => {
+    ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({ ...TICKET, relineRef: "269311" })
+    inbox({ uid: 1, from: "support@reline.co.il", subject: ACK, text: "עדכון" })
+    const { body } = await run()
+    expect(body.relined).toEqual([])
+    expect(prisma.ticket.update).not.toHaveBeenCalled()
+    expect(prisma.ticket.create).not.toHaveBeenCalled()
+  })
+
+  // Without a number or without our label there is nothing to record, and the
+  // mail must still reach a human rather than vanish.
+  it("falls through when their subject carries no case number", async () => {
+    inbox({ uid: 1, from: "support@reline.co.il", subject: "שאלה בנוגע לפנייה", text: "מה המצב?" })
+    const { body } = await run()
+    expect(body.relined).toEqual([])
+    expect(body.created).toBe(1)
+  })
+
+  it("leaves a lookalike domain to the normal path", async () => {
+    inbox({ uid: 1, from: "support@notreline.co.il", subject: ACK, text: "תודה" })
+    const { body } = await run()
+    expect(body.relined).toEqual([])
+    expect(prisma.ticket.update).not.toHaveBeenCalled()
   })
 })

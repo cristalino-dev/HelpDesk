@@ -57,7 +57,7 @@
  * RUNS VIA: server cron — run-ingest.sh every 2 minutes (scripts/deploy-remote.sh).
  *
  * RESPONSE:
- *   200 — { ok: true, created: N, tickets: number[], replies: number[], skipped: { reason: count } }
+ *   200 — { ok: true, created: N, tickets: number[], replies: number[], relined: number[], skipped: { reason: count } }
  *   401 — Unauthorized (bad/missing secret)
  *   503 — Mailbox not configured (SMTP_USER/SMTP_PASS missing)
  *   500 — Server error (logged)
@@ -86,6 +86,7 @@ import { storeAttachment } from "@/lib/storeAttachment"
 import { resolveUserByEmail, findUserByEmail } from "@/lib/users"
 import { isDevSite } from "@/lib/appEnv"
 import { followerEmails, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
+import { isRelineSender, parseRelineRef } from "@/lib/reline"
 import { NextRequest, NextResponse, after } from "next/server"
 
 /** The first address in a mailparser address field, whichever shape it came in. */
@@ -145,6 +146,8 @@ export async function POST(req: NextRequest) {
 
   const tickets: number[] = []
   const replies: number[] = []
+  /** Tickets given a Reline case number this run (v3.102). */
+  const relined: number[] = []
   const skipped: Partial<Record<SkipReason | "duplicate", number>> = {}
   const tally = (why: SkipReason | "duplicate") => { skipped[why] = (skipped[why] ?? 0) + 1 }
 
@@ -205,6 +208,40 @@ export async function POST(req: NextRequest) {
         // through to a new ticket below, so nothing is ever lost.
         const replyNumber = ticketNumberFromSubject(parsed.subject)
         const senderEmail = (sender?.address ?? "").trim().toLowerCase()
+
+        // ── Reline's acknowledgement carries their case number (v3.102) ───
+        // This has to run BEFORE the reply branch below. Our own label is in
+        // their subject — that is how it is matched — so the reply branch
+        // would read it as a reply to the ticket, find that
+        // support@reline.co.il is neither its owner nor staff, and open a
+        // duplicate ticket for every escalation we send.
+        if (senderEmail && isRelineSender(senderEmail)) {
+          const ref = parseRelineRef(parsed.subject ?? "")
+          const relineTarget = replyNumber === null ? null
+            : await prisma.ticket.findUnique({ where: { ticketNumber: replyNumber } })
+          if (ref && relineTarget) {
+            // Their first acknowledgement assigns the number; a later mail in
+            // the same thread quotes it and must not reopen the question.
+            if (relineTarget.relineRef !== ref) {
+              await prisma.ticket.update({ where: { id: relineTarget.id }, data: { relineRef: ref } })
+              await prisma.ticketHistory.create({
+                data: {
+                  ticketId: relineTarget.id, field: "relineRef",
+                  oldValue: relineTarget.relineRef, newValue: ref,
+                  actorName: "Reline", actorEmail: senderEmail,
+                },
+              })
+              relined.push(relineTarget.ticketNumber)
+            } else {
+              tally("duplicate")
+            }
+            await markSeen(uid)
+            continue
+          }
+          // Anything else from them — a person answering, a number we cannot
+          // place — falls through to the branches below rather than be lost.
+        }
+
         if (replyNumber !== null && senderEmail) {
           const include = {
             user:         { select: { name: true, email: true } },
@@ -379,7 +416,7 @@ export async function POST(req: NextRequest) {
       lock.release()
     }
     await client.logout()
-    return NextResponse.json({ ok: true, created: tickets.length, tickets, replies, skipped })
+    return NextResponse.json({ ok: true, created: tickets.length, tickets, replies, relined, skipped })
   } catch (err) {
     try { await client.logout() } catch { /* already closed */ }
     const e = err instanceof Error ? err : new Error(String(err))

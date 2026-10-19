@@ -736,3 +736,59 @@ export function mailProvisioningLog(r: ProvisioningRun) {
       : ""}
   `)
 }
+
+// ── Escalation to Reline (v3.102) ────────────────────────────────────────────
+
+/**
+ * Sent to Reline's support address when staff escalate a ticket.
+ *
+ * It is read by someone outside the company who has never seen our queue, so
+ * it says what the problem is and who to call, and nothing about our internal
+ * state. The subject carries our ticket label; their acknowledgement echoes
+ * it, which is how the case number they answer with finds its way back to the
+ * right ticket (`lib/reline.ts`).
+ */
+export function mailRelineRequest(
+  t: { label: string; subject: string; description: string; category: string; platform: string; urgency: string; openedAt: string },
+  contact: { name: string; email: string; phone: string },
+  sentBy: string,
+) {
+  const row = (label: string, value: string) =>
+    `<tr>
+       <td style="padding:9px 14px;border-bottom:1px solid ${C.border};width:140px;vertical-align:top">
+         <div dir="rtl" style="direction:rtl;text-align:right;font-size:11px;font-weight:700;color:${C.text3};letter-spacing:0.06em">${label}</div>
+       </td>
+       <td style="padding:9px 14px;border-bottom:1px solid ${C.border}">
+         <div dir="rtl" style="direction:rtl;text-align:right;font-size:14px;color:${C.text};line-height:1.6">${value}</div>
+       </td>
+     </tr>`
+
+  return wrap(`
+    <div class="header">פנייה מקריסטלינו — ${esc(t.label)}</div>
+    <p style="color:${C.text2};font-size:15px;margin:0 0 18px">
+      שלום,<br>מועברת אליכם פנייה לטיפול. פרטי איש הקשר למטה.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:${C.panel};border:1px solid ${C.border};border-radius:10px;margin:0 0 18px">
+      ${row("נושא", `<strong>${esc(t.subject)}</strong>`)}
+      ${row("תיאור", `<span style="white-space:pre-wrap">${esc(t.description)}</span>`)}
+      ${row("קטגוריה", `${esc(t.category)} · ${esc(t.platform)}`)}
+      ${row("דחיפות", esc(t.urgency))}
+      ${row("נפתח בתאריך", esc(t.openedAt))}
+    </table>
+
+    <div style="font-size:11px;font-weight:700;color:${C.text3};letter-spacing:0.06em;margin:0 0 6px">ליצירת קשר</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:${C.greenBg};border:1px solid ${C.green};border-radius:10px;margin:0 0 18px">
+      ${row("שם מלא", `<strong>${esc(contact.name)}</strong>`)}
+      ${contact.phone ? row("טלפון", `<a href="tel:${esc(contact.phone)}" style="color:${C.greenInk};text-decoration:none;direction:ltr;display:inline-block">${esc(contact.phone)}</a>`) : ""}
+      ${contact.email ? row("אימייל", `<a href="mailto:${esc(contact.email)}" style="color:${C.greenInk};text-decoration:none;direction:ltr;display:inline-block">${esc(contact.email)}</a>`) : ""}
+    </table>
+
+    <p style="font-size:12px;color:${C.muted};margin:0;line-height:1.7">
+      נשלח על ידי ${esc(sentBy)} ממערכת הפניות של קריסטלינו.<br>
+      נא לשמור על מספר הפנייה <strong>${esc(t.label)}</strong> בשורת הנושא בתשובתכם.
+    </p>
+  `)
+}

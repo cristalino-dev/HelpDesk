@@ -5,6 +5,64 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.102 — שליחה ל-Reline, ומספר הפנייה חוזר לבד
+
+**Staff escalate a ticket to the outside supplier from its own page. Reline
+answer with their case number, and it lands on the ticket by itself.**
+
+### What changed for users
+
+- **כפתור "↗ שליחה ל-RELINE"** on a ticket, for staff. It opens a
+  confirmation that names the ticket, the address it goes to, and the contact
+  details that will travel with it — because that is a person's name, phone
+  and address leaving the company, and it should not happen on a stray click.
+  Escalating a ticket that has already gone says so, and says a second send
+  opens a second case at their end.
+- **`Reline #269311` wherever the ticket appears** — its own page, the staff
+  queue on desktop and on a phone, and the dashboard. Between the send and
+  their reply it reads **↗ נשלח ל-Reline**, so a ticket in flight is not
+  mistaken for one nobody sent.
+- Both steps are in the ticket's history: *הפנייה נשלחה ל-Reline*, and
+  *התקבל מספר פנייה מ-Reline* when it arrives.
+
+### What changed for developers
+
+- **`lib/reline.ts`** is the whole matching rule, and it is pure — no
+  database, no network, so it can be tested as the string work it is.
+  - On the way out the subject carries our own label: `[REQ-862] …`. Reline
+    echo the subject, so their reply holds **both** numbers — ours to know
+    which ticket it is, theirs to record. Nothing has to be guessed from
+    matching subject text.
+  - `parseRelineRef` takes `[#269311]`, `[ #269311 ]` and a bare `#269311`,
+    and when a subject carries several it takes the **last**: their
+    acknowledgement quotes our subject first, and forwarded chains accumulate
+    others. The number stays a string — it is an identifier, and leading
+    zeros in someone else's numbering are theirs to keep.
+  - `isRelineSender` matches the domain exactly. A lookalike such as
+    `notreline.co.il`, or `reline.co.il.evil.com`, writes to nothing: this
+    branch updates a ticket on the strength of who sent the mail.
+- **The intake branch runs BEFORE the reply branch, and that ordering is the
+  feature.** Our label is in Reline's subject, so the reply branch would read
+  their acknowledgement as a reply to the ticket, find that
+  `support@reline.co.il` is neither its owner nor staff, and **open a
+  duplicate ticket for every escalation we send**. A second mail in the same
+  thread quotes the number it already has and is counted as a duplicate, not
+  written again. Anything from them that carries no number, or none we can
+  place, falls through to the normal path rather than being dropped.
+- **`POST /api/tickets/[id]/reline`** is staff-only, 409 on a merged ticket,
+  and writes `relineSentAt` plus the history row **before** it answers: the
+  button reads "נשלח" off that row, so a 200 that had not written it would
+  lie to the next person who looked. The mail itself goes through `after()`.
+- **`relineRef` is on the base `Ticket` type**, so every list that shows a
+  ticket gets it without a second decision — which is the point of a
+  reference you quote on the phone.
+- **Tests:** `reline` (the domain rule, the subject round-trip, every shape
+  of their number, the contact), `relineRoute` (who may escalate, where it
+  goes, recorded before the 200, 409 on merged) and four in
+  `IngestMailRoute` for the branch ordering. 96 suites / 1,612 tests.
+
+---
+
 ## v3.101 — אדם אחד, שתי כתובות
 
 **A user opened REQ-862 to say that the tickets he had filed were nowhere to

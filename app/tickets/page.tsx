@@ -700,6 +700,7 @@ export default function TicketsPage() {
                             }}
                           />
                           <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.text, background: T.codeBg, borderRadius: 6, padding: "1px 6px", flexShrink: 0 }}>{ticketLabel(ticket)}</span>
+                          {ticket.relineRef && <span title="מספר הפנייה אצל Reline" style={{ fontSize: "0.65rem", fontWeight: 700, color: T.amberFgDeep, background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: "1px 5px", flexShrink: 0, direction: "ltr" }}>Reline #{ticket.relineRef}</span>}
                           {isStale && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: T.orangeFgDeep, background: T.orangeBg, border: `1px solid ${T.orangeBorder}`, borderRadius: 6, padding: "1px 5px", flexShrink: 0 }}>⏰ {formatWorkdays(ageDays)}</span>}
                           <span style={{ fontWeight: 600, color: T.text, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ticket.subject}</span>
                         </div>
@@ -758,6 +759,11 @@ export default function TicketsPage() {
                             ⏰ {formatWorkdays(ageDays)}
                           </span>
                         )}
+                        {ticket.relineRef && (
+                          <span title="מספר הפנייה אצל Reline" style={{ fontSize: "0.68rem", fontWeight: 700, color: T.amberFgDeep, background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: "1px 7px", flexShrink: 0, whiteSpace: "nowrap", direction: "ltr" }}>
+                            Reline #{ticket.relineRef}
+                          </span>
+                        )}
                         <a href={`/tickets/${ticketLabel(ticket)}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: T.text, fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}
                           onMouseOver={e => (e.currentTarget.style.textDecoration = "underline")}
                           onMouseOut={e => (e.currentTarget.style.textDecoration = "none")}
@@ -766,6 +772,7 @@ export default function TicketsPage() {
                       <div style={{ fontSize: "0.73rem", color: T.inkFaint, marginTop: 2 }}>
                         {ticket.user?.name ?? ticket.user?.email} · {ticket.computerName} · {ticket.category} · {ticket.platform}
                         {ticket.mergedInto && <> · 🔗 מוזגה ל-{ticketLabel(ticket.mergedInto)}</>}
+                        {!ticket.relineRef && ticket.relineSentAt && <> · ↗ נשלח ל-Reline</>}
                         {ticket.assignedTo && <> · 👤 {staffMembers.find(m => m.email === ticket.assignedTo)?.display ?? ticket.assignedTo.split("@")[0]}</>}
                       </div>
                     </div>

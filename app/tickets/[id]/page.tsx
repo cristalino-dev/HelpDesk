@@ -17,6 +17,7 @@ import type { TicketEquipment } from "@/types/ticket"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
 import { ticketLabel, TICKET_TYPES, TYPE_LABEL, normalizeType } from "@/lib/ticketType"
+import { relineContact, relineLabel } from "@/lib/reline"
 import { useIsMobile } from "@/lib/useIsMobile"
 import Logo from "@/components/Logo"
 import MergeTicketsModal, { type MergeResult } from "@/components/MergeTicketsModal"
@@ -76,6 +77,12 @@ export default function TicketDetailPage() {
   const [deleteError, setDeleteError] = useState("")
   /** The merge dialog (v3.92) — staff only. */
   const [mergeOpen, setMergeOpen]   = useState(false)
+  // Escalation to Reline (v3.102). `relineAsk` is the confirmation step:
+  // the mail carries a person's name, phone and address to a company outside
+  // Cristalino, which is not something to do on a stray click.
+  const [relineAsk, setRelineAsk]     = useState(false)
+  const [relineBusy, setRelineBusy]   = useState(false)
+  const [relineError, setRelineError] = useState<string | null>(null)
   /** User id of the participant being taken off, while the request runs. */
   const [removingParticipant, setRemovingParticipant] = useState<string | null>(null)
   const [urgencies,  setUrgencies]  = useState<string[]>(DEFAULT_URGENCIES)
@@ -389,6 +396,24 @@ export default function TicketDetailPage() {
    * pointer — go to the one that carries on. When it is the one that stays,
    * reload: the moved messages, notes and files are here now.
    */
+  /** Escalate to Reline. Confirmed first — see `relineAsk`. */
+  const sendToReline = async () => {
+    if (!ticket) return
+    setRelineBusy(true)
+    setRelineError(null)
+    try {
+      const res = await fetch(`/api/tickets/${ticket.id}/reline`, { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setRelineError(data.error ?? "שליחה ל-Reline נכשלה"); return }
+      setRelineAsk(false)
+      // The reference itself arrives later, when Reline answer; this reload
+      // picks up "נשלח" and the history row.
+      await load()
+    } finally {
+      setRelineBusy(false)
+    }
+  }
+
   const afterMerge = async (result: MergeResult) => {
     setMergeOpen(false)
     if (ticket && result.target.id !== ticket.id) {
@@ -485,6 +510,9 @@ export default function TicketDetailPage() {
   // frozen: the server refuses edits, messages, notes and files (409), so the
   // page offers none of them and points to where the conversation went.
   const mergedInto   = ticket.mergedInto ?? null
+  // Who Reline would be told to call — the same function the server uses to
+  // build the mail, so the confirmation shows what actually gets sent.
+  const { name: relineContactName, phone: relineContactPhone, email: relineContactEmail } = relineContact(ticket)
   const mergedFrom   = ticket.mergedFrom ?? []
   const participants = ticket.participants ?? []
 
@@ -509,7 +537,28 @@ export default function TicketDetailPage() {
           <h1 style={{ margin: 0, fontSize: isMobile ? "0.9rem" : "1rem", fontWeight: 700, color: HDR.linkStrong, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {ticketLabel(ticket)} · {ticket.subject}
           </h1>
+          {/* Reline's own number for this ticket — what you quote on the
+              phone to them, so it sits beside our number (v3.102). */}
+          {ticket.relineRef && (
+            <span title="מספר הפנייה אצל Reline" style={{ fontSize: "0.72rem", fontWeight: 700, color: HDR.linkStrong, background: HDR.pillBg, border: `1px solid ${HDR.pillBorder}`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap", direction: "ltr" }}>
+              {relineLabel(ticket.relineRef)}
+            </span>
+          )}
+          {!ticket.relineRef && ticket.relineSentAt && (
+            <span title="נשלח ל-Reline, טרם התקבל מספר" style={{ fontSize: "0.72rem", fontWeight: 600, color: HDR.linkFaint, border: `1px solid ${HDR.pillBorder}`, borderRadius: 999, padding: "3px 10px", whiteSpace: "nowrap" }}>
+              ↗ Reline
+            </span>
+          )}
         </div>
+        {isStaff && !editing && !mergedInto && (
+          <button
+            onClick={() => { setRelineError(null); setRelineAsk(true) }}
+            title={ticket.relineRef ? `נשלח ל-Reline · מספר פנייה ${ticket.relineRef}` : "שליחת הפנייה ל-Reline"}
+            style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid ${HDR.pillBorder}`, background: "transparent", cursor: "pointer", fontSize: "0.85rem", color: HDR.link, fontWeight: 600, whiteSpace: "nowrap" }}
+          >
+            ↗ שליחה ל-RELINE
+          </button>
+        )}
         {isStaff && !editing && !mergedInto && (
           <button
             onClick={() => setMergeOpen(true)}
@@ -571,6 +620,49 @@ export default function TicketDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Escalation to Reline (v3.102). A confirmation, not a prompt: the
+          mail leaves the company carrying somebody's name and phone number,
+          and it says exactly what will be sent and to whom. */}
+      {isStaff && relineAsk && (
+        <div style={{ position: "fixed", inset: 0, background: T.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60, padding: 16 }}
+             onClick={() => !relineBusy && setRelineAsk(false)}>
+          <div onClick={e => e.stopPropagation()}
+               style={{ background: T.card, borderRadius: 16, padding: 26, width: 460, maxWidth: "100%", boxShadow: `0 20px 60px ${T.shadow4}`, display: "flex", flexDirection: "column", gap: 14 }}>
+            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>שליחת הפנייה ל-Reline</h3>
+            <div style={{ fontSize: "0.85rem", color: T.inkMuted, lineHeight: 1.8 }}>
+              הפנייה <strong style={{ color: T.text }}>{ticketLabel(ticket)}</strong> תישלח אל
+              {" "}<span style={{ direction: "ltr", display: "inline-block", fontFamily: "monospace" }}>support@reline.co.il</span>,
+              עם תיאור הפנייה ופרטי איש הקשר:
+              <div style={{ marginTop: 10, padding: "10px 12px", background: T.fill2, borderRadius: 8, color: T.text }}>
+                <div><strong>{relineContactName}</strong></div>
+                {relineContactPhone && <div style={{ direction: "ltr", textAlign: "right" }}>{relineContactPhone}</div>}
+                {relineContactEmail && <div style={{ direction: "ltr", textAlign: "right" }}>{relineContactEmail}</div>}
+              </div>
+              {ticket.relineSentAt && (
+                <div style={{ marginTop: 10, color: T.amberFgDeep }}>
+                  הפנייה כבר נשלחה ל-Reline{ticket.relineRef ? ` וקיבלה מספר ${ticket.relineRef}` : ""}. שליחה נוספת תיצור פנייה חדשה אצלם.
+                </div>
+              )}
+            </div>
+            {relineError && (
+              <div style={{ padding: "8px 12px", background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 8, fontSize: "0.8rem", color: T.redFgDeep }}>
+                {relineError}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={sendToReline} disabled={relineBusy}
+                style={{ background: T.inverseBg, color: T.inverseText, fontWeight: 700, padding: "9px 20px", borderRadius: 8, border: "none", cursor: relineBusy ? "not-allowed" : "pointer", fontSize: "0.85rem" }}>
+                {relineBusy ? "שולח..." : "שלח ל-Reline"}
+              </button>
+              <button onClick={() => setRelineAsk(false)} disabled={relineBusy}
+                style={{ background: T.fill, color: T.ink, fontWeight: 600, padding: "9px 20px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.85rem" }}>
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Merge dialog (v3.92) — this ticket, and the one staff name in it. */}
       {isStaff && (
@@ -1342,6 +1434,8 @@ function historyIcon(field: string): string {
     case "edited":     return "✏️"
     case "merged":
     case "mergedFrom": return "🔗"
+    case "reline":
+    case "relineRef":  return "↗"
     case "participant":
     case "participantRemoved": return "👥"
     default:           return "📝"
@@ -1359,6 +1453,8 @@ function historyDotColor(field: string): string {
     case "edited":     return T.fill
     case "merged":
     case "mergedFrom": return T.pillBlueBg
+    case "reline":
+    case "relineRef":  return T.amberBg
     case "participant":
     case "participantRemoved": return T.purpleBg
     default:           return T.fill
@@ -1391,6 +1487,10 @@ function historyLabel(entry: TicketHistoryEntry): string {
       return `נוסף משתתף: ${entry.newValue ?? "—"}`
     case "participantRemoved":
       return `הוסר משתתף: ${entry.oldValue ?? "—"}`
+    case "reline":
+      return `הפנייה נשלחה ל-Reline (${entry.newValue ?? "—"})`
+    case "relineRef":
+      return `התקבל מספר פנייה מ-Reline: #${entry.newValue ?? "—"}`
     default:
       return `${entry.field} עודכן`
   }

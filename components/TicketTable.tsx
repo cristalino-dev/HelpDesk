@@ -218,8 +218,24 @@ function TicketCard({
     </button>
   ) : null
 
-  const tags = (mergedInto || isFollower) ? (
+  // Reline's case number, if they have given us one (v3.102). It is what you
+  // quote when you phone them, so it travels with the ticket everywhere a
+  // ticket is listed — not just on the ticket's own page.
+  const relineRef = ticket.relineRef ?? null
+  const relineSent = !relineRef && !!ticket.relineSentAt
+
+  const tags = (mergedInto || isFollower || relineRef || relineSent) ? (
     <>
+      {relineRef && (
+        <span title="מספר הפנייה אצל Reline" style={{ fontSize: "0.68rem", fontWeight: 700, color: T.amberFgDeep, background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap", direction: "ltr", display: "inline-block" }}>
+          Reline #{relineRef}
+        </span>
+      )}
+      {relineSent && (
+        <span title="נשלח ל-Reline, טרם התקבל מספר פנייה" style={{ fontSize: "0.68rem", fontWeight: 700, color: T.inkMuted, background: T.fill2, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
+          ↗ נשלח ל-Reline
+        </span>
+      )}
       {mergedInto && (
         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: T.pillBlueFg, background: T.pillBlueBg, borderRadius: 6, padding: "1px 7px", whiteSpace: "nowrap" }}>
           🔗 מוזגה ל-{ticketLabel(mergedInto)}

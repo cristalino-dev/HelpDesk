@@ -82,6 +82,11 @@ model Ticket {
   // and points at the one that carries on; its messages, notes and files
   // moved there. Never a chain: merging into a ticket also repoints whatever
   // had been merged into the one being merged. See lib/ticketMerge.ts.
+  // Reline (v3.102) — the outside supplier some tickets are escalated to.
+  // `relineRef` is THEIR case number, read out of the acknowledgement they
+  // mail back; until that arrives a ticket has been sent but has no number.
+  relineRef       String?
+  relineSentAt    DateTime?
   mergedIntoId    String?
   mergedInto      Ticket?             @relation("TicketMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
   mergedFrom      Ticket[]            @relation("TicketMerge")
