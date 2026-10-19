@@ -23,6 +23,33 @@ model User {
   station   String?
   tickets   Ticket[]
   following TicketParticipant[]
+  // Other addresses the same person reaches us from (v3.101). One human with a
+  // mailbox at a sister company used to become two rows: the web app knows
+  // them by their Google address, inbound mail by whatever they sent from.
+  // Resolve an address through lib/users.ts and both land on this row.
+  emails    UserEmail[]
+}
+
+// A secondary address belonging to a User.
+//
+// `email` is stored normalised (lowercased, trimmed) and is unique across this
+// table; a second, case-insensitive constraint — UNIQUE (lower(email)) — is
+// created out of band by the migration, exactly as for User.email, because
+// Prisma has no syntax for a functional index.
+//
+// An address here must NOT also be a User.email. Nothing in the database can
+// express that across two tables, so it is enforced in lib/users.ts and in
+// POST /api/users/emails, which offers to merge the other row instead.
+model UserEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // The admin who added it — an identity claim, so it is attributable.
+  addedBy   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Ticket {

@@ -50,9 +50,20 @@ export function normalizeEmail(email: string): string {
 export async function findUserByEmail(email: string) {
   const wanted = normalizeEmail(email)
   if (wanted === "") return null
-  return prisma.user.findFirst({
+
+  const direct = await prisma.user.findFirst({
     where: { email: { equals: wanted, mode: "insensitive" } },
   })
+  if (direct) return direct
+
+  // A secondary address (v3.101). Checked only after the primary, so a row
+  // whose own email is this address always wins — an alias can never shadow a
+  // real account, whatever an admin typed.
+  const alias = await prisma.userEmail.findFirst({
+    where: { email: { equals: wanted, mode: "insensitive" } },
+    include: { user: true },
+  })
+  return alias?.user ?? null
 }
 
 /**
@@ -88,5 +99,100 @@ export async function resolveUserByEmail(email: string, name?: string | null, im
     where:  { email: normalized },
     create: { email: normalized, name: name?.trim() || null, image: image ?? null },
     update: {},
+  })
+}
+
+// ── Two rows, one person (v3.101) ────────────────────────────────────────────
+
+/** What a merge would move, or did. */
+export interface MergePlan {
+  tickets: number
+  following: number
+  aliases: number
+}
+
+/**
+ * Counts what `mergeUserInto` would move, without moving it.
+ *
+ * The caller shows this before asking for confirmation: merging deletes a row
+ * and there is no undo, so "24 tickets will move" has to be visible first.
+ */
+export async function mergePreview(fromId: string): Promise<MergePlan> {
+  const [tickets, following, aliases] = await Promise.all([
+    prisma.ticket.count({ where: { userId: fromId } }),
+    prisma.ticketParticipant.count({ where: { userId: fromId } }),
+    prisma.userEmail.count({ where: { userId: fromId } }),
+  ])
+  return { tickets, following, aliases }
+}
+
+/**
+ * Folds one User row into another and keeps the loser's address as an alias.
+ *
+ * The case this exists for: somebody writes to the helpdesk from a sister
+ * company's mailbox, so the mail ingest creates a row for that address, and
+ * later signs in with their Google account, which is a different row. Their
+ * history is then on an account they cannot reach. This moves it, and the old
+ * address becomes a secondary address of the surviving row — so the next mail
+ * from it files under the right person instead of starting the split again.
+ *
+ * What is NOT rewritten: `authorEmail` on messages and notes, `actorEmail` on
+ * history. Those record who did something at the time, under the address they
+ * did it from, and that remains true.
+ */
+export async function mergeUserInto(
+  fromId: string,
+  intoId: string,
+  addedBy: string,
+): Promise<MergePlan> {
+  if (fromId === intoId) throw new Error("A user cannot be merged into itself")
+
+  return prisma.$transaction(async tx => {
+    const from = await tx.user.findUnique({ where: { id: fromId } })
+    const into = await tx.user.findUnique({ where: { id: intoId } })
+    if (!from || !into) throw new Error("Both users must exist")
+
+    const plan = {
+      tickets:   await tx.ticket.count({ where: { userId: fromId } }),
+      following: await tx.ticketParticipant.count({ where: { userId: fromId } }),
+      aliases:   await tx.userEmail.count({ where: { userId: fromId } }),
+    }
+
+    // TicketParticipant is unique on (ticketId, userId), so a ticket both rows
+    // follow would collide on the way across; and a ticket the survivor will
+    // now OWN has no business also listing them as a follower. Drop both
+    // before moving anything.
+    const survivorFollows = await tx.ticketParticipant.findMany({
+      where: { userId: intoId }, select: { ticketId: true },
+    })
+    const ownedByLoser = await tx.ticket.findMany({
+      where: { userId: fromId }, select: { id: true },
+    })
+    await tx.ticketParticipant.deleteMany({
+      where: {
+        userId: fromId,
+        ticketId: { in: survivorFollows.map(p => p.ticketId) },
+      },
+    })
+    await tx.ticketParticipant.deleteMany({
+      where: {
+        userId: intoId,
+        ticketId: { in: ownedByLoser.map(t => t.id) },
+      },
+    })
+
+    await tx.ticket.updateMany({ where: { userId: fromId }, data: { userId: intoId } })
+    await tx.ticketParticipant.updateMany({ where: { userId: fromId }, data: { userId: intoId } })
+    await tx.userEmail.updateMany({ where: { userId: fromId }, data: { userId: intoId } })
+
+    // The loser's own address becomes an alias of the survivor. Created before
+    // the delete would violate nothing, but after it is simpler to read: the
+    // row is gone, so the address is free.
+    await tx.user.delete({ where: { id: fromId } })
+    await tx.userEmail.create({
+      data: { email: normalizeEmail(from.email), userId: intoId, addedBy },
+    })
+
+    return plan
   })
 }

@@ -13,6 +13,9 @@ jest.mock("@/auth", () => ({ auth: jest.fn() }))
 
 jest.mock("@/lib/db", () => ({
   prisma: {
+    // v3.101: findUserByEmail falls through to the secondary-address
+    // table when no account carries the address.
+    userEmail: { findFirst: jest.fn(async () => null) },
     user: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),

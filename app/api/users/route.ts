@@ -78,6 +78,9 @@ export async function GET(req: NextRequest) {
         phone: true,
         station: true,
         isAdmin: true,
+        // Secondary addresses (v3.101) — the edit modal lists them, and they
+        // are the answer to "why can this person not see their own tickets".
+        emails: { select: { id: true, email: true }, orderBy: { email: "asc" } },
         // image is intentionally excluded — not needed in admin table
       },
       orderBy: { name: "asc" }, // Alphabetical; nulls sort first in PostgreSQL

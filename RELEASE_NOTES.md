@@ -5,6 +5,75 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.101 — אדם אחד, שתי כתובות
+
+**A user opened REQ-862 to say that the tickets he had filed were nowhere to
+be found. They were not missing. He was two accounts.**
+
+### What was actually wrong
+
+He writes to the helpdesk from a sister company's mailbox and signs in to the
+web app with his Google address. Mail intake resolves a sender by address,
+found nothing, and created a row — so **24 tickets** were filed under
+`…@mly.co.il` while his dashboard, which lists `WHERE userId = <signed-in
+row>`, showed the one ticket he had typed into the form. His closed count read
+zero, which is why he asked for a filter for closed tickets. The filter was
+there; the tickets were not his.
+
+`lib/users.ts` already guarded the near-miss version of this — two rows
+differing only in capitals — and says so at the top of the file. It had no
+answer for a second genuine address.
+
+### What changed
+
+- **`UserEmail`** — the other addresses a person reaches us from. `email` is
+  stored normalised and unique, with the same `UNIQUE (lower(email))`
+  functional index `User.email` carries, and `addedBy` records which admin
+  made the claim, because that is what it is: saying an address belongs to
+  someone hands whoever holds that mailbox the right to read and answer their
+  tickets.
+- **`findUserByEmail` checks the primary first and the aliases second.** In
+  that order, always: a real account can never be shadowed by somebody's
+  alias, however it was typed in. Every entry point already goes through this
+  function (rule 45), so nothing else had to change to benefit.
+- **Identity is compared by row, not by string.** `POST /api/admin/ingest-mail`
+  asked `target.user.email === senderEmail` to decide whether a reply came
+  from the ticket's owner. With a second address that is false for the owner's
+  own ticket, and the reply would have fallen through into a NEW ticket — the
+  same split, one layer down. It now asks `target.userId === senderUser.id`.
+- **`/admin` → ניהול משתמשים → עריכה** lists a user's extra addresses and
+  adds or removes them.
+- **Adding an address that is already an account offers to merge it.** Which
+  is the normal case, because intake will have created that row the first time
+  they wrote in. The first request answers **409 with a count of what would
+  move**; only a repeat carrying `merge: true` goes ahead. `mergeUserInto()`
+  runs in one transaction: it clears the `TicketParticipant` rows that would
+  collide on `(ticketId, userId)` or that would leave the survivor following a
+  ticket they now own, moves the tickets, follows and aliases, deletes the
+  row, and keeps its address as an alias — so the next mail from it lands in
+  the right place instead of starting the split over.
+- **Not rewritten:** `authorEmail` on messages and notes, `actorEmail` on
+  history. Those say who did something, under the address they did it from,
+  and that stays true.
+- **An admin account is never merged away** — folding it in would take its
+  access with it.
+
+### A note for whoever adds a table next
+
+Five existing suites broke on this change, all the same way: they mock
+`prisma` partially, and `findUserByEmail` now touches a table their mock did
+not define. Worth knowing before you spend time on it. The sixth was subtler —
+`IngestMailRoute.test.ts` sets its mock implementations inside `beforeEach`
+rather than in the `jest.mock` factory, because `jest.clearAllMocks()` there
+wipes a factory implementation. A new mock added to the factory is silently
+inert.
+
+**Tests:** `userEmails` (resolution order, the merge, the collision clearing)
+and `userEmailsRoute` (who may claim an address, 409 before merge, no merging
+an admin). 94 suites / 1,589 tests.
+
+---
+
 ## v3.100 — תחנות הקצה מדווחות על עצמן
 
 **The scripts that build a Cristalino PC now post their transcript to the

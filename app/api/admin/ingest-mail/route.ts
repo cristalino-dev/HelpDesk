@@ -218,7 +218,12 @@ export async function POST(req: NextRequest) {
           }
           const senderUser = target ? await findUserByEmail(senderEmail) : null
           const isStaffSender = STAFF_EMAILS.includes(senderEmail) || !!senderUser?.isAdmin
-          const isOwner = !!target && (target.user?.email ?? "").toLowerCase() === senderEmail
+          // By row, not by string (v3.101). `senderUser` came through
+          // lib/users.ts, so it resolves a secondary address to the person who
+          // owns it; comparing the addresses instead would tell someone
+          // replying from their other mailbox that they are not the owner of
+          // their own ticket, and open a duplicate.
+          const isOwner = !!target && !!senderUser && target.userId === senderUser.id
           const isFollower = !!target && (target.participants ?? []).some(p => p.user.email.toLowerCase() === senderEmail)
 
           if (target && (isOwner || isFollower || isStaffSender)) {

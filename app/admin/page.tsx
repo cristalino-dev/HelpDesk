@@ -109,7 +109,8 @@ const badge: React.CSSProperties = {
   letterSpacing: "0.01em",
 }
 
-interface UserRow { id: string; name: string | null; email: string; phone: string | null; station: string | null; isAdmin: boolean }
+interface UserAlias { id: string; email: string }
+interface UserRow { id: string; name: string | null; email: string; phone: string | null; station: string | null; isAdmin: boolean; emails?: UserAlias[] }
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -233,6 +234,13 @@ export default function AdminPage() {
   const [userDeleting, setUserDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // Secondary addresses (v3.101). `mergeAsk` holds the 409 the server answers
+  // when the address is already an account of its own: it names what would
+  // move, and the confirm button repeats the request with merge: true.
+  const [aliasInput, setAliasInput] = useState("")
+  const [aliasBusy, setAliasBusy] = useState(false)
+  const [aliasError, setAliasError] = useState<string | null>(null)
+  const [mergeAsk, setMergeAsk] = useState<{ owner: { id: string; name: string | null; email: string }; plan: { tickets: number; following: number; aliases: number } } | null>(null)
   // Fields tab
   type FieldRecord = { id: string; label: string }
   const [fieldRecords, setFieldRecords] = useState<Record<string, FieldRecord[]>>({ category: [], platform: [], urgency: [], equipment: [] })
@@ -465,9 +473,14 @@ export default function AdminPage() {
     setUsersLoading(true)
     try {
       const res = await fetch("/api/users")
-      if (!res.ok) { setUsers([]); return }
+      if (!res.ok) { setUsers([]); return [] }
       const data = await res.json()
-      setUsers(Array.isArray(data) ? data : [])
+      const rows: UserRow[] = Array.isArray(data) ? data : []
+      setUsers(rows)
+      // Returned as well as stored: a caller that just changed one user needs
+      // the fresh row to put back into the open modal, and `users` is still
+      // the previous render's value at that point.
+      return rows
     } finally {
       setUsersLoading(false)
     }
@@ -540,6 +553,49 @@ export default function AdminPage() {
     setEditingUser(null)
     setDeleteConfirm(false)
     setDeleteError(null)
+    setAliasInput("")
+    setAliasError(null)
+    setMergeAsk(null)
+  }
+
+  /** Add a secondary address. `merge` is the second ask, after the 409. */
+  const addAlias = async (merge = false) => {
+    if (!editingUser || !aliasInput.trim()) return
+    setAliasBusy(true)
+    setAliasError(null)
+    try {
+      const res = await fetch("/api/users/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: editingUser.id, email: aliasInput.trim(), merge }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 409 && data.needsMerge) { setMergeAsk({ owner: data.owner, plan: data.plan }); return }
+      if (!res.ok) { setAliasError(data.error ?? "שגיאה בהוספת הכתובת"); return }
+      setAliasInput("")
+      setMergeAsk(null)
+      const fresh = await loadUsers()
+      // The merge deletes a row, so the open modal is looking at stale data.
+      setEditingUser(u => (u ? fresh?.find((x: UserRow) => x.id === u.id) ?? u : u))
+    } finally {
+      setAliasBusy(false)
+    }
+  }
+
+  const removeAlias = async (id: string) => {
+    if (!editingUser) return
+    setAliasBusy(true)
+    try {
+      await fetch("/api/users/emails", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      const fresh = await loadUsers()
+      setEditingUser(u => (u ? fresh?.find((x: UserRow) => x.id === u.id) ?? u : u))
+    } finally {
+      setAliasBusy(false)
+    }
   }
 
   const deleteUser = async () => {
@@ -902,6 +958,65 @@ export default function AdminPage() {
                     <input type="checkbox" id="isAdmin" checked={editingUser.isAdmin} onChange={e => setEditingUser(u => u ? { ...u, isAdmin: e.target.checked } : u)}
                       style={{ width: 16, height: 16, cursor: "pointer", accentColor: T.inverseBg }} />
                     <label htmlFor="isAdmin" style={{ fontSize: "0.88rem", color: T.ink, fontWeight: 600 }}>הרשאת מנהל</label>
+                  </div>
+
+                  {/* ── Secondary addresses (v3.101) ──
+                      One person, more than one mailbox: they sign in with
+                      their Google account and write to helpdesk@ from
+                      somewhere else. Without this the second address becomes
+                      a second account, and their own tickets go missing from
+                      their dashboard. */}
+                  <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 14 }}>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: T.ink, marginBottom: 5 }}>
+                      כתובות נוספות
+                    </label>
+                    <div style={{ fontSize: "0.72rem", color: T.inkFaint, marginBottom: 8, lineHeight: 1.6 }}>
+                      כתובות שהאדם הזה פונה מהן. מייל שמגיע מהן ייוחס לחשבון הזה במקום לפתוח חשבון נפרד.
+                    </div>
+
+                    {(editingUser.emails ?? []).map(a => (
+                      <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: "0.82rem", color: T.ink }}>
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</span>
+                        <button onClick={() => removeAlias(a.id)} disabled={aliasBusy}
+                          style={{ background: "none", border: "none", color: T.inkFaint, cursor: aliasBusy ? "not-allowed" : "pointer", fontSize: "0.85rem", padding: "2px 6px" }}>✕</button>
+                      </div>
+                    ))}
+
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input value={aliasInput} onChange={e => { setAliasInput(e.target.value); setMergeAsk(null); setAliasError(null) }}
+                        placeholder="name@other-domain.com"
+                        style={{ flex: 1, padding: "8px 12px", border: `1px solid ${T.lineStrong}`, borderRadius: 8, fontSize: "0.85rem", boxSizing: "border-box" }} />
+                      <button onClick={() => addAlias(false)} disabled={aliasBusy || !aliasInput.trim()}
+                        style={{ background: T.fill, color: T.ink, fontWeight: 600, padding: "8px 16px", borderRadius: 8, border: "none", cursor: aliasBusy || !aliasInput.trim() ? "not-allowed" : "pointer", fontSize: "0.82rem", whiteSpace: "nowrap" }}>
+                        הוסף
+                      </button>
+                    </div>
+
+                    {aliasError && (
+                      <div style={{ marginTop: 8, padding: "8px 12px", background: T.redBg, border: `1px solid ${T.redBorder}`, borderRadius: 8, fontSize: "0.78rem", color: T.redFgDeep }}>
+                        {aliasError}
+                      </div>
+                    )}
+
+                    {/* The address is already an account. Say what disappears
+                        before doing it — a merge deletes a row and there is
+                        no undo. */}
+                    {mergeAsk && (
+                      <div style={{ marginTop: 8, padding: "10px 12px", background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 8, fontSize: "0.78rem", color: T.amberFgDeep, lineHeight: 1.7 }}>
+                        <div style={{ marginBottom: 8 }}>
+                          הכתובת <strong>{mergeAsk.owner.email}</strong> כבר רשומה כחשבון נפרד
+                          {mergeAsk.owner.name ? ` (${mergeAsk.owner.name})` : ""}.
+                          <br />
+                          מיזוג יעביר <strong>{mergeAsk.plan.tickets}</strong> פניות לחשבון הזה
+                          {mergeAsk.plan.following > 0 ? `, ו-${mergeAsk.plan.following} פניות שהוא עוקב אחריהן` : ""},
+                          ימחק את החשבון הנפרד, והכתובת תישמר ככתובת נוספת. <strong>אין ביטול.</strong>
+                        </div>
+                        <button onClick={() => addAlias(true)} disabled={aliasBusy}
+                          style={{ background: T.inverseBg, color: T.inverseText, fontWeight: 700, padding: "7px 16px", borderRadius: 8, border: "none", cursor: aliasBusy ? "not-allowed" : "pointer", fontSize: "0.8rem" }}>
+                          {aliasBusy ? "ממזג..." : "מזג את החשבונות"}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: "flex", gap: "10px", justifyContent: "flex-start" }}>

@@ -24,7 +24,12 @@
 // `prisma.user.findUnique(...)` / `.create(...)` in auth.ts fails loudly here
 // instead of quietly reintroducing the bug.
 jest.mock("@/lib/db", () => ({
-  prisma: { user: { findFirst: jest.fn(), upsert: jest.fn() } },
+  prisma: {
+    user: { findFirst: jest.fn(), upsert: jest.fn() },
+    // v3.101: findUserByEmail falls through to the secondary-address
+    // table when no account carries the address.
+    userEmail: { findFirst: jest.fn(async () => null) },
+  },
 }))
 
 jest.mock("next-auth/providers/google", () => ({

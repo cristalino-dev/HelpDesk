@@ -16,7 +16,12 @@
 import { findUserByEmail, resolveUserByEmail, normalizeEmail } from "@/lib/users"
 
 jest.mock("@/lib/db", () => ({
-  prisma: { user: { findFirst: jest.fn(), upsert: jest.fn() } },
+  prisma: {
+    user: { findFirst: jest.fn(), upsert: jest.fn() },
+    // v3.101: findUserByEmail falls through to the secondary-address
+    // table when no account carries the address.
+    userEmail: { findFirst: jest.fn(async () => null) },
+  },
 }))
 
 import { prisma } from "@/lib/db"

@@ -54,11 +54,14 @@ jest.mock("@/lib/db", () => ({
     ticket: { findUnique: jest.fn(), create: jest.fn(), count: jest.fn() },
     ticketHistory: { create: jest.fn() },
     ticketMessage: { findFirst: jest.fn(), create: jest.fn() },
+    // v3.101: findUserByEmail falls through to the secondary-address
+    // table when no account carries the address.
+    userEmail: { findFirst: jest.fn(async () => null) },
   },
 }))
 jest.mock("@/lib/users", () => ({
   resolveUserByEmail: jest.fn(async (email: string) => ({ id: `u:${email}` })),
-  findUserByEmail: jest.fn(async () => null),
+  findUserByEmail: jest.fn(),
 }))
 jest.mock("@/lib/staffMembers", () => ({
   getStaffEmails: jest.fn(async () => ["alon@cristalino.co.il"]),
@@ -134,7 +137,12 @@ beforeEach(() => {
   ;(prisma.ticket.count as jest.Mock).mockResolvedValue(0)
   ;(prisma.ticketMessage.findFirst as jest.Mock).mockResolvedValue(null)
   ;(prisma.ticketMessage.create as jest.Mock).mockResolvedValue({ id: "m1" })
-  ;(findUserByEmail as jest.Mock).mockResolvedValue(null)
+  // v3.101: the reply path identifies a ticket's owner by ROW, not by
+  // comparing address strings, so a sender has to resolve to a user the way
+  // the real lib/users.ts would. Anyone not named here still resolves to
+  // null — a stranger — which the tests below rely on.
+  ;(findUserByEmail as jest.Mock).mockImplementation(async (email: string) =>
+    email.toLowerCase() === EMPLOYEE ? { id: "u-dana", email } : null)
 })
 afterAll(() => { process.env = env })
 
@@ -298,7 +306,7 @@ describe("replies to a ticket join it (v3.83)", () => {
   const TICKET = {
     id: "t597", ticketNumber: 597, subject: "המדפסת לא עובדת", description: "", urgency: "בינוני",
     category: "אחר", platform: "מחשב אישי", phone: "", computerName: "", status: "פתוח",
-    user: { name: "דנה לוי", email: EMPLOYEE },
+    userId: "u-dana", user: { name: "דנה לוי", email: EMPLOYEE },
   }
   const QUOTED = "עדיין לא עובד\n\nOn Mon, Sep 14, 2026 at 11:08 AM Cristalino Helpdesk <noreply_helpdesk@cristalino.co.il> wrote:\n> תגובה חדשה על פנייתך"
   const REPLY_SUBJECT = "Re: תגובה חדשה על פנייתך HDTC-597: המדפסת לא עובדת"
@@ -467,7 +475,7 @@ describe("attachments on inbound mail (v3.84)", () => {
 
   it("adds a reply's attachment to the ticket it answers", async () => {
     ;(prisma.ticket.findUnique as jest.Mock).mockResolvedValue({
-      id: "t597", ticketNumber: 597, subject: "מדפסת", user: { name: "דנה", email: EMPLOYEE },
+      id: "t597", ticketNumber: 597, subject: "מדפסת", userId: "u-dana", user: { name: "דנה", email: EMPLOYEE },
     })
     inbox({ uid: 1, from: EMPLOYEE, subject: "Re: עדכון על פנייתך HDTC-597 – בטיפול", text: "מצרפת צילום",
       attachments: [file("screen.png", "image/png", 80_000)] })

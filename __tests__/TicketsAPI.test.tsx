@@ -19,6 +19,9 @@ jest.mock("@/lib/db", () => ({
     // order and hands back their results — which is what the route destructures.
     $transaction: jest.fn(async (ops) => Promise.all(ops)),
     user: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    // v3.101: findUserByEmail falls through to the secondary-address
+    // table when no account carries the address.
+    userEmail: { findFirst: jest.fn(async () => null) },
     ticket: {
       create: jest.fn(),
       update: jest.fn(),
