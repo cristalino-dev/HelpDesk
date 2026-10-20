@@ -15,7 +15,7 @@ import { tmpdir } from "os"
 import { join } from "path"
 import {
   docExt, isDocFile, docTitle, docGroupOf, sortDocs, docMimeType, docResponseHeaders,
-  docHebrewTitle, docViewKind, docViewHref, docFileHref, isSafeDocLink, DOC_TITLES_HE, type DocFile,
+  docHebrewTitle, docViewKind, docViewHref, docFileHref, isSafeDocLink, DOC_TITLES_HE, DOCS_SHELF_HREF, type DocFile,
 } from "@/lib/docs"
 
 describe("reading a document's name", () => {
@@ -138,8 +138,9 @@ describe("the viewer page (v3.104)", () => {
     expect(docViewKind("licences.xlsx")).toBe("none")
   })
 
-  it("links the shelf to the page, and the page to the file", () => {
+  it("links the shelf to the page, the page to the file, and back to the shelf", () => {
     const name = "מדריך הקמת נציגים - Zoho Desk.html"
+    expect(DOCS_SHELF_HREF).toBe("/admin?tab=docs")
     expect(docViewHref(name)).toBe(`/admin/docs/${encodeURIComponent(name)}`)
     expect(docFileHref(name)).toBe(`/api/admin/docs/${encodeURIComponent(name)}`)
     expect(docFileHref(name, true)).toBe(`/api/admin/docs/${encodeURIComponent(name)}?download=1`)

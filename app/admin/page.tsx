@@ -40,7 +40,7 @@
  *
  * STATE SUMMARY:
  * ───────────────
- *   tab           — active tab ("tickets" | "users" | "logs")
+ *   tab           — active tab (one of ADMIN_TABS); /admin?tab=<key> opens one (v3.105)
  *   tickets       — array of open/in-progress TicketWithUser objects
  *   loading       — tickets loading indicator
  *   expanded      — id of the currently expanded ticket card (null = none)
@@ -59,7 +59,7 @@
 
 "use client"
 import { useSession } from "next-auth/react"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
@@ -110,6 +110,18 @@ const badge: React.CSSProperties = {
   letterSpacing: "0.01em",
 }
 
+/**
+ * The console's tabs, in the order they are drawn. `/admin?tab=<key>` opens
+ * one — the documents page's back button leads to `?tab=docs` (v3.105) — and
+ * the address follows the tab, so a refresh stays where it was.
+ */
+const ADMIN_TABS = [
+  ["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"],
+  ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"], ["api", "API"], ["docs", "מסמכים"],
+] as const
+
+type AdminTab = typeof ADMIN_TABS[number][0]
+
 interface UserAlias { id: string; email: string }
 interface UserRow { id: string; name: string | null; email: string; phone: string | null; station: string | null; isAdmin: boolean; emails?: UserAlias[] }
 
@@ -118,7 +130,7 @@ export default function AdminPage() {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [statFilter, setStatFilter] = useState<string | null>(null)
-  const [tab, setTab] = useState<"tickets" | "users" | "logs" | "fields" | "licenses" | "printers" | "equipment" | "api" | "docs">("tickets")
+  const [tab, setTab] = useState<AdminTab>("tickets")
   const [tickets, setTickets] = useState<TicketWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const [staffMembers, setStaffMembers] = useState<{ email: string; handle: string; display: string }[]>(ASSIGNABLE_FALLBACK)
@@ -851,6 +863,29 @@ export default function AdminPage() {
     if (res.ok) await loadPrinters()
   }
 
+  /** Switch tab, load what it shows, and keep the address in step with it. */
+  const openTab = (key: AdminTab) => {
+    setTab(key)
+    if (key === "users" && users.length === 0) loadUsers()
+    if (key === "logs") loadLogs(logDate)
+    if (key === "fields") loadFieldOpts()
+    if (key === "licenses") { loadLicenses(); loadFieldOpts() }
+    if (key === "printers") loadPrinters()
+    if (key === "equipment") loadShortage()
+    window.history.replaceState(null, "", key === "tickets" ? "/admin" : `/admin?tab=${key}`)
+  }
+
+  // ?tab= is read once, when the session is known: the tab's loader needs it,
+  // and a session refetch must not drag the console back to that tab.
+  const tabFromUrl = useRef(false)
+  useEffect(() => {
+    if (tabFromUrl.current || status !== "authenticated" || !session?.user?.isAdmin) return
+    tabFromUrl.current = true
+    const wanted = new URLSearchParams(window.location.search).get("tab")
+    const known = ADMIN_TABS.find(([key]) => key === wanted)
+    if (known) openTab(known[0])
+  }, [status, session])
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.isAdmin) {
       loadTickets()
@@ -883,16 +918,8 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", borderBottom: `2px solid ${T.line}`, paddingBottom: "0", overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap" }}>
-          {([["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"], ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"], ["api", "API"], ["docs", "מסמכים"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => {
-              setTab(key)
-              if (key === "users" && users.length === 0) loadUsers()
-              if (key === "logs") loadLogs(logDate)
-              if (key === "fields") loadFieldOpts()
-              if (key === "licenses") { loadLicenses(); loadFieldOpts() }
-              if (key === "printers") loadPrinters()
-              if (key === "equipment") loadShortage()
-            }}
+          {ADMIN_TABS.map(([key, label]) => (
+            <button key={key} onClick={() => openTab(key)}
               style={{ padding: "10px 20px", fontWeight: tab === key ? 700 : 600, fontSize: "0.88rem", border: "none", background: "none", cursor: "pointer", color: tab === key ? T.text : T.muted, borderBottom: tab === key ? `2px solid ${T.green}` : "2px solid transparent", marginBottom: "-2px", borderRadius: 0, whiteSpace: "nowrap", flexShrink: 0 }}>
               {label}
             </button>

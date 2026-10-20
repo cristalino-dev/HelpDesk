@@ -5,6 +5,32 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.105 — חזרה למסמכים
+
+**A document opens in a tab of its own, where the browser's back button has
+nowhere to go. Now the page has one that does.**
+
+### What changed for users
+
+- **← חזרה למסמכים** at the top of every document page. It leads to the
+  admin console, open on the מסמכים tab.
+- **The console's address follows its tab** — `/admin?tab=docs`,
+  `/admin?tab=users` and so on — so a refresh stays on the tab you were on,
+  and a tab can be linked to.
+
+### What changed for developers
+
+- `app/admin/page.tsx`: the tabs are one list, `ADMIN_TABS`, and switching is
+  one function, `openTab()` — the button and `?tab=` both go through it, so a
+  tab opened from the address loads its data exactly as a click does. `?tab=`
+  is read once, when the session is known; a session refetch does not move the
+  console. `openTab()` keeps the address in step with `history.replaceState`,
+  which the App Router follows.
+- `DOCS_SHELF_HREF` in `lib/docs.ts` is the back link's target, beside the
+  shelf's other two addresses. 97 suites / 1,635 tests.
+
+---
+
 ## v3.104 — מסמך נפתח לקריאה, בשם עברי
 
 **A Word document on the מסמכים shelf used to download. A document somebody

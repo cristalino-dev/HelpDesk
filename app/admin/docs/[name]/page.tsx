@@ -20,12 +20,13 @@
 import { use, useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
 import FooterCopyright from "@/components/FooterCopyright"
 import { T } from "@/lib/theme"
 import { useIsMobile } from "@/lib/useIsMobile"
-import { docExt, docFileHref, docViewKind, type DocFile } from "@/lib/docs"
+import { DOCS_SHELF_HREF, docExt, docFileHref, docViewKind, type DocFile } from "@/lib/docs"
 import WordDocument from "./WordDocument"
 
 /** "1.2 MB" — the same reading of a size as the shelf's. */
@@ -82,6 +83,13 @@ export default function DocViewerPage({ params }: { params: Promise<{ name: stri
       <AppHeader wordmark={isMobile ? "מסמכים" : "ניהול מערכת"} subtitle={false}><AppNav /></AppHeader>
 
       <main style={{ flex: 1, width: "100%", maxWidth: 1100, margin: "0 auto", padding: isMobile ? "20px 16px 32px" : "28px 24px 40px", display: "flex", flexDirection: "column", gap: 20, boxSizing: "border-box" }}>
+
+        {/* The page opens in a tab of its own, where the browser's back button
+            has nowhere to go — this one leads to the shelf (v3.105). */}
+        <Link
+          href={DOCS_SHELF_HREF}
+          style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 7, fontSize: "0.85rem", fontWeight: 600, color: T.greenInk, background: T.greenBg, border: `1px solid ${T.greenBorder}`, borderRadius: 999, padding: "7px 15px", textDecoration: "none" }}
+        >← חזרה למסמכים</Link>
 
         {state === "loading" && (
           <p style={{ margin: "40px 0", textAlign: "center", fontSize: "0.88rem", color: T.inkFaint }}>טוען...</p>

@@ -141,6 +141,9 @@ export function docViewKind(name: string): DocViewKind {
   return docOpensInline(name) ? "frame" : "none"
 }
 
+/** The shelf itself: the admin console, opened on its מסמכים tab (v3.105). */
+export const DOCS_SHELF_HREF = "/admin?tab=docs"
+
 /** The viewer page for a document — where the shelf links. */
 export function docViewHref(name: string): string {
   return `/admin/docs/${encodeURIComponent(name)}`
