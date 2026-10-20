@@ -14,7 +14,8 @@ import { mkdtemp, writeFile, mkdir } from "fs/promises"
 import { tmpdir } from "os"
 import { join } from "path"
 import {
-  docExt, isDocFile, docTitle, docGroupOf, sortDocs, docMimeType, docResponseHeaders, type DocFile,
+  docExt, isDocFile, docTitle, docGroupOf, sortDocs, docMimeType, docResponseHeaders,
+  docHebrewTitle, docViewKind, docViewHref, docFileHref, isSafeDocLink, DOC_TITLES_HE, type DocFile,
 } from "@/lib/docs"
 
 describe("reading a document's name", () => {
@@ -37,6 +38,26 @@ describe("reading a document's name", () => {
     expect(docGroupOf("מדריך פתיחת משתמשים - Google Workspace Admin.html")).toBe("guides")
   })
 
+  // v3.104: the shelf is in Hebrew; the files keep their English names.
+  it("gives every document of the numbered set a Hebrew name", () => {
+    for (const file of [
+      "00_MASTER_IT_ECOSYSTEM_INDEX.docx", "01_CLOUD_INFRASTRUCTURE_AND_SERVERS.docx",
+      "02_NETWORK_TOPOLOGY_SUBNETS_AND_PRINTERS.docx", "03_BEZEQ_CARRIER_TRUNKS_AND_RETAIL_CIRCUITS.docx",
+      "04_RETAIL_BRANCHES_DIRECTORY_AND_HARDWARE.docx", "05_TELEPHONY_PBX_AND_VOICENTER.docx",
+      "06_ERP_COMAX_INTEGRATIONS_AND_AUTOMATION.docx", "07_IDENTITY_GOOGLE_WORKSPACE_AND_ZOHO.docx",
+      "08_INTERNAL_APPLICATIONS_AND_CODEBASES.docx", "09_SECURITY_OPERATIONS_AND_INCIDENT_RUNBOOK.docx",
+    ]) {
+      expect(docHebrewTitle(docTitle(file).title)).toMatch(/[֐-׿]/)
+    }
+    expect(docHebrewTitle("SECURITY OPERATIONS AND INCIDENT RUNBOOK")).toBe("אבטחת מידע ונוהל טיפול באירועים")
+    expect(Object.keys(DOC_TITLES_HE)).toHaveLength(10)
+  })
+
+  it("has no Hebrew name for a document it does not know, or one already in Hebrew", () => {
+    expect(docHebrewTitle("SOMETHING NEW")).toBeNull()
+    expect(docHebrewTitle("מדריך הקמת נציגים - Zoho Desk")).toBeNull()
+  })
+
   it("knows which files belong on the shelf", () => {
     expect(isDocFile("00_MASTER.docx")).toBe(true)
     expect(isDocFile("guide.HTML")).toBe(true)
@@ -51,7 +72,7 @@ describe("reading a document's name", () => {
 describe("the order on the shelf", () => {
   const doc = (name: string): DocFile => {
     const { index, title } = docTitle(name)
-    return { name, title, index, group: docGroupOf(name), ext: docExt(name), size: 1, updatedAt: "2026-09-29T00:00:00.000Z" }
+    return { name, title, titleHe: docHebrewTitle(title), index, group: docGroupOf(name), ext: docExt(name), size: 1, updatedAt: "2026-09-29T00:00:00.000Z" }
   }
 
   it("puts the numbered set first, in its numbers, then the guides by name", () => {
@@ -82,6 +103,14 @@ describe("what the browser is told", () => {
     expect(docResponseHeaders("00_MASTER.docx", 10)["Content-Disposition"]).toMatch(/^attachment/)
   })
 
+  it("downloads anything when asked to — the viewer's download button", () => {
+    expect(docResponseHeaders("guide.html", 10, true)["Content-Disposition"]).toMatch(/^attachment/)
+    expect(docResponseHeaders("notes.pdf", 10, true)["Content-Disposition"]).toMatch(/^attachment/)
+    expect(docResponseHeaders("00_MASTER.docx", 10, true)["Content-Disposition"]).toMatch(/^attachment/)
+    // Saved or shown, an HTML file is still served under its CSP.
+    expect(docResponseHeaders("guide.html", 10, true)["Content-Security-Policy"]).toContain("default-src 'none'")
+  })
+
   it("carries a Hebrew filename through the header intact", () => {
     const name = "מדריך הקמת נציגים - Zoho Desk.html"
     expect(docResponseHeaders(name, 10)["Content-Disposition"]).toContain(encodeURIComponent(name))
@@ -95,6 +124,35 @@ describe("what the browser is told", () => {
     expect(h["Content-Security-Policy"]).toContain("style-src 'unsafe-inline'")
     expect(h["X-Content-Type-Options"]).toBe("nosniff")
     expect(h["Cache-Control"]).toBe("private, no-store")
+  })
+})
+
+describe("the viewer page (v3.104)", () => {
+  it("draws Word itself, frames what the browser shows, and offers the rest as a download", () => {
+    expect(docViewKind("00_MASTER_IT_ECOSYSTEM_INDEX.docx")).toBe("word")
+    expect(docViewKind("A.DOCX")).toBe("word")
+    expect(docViewKind("מדריך הקמת נציגים - Zoho Desk.html")).toBe("frame")
+    expect(docViewKind("notes.pdf")).toBe("frame")
+    expect(docViewKind("readme.md")).toBe("frame")
+    expect(docViewKind("old.doc")).toBe("none")
+    expect(docViewKind("licences.xlsx")).toBe("none")
+  })
+
+  it("links the shelf to the page, and the page to the file", () => {
+    const name = "מדריך הקמת נציגים - Zoho Desk.html"
+    expect(docViewHref(name)).toBe(`/admin/docs/${encodeURIComponent(name)}`)
+    expect(docFileHref(name)).toBe(`/api/admin/docs/${encodeURIComponent(name)}`)
+    expect(docFileHref(name, true)).toBe(`/api/admin/docs/${encodeURIComponent(name)}?download=1`)
+  })
+
+  // A Word document's hyperlinks are drawn on our own origin.
+  it("keeps a link's target only when it is an address, a mail, a phone or a place in the document", () => {
+    for (const ok of ["https://status.cristalino.co.il", "http://192.168.1.1", "mailto:it@cristalino.co.il", "tel:+972-3-0000000", "#_Toc1"]) {
+      expect(isSafeDocLink(ok)).toBe(true)
+    }
+    for (const bad of ["javascript:alert(1)", " JavaScript:alert(1)", "data:text/html,<script>", "vbscript:x", "file:///C:/Windows", ""]) {
+      expect(isSafeDocLink(bad)).toBe(false)
+    }
   })
 })
 
@@ -126,7 +184,8 @@ describe("listDocs / readDoc", () => {
 
   it("describes each file from its name and its stat", async () => {
     const docx = (await listDocs()).find(d => d.ext === ".docx")!
-    expect(docx).toMatchObject({ index: "00", group: "infra", title: "MASTER IT ECOSYSTEM INDEX", size: 4 })
+    expect(docx).toMatchObject({ index: "00", group: "infra", title: "MASTER IT ECOSYSTEM INDEX", titleHe: "מפתח ראשי למערכות ה-IT", size: 4 })
+    expect((await listDocs()).find(d => d.ext === ".html")!.titleHe).toBeNull()
     expect(Date.parse(docx.updatedAt)).toBeGreaterThan(0)
   })
 

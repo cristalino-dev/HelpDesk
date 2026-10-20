@@ -3,7 +3,12 @@
  *
  * The team's own documentation, in one place and one click from the queue:
  * the infrastructure write-ups first, in their numbered order, then the working
- * guides. Every one opens in a new tab, so the queue stays where it was.
+ * guides. Every one opens in a new tab, so the queue stays where it was — on
+ * the viewer page (app/admin/docs/[name], v3.104), which shows a Word document
+ * as it is instead of downloading it, and offers the original file.
+ *
+ * A document is listed under its Hebrew name when lib/docs.ts has one
+ * (DOC_TITLES_HE), with the English name of the file beside it.
  *
  * The files live on the server (uploads/it-docs/) and are served by
  * /api/admin/docs, which admits admins only. Adding a document is copying a
@@ -13,7 +18,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import { T } from "@/lib/theme"
-import { DOC_GROUPS, type DocFile, type DocGroup } from "@/lib/docs"
+import { DOC_GROUPS, docViewHref, type DocFile, type DocGroup } from "@/lib/docs"
 
 /** "1.2 MB" — a size somebody can judge a download by. */
 function formatSize(bytes: number): string {
@@ -55,7 +60,7 @@ export default function DocsPanel() {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <p style={{ margin: 0, fontSize: "0.85rem", color: T.inkMuted, lineHeight: 1.7 }}>
-          התיעוד של מערכות ה-IT של החברה. כל מסמך נפתח בלשונית חדשה — מסמכי Word יורדים למחשב.
+          התיעוד של מערכות ה-IT של החברה. כל מסמך נפתח לקריאה בלשונית חדשה, ומשם אפשר להוריד את הקובץ המקורי.
           המסמכים שמורים בשרת ונגישים למנהלי מערכת בלבד.
         </p>
         <button
@@ -99,7 +104,7 @@ export default function DocsPanel() {
               {inGroup.map(doc => (
                 <a
                   key={doc.name}
-                  href={`/api/admin/docs/${encodeURIComponent(doc.name)}`}
+                  href={docViewHref(doc.name)}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -113,8 +118,15 @@ export default function DocsPanel() {
                       {doc.index}
                     </span>
                   )}
-                  <span style={{ fontSize: "0.9rem", fontWeight: 600, color: T.text, flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
-                    {doc.title}
+                  <span style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: "0.9rem", fontWeight: 600, color: T.text, overflowWrap: "anywhere" }}>
+                      {doc.titleHe ?? doc.title}
+                    </span>
+                    {doc.titleHe && (
+                      <span dir="ltr" style={{ fontSize: "0.72rem", color: T.inkFaint, overflowWrap: "anywhere" }}>
+                        {doc.title}
+                      </span>
+                    )}
                   </span>
                   <span style={{ fontSize: "0.72rem", fontWeight: 700, color: T.pillBlueFg, background: T.pillBlueBg, borderRadius: 999, padding: "2px 10px", flexShrink: 0 }}>
                     {EXT_LABEL[doc.ext] ?? doc.ext.replace(".", "").toUpperCase()}

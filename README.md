@@ -67,7 +67,7 @@ A Hebrew RTL internal helpdesk system built for Cristalino Group LTD. Employees 
 - **מדפסות** — printer inventory with toner levels, supplier serials, and driver file uploads
 - **ציוד חסר** — the equipment shortage report
 - **Error monitoring** — admin log viewer with live filtering, copy-all and download
-- **מסמכים** — the team's IT documentation, served from the server to admins only; each document opens in a new tab (v3.99)
+- **מסמכים** — the team's IT documentation, served from the server to admins only; each document opens in a new tab (v3.99), on a page that shows a Word document as it is, under its Hebrew name, with the original a click away (v3.104)
 
 ### Automation
 

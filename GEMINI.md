@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.103** · Updated 2026-10-19
+> **Current version: 3.104** · Updated 2026-10-20
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -57,7 +57,7 @@ Four effective roles. Only **Admin** is a DB flag (`User.isAdmin`); the rest com
 - **Escalation to Reline (v3.102)** — staff send a ticket to the outside supplier from its page, behind a confirmation. Reline answer with their own case number, which the mail intake reads off their subject into `Ticket.relineRef` and every list then shows as `Reline #269311`. `lib/reline.ts`
 - **Secondary addresses (v3.101)** — one person, more than one mailbox. `UserEmail` lists the other addresses someone writes from, `findUserByEmail` resolves them to the same row, and `/admin` → ניהול משתמשים → עריכה adds one. When the address is already an account, adding it offers to **merge** that row in: its tickets move across and the address is kept as an alias
 - **Workstation provisioning logs (v3.100)** — the PC setup scripts post their transcript to `POST /api/provisioning/log`; the run lands in the `Log` table and the whole transcript is mailed to dev@ as a `.log` attachment. The one route here with no credential, because it is called by a machine being built — see rule 16
-- **IT documentation shelf (v3.99)** — `/admin` → **מסמכים**, admins only: the numbered infrastructure set and the working guides, each opening in a new tab. The files live in `uploads/it-docs/` on the server (git-ignored, outside the deploy archive); `lib/docs.ts` reads a filename into a title, a group and an order, and `GET /api/admin/docs[/name]` serves them. Adding a document is copying a file in
+- **IT documentation shelf (v3.99)** — `/admin` → **מסמכים**, admins only: the numbered infrastructure set and the working guides, each opening in a new tab. The files live in `uploads/it-docs/` on the server (git-ignored, outside the deploy archive); `lib/docs.ts` reads a filename into a title, a group and an order, and `GET /api/admin/docs[/name]` serves them. Adding a document is copying a file in. Since v3.104 a document opens on `/admin/docs/[name]`: a `.docx` is drawn in the browser by `docx-preview` (pages, fonts, shaded tables), HTML and PDF sit in a frame, and **הורדת הקובץ המקורי** fetches the file with `?download=1`. The numbered set is listed under Hebrew names from `DOC_TITLES_HE`
 - **API for other programs (v3.88)** — `/api/v1`: list and query tickets and requests by any field, read one in full, open one, change it, write to its owner, add a note. A key per program (read, or read and write), created and revoked in the admin console. documentation page at `/api/v1/docs` (v3.89); OpenAPI at `/api/v1/openapi.json`; guide in [`docs/API.md`](docs/API.md)
 - **Automation API** — `POST /api/automation/close` closes a ticket with a Bearer key; idempotent
 - **Periodic urgency sweep** — cron every 5 min ensures closed tickets have `urgency = נמוך`
@@ -190,6 +190,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.104 | A document on the מסמכים shelf opens on a page of its own instead of downloading: a Word file is drawn as Word draws it — pages, fonts, shaded tables — under a Hebrew name, with a button for the original file |
 | 3.103 | An escalation now parks the ticket: new status **ממתין לגורם חיצוני**, and the stale clock stops while somebody else holds it. The ticket shows when it was opened, when it went to Reline and when they answered — and because that answer may never come, staff can type the number in by hand |
 | 3.102 | A ticket can be escalated to Reline from its page, behind a confirmation that shows exactly what leaves the company. Their acknowledgement carries their case number; the intake reads it into `relineRef`, and `Reline #269311` then appears wherever the ticket is listed |
 | 3.101 | A user reported that 24 of his tickets were missing. They were not: he mails the helpdesk from a sister company's address and signs in with his Google one, so he was two accounts. `UserEmail` lets an admin list the second address, and merge the row it had created |
@@ -268,4 +269,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.103 — updated 2026-10-19.*
+*v3.104 — updated 2026-10-20.*

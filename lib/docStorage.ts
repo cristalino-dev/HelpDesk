@@ -13,7 +13,7 @@
 
 import { mkdir, readdir, readFile, stat } from "fs/promises"
 import path from "path"
-import { isDocFile, docTitle, docGroupOf, docExt, type DocFile } from "@/lib/docs"
+import { isDocFile, docTitle, docHebrewTitle, docGroupOf, docExt, type DocFile } from "@/lib/docs"
 
 /** Absolute path to the directory that holds the documents. */
 export function docsDir(): string {
@@ -46,6 +46,7 @@ export async function listDocs(): Promise<DocFile[]> {
       const { index, title } = docTitle(name)
       docs.push({
         name, title, index,
+        titleHe: docHebrewTitle(title),
         group: docGroupOf(name),
         ext: docExt(name),
         size: info.size,

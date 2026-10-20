@@ -6,9 +6,11 @@
  * into a chat is a link to a sign-in page, not to the network topology.
  *
  * What the browser does with it is lib/docs.ts's decision: HTML, PDF and plain
- * text open in the tab the panel opened, everything else downloads. HTML is
- * served under a CSP that lets it style itself and reach nothing — it comes
- * from our own origin, so anything it could load, it could load as us.
+ * text open where they are shown (the viewer page's frame), everything else
+ * downloads — and so does anything asked for with ?download=1, the viewer's
+ * download button (v3.104). HTML is served under a CSP that lets it style
+ * itself and reach nothing — it comes from our own origin, so anything it could
+ * load, it could load as us.
  *
  * `name` is a filename, never a path; see readDoc() in lib/docStorage.ts.
  */
@@ -21,7 +23,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "nodejs"
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
   try {
     const session = await auth()
     if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -31,8 +33,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ nam
     const file = await readDoc(name)
     if (!file) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+    const download = req.nextUrl.searchParams.get("download") === "1"
     return new NextResponse(new Uint8Array(file), {
-      headers: docResponseHeaders(decodeURIComponent(name), file.length),
+      headers: docResponseHeaders(decodeURIComponent(name), file.length, download),
     })
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))

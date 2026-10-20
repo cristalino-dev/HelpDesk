@@ -5,6 +5,59 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.104 — מסמך נפתח לקריאה, בשם עברי
+
+**A Word document on the מסמכים shelf used to download. A document somebody
+has to download in the middle of a call is a document nobody opens. Now it is
+on screen, as it is in Word.**
+
+### What changed for users
+
+- **Every document opens on a page of its own** (in a new tab, as before, so
+  the queue stays where it was). A Word file is drawn the way Word draws it —
+  white pages, the document's fonts, the blue headings, the shaded tables and
+  bullet lists. The HTML guides and PDFs sit in a frame on the same page.
+- **הורדת הקובץ המקורי** at the top of every document, for whoever needs the
+  file itself. It downloads the guides too, which used to only open.
+- **The numbered set is listed in Hebrew** — "אבטחת מידע ונוהל טיפול
+  באירועים" instead of "SECURITY OPERATIONS AND INCIDENT RUNBOOK". The English
+  name of the file stays beside it, small, since the documents themselves are
+  in English and refer to one another by it.
+- On a phone the pages are zoomed down to the width of the screen.
+
+### What changed for developers
+
+- **`app/admin/docs/[name]/page.tsx`** — the viewer. Admins only, like the
+  shelf. It reads the document's names from `GET /api/admin/docs` and the bytes
+  from the file route, as before; nothing is converted or stored on the server.
+- **`WordDocument.tsx`** draws a `.docx` with **`docx-preview`** (new
+  dependency, with `jszip`), imported only when a Word document is opened. It
+  draws off-screen and swaps the result in whole, so a cancelled render can
+  never mix its pages into the next one.
+- **A Word document's hyperlinks are checked.** A `.docx` can carry any string
+  as a link, `javascript:` included, and the viewer draws it on our own origin.
+  `isSafeDocLink()` keeps http(s), mailto, tel and in-document anchors, and
+  strips the target from anything else.
+- **The HTML guides are framed with `sandbox`** on top of the CSP they were
+  already served under: no script, and their links open a tab of their own. A
+  PDF's frame is not sandboxed, because the browser's PDF viewer does not run
+  in one.
+- **`?download=1`** on `GET /api/admin/docs/[name]` makes any document an
+  attachment. An HTML file keeps its CSP either way.
+- **`DOC_TITLES_HE`** in `lib/docs.ts` holds the Hebrew names, keyed by the
+  title read from the filename, and `DocFile` gained `titleHe` (null when there
+  is none). The files keep their English names. A new numbered document is
+  shown in English until it is added to the list.
+- `docViewKind()` decides how a type is shown (`word` / `frame` / `none` —
+  `.doc` and Excel get the download button only); `docViewHref()` and
+  `docFileHref()` are the two addresses, so the panel and the page cannot
+  disagree about them.
+- **Tests:** the Hebrew names (every one of the ten has one), how each type is
+  shown, the two addresses, which links survive, and `?download=1` in both
+  `docs` and `docsRoute`. 97 suites / 1,635 tests.
+
+---
+
 ## v3.103 — הפנייה ממתינה לגורם חיצוני, והזמנים נרשמים
 
 **An escalation is not just a mail — it parks the ticket, and the three

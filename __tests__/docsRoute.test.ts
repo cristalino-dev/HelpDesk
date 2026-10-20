@@ -39,6 +39,7 @@ type Res = { status: number; headers: Map<string, string>; json: () => Promise<{
 const DOC = {
   name: "09_SECURITY_OPERATIONS_AND_INCIDENT_RUNBOOK.docx",
   title: "SECURITY OPERATIONS AND INCIDENT RUNBOOK",
+  titleHe: "אבטחת מידע ונוהל טיפול באירועים",
   index: "09", group: "infra" as const, ext: ".docx", size: 36920, updatedAt: "2026-09-29T09:00:00.000Z",
 }
 
@@ -46,8 +47,11 @@ const signedOut = () => (auth as jest.Mock).mockResolvedValue(null)
 const asUser    = () => (auth as jest.Mock).mockResolvedValue({ user: { email: "dana@cristalino.co.il", isAdmin: false } })
 const asAdmin   = () => (auth as jest.Mock).mockResolvedValue({ user: { email: "alon@cristalino.co.il", isAdmin: true } })
 
-const getOne = (name: string) =>
-  serve({} as NextRequest, { params: Promise.resolve({ name }) }) as unknown as Promise<Res>
+const getOne = (name: string, query = "") =>
+  serve(
+    { nextUrl: new URL(`http://localhost/api/admin/docs/${name}${query}`) } as unknown as NextRequest,
+    { params: Promise.resolve({ name }) },
+  ) as unknown as Promise<Res>
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -105,6 +109,18 @@ describe("one document", () => {
     expect(res.headers.get("Content-Type")).toBe("text/html; charset=utf-8")
     expect(res.headers.get("Content-Disposition")).toMatch(/^inline/)
     expect(res.headers.get("Content-Security-Policy")).toContain("default-src 'none'")
+  })
+
+  // The viewer shows a guide in a frame; its download button must still save it.
+  it("hands any document over as a download when ?download=1 asks", async () => {
+    asAdmin()
+    ;(readDoc as jest.Mock).mockResolvedValue(Buffer.from("<p>שלום</p>"))
+    const name = encodeURIComponent("מדריך הקמת נציגים - Zoho Desk.html")
+    const res = await getOne(name, "?download=1")
+    expect(res.headers.get("Content-Disposition")).toMatch(/^attachment/)
+    expect(res.headers.get("Content-Disposition")).toContain(name)
+    expect(res.headers.get("Content-Security-Policy")).toContain("default-src 'none'")
+    expect((await getOne(DOC.name, "?download=1")).headers.get("Content-Disposition")).toMatch(/^attachment/)
   })
 
   it("answers 404 for a name the shelf does not hold — traversal included", async () => {
