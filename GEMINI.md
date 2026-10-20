@@ -1,6 +1,6 @@
 # Gemini Project Review — Cristalino HelpDesk
 
-> **Current version: 3.105** · Updated 2026-10-20
+> **Current version: 3.106** · Updated 2026-10-20
 
 **Cristalino HelpDesk** is a Hebrew RTL internal IT helpdesk system for Cristalino Group LTD.
 Employees submit IT tickets via a web app (Google login). IT staff manage the queue through dedicated panels.
@@ -190,6 +190,7 @@ The three most recent:
 
 | Version | Summary |
 |---|---|
+| 3.106 | The documents shelf has a third section, **מסמכי סברובסקי** — any file whose name starts with סברובסקי or Swarovski. First in it: the Sold-to and Ship-to numbers of every store, as text |
 | 3.105 | A document page has a back button, **← חזרה למסמכים**, leading to `/admin?tab=docs`; the console's address now follows its tab, so a refresh stays put |
 | 3.104 | A document on the מסמכים shelf opens on a page of its own instead of downloading: a Word file is drawn as Word draws it — pages, fonts, shaded tables — under a Hebrew name, with a button for the original file |
 | 3.103 | An escalation now parks the ticket: new status **ממתין לגורם חיצוני**, and the stale clock stops while somebody else holds it. The ticket shows when it was opened, when it went to Reline and when they answered — and because that answer may never come, staff can type the number in by hand |
@@ -270,4 +271,4 @@ Ingested tickets look like any other ticket. The reporter is the email sender; t
 
 ---
 
-*v3.105 — updated 2026-10-20.*
+*v3.106 — updated 2026-10-20.*

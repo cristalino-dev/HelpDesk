@@ -5,6 +5,32 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.106 — מסמכי סברובסקי
+
+**The shelf has a third section, for what comes from Swarovski.**
+
+### What changed for users
+
+- **מסמכי סברובסקי** — a section of its own on the מסמכים tab, under the
+  working guides. The first document in it is the list of Swarovski
+  customer numbers: the two Sold-to accounts (Cristalino 260698, Fine Gold
+  223028) and the Ship-to number and address of each of the twelve stores, as
+  text that can be searched and copied rather than a screenshot.
+- A new working guide: **יצירת משתמש חדש במערכת זוהו** (Zoho One), from the
+  PDF, in the same web format as the other guides.
+
+### What changed for developers
+
+- `docGroupOf()` files a name that **starts with** סברובסקי or Swarovski under
+  `swarovski`; a guide that only mentions Swarovski stays a guide.
+  `DOC_GROUP_ORDER` is the one order the sections are drawn and sorted in —
+  the panel and `sortDocs()` used to spell out two groups each. A test fails if
+  a section has no place in it.
+- The documents themselves are files in `uploads/it-docs/`, not in git, as
+  before. 97 suites / 1,637 tests.
+
+---
+
 ## v3.105 — חזרה למסמכים
 
 **A document opens in a tab of its own, where the browser's back button has

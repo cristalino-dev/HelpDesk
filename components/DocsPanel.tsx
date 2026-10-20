@@ -18,7 +18,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
 import { T } from "@/lib/theme"
-import { DOC_GROUPS, docViewHref, type DocFile, type DocGroup } from "@/lib/docs"
+import { DOC_GROUPS, DOC_GROUP_ORDER, docViewHref, type DocFile, type DocGroup } from "@/lib/docs"
 
 /** "1.2 MB" — a size somebody can judge a download by. */
 function formatSize(bytes: number): string {
@@ -26,6 +26,8 @@ function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
+
+const GROUP_ICON: Record<DocGroup, string> = { infra: "🗂", guides: "📘", swarovski: "💎" }
 
 const EXT_LABEL: Record<string, string> = {
   ".html": "HTML", ".htm": "HTML", ".pdf": "PDF", ".docx": "Word", ".doc": "Word",
@@ -53,8 +55,6 @@ export default function DocsPanel() {
   }, [])
 
   useEffect(() => { load() }, [load])
-
-  const groups: DocGroup[] = ["infra", "guides"]
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -87,14 +87,14 @@ export default function DocsPanel() {
         </div>
       )}
 
-      {groups.map(group => {
+      {DOC_GROUP_ORDER.map(group => {
         const inGroup = docs.filter(d => d.group === group)
         if (inGroup.length === 0) return null
         return (
           <section key={group} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <h3 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: T.ink }}>
-                {group === "infra" ? "🗂 " : "📘 "}{DOC_GROUPS[group]}
+                {GROUP_ICON[group]} {DOC_GROUPS[group]}
               </h3>
               <span style={{ fontSize: "0.75rem", color: T.inkFaint }}>{inGroup.length}</span>
               <div style={{ flex: 1, height: 1, background: T.line }} />

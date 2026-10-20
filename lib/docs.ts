@@ -14,6 +14,9 @@
  *   00_MASTER_IT_ECOSYSTEM_INDEX.docx  → "00" · "MASTER IT ECOSYSTEM INDEX",
  *                                        filed under the infrastructure set and
  *                                        ordered by its number;
+ *   סברובסקי - מספרי לקוח וכתובות משלוח.html
+ *                                      → a Swarovski document (v3.106): the name
+ *                                        starts with סברובסקי or Swarovski;
  *   מדריך הקמת נציגים - Zoho Desk.html → a working guide, ordered by name.
  *
  * Pure and client-safe: the panel, the viewer page (v3.104) and the route agree
@@ -23,9 +26,12 @@
 /** What may sit on the shelf. Anything else in the directory is ignored. */
 export const DOC_EXTENSIONS = [".html", ".htm", ".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv", ".md", ".txt"] as const
 
-export const DOC_GROUPS = { infra: "תיעוד תשתיות IT", guides: "מדריכי עבודה" } as const
+export const DOC_GROUPS = { infra: "תיעוד תשתיות IT", guides: "מדריכי עבודה", swarovski: "מסמכי סברובסקי" } as const
 
 export type DocGroup = keyof typeof DOC_GROUPS
+
+/** The order the sections are shown in, top to bottom. */
+export const DOC_GROUP_ORDER: readonly DocGroup[] = ["infra", "guides", "swarovski"]
 
 /**
  * The Hebrew name the shelf shows for a document whose file is named in English
@@ -89,14 +95,20 @@ export function docHebrewTitle(title: string): string | null {
   return DOC_TITLES_HE[title.toUpperCase()] ?? null
 }
 
-/** A numbered file belongs to the infrastructure set; everything else is a guide. */
+/**
+ * A numbered file belongs to the infrastructure set; a name that starts with
+ * סברובסקי or Swarovski to the Swarovski documents (v3.106); everything else is
+ * a guide.
+ */
 export function docGroupOf(name: string): DocGroup {
-  return docTitle(name).index === null ? "guides" : "infra"
+  if (docTitle(name).index !== null) return "infra"
+  if (/^(סברובסקי|swarovski)/i.test(name.trim())) return "swarovski"
+  return "guides"
 }
 
-/** The shelf's order: the infrastructure set by its numbers, then the guides by name. */
+/** The shelf's order: section by section, the infrastructure set by its numbers, the rest by name. */
 export function sortDocs(docs: readonly DocFile[]): DocFile[] {
-  const rank = (d: DocFile) => (d.group === "infra" ? 0 : 1)
+  const rank = (d: DocFile) => DOC_GROUP_ORDER.indexOf(d.group)
   return [...docs].sort((a, b) =>
     rank(a) - rank(b) ||
     (a.index ?? "").localeCompare(b.index ?? "", "en", { numeric: true }) ||

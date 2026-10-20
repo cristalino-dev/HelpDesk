@@ -15,7 +15,8 @@ import { tmpdir } from "os"
 import { join } from "path"
 import {
   docExt, isDocFile, docTitle, docGroupOf, sortDocs, docMimeType, docResponseHeaders,
-  docHebrewTitle, docViewKind, docViewHref, docFileHref, isSafeDocLink, DOC_TITLES_HE, DOCS_SHELF_HREF, type DocFile,
+  docHebrewTitle, docViewKind, docViewHref, docFileHref, isSafeDocLink, DOC_TITLES_HE, DOCS_SHELF_HREF,
+  DOC_GROUPS, DOC_GROUP_ORDER, type DocFile,
 } from "@/lib/docs"
 
 describe("reading a document's name", () => {
@@ -36,6 +37,15 @@ describe("reading a document's name", () => {
   it("files a numbered document with the infrastructure set and the rest as guides", () => {
     expect(docGroupOf("00_MASTER_IT_ECOSYSTEM_INDEX.docx")).toBe("infra")
     expect(docGroupOf("מדריך פתיחת משתמשים - Google Workspace Admin.html")).toBe("guides")
+  })
+
+  // v3.106: a section of its own for what comes from Swarovski.
+  it("files a name that starts with סברובסקי or Swarovski with the Swarovski documents", () => {
+    expect(docGroupOf("סברובסקי - מספרי לקוח וכתובות משלוח.html")).toBe("swarovski")
+    expect(docGroupOf("Swarovski price list.pdf")).toBe("swarovski")
+    expect(docGroupOf("SWAROVSKI.xlsx")).toBe("swarovski")
+    // Only at the start: a guide that mentions Swarovski is still a guide.
+    expect(docGroupOf("מדריך הזמנות מסברובסקי.html")).toBe("guides")
   })
 
   // v3.104: the shelf is in Hebrew; the files keep their English names.
@@ -75,8 +85,9 @@ describe("the order on the shelf", () => {
     return { name, title, titleHe: docHebrewTitle(title), index, group: docGroupOf(name), ext: docExt(name), size: 1, updatedAt: "2026-09-29T00:00:00.000Z" }
   }
 
-  it("puts the numbered set first, in its numbers, then the guides by name", () => {
+  it("puts the numbered set first, in its numbers, then the guides by name, then Swarovski", () => {
     const shelf = sortDocs([
+      doc("סברובסקי - מספרי לקוח וכתובות משלוח.html"),
       doc("מדריך פתיחת משתמשים - Google Workspace Admin.html"),
       doc("09_SECURITY_OPERATIONS_AND_INCIDENT_RUNBOOK.docx"),
       doc("00_MASTER_IT_ECOSYSTEM_INDEX.docx"),
@@ -85,7 +96,12 @@ describe("the order on the shelf", () => {
     ])
     expect(shelf.map(d => d.index ?? d.title)).toEqual([
       "00", "02", "09", "מדריך הקמת נציגים - Zoho Desk", "מדריך פתיחת משתמשים - Google Workspace Admin",
+      "סברובסקי - מספרי לקוח וכתובות משלוח",
     ])
+  })
+
+  it("has a place in the order for every section", () => {
+    expect([...DOC_GROUP_ORDER].sort()).toEqual(Object.keys(DOC_GROUPS).sort())
   })
 })
 
