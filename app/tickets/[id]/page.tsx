@@ -16,12 +16,17 @@ import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboa
 import type { TicketEquipment } from "@/types/ticket"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { T, HDR, STATUS, URGENCY } from "@/lib/theme"
-import { ticketLabel, TICKET_TYPES, TYPE_LABEL, normalizeType } from "@/lib/ticketType"
+import { ticketLabel, TICKET_TYPES, TYPE_LABEL, normalizeType, slaFor } from "@/lib/ticketType"
 import { relineContact, relineLabel } from "@/lib/reline"
 import { STATUSES, WAITING_EXTERNAL } from "@/lib/ticketStatus"
 import { useIsMobile } from "@/lib/useIsMobile"
 import Logo from "@/components/Logo"
 import MergeTicketsModal, { type MergeResult } from "@/components/MergeTicketsModal"
+import PrioritySelect from "@/components/PrioritySelect"
+import { useSla, usePrioritySla } from "@/lib/useSla"
+import {
+  formatClockSpan, formatSlaHours, normalizePriority, priorityLabel, slaState, PRIORITY_HISTORY_FIELD, UNCLASSIFIED_LABEL,
+} from "@/lib/internalPriority"
 
 /** How often (ms) the open ticket page polls the server for changes. */
 const POLL_INTERVAL_MS = 10_000
@@ -69,6 +74,8 @@ export default function TicketDetailPage() {
   const [msgSaving, setMsgSaving]   = useState(false)
   const [replyTo, setReplyTo]       = useState<{ email: string; name: string; msgId: string } | null>(null)
   const [assigning, setAssigning]   = useState(false)
+  /** The internal priority (v3.107) is being saved. */
+  const [prioritySaving, setPrioritySaving] = useState(false)
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null)
   const [closing, setClosing]       = useState(false)
   const [copied, setCopied]         = useState(false)
@@ -99,6 +106,10 @@ export default function TicketDetailPage() {
   /** Staff "add missing item" panel: open state + pending selection. */
   const [equipAdding, setEquipAdding] = useState(false)
   const [equipDraft, setEquipDraft]   = useState<Record<string, number>>({})
+  // The SLA the staff-only priority row measures against. The priority one is
+  // staff-only at the server too, so a reporter's page never asks for it.
+  const sla = useSla()
+  const prioritySla = usePrioritySla(isStaff)
 
   useEffect(() => {
     fetchFieldOptions().then(opts => {
@@ -197,7 +208,7 @@ export default function TicketDetailPage() {
   // only touches state when the server payload actually differs from what's
   // shown. Kept in a ref so the polling effect doesn't resubscribe each render.
   const refresh = async () => {
-    if (editing || editSaving || noteSaving || msgSaving || assigning || closing || deletingMsgId) return
+    if (editing || editSaving || noteSaving || msgSaving || assigning || prioritySaving || closing || deletingMsgId) return
     try {
       // Send the current revision so the server can answer with a tiny
       // { unchanged: true } instead of the full payload (which includes all
@@ -348,6 +359,18 @@ export default function TicketDetailPage() {
       await load()
     } finally {
       setAssigning(false)
+    }
+  }
+
+  /** Staff-only: the helpdesk's own urgency, P1–P5 or none (v3.107). */
+  const setPriority = async (internalPriority: string | null) => {
+    if (!ticket) return
+    setPrioritySaving(true)
+    try {
+      await updateTicket(ticket.id, { internalPriority })
+      await load()
+    } finally {
+      setPrioritySaving(false)
     }
   }
 
@@ -1053,6 +1076,30 @@ export default function TicketDetailPage() {
             )}
           </div>
 
+          {/* Internal priority — the helpdesk's own, never shown to the reporter (v3.107) */}
+          {isStaff && (() => {
+            const level = normalizePriority(ticket.internalPriority)
+            const clock = slaState(ticket, sla, prioritySla)
+            const state = ticket.status === "סגור" ? ""
+              : clock.paused ? " · השעון מושהה"
+              : clock.remainingHours === null ? ""
+              : clock.overdue ? ` · חריגה של ${formatClockSpan(clock.remainingHours)}`
+              : ` · נותרו ${formatClockSpan(clock.remainingHours)}`
+            return (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 10, padding: "10px 14px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
+                <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, flexShrink: 0 }}>🚦 דחיפות פנימית:</span>
+                <PrioritySelect value={ticket.internalPriority} disabled={prioritySaving || !!mergedInto} onChange={setPriority} />
+                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: clock.overdue ? T.orangeFgDeep : T.inkMuted }}>
+                  {level
+                    ? `SLA: ${formatSlaHours(prioritySla[level])}${state}`
+                    : `${UNCLASSIFIED_LABEL} — חל ה-SLA של ${TYPE_LABEL[normalizeType(ticket.type)]}: ${slaFor(ticket.type, sla)} ימי עבודה`}
+                </span>
+                {prioritySaving && <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>שומר...</span>}
+                <span style={{ marginRight: "auto", fontSize: "0.7rem", color: T.inkFaint }}>🔒 גלוי לצוות בלבד</span>
+              </div>
+            )
+          })()}
+
           {/* Merged here, and who follows the ticket besides its owner (v3.92) */}
           {(mergedFrom.length > 0 || participants.length > 0) && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10, padding: "10px 14px", background: T.fill2, borderRadius: 10, border: `1px solid ${T.line}` }}>
@@ -1524,6 +1571,7 @@ function historyIcon(field: string): string {
     case "relineRef":  return "↗"
     case "participant":
     case "participantRemoved": return "👥"
+    case PRIORITY_HISTORY_FIELD: return "🚦"
     default:           return "📝"
   }
 }
@@ -1543,6 +1591,7 @@ function historyDotColor(field: string): string {
     case "relineRef":  return T.amberBg
     case "participant":
     case "participantRemoved": return T.purpleBg
+    case PRIORITY_HISTORY_FIELD: return T.orangeBg
     default:           return T.fill
   }
 }
@@ -1577,6 +1626,11 @@ function historyLabel(entry: TicketHistoryEntry): string {
       return `הפנייה נשלחה ל-Reline (${entry.newValue ?? "—"})`
     case "relineRef":
       return `התקבל מספר פנייה מ-Reline: #${entry.newValue ?? "—"}`
+    case PRIORITY_HISTORY_FIELD: {
+      // Staff-only: the routes leave these rows out of a reporter's history.
+      const name = (v?: string | null) => { const p = normalizePriority(v); return p ? priorityLabel(p) : UNCLASSIFIED_LABEL }
+      return `דחיפות פנימית: ${name(entry.oldValue)} ← ${name(entry.newValue)}`
+    }
     default:
       return `${entry.field} עודכן`
   }

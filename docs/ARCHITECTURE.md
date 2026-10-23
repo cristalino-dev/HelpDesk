@@ -1,6 +1,6 @@
 # Cristalino HelpDesk — Architecture Document
 
-> Version 2.0 · Last updated 2026-10-20 · v3.106
+> Version 2.0 · Last updated 2026-10-22 · v3.107
 
 This document describes **how the system is built** — the database schema, the
 HTTP surface, the authorization rules, and the deployment shape.
@@ -449,8 +449,9 @@ app/
 │   └── [id]/page.tsx       CLIENT — Ticket detail: notes, messages, attachments,
 │                                    equipment, history timeline, polling by revision
 ├── admin/
-│   ├── page.tsx            CLIENT — Tabs: תור פניות · ניהול משתמשים · יומן שגיאות ·
-│   │                                שדות מערכת · רישוי · מדפסות · ציוד חסר · API
+│   ├── page.tsx            CLIENT — Tabs: תור פניות · לפי מטפל · ניהול משתמשים ·
+│   │                                יומן שגיאות · שדות מערכת · רישוי · מדפסות ·
+│   │                                ציוד חסר · API · מסמכים
 │   ├── logs/page.tsx       CLIENT — Standalone error-log viewer
 │   ├── reports/            CLIENT — Ticket analytics: page.tsx + TimelineChart.tsx
 │   │                                + BreakdownBars.tsx (hand-rolled SVG, no chart lib)
@@ -607,6 +608,7 @@ The central table.
 | `userId` | String | ✓ | FK → `User.id`. The מגיש (submitter). Admins can move it via `PATCH /api/tickets { ownerEmail }` |
 | `sourceMessageId` | String? | ✗ | `@unique`. The source email's `Message-ID` for email-ingested tickets; the idempotency key that stops one email becoming two tickets. Null for UI tickets |
 | `holdReason` | String? | ✗ | Required while `status = "בהמתנה"`; cleared automatically on reinstatement |
+| `internalPriority` | String? | ✗ | The helpdesk's own urgency, `P1` (משביתה) … `P5` (נמוכה); null until staff classify the ticket (v3.107). Each level has an SLA in hours on a Sunday–Thursday clock. **Staff-only**: stripped from every answer to a non-staff caller, and its `internalPriority` history rows with it — `lib/internalPriority.ts` |
 | `mergedIntoId` | String? | ✗ | FK → `Ticket.id`, `onDelete: SetNull`, indexed (v3.92). The ticket this one was merged into. Set only by a merge; never a chain — merging into a ticket repoints what had been merged into the source |
 
 Relations: `user`, `notes`, `attachments`, `messages`, `review`, `history`,
@@ -858,6 +860,12 @@ the SLA and the place in the queue follow the type (`lib/ticketType.ts`).
 `sla.ticket` and `sla.request`, in workdays. A missing key means the default
 (4 and 10). Read and written through `lib/sla.ts`.
 
+Since v3.107 also `sla.priority.P1` … `sla.priority.P5` — the SLA per internal
+priority, in hours on the Sunday–Thursday clock (defaults 4, 8, 48, 96, 240).
+A ticket with an internal priority is overdue against its level's target; one
+without keeps its type's. `slaState()` in `lib/internalPriority.ts` is the one
+rule every staff queue and the digest apply.
+
 ### ApiKey (v3.88)
 
 One row per program allowed to call `/api/v1` (§7). No foreign keys.
@@ -909,8 +917,8 @@ place, `canSeeTicket()` in `lib/ticketAccess.ts`.
 |---|---|---|---|
 | GET | `/api/tickets` | User | The caller's **own** tickets — the ones they opened — whatever their role, and since v3.92 the ones they follow as a participant, each with `role: "owner" \| "participant"` and `mergedInto`. (Until v3.72 an admin got every ticket here; the queue is `/api/tickets/all`.) |
 | POST | `/api/tickets` | User | Create a ticket. Accepts `equipment[]` on any category, `newEmployee{}` (mandatory for `עובד חדש`, else 400), and `onBehalfOfEmail` / `onBehalfOfName` (**admin only**, 403 otherwise), and `type` — `ticket` (default) or `request` (v3.87) → 201 |
-| PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }`. Staff may change `type` — a `type` history row (v3.87) |
-| POST | `/api/tickets/bulk` | **Staff** | Change many tickets at once: `{ ids, changes }` with any of `status` (+ `holdReason`), `urgency`, `category`, `platform`, `assignedTo`, `note`, and `ownerEmail` (**admin only**). The single-edit rules apply per ticket — compound close, hold reason, offboarding guard, self-assign → `בטיפול` — and a ticket that cannot take the change is reported in `errors[]` while the rest go ahead → `{ ok, total, updatedCount, errors? }` (v3.83) |
+| PATCH | `/api/tickets` | User / Staff / Admin | Update fields. **Compound close** forces `urgency="נמוך"`. `holdReason` required for `בהמתנה`. Self-assign from `פתוח` auto-sets `בטיפול`. Owners may close anytime and re-open within 4 weeks. `ownerEmail` (change the מגיש) is **admin only** and requires an existing user. Offboarding tickets with unticked lines → 400 `{ blockers }`. Staff may change `type` — a `type` history row (v3.87). Staff may set `internalPriority` (`P1`–`P5`, or null/"" to clear; 400 otherwise) — an `internalPriority` history row, and no mail when it is the only change; ignored from anyone else, and the answer to a non-staff caller never carries it (v3.107) |
+| POST | `/api/tickets/bulk` | **Staff** | Change many tickets at once: `{ ids, changes }` with any of `status` (+ `holdReason`), `urgency`, `category`, `platform`, `assignedTo`, `internalPriority` (v3.107), `note`, and `ownerEmail` (**admin only**). The single-edit rules apply per ticket — compound close, hold reason, offboarding guard, self-assign → `בטיפול` — and a ticket that cannot take the change is reported in `errors[]` while the rest go ahead → `{ ok, total, updatedCount, errors? }` (v3.83) |
 | GET | `/api/admin/docs` | **Admin** | The IT documentation shelf: every file under `uploads/it-docs/`, named and ordered by `lib/docs.ts` → `{ docs }` (v3.99) |
 | GET | `/api/admin/docs/[name]` | **Admin** | One document. HTML, PDF and text open inline (HTML under `default-src 'none'`), the rest download; `?download=1` downloads any of them — the viewer page's button (v3.104). `name` is a filename, never a path (v3.99) |
 | GET | `/api/tickets/merge?refs=` | **Staff** | What the merge dialog shows: each ticket (`HDTC-N`, `REQ-N`, `N` or an id; up to 10) with its owner, participants, counts, `mergedInto`, and `problems` — why it could not be the one that stays → `{ tickets, notFound }` (v3.92) |
@@ -918,11 +926,13 @@ place, `canSeeTicket()` in `lib/ticketAccess.ts`.
 | DELETE | `/api/tickets/[id]/participants` | **Staff** | Take `{ userId }` off the ticket's participants; a `participantRemoved` history row (v3.92) |
 | GET | `/api/settings/sla` | User | The SLA per type in workdays, `{ ticket, request }` — every queue marks overdue tickets with it (v3.87) |
 | PUT | `/api/admin/settings/sla` | **Admin** | Set both: whole workdays 1–60 each (400 otherwise, in Hebrew); the change is logged (v3.87) |
-| GET | `/api/tickets/all` | Staff / Viewer | All tickets — the read-only viewer list |
+| GET | `/api/settings/priority-sla` | **Staff** | The SLA per internal priority in hours, `{ P1, …, P5 }` — staff-only, like the field (v3.107) |
+| PUT | `/api/admin/settings/priority-sla` | **Admin** | Set all five: whole hours 1–1440 each (400 otherwise, in Hebrew); the change is logged (v3.107) |
+| GET | `/api/tickets/all` | Staff / Viewer | All tickets — the admin queue, the "לפי מטפל" board and the read-only viewer list. A viewer's copy has no `internalPriority` (v3.107) |
 | GET | `/api/tickets/assigned` | **Staff** | Non-closed tickets assigned to the caller (case-insensitive), with the owner — "משויכות אליי" on the dashboard. 403 for employees and viewers (v3.81) |
 | GET | `/api/tickets/[id]` | Owner/Staff | Full detail: messages, notes, attachment metadata, equipment. `[id]` is `HDTC-N`, `REQ-N` or a CUID (`ticketRefWhere()`, v3.87) |
 | DELETE | `/api/tickets/[id]` | **Admin** | Permanently erase a ticket. No undo, no soft-delete. Child rows cascade; attachment bytes are unlinked first; the deletion itself is written to `Log` |
-| GET | `/api/tickets/[id]/history` | Owner/Staff | Audit timeline |
+| GET | `/api/tickets/[id]/history` | Owner/Staff | Audit timeline. `internalPriority` rows are staff-only (v3.107) |
 | POST | `/api/tickets/[id]/messages` | Owner/Staff | Post a conversation message. Optional `replyToEmail` / `replyToName` / `replyToMsgId` target one participant with a deep-link email and suppress the general notification |
 | DELETE | `/api/tickets/[id]/messages` | Author | Delete your own message |
 | POST | `/api/tickets/[id]/notes` | Staff | Internal note; `@handle` mentions notify by email |

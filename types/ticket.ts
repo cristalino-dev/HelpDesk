@@ -58,6 +58,10 @@ export interface Ticket {
   relineRef?: string | null
   relineSentAt?: string | null    // when it was handed to Reline
   relineRepliedAt?: string | null // when their answer came back, if it did
+  // The helpdesk's own urgency, "P1"…"P5" (v3.107, lib/internalPriority.ts).
+  // Staff payloads only — the routes strip it for everyone else, so on a
+  // reporter's screen it is simply absent.
+  internalPriority?: string | null
   createdAt: string
   updatedAt: string
   userId: string
@@ -110,7 +114,7 @@ export interface TicketMessage {
 export interface TicketHistoryEntry {
   id: string
   ticketId: string
-  field: string       // "created" | "status" | "urgency" | "assignedTo" | "owner" | "type" | "edited" | "merged" | "mergedFrom" | "participant"
+  field: string       // "created" | "status" | "urgency" | "assignedTo" | "owner" | "type" | "edited" | "merged" | "mergedFrom" | "participant" | "internalPriority" (staff-only)
   oldValue?: string | null
   newValue?: string | null
   actorName: string

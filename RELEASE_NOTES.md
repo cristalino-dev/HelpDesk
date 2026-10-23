@@ -5,6 +5,84 @@ Newest first. Versions before 3.56 are recorded in the version table in
 
 ---
 
+## v3.107 — דחיפות פנימית, ומבט לפי מטפל
+
+**The helpdesk ranks tickets by an urgency of its own, with an SLA per level,
+and the admin console shows each staff member's open tickets in one place.**
+
+Asked for by Eyal: to see every helpdesk member's open tickets in one view,
+grouped by who holds them; to mark how urgent a ticket really is, visible to
+the team only, with a shorter SLA for an outage; and an admin screen that
+filters by assignee and then by urgency and internal urgency.
+
+### What changed for users
+
+- **דחיפות פנימית** — five levels, set by staff: **P1 משביתה** (an outage —
+  a system, branch or department down), **P2 קריטית**, **P3 גבוהה**,
+  **P4 רגילה**, **P5 נמוכה**. A new ticket has none until someone classifies
+  it. Set it on the ticket page (under the assignee), from the queue's
+  expanded row, in bulk from the bulk-edit dialog, or straight from the new
+  tab. A change is recorded in the ticket's history.
+- **Staff only.** The reporter never sees it — not on their ticket, not on
+  their dashboard, not in its history, not in any mail; nor do the viewers
+  who read the queue. The reporter's own urgency is unchanged and still theirs.
+- **An SLA per level, in hours**: by default P1 4 hours, P2 8 hours, P3 2
+  workdays, P4 4 workdays, P5 10 workdays. Admins change them in שדות מערכת →
+  "זמני טיפול לפי דחיפות פנימית", in hours or workdays. The clock runs Sunday
+  to Thursday around the clock — Friday and Saturday do not count — and stops
+  while a ticket is on hold or waiting on someone outside. A ticket nobody
+  classified keeps the SLA of its type, exactly as before; P4 and P5 match
+  those, so classifying a ticket as ordinary changes nothing about it.
+- The overdue marker (⏰) in the queue, on /tickets, on the dashboard's
+  "משויכות אליי" and in the morning digest follows the level when there is
+  one. The digest names the level beside the urgency.
+- **לפי מטפל** — a new tab in the admin console, after תור פניות. A card per
+  helpdesk member: how many open tickets they hold, how many are past their
+  SLA, how many are P1–P2, how many are not classified yet, or "פנוי". Click a
+  card, or pick from the list, to see one person's tickets; then narrow by
+  the reporter's urgency, by internal priority (unclassified is a choice of
+  its own), or to overdue tickets only. Tickets are ranked P1 first, and
+  within a level by the time left on the clock; the unclassified come last,
+  under a label, so triage has somewhere to look. Each row shows how long is
+  left ("נותרו 3 ש׳") or how late it is, and the priority and the assignee can
+  be changed right there.
+- The queue gained a sort by **דחיפות פנימית**, and a P-badge beside the
+  urgency when a ticket has one.
+
+### What changed for developers
+
+- `Ticket.internalPriority String?` — `"P1"`…`"P5"`, null when unclassified.
+  Migration `20261022000000_internal_priority` is a nullable column with
+  `ADD COLUMN IF NOT EXISTS`; it can be applied before the deploy (rule 49).
+- `lib/internalPriority.ts` — the levels, `normalizePriority()`,
+  `priorityRank()`, the Sunday–Thursday clock (`workHoursBetween()`,
+  `slaDeadline()`), `slaState()` / `isOverdue()` — the one overdue rule every
+  staff queue now uses — and `hideInternal()` / `PRIORITY_HISTORY_FIELD`.
+- Hidden from non-staff at the route, not the page: `GET /api/tickets` (a
+  reporter's own list), `GET /api/tickets/[id]` and its change-detection
+  probe, `GET /api/tickets/[id]/history`, `GET /api/tickets/all` for viewers,
+  and the answers to `POST` / `PATCH /api/tickets`. The probe leaves the
+  history rows out the same way the payload does, so a reporter's signature
+  still matches the server's.
+- `PATCH /api/tickets` and `POST /api/tickets/bulk` (through
+  `applyTicketChanges`) accept `internalPriority` from staff — a level, or
+  null / "" to clear it; anything else is a 400. A change to it alone sends
+  no mail: classifying is triage, and a morning of it would be a mail to all
+  staff per ticket.
+- AppSetting `sla.priority.P1`…`P5`, in hours, via `getPrioritySla()` /
+  `setPrioritySla()` in `lib/sla.ts`. `GET /api/settings/priority-sla` is
+  **staff-only** (unlike the per-type one); `PUT /api/admin/settings/priority-sla`
+  is admin-only and logged. `usePrioritySla(enabled)` in `lib/useSla.ts`; the
+  dashboard's table asks only when a row carries a level.
+- `lib/assigneeBoard.ts` — the filtering, ranking and lanes behind
+  `components/AssigneeBoard.tsx`. `components/PrioritySelect.tsx` is the pill
+  and the picker; `PRIORITY` / `PRIORITY_TOKENS` in `lib/theme.ts` colour them
+  from existing tokens. `components/PrioritySlaSettings.tsx` is the settings card.
+- `/api/v1` is unchanged: its serializer names its fields, so the new column
+  does not reach it. 101 suites / 1,709 tests.
+
+---
+
 ## v3.106 — מסמכי סברובסקי
 
 **The shelf has a third section, for what comes from Swarovski.**

@@ -91,6 +91,10 @@ model Ticket {
   // may never come at all, and because "sent 9 days ago, no reply" is a
   // different thing to know than "no reference" (v3.103).
   relineRepliedAt DateTime?
+  // The helpdesk's own urgency, "P1" (משביתה) … "P5" (נמוכה) — v3.107. Set by
+  // staff, never shown to the reporter, and null until somebody classifies
+  // the ticket. Each level has an SLA in hours. See lib/internalPriority.ts.
+  internalPriority String?
   mergedIntoId    String?
   mergedInto      Ticket?             @relation("TicketMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
   mergedFrom      Ticket[]            @relation("TicketMerge")

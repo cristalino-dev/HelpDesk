@@ -31,6 +31,7 @@ const makeTicket = (overrides: Partial<{
   status: string
   createdAt: string
   user: { name: string | null; email: string | null }
+  internalPriority: string | null
 }> = {}) => ({
   ticketNumber: 1,
   subject: "בעיית רשת",
@@ -103,6 +104,28 @@ describe("mailDailyDigest", () => {
   it("does not show the stale card when no ticket is stale", () => {
     const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(1) })])
     expect(html).not.toContain("חורגות מזמן הטיפול")
+  })
+
+  // ── internal priority (v3.107) ──────────────────────────────────────────────
+
+  it("measures a classified ticket against its level's SLA in hours — a P1 is late within the day", () => {
+    const sixHoursAgo = new Date(NOW.getTime() - 6 * 60 * 60 * 1000).toISOString()
+    expect(mailDailyDigest([makeTicket({ createdAt: sixHoursAgo })])).not.toContain("חורגות מזמן הטיפול")
+    expect(mailDailyDigest([makeTicket({ createdAt: sixHoursAgo, internalPriority: "P1" })])).toContain("חורגות מזמן הטיפול")
+  })
+
+  it("gives a P5 longer than the type's 4 workdays", () => {
+    expect(mailDailyDigest([makeTicket({ createdAt: daysAgo(7) })])).toContain("חורגות מזמן הטיפול")
+    expect(mailDailyDigest([makeTicket({ createdAt: daysAgo(7), internalPriority: "P5" })])).not.toContain("חורגות מזמן הטיפול")
+  })
+
+  it("follows the admins' targets per level", () => {
+    const html = mailDailyDigest([makeTicket({ createdAt: daysAgo(1), internalPriority: "P4" })], undefined, { P1: 4, P2: 8, P3: 48, P4: 2, P5: 240 })
+    expect(html).toContain("חורגות מזמן הטיפול")
+  })
+
+  it("names the level beside the urgency — the digest goes to staff only", () => {
+    expect(mailDailyDigest([makeTicket({ internalPriority: "P2" })])).toContain(">P2</span>")
   })
 
   // ── stale row indicator ─────────────────────────────────────────────────────

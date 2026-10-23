@@ -181,6 +181,19 @@ export const URGENCY_TOKENS = {
 } as const satisfies Record<string, { bg: keyof Palette; fg: keyof Palette }>
 
 /** Left/right accent bar on a ticket card, by urgency. */
+/**
+ * The internal priority's pills (v3.107, lib/internalPriority.ts). P1 is the
+ * one solid pill in the app: an outage has to be seen from across the room.
+ * The rest run down the warm-to-cool families, so the order reads in colour.
+ */
+export const PRIORITY_TOKENS = {
+  P1: { bg: "redFg",         fg: "inverseText" },
+  P2: { bg: "orangeBg",      fg: "orangeFgDeep" },
+  P3: { bg: "amberBg",       fg: "amberFgDeep" },
+  P4: { bg: "blueBg",        fg: "blueFgDeep" },
+  P5: { bg: "pillNeutralBg", fg: "pillNeutralFg" },
+} as const satisfies Record<string, { bg: keyof Palette; fg: keyof Palette }>
+
 export const URGENCY_BAR_TOKENS = {
   "נמוך":   "barLow",
   "בינוני": "barMedium",
@@ -201,6 +214,8 @@ export const STATUS: Record<string, { bg: string; fg: string }> = pills(STATUS_T
 
 /** Urgency pill colors (background + text), keyed by Hebrew urgency label. */
 export const URGENCY: Record<string, { bg: string; fg: string }> = pills(URGENCY_TOKENS)
+
+export const PRIORITY: Record<string, { bg: string; fg: string }> = pills(PRIORITY_TOKENS)
 
 /** Left/right accent bar color for a ticket card, by urgency. */
 export const URGENCY_BAR: Record<string, string> = Object.fromEntries(

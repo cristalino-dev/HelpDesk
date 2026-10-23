@@ -23,6 +23,7 @@ import { BOT_EMAIL } from "@/lib/staffEmails"
 import { isDevSite } from "@/lib/appEnv"
 import { ticketLabel, slaFor, DEFAULT_SLA, type Sla } from "@/lib/ticketType"
 import { workdaysAgo } from "@/lib/workdays"
+import { DEFAULT_PRIORITY_SLA, normalizePriority, workHoursBetween, type PrioritySla } from "@/lib/internalPriority"
 import { LIGHT } from "@/lib/palette"
 import { STATUS_TOKENS, URGENCY_TOKENS } from "@/lib/theme"
 
@@ -570,6 +571,8 @@ interface DigestTicket {
   status: string
   createdAt: string | Date
   user?: { name?: string | null; email?: string | null } | null
+  /** Staff-only, and so is this mail (v3.107). */
+  internalPriority?: string | null
 }
 
 const URGENCY_RANK_DIGEST: Record<string, number> = { "דחוף": 0, "גבוה": 1, "בינוני": 2, "נמוך": 3 }
@@ -579,9 +582,15 @@ const URGENCY_RANK_DIGEST: Record<string, number> = { "דחוף": 0, "גבוה":
  * sorted by priority (דחוף → גבוה → בינוני → נמוך) then by age (oldest first).
  * Tickets past their type's SLA are highlighted in red — in workdays, the
  * same rule the queues apply (v3.87); this used to be a flat 4 calendar days.
+ * A ticket staff have given an internal priority is measured against that
+ * level's SLA in hours instead, and carries its level next to the urgency
+ * (v3.107).
  */
-export function mailDailyDigest(tickets: DigestTicket[], sla: Sla = DEFAULT_SLA) {
-  const isOverdue = (t: DigestTicket) => workdaysAgo(t.createdAt) > slaFor(t.type, sla)
+export function mailDailyDigest(tickets: DigestTicket[], sla: Sla = DEFAULT_SLA, prioritySla: PrioritySla = DEFAULT_PRIORITY_SLA) {
+  const isOverdue = (t: DigestTicket) => {
+    const p = normalizePriority(t.internalPriority)
+    return p ? workHoursBetween(t.createdAt) > prioritySla[p] : workdaysAgo(t.createdAt) > slaFor(t.type, sla)
+  }
 
   const daysSince = (d: string | Date) => {
     const days = Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24))
@@ -612,7 +621,7 @@ export function mailDailyDigest(tickets: DigestTicket[], sla: Sla = DEFAULT_SLA)
         </td>
         <td style="padding:9px 8px;font-size:13px;color:${C.text};max-width:220px">${esc(t.subject)}</td>
         <td style="padding:9px 8px;white-space:nowrap">
-          <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;${uc}">${t.urgency}</span>
+          <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;${uc}">${t.urgency}</span>${normalizePriority(t.internalPriority) ? ` <span style="font-size:11px;font-weight:700;color:${C.text2}">${normalizePriority(t.internalPriority)}</span>` : ""}
         </td>
         <td style="padding:9px 8px;font-size:12px;${ageStyle}">${age}${isStale ? " ⏰" : ""}</td>
         <td style="padding:9px 8px;font-size:12px;color:${C.text3}">${t.user?.name ?? t.user?.email ?? "—"}</td>

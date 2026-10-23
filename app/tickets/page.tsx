@@ -7,7 +7,7 @@ import FooterCopyright from "@/components/FooterCopyright"
 import ImageAttachments, { PendingImage } from "@/components/ImageAttachments"
 import { STAFF_EMAILS, ASSIGNABLE_FALLBACK } from "@/lib/staffEmails"
 import type { TicketWithUser, TicketNote, TicketMessage } from "@/types/ticket"
-import { isStaleOpen, openDays } from "@/lib/staleTicket"
+import { openDays } from "@/lib/staleTicket"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { setTicketStatusOrError, updateTicket, bulkUpdateTickets, uploadAttachments, uploadFailureMessage, type BulkChanges } from "@/lib/ticketApi"
@@ -16,9 +16,11 @@ import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { handleImagePaste } from "@/lib/pasteImage"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
-import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { ticketLabel, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
 import { STATUSES } from "@/lib/ticketStatus"
-import { useSla } from "@/lib/useSla"
+import { useSla, usePrioritySla } from "@/lib/useSla"
+import { isOverdue } from "@/lib/internalPriority"
+import { PriorityBadge } from "@/components/PrioritySelect"
 import RequestsDivider from "@/components/RequestsDivider"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
@@ -81,6 +83,8 @@ export default function TicketsPage() {
   const [noteUploadErrors, setNoteUploadErrors] = useState<Record<string, string>>({})
   // Overdue is per type — 4 workdays for a ticket, 10 for a request, unless admins changed it (v3.87).
   const sla = useSla()
+  // …and a ticket staff classified runs on its level's SLA, in hours (v3.107).
+  const prioritySla = usePrioritySla()
   const [noteSaving, setNoteSaving]             = useState<string | null>(null)
   // Messages (conversation with user) per expanded ticket
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
@@ -657,7 +661,7 @@ export default function TicketsPage() {
               const isClosed    = ticket.status === "סגור"
               const resolveMs   = isClosed ? new Date(ticket.updatedAt).getTime() - new Date(ticket.createdAt).getTime() : null
               const isExpanded  = expanded === ticket.id
-              const isStale     = isStaleOpen(ticket, slaFor(ticket.type, sla))
+              const isStale     = isOverdue(ticket, sla, prioritySla)
               const ageDays     = openDays(ticket.createdAt)
               const wdOpen      = isClosed
                 ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
@@ -711,6 +715,7 @@ export default function TicketsPage() {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
+                        <PriorityBadge value={ticket.internalPriority} short />
                         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.7rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>
                         <span style={{ fontSize: "0.68rem", color: isStale ? T.orangeFgDeep : T.inkFaint }}>{new Date(ticket.createdAt).toLocaleDateString("he-IL")}</span>
                         {!isClosed && (
@@ -779,7 +784,10 @@ export default function TicketsPage() {
                     </div>
 
                     {/* Urgency */}
-                    <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(URGENCY_STYLE[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
+                      <PriorityBadge value={ticket.internalPriority} short />
+                    </span>
 
                     {/* Status */}
                     <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: "0.72rem", fontWeight: 600, ...(STATUS_STYLE[ticket.status] ?? {}) }}>{ticket.status}</span>

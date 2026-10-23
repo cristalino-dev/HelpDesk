@@ -13,6 +13,7 @@ import { prisma }      from "@/lib/db"
 import { logError }    from "@/lib/logError"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { canSeeTicket, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
+import { PRIORITY_HISTORY_FIELD } from "@/lib/internalPriority"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(
@@ -38,7 +39,8 @@ export async function GET(
     }
 
     const history = await prisma.ticketHistory.findMany({
-      where:   { ticketId: id },
+      // Changes to the internal priority are staff-only (v3.107).
+      where:   isStaff ? { ticketId: id } : { ticketId: id, field: { not: PRIORITY_HISTORY_FIELD } },
       orderBy: { changedAt: "asc" },
     })
 

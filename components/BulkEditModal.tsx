@@ -10,6 +10,7 @@ import React, { useState, useEffect } from "react"
 import { T } from "@/lib/theme"
 import { ticketLabel } from "@/lib/ticketType"
 import { fetchFieldOptions, FieldOptions, DEFAULT_FIELD_OPTIONS } from "@/lib/fieldOptions"
+import { INTERNAL_PRIORITIES, UNCLASSIFIED_LABEL, priorityLabel } from "@/lib/internalPriority"
 import { BulkChanges, BulkUpdateResult } from "@/lib/ticketApi"
 
 interface StaffMember {
@@ -34,6 +35,7 @@ interface BulkEditModalProps {
 
 const NO_CHANGE = "__NO_CHANGE__"
 const UNASSIGNED = "__UNASSIGNED__"
+const CLEAR_PRIORITY = "__CLEAR_PRIORITY__"
 
 export default function BulkEditModal({
   isOpen,
@@ -48,6 +50,7 @@ export default function BulkEditModal({
   const [status, setStatus] = useState<string>(NO_CHANGE)
   const [holdReason, setHoldReason] = useState<string>("")
   const [urgency, setUrgency] = useState<string>(NO_CHANGE)
+  const [internalPriority, setInternalPriority] = useState<string>(NO_CHANGE)
   const [category, setCategory] = useState<string>(NO_CHANGE)
   const [platform, setPlatform] = useState<string>(NO_CHANGE)
   const [assignedTo, setAssignedTo] = useState<string>(NO_CHANGE)
@@ -65,6 +68,7 @@ export default function BulkEditModal({
       setStatus(NO_CHANGE)
       setHoldReason("")
       setUrgency(NO_CHANGE)
+      setInternalPriority(NO_CHANGE)
       setCategory(NO_CHANGE)
       setPlatform(NO_CHANGE)
       setAssignedTo(NO_CHANGE)
@@ -81,6 +85,7 @@ export default function BulkEditModal({
   const hasChanges =
     status !== NO_CHANGE ||
     urgency !== NO_CHANGE ||
+    internalPriority !== NO_CHANGE ||
     category !== NO_CHANGE ||
     platform !== NO_CHANGE ||
     assignedTo !== NO_CHANGE ||
@@ -107,6 +112,7 @@ export default function BulkEditModal({
       if (status === "בהמתנה") payload.holdReason = holdReason.trim()
     }
     if (urgency !== NO_CHANGE) payload.urgency = urgency
+    if (internalPriority !== NO_CHANGE) payload.internalPriority = internalPriority === CLEAR_PRIORITY ? null : internalPriority
     if (category !== NO_CHANGE) payload.category = category
     if (platform !== NO_CHANGE) payload.platform = platform
     if (assignedTo !== NO_CHANGE) {
@@ -328,6 +334,24 @@ export default function BulkEditModal({
                   {u}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Internal priority (v3.107) — the helpdesk's own; this dialog is staff-only */}
+          <div>
+            <label style={labelStyle}>דחיפות פנימית</label>
+            <select
+              aria-label="דחיפות פנימית"
+              value={internalPriority}
+              onChange={e => setInternalPriority(e.target.value)}
+              style={selectStyle}
+              disabled={submitting}
+            >
+              <option value={NO_CHANGE}>— ללא שינוי —</option>
+              {INTERNAL_PRIORITIES.map(p => (
+                <option key={p} value={p}>{priorityLabel(p)}</option>
+              ))}
+              <option value={CLEAR_PRIORITY}>{UNCLASSIFIED_LABEL} (ניקוי הסיווג)</option>
             </select>
           </div>
 

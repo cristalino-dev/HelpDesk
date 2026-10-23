@@ -46,10 +46,10 @@ import { useState } from "react"
 import type { TicketWithUser } from "@/types/ticket"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
-import { isStaleOpen } from "@/lib/staleTicket"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
-import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
-import { useSla } from "@/lib/useSla"
+import { ticketLabel, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { useSla, usePrioritySla } from "@/lib/useSla"
+import { isOverdue } from "@/lib/internalPriority"
 import RequestsDivider from "@/components/RequestsDivider"
 
 const FOUR_WEEKS_MS = 28 * 24 * 60 * 60 * 1000
@@ -124,6 +124,9 @@ function TicketCard({
   isMobile: boolean
 }) {
   const sla = useSla()
+  // Only staff payloads carry an internal priority (v3.107); a reporter's
+  // board never asks for the staff-only SLA behind it.
+  const prioritySla = usePrioritySla(!!ticket.internalPriority)
   const isClosed  = ticket.status === "סגור"
   const isHovered = hoverId === ticket.id
   const isClosing   = closingId   === ticket.id
@@ -137,7 +140,7 @@ function TicketCard({
     (Date.now() - new Date(ticket.updatedAt).getTime() <= FOUR_WEEKS_MS)
 
   const isOnHold = ticket.status === "בהמתנה"
-  const isStale = !isClosed && !isOnHold && isStaleOpen(ticket, slaFor(ticket.type, sla))
+  const isStale = !isClosed && !isOnHold && isOverdue(ticket, sla, prioritySla)
   const borderColor = isStale ? T.orangeFg : isClosed ? T.lineStrong : isOnHold ? T.inkFaint : (URGENCY_BORDER[ticket.urgency] ?? T.line)
   const openedDate = new Date(ticket.createdAt).toLocaleDateString("he-IL")
   const wdCount = isClosed

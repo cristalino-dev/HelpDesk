@@ -104,6 +104,8 @@ export interface BulkChanges {
   note?: string
   ownerEmail?: string
   type?: string
+  /** "P1"…"P5", or null to clear it (v3.107). */
+  internalPriority?: string | null
 }
 
 export interface BulkUpdateResult {

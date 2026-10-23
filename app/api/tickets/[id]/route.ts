@@ -6,6 +6,7 @@ import { ticketLabel, ticketRefWhere } from "@/lib/ticketType"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import { ticketRevision } from "@/lib/ticketRevision"
 import { canSeeTicket, PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
+import { hideInternal, PRIORITY_HISTORY_FIELD } from "@/lib/internalPriority"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Accept HDTC-N, REQ-N (v3.87) or a raw CUID — lib/ticketType.ts ticketRefWhere()
     const where = ticketRefWhere(id)
+    // The internal priority's history rows are staff-only (v3.107). Left out
+    // of the probe as well as the payload, so a reporter's signature and the
+    // server's are built from the same rows and still agree.
+    const historyWhere = isStaff ? undefined : { field: { not: PRIORITY_HISTORY_FIELD } }
 
     // ── Cheap change-detection probe ─────────────────────────────────────────
     // The detail page polls every 10s with ?rev=<signature of what it shows>.
@@ -38,7 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           attachments: { select: { id: true }, orderBy: { createdAt: "asc" } },
           notes:       isStaff ? { select: { id: true }, orderBy: { createdAt: "asc" } } : false,
           messages:    { select: { id: true }, orderBy: { createdAt: "asc" } },
-          history:     { select: { id: true }, orderBy: { changedAt: "asc" } },
+          history:     { select: { id: true }, where: historyWhere, orderBy: { changedAt: "asc" } },
           // receivedQty rides along: ticking an item off changes the line in
           // place, so an ids-only select would not move the signature.
           equipment:   { select: { id: true, receivedQty: true }, orderBy: { createdAt: "asc" } },
@@ -67,7 +72,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
         notes:       isStaff ? { orderBy: { createdAt: "asc" } } : false,
         messages:    { orderBy: { createdAt: "asc" } },
-        history:     { orderBy: { changedAt: "asc" } },
+        history:     { where: historyWhere, orderBy: { changedAt: "asc" } },
         equipment:   { orderBy: { createdAt: "asc" } },
         // Merging (v3.92): where this ticket went, what was merged into it, and
         // who follows it besides its owner.
@@ -85,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    return NextResponse.json(ticket)
+    return NextResponse.json(isStaff ? ticket : hideInternal(ticket))
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets/[id] GET", e.stack)

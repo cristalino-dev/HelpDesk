@@ -19,6 +19,12 @@
  *    Priority map: דחוף=0, גבוה=1, בינוני=2, נמוך=3 (lower = higher priority)
  *    Note: Closed tickets (סגור) are filtered OUT of the queue to keep it actionable.
  *
+ * 1b. לפי מטפל (By assignee, v3.107)
+ *    ─────────────────────────────────
+ *    The open tickets of each helpdesk member, filtered by assignee and then
+ *    by urgency and internal priority, ranked by the internal priority — see
+ *    components/AssigneeBoard.tsx. Uses the same `tickets` as the queue.
+ *
  * 2. ניהול משתמשים (User Management)
  *    ──────────────────────────────────
  *    Searchable table of all registered users. Admins can edit:
@@ -69,7 +75,6 @@ import type { Printer } from "@/types/printer"
 import FooterCopyright from "@/components/FooterCopyright"
 import { useIsMobile } from "@/lib/useIsMobile"
 import { workdaysBetween, formatWorkdays } from "@/lib/workdays"
-import { isStaleOpen } from "@/lib/staleTicket"
 import { setTicketStatus, setTicketStatusOrError, updateTicket, bulkUpdateTickets, uploadAttachments, uploadFailureMessage, type BulkChanges } from "@/lib/ticketApi"
 import ErrorToast from "@/components/ErrorToast"
 import { matchesTicketNumber, withNumberSuggestion } from "@/lib/ticketSearch"
@@ -77,11 +82,15 @@ import { NEW_EMPLOYEE_CATEGORY, type ShortageItem } from "@/lib/equipment"
 import { LEAVING_EMPLOYEE_CATEGORY } from "@/lib/offboarding"
 import { DEFAULT_CATEGORIES, DEFAULT_PLATFORMS, DEFAULT_URGENCIES, fetchFieldOptions } from "@/lib/fieldOptions"
 import { T, STATUS, URGENCY, URGENCY_BAR } from "@/lib/theme"
-import { ticketLabel, slaFor, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
+import { ticketLabel, withRequestsDivider, isRequestsDivider, isRequest } from "@/lib/ticketType"
 import { STATUSES } from "@/lib/ticketStatus"
-import { useSla } from "@/lib/useSla"
+import { useSla, usePrioritySla } from "@/lib/useSla"
+import { isOverdue, priorityRank } from "@/lib/internalPriority"
+import PrioritySelect, { PriorityBadge } from "@/components/PrioritySelect"
+import AssigneeBoard from "@/components/AssigneeBoard"
 import RequestsDivider from "@/components/RequestsDivider"
 import SlaSettings from "@/components/SlaSettings"
+import PrioritySlaSettings from "@/components/PrioritySlaSettings"
 import ApiKeysPanel from "@/components/ApiKeysPanel"
 import AppHeader from "@/components/AppHeader"
 import AppNav from "@/components/AppNav"
@@ -116,7 +125,7 @@ const badge: React.CSSProperties = {
  * the address follows the tab, so a refresh stays where it was.
  */
 const ADMIN_TABS = [
-  ["tickets", "תור פניות"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"],
+  ["tickets", "תור פניות"], ["assignees", "לפי מטפל"], ["users", "ניהול משתמשים"], ["logs", "יומן שגיאות"], ["fields", "שדות מערכת"],
   ["licenses", "רישוי"], ["printers", "מדפסות"], ["equipment", "ציוד חסר"], ["api", "API"], ["docs", "מסמכים"],
 ] as const
 
@@ -152,6 +161,8 @@ export default function AdminPage() {
   const [noteUploadErrors, setNoteUploadErrors] = useState<Record<string, string>>({})
   // Overdue is per type — 4 workdays for a ticket, 10 for a request, unless admins changed it (v3.87).
   const sla = useSla()
+  // A ticket staff classified runs on its level's SLA, in hours (v3.107).
+  const prioritySla = usePrioritySla()
   const [noteSaving, setNoteSaving]             = useState<string | null>(null)
   // Messages (conversation with user) per expanded ticket
   const [expandedMessages, setExpandedMessages] = useState<Record<string, TicketMessage[]>>({})
@@ -311,7 +322,7 @@ export default function AdminPage() {
   // Ticket-tab filters / sort
   const [showAll,  setShowAll]  = useState(false)
   const [ticketSearch, setTicketSearch] = useState("")
-  const [sortKey, setSortKey] = useState<"subject" | "urgency" | "status" | "createdAt" | "updatedAt" | null>(null)
+  const [sortKey, setSortKey] = useState<"subject" | "urgency" | "internal" | "status" | "createdAt" | "updatedAt" | null>(null)
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   const handleSort = (key: typeof sortKey) => {
@@ -404,6 +415,7 @@ export default function AdminPage() {
         switch (sortKey) {
           case "subject":   return dir * a.subject.localeCompare(b.subject, "he")
           case "urgency":   return dir * ((URGENCY_RANK[a.urgency] ?? 2) - (URGENCY_RANK[b.urgency] ?? 2))
+          case "internal":  return dir * (priorityRank(a.internalPriority) - priorityRank(b.internalPriority))
           case "status": {
             const ORDER: Record<string, number> = { "פתוח": 0, "בטיפול": 1, "בהמתנה": 2, "סגור": 3 }
             return dir * ((ORDER[a.status] ?? 0) - (ORDER[b.status] ?? 0))
@@ -465,6 +477,18 @@ export default function AdminPage() {
       await updateTicket(ticketId, { assignedTo: email })
       // Optimistic local update so the row reflects the change immediately
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignedTo: email } : t))
+    } finally {
+      setAssigning(null)
+    }
+  }
+
+  /** The internal priority (v3.107) — local first, like an assignment. */
+  const setPriority = async (ticketId: string, internalPriority: string | null) => {
+    setAssigning(ticketId)
+    try {
+      if (await updateTicket(ticketId, { internalPriority })) {
+        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, internalPriority } : t))
+      }
     } finally {
       setAssigning(null)
     }
@@ -1208,6 +1232,7 @@ export default function AdminPage() {
             </div>
 
             <SlaSettings />
+            <PrioritySlaSettings />
 
             {/* Current options per field */}
             {([
@@ -1649,6 +1674,18 @@ export default function AdminPage() {
         {/* The team's own documentation, served from the server to admins only (v3.99) */}
         {tab === "docs" && <DocsPanel />}
 
+        {/* ── BY ASSIGNEE (v3.107) ── */}
+        {tab === "assignees" && (
+          <AssigneeBoard
+            tickets={tickets}
+            loading={loading}
+            staffMembers={staffMembers}
+            urgencies={fieldUrgencies}
+            onPatched={(id, patch) => setTickets(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t))}
+            onReload={loadTickets}
+          />
+        )}
+
         {/* ── TICKETS TAB ── */}
         {/* ── EQUIPMENT SHORTAGE TAB ── */}
         {tab === "equipment" && (() => {
@@ -1812,6 +1849,7 @@ export default function AdminPage() {
           <div style={{ display: "flex", gap: 4, ...(isMobile ? { order: 99, width: "100%", overflowX: "auto", paddingBottom: 2 } : {}) }}>
             {([
               { key: "urgency",   label: "דחיפות" },
+              { key: "internal",  label: "דחיפות פנימית" },
               { key: "status",    label: "סטטוס" },
               { key: "createdAt", label: "נפתח" },
               { key: "updatedAt", label: "עודכן" },
@@ -1906,7 +1944,7 @@ export default function AdminPage() {
               if (isRequestsDivider(ticket)) return <RequestsDivider key={ticket.id} count={displayTickets.filter(isRequest).length} />
               const isClosed = ticket.status === "סגור"
               const isOnHold = ticket.status === "בהמתנה"
-              const isStale = !isClosed && !isOnHold && isStaleOpen(ticket, slaFor(ticket.type, sla))
+              const isStale = !isClosed && !isOnHold && isOverdue(ticket, sla, prioritySla)
               const wdOpen = isClosed
                 ? workdaysBetween(ticket.createdAt, ticket.updatedAt)
                 : workdaysBetween(ticket.createdAt)
@@ -1969,6 +2007,7 @@ export default function AdminPage() {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}), padding: "2px 8px" }}>{ticket.urgency}</span>
+                      <PriorityBadge value={ticket.internalPriority} short />
                       <span style={{ ...badge, ...(STATUS_STYLES[ticket.status] ?? {}), padding: "2px 8px" }}>{ticket.status}</span>
                       <span style={{ fontSize: "0.68rem", color: isStale ? T.orangeFgDeep : T.inkFaint, fontWeight: isStale ? 700 : 400 }}>
                         {new Date(ticket.createdAt).toLocaleDateString("he-IL")} · {formatWorkdays(wdOpen)}
@@ -2033,8 +2072,11 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Urgency */}
-                  <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
+                  {/* Urgency — the reporter's, and the helpdesk's own beside it when set (v3.107) */}
+                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ ...badge, ...(URGENCY_STYLES[ticket.urgency] ?? {}) }}>{ticket.urgency}</span>
+                    <PriorityBadge value={ticket.internalPriority} short />
+                  </span>
 
                   {/* Status */}
                   <span style={{ ...badge, ...(STATUS_STYLES[ticket.status] ?? {}) }}>{ticket.status}</span>
@@ -2152,6 +2194,12 @@ export default function AdminPage() {
                               הקצה לעצמי
                             </button>
                           )}
+                          <span style={{ fontSize: "0.78rem", fontWeight: 700, color: T.ink, flexShrink: 0, marginRight: 10 }}>🚦 דחיפות פנימית:</span>
+                          <PrioritySelect
+                            value={ticket.internalPriority}
+                            disabled={assigning === ticket.id}
+                            onChange={p => setPriority(ticket.id, p)}
+                          />
                           {assigning === ticket.id && <span style={{ fontSize: "0.72rem", color: T.inkFaint }}>שומר...</span>}
                         </div>
 

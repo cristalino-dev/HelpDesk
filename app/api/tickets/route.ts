@@ -36,6 +36,7 @@ import { normalizeType, ticketLabel, mergedError } from "@/lib/ticketType"
 import { getTicketOptions } from "@/lib/apiOptions"
 import { knownValue, DEFAULT_URGENCIES, DEFAULT_CATEGORIES, DEFAULT_PLATFORMS } from "@/lib/fieldOptions"
 import { PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
+import { normalizePriority, hideInternal, PRIORITY_HISTORY_FIELD } from "@/lib/internalPriority"
 
 /**
  * POST /api/tickets
@@ -268,7 +269,9 @@ export async function POST(req: NextRequest) {
     ]
     after(async () => { await Promise.all(mails) })
 
-    return NextResponse.json(ticket)
+    // A new ticket is never classified; the field stays out of the answer all
+    // the same, since the answer goes to whoever opened it (v3.107).
+    return NextResponse.json(hideInternal(ticket))
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets POST", e.stack)
@@ -286,6 +289,10 @@ export async function POST(req: NextRequest) {
  *   status  {string}  New status: "פתוח" | "בטיפול" | "סגור"
  *   …other fields (staff only): subject, description, phone, computerName,
  *                               urgency, category, platform, assignedTo
+ *   internalPriority {string|null}  STAFF ONLY — "P1"…"P5", or null/"" to
+ *                        clear it (v3.107, lib/internalPriority.ts). Anything
+ *                        else is a 400. A change to it alone sends no mail, and
+ *                        the answer to a non-staff caller never carries it.
  *   ownerEmail {string}  ADMIN ONLY — move the ticket to this registered
  *                        user's name (the מגיש). Must already exist; unlike
  *                        POST's onBehalfOfEmail it does not create a user.
@@ -301,7 +308,8 @@ export async function POST(req: NextRequest) {
  * RESPONSE:
  *   200 — The updated Ticket object (JSON)
  *   400 — Offboarding ticket closed with items still unticked (`blockers`),
- *         or ownerEmail naming somebody who is not a registered user
+ *         ownerEmail naming somebody who is not a registered user, or an
+ *         internalPriority that is not one of the levels
  *   403 — Forbidden (wrong owner, invalid transition, reopen window expired,
  *         or a non-admin sending ownerEmail)
  *   500 — Database or unexpected error (logged to Log table)
@@ -312,7 +320,7 @@ export async function PATCH(req: NextRequest) {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email ?? "")
-    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo, ownerEmail, type } = await req.json()
+    const { id, status, holdReason, subject, description, phone, computerName, urgency, category, platform, assignedTo, ownerEmail, type, internalPriority } = await req.json()
 
     // Fetch ticket first so we can check ownership for non-staff
     const before = await prisma.ticket.findUnique({
@@ -414,6 +422,16 @@ export async function PATCH(req: NextRequest) {
       if (type         !== undefined) data.type         = normalizeType(type)
     }
     if (newOwner) data.userId = newOwner.id
+    // INTERNAL PRIORITY — staff only, like the other fields above; a reporter
+    // sending it is ignored the same way. Unlike them it is validated: a typo
+    // here would sort the ticket as unclassified without anyone noticing.
+    if (isStaff && internalPriority !== undefined) {
+      const level = normalizePriority(internalPriority)
+      if (level === null && internalPriority !== null && internalPriority !== "") {
+        return NextResponse.json({ error: "דחיפות פנימית היא אחת מ-P1 עד P5" }, { status: 400 })
+      }
+      data.internalPriority = level
+    }
     // ON-HOLD — staff may place a ticket on hold with a mandatory reason.
     if (isStaff && status === "בהמתנה") {
       data.holdReason = holdReason?.trim() || null
@@ -463,6 +481,10 @@ export async function PATCH(req: NextRequest) {
       if (assignedTo !== undefined && assignedTo !== before.assignedTo) historyEntries.push({ ticketId: id, field: "assignedTo", oldValue: before.assignedTo, newValue: assignedTo, actorName, actorEmail })
       // Ticket ↔ request (v3.87): the label changes with it, so the history says when.
       if (data.type !== undefined && data.type !== before.type) historyEntries.push({ ticketId: id, field: "type", oldValue: before.type, newValue: data.type, actorName, actorEmail })
+      // Staff-only row: the ticket routes filter it out of a reporter's history.
+      if (data.internalPriority !== undefined && data.internalPriority !== before.internalPriority) {
+        historyEntries.push({ ticketId: id, field: PRIORITY_HISTORY_FIELD, oldValue: before.internalPriority, newValue: data.internalPriority, actorName, actorEmail })
+      }
     }
     // Owner moves are recorded by display name, not id — the history is read by
     // people, and "מי פתח את זה" is exactly the question this row answers.
@@ -526,7 +548,10 @@ export async function PATCH(req: NextRequest) {
     // dedicated email below — closure/review, בטיפול, or re-open). Other
     // updates (field edits, reassignment) still notify all staff.
     const statusChanged = data.status !== undefined && data.status !== before.status
-    const staffRecipients = (statusChanged ? [ticket.assignedTo].filter(Boolean) : await getStaffEmails())
+    // Classifying is triage — a morning of it would be a mail to every staff
+    // member per ticket, about a field the mail does not even show.
+    const internalOnly = Object.keys(data).length > 0 && Object.keys(data).every(k => k === "internalPriority")
+    const staffRecipients = (statusChanged ? [ticket.assignedTo].filter(Boolean) : internalOnly ? [] : await getStaffEmails())
       // Exclude the person who made the change — no need to email yourself about your own action
       .filter(e => e !== session.user.email)
     const mails: Promise<void>[] = []
@@ -556,7 +581,7 @@ export async function PATCH(req: NextRequest) {
     }
     after(async () => { await Promise.all(mails) })
 
-    return NextResponse.json(ticket)
+    return NextResponse.json(isStaff ? ticket : hideInternal(ticket))
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets PATCH", e.stack)
@@ -603,7 +628,10 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       include: { mergedInto: { select: { ticketNumber: true, type: true } } },
     })
-    return NextResponse.json(tickets.map(t => ({ ...t, role: t.userId === user.id ? "owner" : "participant" })))
+    // The internal priority is the helpdesk's (v3.107): staff keep it on their
+    // own board, a reporter never sees it.
+    const isStaff = session.user.isAdmin || STAFF_EMAILS.includes(session.user.email)
+    return NextResponse.json(tickets.map(t => ({ ...(isStaff ? t : hideInternal(t)), role: t.userId === user.id ? "owner" : "participant" })))
   } catch (err) {
     const e = err instanceof Error ? err : new Error(String(err))
     await logError(e.message, "/api/tickets GET", e.stack)

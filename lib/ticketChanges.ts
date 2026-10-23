@@ -10,6 +10,8 @@
  *   • offboarding — a leaving-employee ticket with gear still out does not close;
  *   • assigning an open ticket to oneself moves it to בטיפול;
  *   • every change is a history row, committed together with the ticket;
+ *   • the internal priority (v3.107) is validated, and a change to it alone
+ *     sends no mail — classifying is triage, not news;
  *   • the same mail a single edit sends. It is RETURNED, not sent: the caller
  *     hands it to after(), so nothing is abandoned when the response goes out
  *     (rule 41).
@@ -22,6 +24,7 @@ import { subjects } from "@/lib/mailSubjects"
 import { isOffboarding, offboardingBlockers, blockerMessage } from "@/lib/offboarding"
 import { normalizeType, ticketLabel, mergedError } from "@/lib/ticketType"
 import { PARTICIPANTS_SELECT } from "@/lib/ticketAccess"
+import { normalizePriority, PRIORITY_HISTORY_FIELD } from "@/lib/internalPriority"
 
 export type TicketChanges = {
   status?: string
@@ -36,6 +39,8 @@ export type TicketChanges = {
   description?: string
   phone?: string
   computerName?: string
+  /** "P1"…"P5", or null / "" to clear it. Staff-only — every caller of this is staff. */
+  internalPriority?: string | null
 }
 
 /** What applyTicketChanges needs loaded with the ticket. */
@@ -80,11 +85,16 @@ export async function applyTicketChanges(opts: {
   if (changes.status === "בהמתנה" && !changes.holdReason?.trim()) {
     return { ok: false, error: "יש להזין סיבת המתנה" }
   }
+  const level = normalizePriority(changes.internalPriority)
+  if (changes.internalPriority !== undefined && changes.internalPriority !== null && changes.internalPriority !== "" && level === null) {
+    return { ok: false, error: "דחיפות פנימית היא אחת מ-P1 עד P5" }
+  }
 
   const data: Record<string, string | null> = {}
   if (changes.status !== undefined) data.status = changes.status
   if (changes.urgency !== undefined) data.urgency = changes.urgency
   if (changes.type !== undefined) data.type = normalizeType(changes.type)
+  if (changes.internalPriority !== undefined) data.internalPriority = level
   for (const field of CONTENT_FIELDS) {
     if (changes[field] !== undefined) data[field] = changes[field]
   }
@@ -115,6 +125,9 @@ export async function applyTicketChanges(opts: {
     row("owner", ticket.user?.name ?? ticket.user?.email ?? null, newOwner.name ?? newOwner.email)
   }
   if (data.type !== undefined && data.type !== ticket.type) row("type", ticket.type, data.type)
+  if (data.internalPriority !== undefined && data.internalPriority !== ticket.internalPriority) {
+    row(PRIORITY_HISTORY_FIELD, ticket.internalPriority, data.internalPriority)
+  }
   if (CONTENT_FIELDS.some(f => changes[f] !== undefined && changes[f] !== ticket[f])) row("edited")
 
   await prisma.$transaction(async tx => {
@@ -128,6 +141,10 @@ export async function applyTicketChanges(opts: {
   })
 
   if (!notify) return { ok: true, mails: [] }
+  // Classifying alone is triage: no mail to anyone, and no note to announce.
+  if (Object.keys(data).length > 0 && Object.keys(data).every(k => k === "internalPriority") && !changes.note?.trim()) {
+    return { ok: true, mails: [] }
+  }
 
   // The same mail a single edit sends: the staff update — to the assignee
   // when the status changed, to all staff otherwise — and the owner's

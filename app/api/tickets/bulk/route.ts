@@ -9,6 +9,7 @@
  *   - Category & Platform
  *   - Type (ticket / request, v3.87)
  *   - Assigned technician ("assignedTo")
+ *   - Internal priority ("internalPriority", P1–P5 or null — v3.107)
  *   - Optional internal technician note added to all selected tickets
  *   - Submitter reassignment ("ownerEmail" — Admin only)
  *
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { ids, changes } = body as {
       ids?: string[]
-      changes?: Pick<TicketChanges, "status" | "holdReason" | "urgency" | "category" | "platform" | "type" | "assignedTo" | "note"> & {
+      changes?: Pick<TicketChanges, "status" | "holdReason" | "urgency" | "category" | "platform" | "type" | "assignedTo" | "note" | "internalPriority"> & {
         ownerEmail?: string
       }
     }
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
       status: changes.status, holdReason: changes.holdReason, urgency: changes.urgency,
       category: changes.category, platform: changes.platform, type: changes.type,
       assignedTo: changes.assignedTo, note: changes.note,
+      internalPriority: changes.internalPriority,
     }
     for (const k of Object.keys(edit) as (keyof TicketChanges)[]) if (edit[k] === undefined) delete edit[k]
 

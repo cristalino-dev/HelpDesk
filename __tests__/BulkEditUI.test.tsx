@@ -115,7 +115,25 @@ describe("BulkEditModal Component", () => {
     )
 
     expect(screen.getByText(/שינוי מרוכז לפניות/i)).toBeInTheDocument()
-    expect(screen.getByText(/5/i)).toBeInTheDocument()
+    // The count, not any "5" — the internal-priority picker lists "P5" (v3.107).
+    expect(screen.getByText("5", { selector: "strong" })).toBeInTheDocument()
+  })
+
+  it("classifies the selection by internal priority, or clears it (v3.107)", async () => {
+    const onApply = jest.fn().mockResolvedValue({ ok: true, updatedCount: 2 })
+    render(
+      <BulkEditModal isOpen={true} onClose={jest.fn()} selectedCount={2} onApply={onApply}
+        isAdmin={true} staffMembers={staffMembers} registeredUsers={registeredUsers} />
+    )
+    const picker = screen.getByLabelText("דחיפות פנימית")
+    fireEvent.change(picker, { target: { value: "P1" } })
+    fireEvent.click(screen.getByText(/החל שינויים/i))
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith({ internalPriority: "P1" }))
+
+    onApply.mockClear()
+    fireEvent.change(picker, { target: { value: "__CLEAR_PRIORITY__" } })
+    fireEvent.click(screen.getByText(/החל שינויים/i))
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith({ internalPriority: null }))
   })
 
   it("applies changes when fields are modified", async () => {
