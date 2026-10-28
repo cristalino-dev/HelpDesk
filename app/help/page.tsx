@@ -17,6 +17,7 @@ import Link from "next/link"
 import { auth } from "@/auth"
 import { STAFF_EMAILS } from "@/lib/staffEmails"
 import AdminGuide from "@/components/AdminGuide"
+import CommandBox from "@/components/CommandBox"
 import FooterCopyright from "@/components/FooterCopyright"
 import VERSION from "@/lib/version"
 import AppHeader from "@/components/AppHeader"
@@ -70,6 +71,7 @@ export default async function HelpPage() {
             <li><a href="#urgency"         style={{ color: T.text }}>רמות דחיפות</a></li>
             <li><a href="#review"          style={{ color: T.text }}>דירוג השירות לאחר סגירה</a></li>
             <li><a href="#contact"         style={{ color: T.text }}>צרו קשר עם תמיכת המערכת</a></li>
+            <li><a href="#rmm"             style={{ color: T.text }}>סוכן ניטור ושליטה מרחוק (Cristalino RMM)</a></li>
           </ol>
         </div>
 
@@ -412,6 +414,45 @@ export default async function HelpPage() {
               { label: "שולח אוטומטי",     desc: "שמכם ואימייל Google שלכם נשלחים אוטומטית — אין צורך למלא" },
             ]} />
             <Note text="לאחר שליחת ההודעה תופיע הודעת אישור על המסך. הצוות יחזור אליכם בהקדם." />
+          </Card>
+        </section>
+
+        {/* ── SECTION 11: RMM AGENT (visible to everyone) ── */}
+        <section id="rmm" style={{ display: "flex", flexDirection: "column", gap: "20px", scrollMarginTop: 80 }}>
+          <SectionTitle number="11" title="סוכן ניטור ושליטה מרחוק — Cristalino RMM" />
+
+          <Card>
+            <p style={{ margin: "0 0 16px", color: T.ink, fontSize: "0.9rem", lineHeight: 1.7 }}>
+              מערכת ניהול וניטור מרחוק (RMM) לכל מחשבי החברה — בדומה ל-Atera. סוכן קטן מותקן על כל
+              מחשב Windows, רץ ברקע ומדווח כל דקה ללוח הבקרה, ומאפשר לצוות ה-IT לראות את כל המחשבים,
+              להריץ פקודות PowerShell מרחוק בהרשאות מנהל ולבצע שליטה מרחוק על המסך.
+            </p>
+            <p style={{ margin: "0 0 6px", color: T.ink, fontSize: "0.9rem" }}>
+              <Strong>לוח הבקרה:</Strong>{" "}
+              <a href="https://18.195.248.157:8443" target="_blank" rel="noreferrer" style={{ color: T.greenInk, fontWeight: 700, fontFamily: "monospace", direction: "ltr", display: "inline-block" }}>https://18.195.248.157:8443</a>
+            </p>
+            <p style={{ margin: "18px 0 10px", fontWeight: 700, color: T.text, fontSize: "0.95rem" }}>התקנה על מחשב Windows</p>
+            <Steps steps={[
+              { n: 1, text: <span>פתחו <Strong>PowerShell כמנהל</Strong> — לחיצה ימנית על PowerShell ובחירת Run as Administrator</span> },
+              { n: 2, text: <span>הדביקו את הפקודה הבאה והריצו אותה</span> },
+              { n: 3, text: <span>המחשב יופיע בלוח הבקרה תוך כדקה</span> },
+            ]} />
+            <div style={{ marginTop: 14 }}>
+              <CommandBox command={`powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;if(-not ([Management.Automation.PSTypeName]'CrmmTls').Type){Add-Type 'using System.Net;public static class CrmmTls{public static void TrustAll(){ServicePointManager.ServerCertificateValidationCallback=delegate{return true;};}}'};[CrmmTls]::TrustAll(); iwr https://18.195.248.157:8443/download/install.ps1 -UseBasicParsing | iex"`} />
+            </div>
+            <Note text="יש להריץ את הפקודה ב-PowerShell בהרשאות מנהל (Run as Administrator). הסוכן רץ ברקע כמשימה מתוזמנת ושורד הפעלה מחדש. אותה פקודה זמינה גם בלוח הבקרה תחת Settings." />
+          </Card>
+
+          <Card>
+            <p style={{ margin: "0 0 14px", fontWeight: 700, color: T.text, fontSize: "0.95rem" }}>מה הסוכן עושה</p>
+            <FieldList items={[
+              { label: "דיווח כל דקה", desc: "שם מחשב, המשתמש המחובר, כתובת IP, שער ו-DNS" },
+              { label: "חומרה ומערכת", desc: "יצרן, דגם, מספר סידורי, גרסת Windows, תוכנית צריכת חשמל וזמן פעילות" },
+              { label: "מדדים חיים", desc: "מעבד, זיכרון, שטח דיסק ותעבורת רשת" },
+              { label: "שליטה מרחוק", desc: "חיבור למסך המחשב דרך RustDesk" },
+              { label: "PowerShell מרחוק", desc: "הרצת פקודות וסקריפטים בהרשאות SYSTEM על מחשב בודד או כמה יחד" },
+              { label: "עדכוני Windows", desc: "התקנת עדכונים מרחוק ישירות מלוח הבקרה" },
+            ]} />
           </Card>
         </section>
 
